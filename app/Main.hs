@@ -1,0 +1,57 @@
+module Main where
+
+import System.Console.ANSI
+import qualified Data.Map as Map
+import System.Random
+import GameAuto
+import World
+import InCastle
+import qualified Characters as Chara
+
+main :: IO ()
+main = do
+    let status = Chara.Status {
+          Chara.strength = 12 -- ^ 力
+        , Chara.iq       = 10 -- ^ 知恵
+        , Chara.piety    = 10 -- ^ 信仰心
+        , Chara.vitality = 10 -- ^ 生命力
+        , Chara.agility  = 10 -- ^ 素早さ
+        , Chara.luck     = 10 -- ^ 運の強さ
+        }
+    let testChara1 = Chara.Character {
+          Chara.name     = "test1"  -- ^ 名前
+        , Chara.age      = 18 -- ^ 年齢
+        , Chara.lv       = 1 -- ^ レベル
+        , Chara.exp      = 0 -- ^ 経験値
+        , Chara.gold     = 0 -- ^ 所持金
+
+        , Chara.hp       = 12 -- ^ HP
+        , Chara.status   = status  -- ^ ステータス
+        , Chara.marks    = 0 -- ^ 倒した敵の数
+        , Chara.rips     = 0 -- ^ 死亡数
+        
+        , Chara.items    = []         -- ^ 所持アイテム
+        , Chara.spells   = []        -- ^ 習得済みの魔法
+        , Chara.mp       = ([], []) -- ^ MP
+        }
+    gen <- getStdGen
+    let w = World {
+        randomGen       = gen
+
+      , party           = []
+      , place           = InCastle
+
+      , inTarvernMember = [testChara1]
+      , inMazeMember    = []
+      , shopItems       = Map.fromList []
+      }
+    let cmd = Key <$> getLine
+    runGame testRender cmd (inCastle, w)
+
+
+testRender :: Event -> World -> IO()
+testRender (Message m) w = do
+    clearScreen
+    putStrLn m
+testRender e w = print e
+
