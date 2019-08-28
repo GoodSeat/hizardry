@@ -1,3 +1,3 @@
-# Changelog for wizarrowry
+# Changelog for hizardry
 
 ## Unreleased changes
