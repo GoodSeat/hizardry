@@ -6,6 +6,8 @@ import GameAuto
 import World
 import Characters
 
+exitGame :: GameAuto w i Event
+exitGame = GameAuto $ return (Exit, const exitGame)
 
 inCastle :: GameAuto World Input Event
 inCastle = GameAuto $ do
@@ -18,7 +20,8 @@ inCastle = GameAuto $ do
     notnull <- not . null . party <$> get
     selectWhen msg [(Key "g", inGilgamesh'sTarvern, True)
                    ,(Key "e", edgeOfTown, True)
-                   ,(Key "a", inAdventure'sInn, notnull)]
+                   ,(Key "a", inAdventure'sInn, notnull)
+                   ,(Key "q", exitGame, True)]
 
 -- =======================================================================
 
@@ -35,7 +38,8 @@ inGilgamesh'sTarvern = GameAuto $ movePlace (Gilgamesh'sTarvern Nothing) >>
 selectCharacterAddToParty :: GameAuto World Input Event
 selectCharacterAddToParty = GameAuto $ do
     cs <- inTarvernMember <$> get
-    let msg = show cs
+    let msg = "#)Add to Party    L)eave\n\n"
+            ++ unlines (toShow <$> zip [1..] cs)
     let lst = [(Key "l", inGilgamesh'sTarvern, True)
               ,(Key "1", addParty (cs !! 0), length cs >= 1)
               ,(Key "2", addParty (cs !! 1), length cs >= 2)
@@ -50,6 +54,7 @@ selectCharacterAddToParty = GameAuto $ do
                else selectWhen (Message msg) lst
   where
     addParty c = GameAuto $ toParty c >> run selectCharacterAddToParty
+    toShow (n, c) = show n ++ ") " ++ name c
 
 
 -- =======================================================================

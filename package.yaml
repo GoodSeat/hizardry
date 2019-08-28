@@ -26,6 +26,7 @@ dependencies:
 - random
 - containers
 - ansi-terminal
+- no-buffering-workaround
 
 library:
   source-dirs: 

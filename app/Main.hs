@@ -1,5 +1,6 @@
 module Main where
 
+import System.IO.NoBufferingWorkaround
 import System.Console.ANSI
 import qualified Data.Map as Map
 import System.Random
@@ -9,6 +10,9 @@ import InCastle
 import qualified Characters as Chara
 
 import CuiRender
+
+-- https://kuo3.dev/2019/06/29/haskellでコンソールゲームを作りたい。共通編入力処/
+-- http://hiratara.hatenadiary.jp/entry/2017/02/11/140028
 
 main :: IO ()
 main = do
@@ -49,8 +53,15 @@ main = do
       , inMazeMember    = []
       , shopItems       = Map.fromList []
       }
-    let cmd = Key <$> getLine
+    initGetCharNoBuffering
+    let cmd = getKey
     runGame testRender cmd (inCastle, w)
+
+
+getKey :: IO Input
+getKey = do
+    x <- getCharNoBuffering
+    return $ Key [x]
 
 
 testRender :: Event -> World -> IO()
