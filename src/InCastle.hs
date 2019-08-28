@@ -108,10 +108,13 @@ sleep c heal gp =
         updateCharacter c' >> run (sleep c' heal gp)
 
 checkLvup :: Character -> GameAuto World Input Event
-checkLvup c = if Characters.exp c >= nextLvExp then doLvup c else selectStayPlan c
+checkLvup c = if Characters.exp c >= nextLvExp
+    then doLvup c
+    else events [Message nextLvMsg] $ selectStayPlan c
   where
     nextLvExp = neps !! (lv c - 1)
     neps = [1100, 3500, 5000]
+    nextLvMsg = name c ++ " needs " ++ show (nextLvExp - Characters.exp c) ++ " Exps for next lv."
 
 doLvup :: Character -> GameAuto World Input Event
 doLvup c = GameAuto $ updateCharacter c' >> run (events [Message txt] $ selectStayPlan c')

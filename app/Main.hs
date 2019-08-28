@@ -8,6 +8,8 @@ import World
 import InCastle
 import qualified Characters as Chara
 
+import CuiRender
+
 main :: IO ()
 main = do
     let status = Chara.Status {
@@ -54,8 +56,6 @@ main = do
 testRender :: Event -> World -> IO()
 testRender (Message m) w = do
     clearScreen
-    putStrLn m
-    putStrLn "\n\n"
-    print $ party w
+    render $ msgBox m <> status' (party w)
 testRender e w = print e
 

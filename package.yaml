@@ -21,9 +21,16 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- transformers
+- arrows
+- random
+- containers
+- ansi-terminal
 
 library:
-  source-dirs: src
+  source-dirs: 
+  - src
+  - src/cui
 
 executables:
   wizarrowry-exe:
@@ -35,12 +42,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - wizarrowry
-    - arrows
-    - random
-    - containers
-    - free
-    - transformers
-    - ansi-terminal
 
 tests:
   wizarrowry-test:

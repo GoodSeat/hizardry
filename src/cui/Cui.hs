@@ -17,7 +17,7 @@ instance Show Dot where
     show Blank = " "
     show (Draw c) = [c]
 
---type Craphic = Point -> Dot
+-- | Graphic on console.
 newtype Craphic = Craphic { at :: Point -> Dot }
 
 instance Semigroup Craphic where
@@ -30,8 +30,8 @@ instance Monoid Craphic where
 -- ========================================================================
 
 -- | test function.
-main :: IO ()
-main = do
+main' :: IO ()
+main' = do
     let t = text (10, 20) "T E S T" <>
             rect (8,  18) (25, 5) (Draw ' ')
     let v = t <>

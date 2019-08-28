@@ -4,7 +4,6 @@ where
 
 import Control.Monad
 import Control.Monad.Trans.State
-import Control.Monad.Trans.Free
 
 
 data Input = Key String
@@ -22,8 +21,6 @@ newtype Auto i o = Auto (o, i -> Auto i o)
 
 instance Functor (Auto i) where
   fmap f (Auto (o, next)) = Auto (f o, fmap f . next)
-
-type AutoT i = FreeT (Auto i)
 
 
 newtype GameAuto w i e = GameAuto { run :: State w (e, i -> GameAuto w i e) }
