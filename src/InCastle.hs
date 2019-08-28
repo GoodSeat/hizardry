@@ -71,20 +71,20 @@ inAdventure'sInn = Auto $ do
               ,(Key "4", selectStayPlan (ps !! 3), length ps >= 4)
               ,(Key "5", selectStayPlan (ps !! 4), length ps >= 5)
               ,(Key "6", selectStayPlan (ps !! 5), length ps >= 6)]
-        msg = (Message $ "Who will stay?\n" ++ 
-                         "#)Select\n" ++
-                         "L)eave\n")
+        msg = Message $ "Who will stay?\n" ++ 
+                        "#)Select\n" ++
+                        "L)eave\n"
     selectWhen msg lst
 
 selectStayPlan :: Character -> GameAuto
 selectStayPlan c = Auto $ do
-    let msg = (Message $ "Where do you stay?\n" ++
-                         "H)orse House               Free!!\n" ++
-                         "N)ormal Room       10 Gold / Week\n" ++
-                         "S)uite Room        50 Gold / Week\n" ++
-                         "D)elax Suite      200 Gold / Week\n" ++
-                         "?)Suite           500 Gold / Week\n\n" ++
-                         "L)eave\n")
+    let msg = Message $ "Where do you stay?\n" ++
+                        "H)orse House               Free!!\n" ++
+                        "N)ormal Room       10 Gold / Week\n" ++
+                        "S)uite Room        50 Gold / Week\n" ++
+                        "D)elax Suite      200 Gold / Week\n" ++
+                        "?)Suite           500 Gold / Week\n\n" ++
+                        "L)eave\n"
         lst = [(Key "l", inAdventure'sInn)
               ,(Key "h", sleep c  0   0)
               ,(Key "n", sleep c  1  10)
