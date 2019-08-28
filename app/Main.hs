@@ -55,7 +55,8 @@ main = do
       }
     initGetCharNoBuffering
     let cmd = getKey
-    runGame testRender cmd (inCastle, w)
+        option = Option "test option"
+    runGame testRender cmd (inCastle, w, option)
 
 
 getKey :: IO Input

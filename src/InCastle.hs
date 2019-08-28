@@ -1,22 +1,23 @@
 module InCastle
 where
 
-import Control.Monad.Trans.State
+import Control.Monad.State
 import GameAuto
 import World
 import Characters
 
-exitGame :: GameAuto w i Event
-exitGame = GameAuto $ return (Exit, const exitGame)
+exitGame :: GameAuto
+exitGame = Auto $ return (Exit, const exitGame)
 
-inCastle :: GameAuto World Input Event
-inCastle = GameAuto $ do
+inCastle :: GameAuto
+inCastle = Auto $ do
     movePlace InCastle
+    testOp <- getOption
     let msg = Message $ "G)ilgamesh's Tarvern\n" ++
                         "A)dventure's Inn\n" ++
                         "B)oltac's Trading Post\n" ++
                         "T)emple of Cant\n" ++
-                        "E)dge of Town\n"
+                        "E)dge of Town\n" ++ testOp
     notnull <- not . null . party <$> get
     selectWhen msg [(Key "g", inGilgamesh'sTarvern, True)
                    ,(Key "e", edgeOfTown, True)
@@ -25,8 +26,8 @@ inCastle = GameAuto $ do
 
 -- =======================================================================
 
-inGilgamesh'sTarvern :: GameAuto World Input Event
-inGilgamesh'sTarvern = GameAuto $ movePlace (Gilgamesh'sTarvern Nothing) >>
+inGilgamesh'sTarvern :: GameAuto
+inGilgamesh'sTarvern = Auto $ movePlace (Gilgamesh'sTarvern Nothing) >>
     select (Message $ "A)dd\n" ++ 
                       "R)emove\n" ++
                       "#)Inspect\n" ++
@@ -35,8 +36,8 @@ inGilgamesh'sTarvern = GameAuto $ movePlace (Gilgamesh'sTarvern Nothing) >>
             [(Key "l", inCastle)
             ,(Key "a", selectCharacterAddToParty)]
 
-selectCharacterAddToParty :: GameAuto World Input Event
-selectCharacterAddToParty = GameAuto $ do
+selectCharacterAddToParty :: GameAuto
+selectCharacterAddToParty = Auto $ do
     cs <- inTarvernMember <$> get
     let msg = "#)Add to Party    L)eave\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
@@ -53,14 +54,14 @@ selectCharacterAddToParty = GameAuto $ do
     if null cs then run inGilgamesh'sTarvern
                else selectWhen (Message msg) lst
   where
-    addParty c = GameAuto $ toParty c >> run selectCharacterAddToParty
+    addParty c = Auto $ toParty c >> run selectCharacterAddToParty
     toShow (n, c) = show n ++ ") " ++ name c
 
 
 -- =======================================================================
 
-inAdventure'sInn :: GameAuto World Input Event
-inAdventure'sInn = GameAuto $ do
+inAdventure'sInn :: GameAuto
+inAdventure'sInn = Auto $ do
     movePlace Adventure'sInn
     ps <- party <$> get
     let lst = [(Key "l", inCastle, True) 
@@ -75,8 +76,8 @@ inAdventure'sInn = GameAuto $ do
                          "L)eave\n")
     selectWhen msg lst
 
-selectStayPlan :: Character -> GameAuto World Input Event
-selectStayPlan c = GameAuto $ do
+selectStayPlan :: Character -> GameAuto
+selectStayPlan c = Auto $ do
     let msg = (Message $ "Where do you stay?\n" ++
                          "H)orse House               Free!!\n" ++
                          "N)ormal Room       10 Gold / Week\n" ++
@@ -95,7 +96,7 @@ selectStayPlan c = GameAuto $ do
 sleep :: Character
       -> Int         -- heal hp per week.
       -> Int         -- charge per week.
-      -> GameAuto World Input Event
+      -> GameAuto
 sleep c heal gp =
   if gold c < gp then
     events [Message "not money."] $ selectStayPlan c
@@ -105,14 +106,14 @@ sleep c heal gp =
                ,(Clock, next) 
                ,(Key "n", next)]
   where
-    next = GameAuto $ do
+    next = Auto $ do
         addAge <- randomNext 1 52
         let c' = (healHp heal c) {
               gold = gold c - gp
             , age  = age c + if addAge == 1 then 1 else 0 }
         updateCharacter c' >> run (sleep c' heal gp)
 
-checkLvup :: Character -> GameAuto World Input Event
+checkLvup :: Character -> GameAuto
 checkLvup c = if Characters.exp c >= nextLvExp
     then doLvup c
     else events [Message nextLvMsg] $ selectStayPlan c
@@ -121,13 +122,13 @@ checkLvup c = if Characters.exp c >= nextLvExp
     neps = [1100, 3500, 5000]
     nextLvMsg = name c ++ " needs " ++ show (nextLvExp - Characters.exp c) ++ " Exps for next lv."
 
-doLvup :: Character -> GameAuto World Input Event
-doLvup c = GameAuto $ updateCharacter c' >> run (events [Message txt] $ selectStayPlan c')
+doLvup :: Character -> GameAuto
+doLvup c = Auto $ updateCharacter c' >> run (events [Message txt] $ selectStayPlan c')
   where
     (txt, c') = lvup c
 
 -- =======================================================================
 
-edgeOfTown :: GameAuto World Input Event
+edgeOfTown :: GameAuto
 edgeOfTown = events [Message "Sorry...", Message "Not implmented."] inCastle
 
