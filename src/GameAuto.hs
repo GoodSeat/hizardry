@@ -84,3 +84,8 @@ option = scenarioOption <$> ask
 home :: GameState GameAuto
 home = scenarioHome <$> ask
 
+labyrinthAt :: Int -> GameState Labyrinth
+labyrinthAt z = do
+   ls <- labyrinths <$> ask
+   return $ ls !! z
+

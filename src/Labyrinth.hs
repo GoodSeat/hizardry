@@ -9,13 +9,13 @@ data Direction = N | S | E | W deriving (Show, Eq)
 -- | position in labyrinth.
 data Position = Position {
       direction :: Direction 
-    , z         :: Int
     , x         :: Int
     , y         :: Int
+    , z         :: Int
     } deriving (Show, Eq)
 
 -- | face data around Grid.
-data Face = Wall | Door | SecretDoor | None deriving (Show, Eq)
+data Face = Wall | Door | SecretDoor | Passage deriving (Show, Eq)
 
 -- | special notice on Grid.
 data Notice = Dark | Up | Down | Stone deriving (Show, Eq)
@@ -90,37 +90,37 @@ topWallFromText :: Direction -> (Char, Char) -> Face
 topWallFromText N (c1, c2) 
     | c1 == 'v' && c2 == 'v' = Wall
     | c1 == 'v' && c2 == '-' = Wall
-    | c1 == '^' && c2 == '^' = None
+    | c1 == '^' && c2 == '^' = Passage
     | c1 == '^' && c2 == '-' = Door
     | c1 == '+' && c2 == '+' = Door
     | c1 == '-' && c2 == '-' = Wall
-    | otherwise              = None
+    | otherwise              = Passage
 topWallFromText S (c1, c2) 
     | c1 == '^' && c2 == '^' = Wall
     | c1 == '^' && c2 == '-' = Wall
-    | c1 == 'v' && c2 == 'v' = None
+    | c1 == 'v' && c2 == 'v' = Passage
     | c1 == 'v' && c2 == '-' = Door
     | c1 == '+' && c2 == '+' = Door
     | c1 == '-' && c2 == '-' = Wall
-    | otherwise              = None
+    | otherwise              = Passage
 
 sideWallFromText :: Direction -> Char -> Face
 sideWallFromText E c1
     | c1 == '<' = Wall
     | c1 == 'K' = Wall
-    | c1 == '>' = None
+    | c1 == '>' = Passage
     | c1 == 'D' = Door
     | c1 == '=' = Door
     | c1 == '|' = Wall
-    | otherwise = None
+    | otherwise = Passage
 sideWallFromText W c1
     | c1 == '>' = Wall
     | c1 == 'D' = Wall
-    | c1 == '<' = None
+    | c1 == '<' = Passage
     | c1 == 'K' = Door
     | c1 == '=' = Door
     | c1 == '|' = Wall
-    | otherwise = None
+    | otherwise = Passage
 
 noticeFromText :: [Char] -> [Notice]
 noticeFromText [] = []
@@ -185,6 +185,31 @@ visiblityAt l p d lr s = faceOf g $ sideOf s dir
        | dir == E  = -lr
        | dir == W  =  lr
     g = l (x p + dx, y p + dy)
+
+-- ==========================================================================
+
+turnLeft :: Position -> Position
+turnLeft p = p { direction = sideOf L $ direction p }
+
+turnRight :: Position -> Position
+turnRight p = p { direction = sideOf R $ direction p }
+
+kickForward :: Labyrinth -> Position -> Maybe Position
+kickForward lab p = if visiblityAt lab p 0 0 F /= Wall then Just $ moveForward lab p else Nothing
+
+walkForward :: Labyrinth -> Position -> Maybe Position
+walkForward lab p = if visiblityAt lab p 0 0 F == Passage then Just $ moveForward lab p else Nothing
+
+moveForward :: Labyrinth -> Position -> Position
+moveForward lab p = p { x = x', y = y' }
+  where
+    dir  = direction p
+    x'   = x p + if      dir == E then  1
+                 else if dir == W then -1
+                 else                   0
+    y'   = y p + if      dir == N then  1
+                 else if dir == S then -1
+                 else                   0
 
 -- ==========================================================================
 

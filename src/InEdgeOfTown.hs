@@ -6,6 +6,8 @@ import GameAuto
 import World
 import Characters
 import Utils
+import InLabyrinth
+import Labyrinth
 
 
 inEdgeOfTown :: GameAuto
@@ -25,7 +27,9 @@ inEdgeOfTown = Auto $ do
 -- =======================================================================
 
 enteringDunsion :: GameAuto
-enteringDunsion = undefined
+enteringDunsion = events [Message "\n\n  *** Entering Test Dusion... *** \n\n\n"] $ openCamp p
+  where
+    p = Position { direction = N, x = 1, y = 1, z = 0 }
 
 -- =======================================================================
 
