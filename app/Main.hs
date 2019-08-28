@@ -55,7 +55,7 @@ main = do
       }
     initGetCharNoBuffering
     let cmd = getKey
-        option = Option "test option"
+        option = Option "Q)uit Game (for Debug!)"
     runGame testRender cmd (inCastle, w, option)
 
 

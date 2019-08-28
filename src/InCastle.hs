@@ -1,10 +1,10 @@
 module InCastle
 where
 
-import Control.Monad.State
 import GameAuto
 import World
 import Characters
+import Utils
 
 exitGame :: GameAuto
 exitGame = Auto $ return (Exit, const exitGame)
@@ -18,7 +18,7 @@ inCastle = Auto $ do
                         "B)oltac's Trading Post\n" ++
                         "T)emple of Cant\n" ++
                         "E)dge of Town\n" ++ testOp
-    notnull <- not . null . party <$> get
+    notnull <- not . null . party <$> world
     selectWhen msg [(Key "g", inGilgamesh'sTarvern, True)
                    ,(Key "e", edgeOfTown, True)
                    ,(Key "a", inAdventure'sInn, notnull)
@@ -38,7 +38,7 @@ inGilgamesh'sTarvern = Auto $ movePlace (Gilgamesh'sTarvern Nothing) >>
 
 selectCharacterAddToParty :: GameAuto
 selectCharacterAddToParty = Auto $ do
-    cs <- inTarvernMember <$> get
+    cs <- inTarvernMember <$> world
     let msg = "#)Add to Party    L)eave\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
     let lst = [(Key "l", inGilgamesh'sTarvern, True)
@@ -63,7 +63,7 @@ selectCharacterAddToParty = Auto $ do
 inAdventure'sInn :: GameAuto
 inAdventure'sInn = Auto $ do
     movePlace Adventure'sInn
-    ps <- party <$> get
+    ps <- party <$> world
     let lst = [(Key "l", inCastle, True) 
               ,(Key "1", selectStayPlan (ps !! 0), length ps >= 1)
               ,(Key "2", selectStayPlan (ps !! 1), length ps >= 2)

@@ -3,6 +3,7 @@ where
 
 import System.Random
 import qualified Data.Map as Map
+
 import Characters
 import Maze
 import Items
