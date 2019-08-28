@@ -20,12 +20,13 @@ main = do
         }
     let testChara1 = Chara.Character {
           Chara.name     = "test1"  -- ^ 名前
-        , Chara.age      = 18 -- ^ 年齢
-        , Chara.lv       = 1 -- ^ レベル
-        , Chara.exp      = 0 -- ^ 経験値
-        , Chara.gold     = 0 -- ^ 所持金
+        , Chara.age      = 18   -- ^ 年齢
+        , Chara.lv       = 1    -- ^ レベル
+        , Chara.exp      = 4000 -- ^ 経験値
+        , Chara.gold     = 1000 -- ^ 所持金
 
         , Chara.hp       = 12 -- ^ HP
+        , Chara.maxhp    = 20 -- ^ MaxHP
         , Chara.status   = status  -- ^ ステータス
         , Chara.marks    = 0 -- ^ 倒した敵の数
         , Chara.rips     = 0 -- ^ 死亡数
@@ -33,6 +34,7 @@ main = do
         , Chara.items    = []         -- ^ 所持アイテム
         , Chara.spells   = []        -- ^ 習得済みの魔法
         , Chara.mp       = ([], []) -- ^ MP
+        , Chara.maxmp    = ([], []) -- ^ MP
         }
     gen <- getStdGen
     let w = World {
@@ -53,5 +55,7 @@ testRender :: Event -> World -> IO()
 testRender (Message m) w = do
     clearScreen
     putStrLn m
+    putStrLn "\n\n"
+    print $ party w
 testRender e w = print e
 
