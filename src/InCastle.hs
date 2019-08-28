@@ -5,29 +5,25 @@ import GameAuto
 import World
 import Characters
 import Utils
-
-exitGame :: GameAuto
-exitGame = Auto $ return (Exit, const exitGame)
+import InEdgeOfTown
 
 inCastle :: GameAuto
 inCastle = Auto $ do
     movePlace InCastle
-    testOp <- getOption
     let msg = Message $ "G)ilgamesh's Tarvern\n" ++
                         "A)dventure's Inn\n" ++
                         "B)oltac's Trading Post\n" ++
                         "T)emple of Cant\n" ++
-                        "E)dge of Town\n" ++ testOp
+                        "E)dge of Town\n"
     notnull <- not . null . party <$> world
     selectWhen msg [(Key "g", inGilgamesh'sTarvern, True)
-                   ,(Key "e", edgeOfTown, True)
                    ,(Key "a", inAdventure'sInn, notnull)
-                   ,(Key "q", exitGame, True)]
+                   ,(Key "e", inEdgeOfTown, True)]
 
 -- =======================================================================
 
 inGilgamesh'sTarvern :: GameAuto
-inGilgamesh'sTarvern = Auto $ movePlace (Gilgamesh'sTarvern Nothing) >>
+inGilgamesh'sTarvern = Auto $ movePlace Gilgamesh'sTarvern >>
     select (Message $ "A)dd\n" ++ 
                       "R)emove\n" ++
                       "#)Inspect\n" ++
@@ -128,7 +124,4 @@ doLvup c = Auto $ updateCharacter c' >> run (events [Message txt] $ selectStayPl
     (txt, c') = lvup c
 
 -- =======================================================================
-
-edgeOfTown :: GameAuto
-edgeOfTown = events [Message "Sorry...", Message "Not implmented."] inCastle
 

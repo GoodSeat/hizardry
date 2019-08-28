@@ -20,11 +20,11 @@ data World = World {
 } deriving (Show)
 
 data Place  = InCastle
-            | Gilgamesh'sTarvern (Maybe Character)
+            | Gilgamesh'sTarvern 
             | Adventure'sInn
-            | Boltac'sTradingPost (Maybe Character)
-            | TempleOfCant (Maybe Character)
-            | EdgeOfTown
+            | Boltac'sTradingPost 
+            | TempleOfCant 
+            | InEdgeOfTown
             | TrainingGrounds
             | InMaze Position
     deriving (Show, Eq)

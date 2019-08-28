@@ -11,12 +11,6 @@ import qualified Characters as Chara
 import System.Random
 
 
-getOption :: GameState String
-getOption = do
-  Option t <- ask
-  return t
-
-
 
 movePlace :: Place -> GameState ()
 movePlace p = do
