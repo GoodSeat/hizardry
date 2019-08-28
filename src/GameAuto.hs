@@ -6,6 +6,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import World
+import Labyrinth
 
 data Input = Key String
            | Clock
@@ -22,10 +23,16 @@ data Option = Option String
 
 
 -- ==========================================================================
+-- | scenario immutable data.
+data Scenario = Scenario {
+      scenarioOption :: Option
+    , scenarioHome   :: GameAuto
+    , labyrinths     :: [Labyrinth]
+    }
 
 -- | State used in game.
-newtype GameState o = GameState { exec :: StateT World (Reader (Option, GameAuto)) o }
-    deriving (Functor, Applicative, Monad, MonadReader (Option, GameAuto), MonadState World)
+newtype GameState o = GameState { exec :: StateT World (Reader Scenario) o }
+    deriving (Functor, Applicative, Monad, MonadReader Scenario, MonadState World)
 
 -- | Automaton for running game.
 newtype GameAuto = Auto { run :: GameMachine }
@@ -36,16 +43,16 @@ type GameMachine = GameState (Event, Input -> GameAuto)
 
 runGame :: (Event -> World -> IO a)     -- ^ renderer of game.
         -> IO Input                     -- ^ input command.
-        -> GameAuto                     -- ^ home of GameAuto.
-        -> (GameAuto, World, Option)    -- ^ target GameAuto, and current environment.
+        -> Scenario                     -- ^ game scenario.
+        -> (GameAuto, World)            -- ^ target GameAuto, and current environment.
         -> IO ()
-runGame render cmd toHome (game, w, o) = do
-    let ((e, next), w') = runReader (runStateT (exec $ run game) w) (o, toHome)
+runGame render cmd scenario (game, w) = do
+    let ((e, next), w') = runReader (runStateT (exec $ run game) w) scenario
     if e == Exit then return ()
     else do
         render e w'
         i <- cmd
-        runGame render cmd toHome (next i, w', o)
+        runGame render cmd scenario (next i, w')
 
 -- ==========================================================================
 
@@ -71,13 +78,9 @@ selectNext e ns = Auto $ select e ns
 world :: GameState World
 world = get
 
-option :: GameState String
-option = do
-  (Option t, _) <- ask
-  return t
+option :: GameState Option
+option = scenarioOption <$> ask
 
 home :: GameState GameAuto
-home = do
-  (_, toHome) <- ask
-  return toHome
+home = scenarioHome <$> ask
 

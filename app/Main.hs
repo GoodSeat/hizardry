@@ -4,10 +4,12 @@ import System.IO.NoBufferingWorkaround
 import System.Console.ANSI
 import qualified Data.Map as Map
 import System.Random
+
 import GameAuto
 import World
 import InCastle
 import qualified Characters as Chara
+import Labyrinth
 
 import CuiRender
 
@@ -26,19 +28,19 @@ main = do
         }
     let testChara1 = Chara.Character {
           Chara.name     = "test1"  -- ^ 名前
-        , Chara.age      = 18   -- ^ 年齢
-        , Chara.lv       = 1    -- ^ レベル
-        , Chara.exp      = 4000 -- ^ 経験値
-        , Chara.gold     = 1000 -- ^ 所持金
+        , Chara.age      = 18       -- ^ 年齢
+        , Chara.lv       = 1        -- ^ レベル
+        , Chara.exp      = 4000     -- ^ 経験値
+        , Chara.gold     = 1000     -- ^ 所持金
 
-        , Chara.hp       = 12 -- ^ HP
-        , Chara.maxhp    = 20 -- ^ MaxHP
+        , Chara.hp       = 12      -- ^ HP
+        , Chara.maxhp    = 20      -- ^ MaxHP
         , Chara.status   = status  -- ^ ステータス
-        , Chara.marks    = 0 -- ^ 倒した敵の数
-        , Chara.rips     = 0 -- ^ 死亡数
+        , Chara.marks    = 0       -- ^ 倒した敵の数
+        , Chara.rips     = 0       -- ^ 死亡数
         
-        , Chara.items    = []         -- ^ 所持アイテム
-        , Chara.spells   = []        -- ^ 習得済みの魔法
+        , Chara.items    = []       -- ^ 所持アイテム
+        , Chara.spells   = []       -- ^ 習得済みの魔法
         , Chara.mp       = ([], []) -- ^ MP
         , Chara.maxmp    = ([], []) -- ^ MP
         }
@@ -56,7 +58,12 @@ main = do
     initGetCharNoBuffering
     let cmd = getKey
         option = Option "Q)uit Game (for Debug!)"
-    runGame testRender cmd inCastle (inCastle, w, option)
+        scenario = Scenario {
+              scenarioOption  = option
+            , scenarioHome    = inCastle
+            , labyrinths      = [testLabyrinth]
+            }
+    runGame testRender cmd scenario (inCastle, w)
 
 
 getKey :: IO Input
