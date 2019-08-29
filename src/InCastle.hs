@@ -3,7 +3,7 @@ where
 
 import GameAuto
 import World
-import Characters
+import qualified Characters as Character
 import Utils
 import InEdgeOfTown
 
@@ -34,24 +34,25 @@ inGilgamesh'sTarvern = Auto $ movePlace Gilgamesh'sTarvern >>
 
 selectCharacterAddToParty :: GameAuto
 selectCharacterAddToParty = Auto $ do
-    cs <- inTarvernMember <$> world
+    ids <- inTarvernMember <$> world
+    cs  <- sequence $ characterOf <$> ids
     let msg = "#)Add to Party    L)eave\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
     let lst = [(Key "l", inGilgamesh'sTarvern, True)
-              ,(Key "1", addParty (cs !! 0), length cs >= 1)
-              ,(Key "2", addParty (cs !! 1), length cs >= 2)
-              ,(Key "3", addParty (cs !! 2), length cs >= 3)
-              ,(Key "4", addParty (cs !! 3), length cs >= 4)
-              ,(Key "5", addParty (cs !! 4), length cs >= 5)
-              ,(Key "6", addParty (cs !! 5), length cs >= 6)
-              ,(Key "7", addParty (cs !! 6), length cs >= 7)
-              ,(Key "8", addParty (cs !! 7), length cs >= 8)
-              ,(Key "9", addParty (cs !! 8), length cs >= 9)]
-    if null cs then run inGilgamesh'sTarvern
-               else selectWhen (Message msg) lst
+              ,(Key "1", addParty (ids !! 0), length ids >= 1)
+              ,(Key "2", addParty (ids !! 1), length ids >= 2)
+              ,(Key "3", addParty (ids !! 2), length ids >= 3)
+              ,(Key "4", addParty (ids !! 3), length ids >= 4)
+              ,(Key "5", addParty (ids !! 4), length ids >= 5)
+              ,(Key "6", addParty (ids !! 5), length ids >= 6)
+              ,(Key "7", addParty (ids !! 6), length ids >= 7)
+              ,(Key "8", addParty (ids !! 7), length ids >= 8)
+              ,(Key "9", addParty (ids !! 8), length ids >= 9)]
+    if null ids then run inGilgamesh'sTarvern
+                else selectWhen (Message msg) lst
   where
-    addParty c = Auto $ toParty c >> run selectCharacterAddToParty
-    toShow (n, c) = show n ++ ") " ++ name c
+    addParty id = Auto $ toParty id >> run selectCharacterAddToParty
+    toShow (n, c) = show n ++ ") " ++ Character.name c
 
 
 -- =======================================================================
@@ -59,21 +60,21 @@ selectCharacterAddToParty = Auto $ do
 inAdventure'sInn :: GameAuto
 inAdventure'sInn = Auto $ do
     movePlace Adventure'sInn
-    ps <- party <$> world
+    ids <- party <$> world
     let lst = [(Key "l", inCastle, True) 
-              ,(Key "1", selectStayPlan (ps !! 0), length ps >= 1)
-              ,(Key "2", selectStayPlan (ps !! 1), length ps >= 2)
-              ,(Key "3", selectStayPlan (ps !! 2), length ps >= 3)
-              ,(Key "4", selectStayPlan (ps !! 3), length ps >= 4)
-              ,(Key "5", selectStayPlan (ps !! 4), length ps >= 5)
-              ,(Key "6", selectStayPlan (ps !! 5), length ps >= 6)]
+              ,(Key "1", selectStayPlan (ids !! 0), length ids >= 1)
+              ,(Key "2", selectStayPlan (ids !! 1), length ids >= 2)
+              ,(Key "3", selectStayPlan (ids !! 2), length ids >= 3)
+              ,(Key "4", selectStayPlan (ids !! 3), length ids >= 4)
+              ,(Key "5", selectStayPlan (ids !! 4), length ids >= 5)
+              ,(Key "6", selectStayPlan (ids !! 5), length ids >= 6)]
         msg = Message $ "Who will stay?\n" ++ 
                         "#)Select\n" ++
                         "L)eave\n"
     selectWhen msg lst
 
-selectStayPlan :: Character -> GameAuto
-selectStayPlan c = Auto $ do
+selectStayPlan :: Character.ID -> GameAuto
+selectStayPlan id = Auto $ do
     let msg = Message $ "Where do you stay?\n" ++
                         "H)orse House               Free!!\n" ++
                         "N)ormal Room       10 Gold / Week\n" ++
@@ -82,46 +83,49 @@ selectStayPlan c = Auto $ do
                         "?)Suite           500 Gold / Week\n\n" ++
                         "L)eave\n"
         lst = [(Key "l", inAdventure'sInn)
-              ,(Key "h", sleep c  0   0)
-              ,(Key "n", sleep c  1  10)
-              ,(Key "s", sleep c  3  50)
-              ,(Key "d", sleep c  7 200)
-              ,(Key "?", sleep c 10 500)]
+              ,(Key "h", sleep id  0   0)
+              ,(Key "n", sleep id  1  10)
+              ,(Key "s", sleep id  3  50)
+              ,(Key "d", sleep id  7 200)
+              ,(Key "?", sleep id 10 500)]
     select msg lst
 
-sleep :: Character
+sleep :: Character.ID
       -> Int         -- heal hp per week.
       -> Int         -- charge per week.
       -> GameAuto
-sleep c heal gp =
-  if gold c < gp then
-    events [Message "not money."] $ selectStayPlan c
-  else
-    selectNext (Message $ name c ++ " is sleeping... \n\nlast gold is " ++ show (gold c) ++ " gold.\n\nL)eave")
-               [(Key "l", checkLvup c)
-               ,(Clock, next) 
-               ,(Key "n", next)]
+sleep id h g = Auto $ do
+    c <- characterOf id 
+    if Character.gold c < g then
+      run $ events [Message "not money."] $ selectStayPlan id
+    else do
+      run $ selectNext (Message $  Character.name c
+                                ++ " is sleeping... \n\nlast gold is "
+                                ++ show (Character.gold c)
+                                ++ " gold.\n\nW)ake up")
+                 [(Key "w", checkLvup id)
+                 ,(Clock, next) 
+                 ,(Key "n", next)]
   where
-    next = Auto $ do
-        addAge <- randomNext 1 52
-        let c' = (healHp heal c) {
-              gold = gold c - gp
-            , age  = age c + if addAge == 1 then 1 else 0 }
-        updateCharacter c' >> run (sleep c' heal gp)
+    next = Auto $  updateCharacterWith id (Character.healHp h . Character.useGold g)
+                >> run (sleep id h g)
 
-checkLvup :: Character -> GameAuto
-checkLvup c = if Characters.exp c >= nextLvExp
-    then doLvup c
-    else events [Message nextLvMsg] $ selectStayPlan c
+checkLvup :: Character.ID -> GameAuto
+checkLvup id = Auto $ do
+    c <- characterOf id
+    let nextLvExp = neps !! (Character.lv c - 1)
+        nextLvMsg = Character.name c ++ " needs "
+                  ++ show (nextLvExp - Character.exp c) ++ " Exps for next lv."
+    if Character.exp c >= nextLvExp
+        then run $ doLvup id
+        else run $ events [Message nextLvMsg] $ selectStayPlan id
   where
-    nextLvExp = neps !! (lv c - 1)
     neps = [1100, 3500, 5000]
-    nextLvMsg = name c ++ " needs " ++ show (nextLvExp - Characters.exp c) ++ " Exps for next lv."
 
-doLvup :: Character -> GameAuto
-doLvup c = Auto $ updateCharacter c' >> run (events [Message txt] $ selectStayPlan c')
-  where
-    (txt, c') = lvup c
+doLvup :: Character.ID -> GameAuto
+doLvup id = Auto $ do
+    (txt, c') <- Character.lvup <$> characterOf id
+    updateCharacter id c' >> run (events [Message txt] $ selectStayPlan id)
 
 -- =======================================================================
 

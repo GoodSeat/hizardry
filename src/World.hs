@@ -4,19 +4,21 @@ where
 import System.Random
 import qualified Data.Map as Map
 
-import Characters
-import Items
+import qualified Characters as Character
+import qualified Items as Item
 import Labyrinth
 
 data World = World {
       randomGen       :: StdGen
 
-    , party           :: [Character]
+    , party           :: [Character.ID]
     , place           :: Place
 
-    , inTarvernMember :: [Character]
-    , inMazeMember    :: [(Character, Position)]
-    , shopItems       :: Map.Map Item Int
+    , inTarvernMember :: [Character.ID]
+    , inMazeMember    :: [(Character.ID, Position)]
+    , shopItems       :: Map.Map Item.ID Int
+
+    , allCharacters   :: Character.DB
 } deriving (Show)
 
 data Place  = InCastle

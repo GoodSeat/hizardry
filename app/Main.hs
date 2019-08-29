@@ -3,12 +3,13 @@ module Main where
 import System.IO.NoBufferingWorkaround
 import System.Console.ANSI
 import qualified Data.Map as Map
+import Data.Maybe
 import System.Random
 
 import GameAuto
 import World
 import InCastle
-import qualified Characters as Chara
+import qualified Characters as Character
 import Labyrinth
 
 import CuiRender
@@ -18,31 +19,33 @@ import CuiRender
 
 main :: IO ()
 main = do
-    let status = Chara.Status {
-          Chara.strength = 12 -- ^ 力
-        , Chara.iq       = 10 -- ^ 知恵
-        , Chara.piety    = 10 -- ^ 信仰心
-        , Chara.vitality = 10 -- ^ 生命力
-        , Chara.agility  = 10 -- ^ 素早さ
-        , Chara.luck     = 10 -- ^ 運の強さ
+    let param = Character.Parameter {
+          Character.strength = 12 -- ^ 力
+        , Character.iq       = 10 -- ^ 知恵
+        , Character.piety    = 10 -- ^ 信仰心
+        , Character.vitality = 10 -- ^ 生命力
+        , Character.agility  = 10 -- ^ 素早さ
+        , Character.luck     = 10 -- ^ 運の強さ
         }
-    let testChara1 = Chara.Character {
-          Chara.name     = "test1"  -- ^ 名前
-        , Chara.age      = 18       -- ^ 年齢
-        , Chara.lv       = 1        -- ^ レベル
-        , Chara.exp      = 4000     -- ^ 経験値
-        , Chara.gold     = 1000     -- ^ 所持金
+    let testChara1 = Character.Character {
+          Character.name     = "test1"  -- ^ 名前
+        , Character.age      = 18       -- ^ 年齢
+        , Character.lv       = 1        -- ^ レベル
+        , Character.exp      = 4000     -- ^ 経験値
+        , Character.gold     = 1000     -- ^ 所持金
 
-        , Chara.hp       = 12      -- ^ HP
-        , Chara.maxhp    = 20      -- ^ MaxHP
-        , Chara.status   = status  -- ^ ステータス
-        , Chara.marks    = 0       -- ^ 倒した敵の数
-        , Chara.rips     = 0       -- ^ 死亡数
+        , Character.hp       = 12      -- ^ HP
+        , Character.maxhp    = 20      -- ^ MaxHP
+        , Character.param    = param   -- ^ ステータス
+        , Character.marks    = 0       -- ^ 倒した敵の数
+        , Character.rips     = 0       -- ^ 死亡数
         
-        , Chara.items    = []       -- ^ 所持アイテム
-        , Chara.spells   = []       -- ^ 習得済みの魔法
-        , Chara.mp       = ([], []) -- ^ MP
-        , Chara.maxmp    = ([], []) -- ^ MP
+        , Character.items    = []       -- ^ 所持アイテム
+        , Character.equips   = []       -- ^ 所持アイテム
+
+        , Character.spells   = []       -- ^ 習得済みの魔法
+        , Character.mp       = ([], []) -- ^ MP
+        , Character.maxmp    = ([], []) -- ^ MP
         }
     gen <- getStdGen
     let w = World {
@@ -51,9 +54,13 @@ main = do
       , party           = []
       , place           = InCastle
 
-      , inTarvernMember = [testChara1]
+      , inTarvernMember = [Character.ID 1]
       , inMazeMember    = []
       , shopItems       = Map.fromList []
+
+      , allCharacters   = Map.fromList [
+                            (Character.ID 1, testChara1)
+                            ]
       }
     initGetCharNoBuffering
     let cmd = getKey
@@ -75,6 +82,7 @@ getKey = do
 testRender :: Event -> World -> IO()
 testRender (Message m) w = do
     clearScreen
-    render $ msgBox m <> status' (party w)
+    let ps = flip Map.lookup (allCharacters w) <$> party w
+    render $ msgBox m <> status' (concat $ maybeToList <$> ps)
 testRender e w = print e
 
