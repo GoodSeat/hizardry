@@ -2,6 +2,7 @@
 module GameAuto
 where
 
+import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
 
@@ -31,8 +32,8 @@ data Scenario = Scenario {
     }
 
 -- | State used in game.
-newtype GameState o = GameState { exec :: StateT World (Reader Scenario) o }
-    deriving (Functor, Applicative, Monad, MonadReader Scenario, MonadState World)
+newtype GameState o = GameState { exec :: ExceptT String (StateT World (Reader Scenario)) o }
+    deriving (Functor, Applicative, Monad, MonadReader Scenario, MonadState World, MonadError String)
 
 -- | Automaton for running game.
 newtype GameAuto = Auto { run :: GameMachine }
@@ -45,14 +46,15 @@ runGame :: (Event -> World -> IO a)     -- ^ renderer of game.
         -> IO Input                     -- ^ input command.
         -> Scenario                     -- ^ game scenario.
         -> (GameAuto, World)            -- ^ target GameAuto, and current environment.
-        -> IO ()
+        -> IO String
 runGame render cmd scenario (game, w) = do
-    let ((e, next), w') = runReader (runStateT (exec $ run game) w) scenario
-    if e == Exit then return ()
-    else do
-        render e w'
-        i <- cmd
-        runGame render cmd scenario (next i, w')
+    let (res, w') = runReader (runStateT (runExceptT $ exec $ run game) w) scenario
+    case res of Left msg        -> return msg
+                Right (e, next) -> if e == Exit then return "thank you for playing."
+                                   else do
+                                       render e w'
+                                       i <- cmd
+                                       runGame render cmd scenario (next i, w')
 
 -- ==========================================================================
 
@@ -89,3 +91,5 @@ mazeAt z = do
    ls <- mazes <$> ask
    return $ ls !! z
 
+err :: String -> GameMachine
+err msg = throwError msg >> undefined

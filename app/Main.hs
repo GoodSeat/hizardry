@@ -76,7 +76,7 @@ main = do
             , scenarioHome   = inCastle
             , mazes          = [testMaze]
             }
-    runGame testRender cmd scenario (inCastle, w)
+    putStrLn =<< runGame testRender cmd scenario (inCastle, w)
 
 
 getKey :: IO Input

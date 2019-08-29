@@ -98,7 +98,7 @@ sleep id h g = Auto $ do
     c <- characterOf id 
     if Character.gold c < g then
       run $ events [Message "not money."] $ selectStayPlan id
-    else do
+    else
       run $ selectNext (Message $  Character.name c
                                 ++ " is sleeping... \n\nlast gold is "
                                 ++ show (Character.gold c)

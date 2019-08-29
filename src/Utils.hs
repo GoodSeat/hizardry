@@ -12,10 +12,9 @@ import World
 import qualified Characters as Character
 
 
-
 movePlace :: Place -> GameState ()
 movePlace p = do
-    w <- get
+    w <- world
     put w { place = p }
 
 -- =================================================================================
