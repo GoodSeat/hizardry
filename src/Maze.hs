@@ -1,4 +1,4 @@
-module Labyrinth
+module Maze
 where
 
 import Data.List
@@ -6,7 +6,7 @@ import Data.List
 -- | direction of view.
 data Direction = N | S | E | W deriving (Show, Eq)
 
--- | position in labyrinth.
+-- | position in maze.
 data Position = Position {
       direction :: Direction 
     , x         :: Int
@@ -20,7 +20,7 @@ data Face = Wall | Door | SecretDoor | Passage deriving (Show, Eq)
 -- | special notice on Grid.
 data Notice = Dark | Up | Down | Stone deriving (Show, Eq)
 
--- | grid of labyrinth.
+-- | grid of maze.
 data Grid = Grid (Face, Face, Face, Face) [Notice] deriving (Show, Eq)
 
 faceOf :: Grid -> Direction -> Face
@@ -30,12 +30,12 @@ faceOf (Grid (n, e, s, w) _) S = s
 faceOf (Grid (n, e, s, w) _) W = w
           
 
--- | labyrinth (group of grid).
-type Labyrinth = (Int, Int) -> Grid
+-- | maze (group of grid).
+type Maze = (Int, Int) -> Grid
 
 -- ==========================================================================
 
--- | parse labyrinth from text lines.
+-- | parse maze from text lines.
 {-
  - -- : wall.
  - |  : wall.
@@ -73,8 +73,8 @@ type Labyrinth = (Int, Int) -> Grid
      0123456789012
 -}
 fromText :: [String]   -- ^ text lines to parse.
-         -> (Int, Int) -- ^ size of labyrinth.
-         -> Labyrinth
+         -> (Int, Int) -- ^ size of maze.
+         -> Maze
 fromText ls (w, h) (x, y) = Grid (fn, fe, fs, fw) ntc
   where
     x' = (x - 1) `mod` w + 1
@@ -167,7 +167,7 @@ sideOf R E = S
 sideOf R S = W
 sideOf R W = N
 
-visiblityAt :: Labyrinth -- ^ target Labyrinth.
+visiblityAt :: Maze -- ^ target Maze.
             -> Position  -- ^ current position.
             -> Int       -- ^ distance to target grid. 0 means grid at current position.
             -> Int       -- ^ side distance. front is 0, and left is minus value.
@@ -194,13 +194,13 @@ turnLeft p = p { direction = sideOf L $ direction p }
 turnRight :: Position -> Position
 turnRight p = p { direction = sideOf R $ direction p }
 
-kickForward :: Labyrinth -> Position -> Maybe Position
+kickForward :: Maze -> Position -> Maybe Position
 kickForward lab p = if visiblityAt lab p 0 0 F /= Wall then Just $ moveForward lab p else Nothing
 
-walkForward :: Labyrinth -> Position -> Maybe Position
+walkForward :: Maze -> Position -> Maybe Position
 walkForward lab p = if visiblityAt lab p 0 0 F == Passage then Just $ moveForward lab p else Nothing
 
-moveForward :: Labyrinth -> Position -> Position
+moveForward :: Maze -> Position -> Position
 moveForward lab p = p { x = x', y = y' }
   where
     dir  = direction p
@@ -213,8 +213,8 @@ moveForward lab p = p { x = x', y = y' }
 
 -- ==========================================================================
 
-testLabyrinth :: Labyrinth
-testLabyrinth = fromText (lines txt) (4, 5)
+testMaze :: Maze
+testMaze = fromText (lines txt) (4, 5)
   where
     txt = "+--------+--+\n" ++
           "|     K  |[]|\n" ++
@@ -231,7 +231,7 @@ testLabyrinth = fromText (lines txt) (4, 5)
 
 main' :: IO()
 main' = do
-    let lbr = testLabyrinth
+    let lbr = testMaze
     print $ lbr (1, 1)
     print $ lbr (2, 1)
     print $ lbr (3, 1)

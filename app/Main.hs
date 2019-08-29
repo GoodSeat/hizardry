@@ -10,7 +10,7 @@ import GameAuto
 import World
 import InCastle
 import qualified Characters as Character
-import Labyrinth
+import Maze
 
 import CuiRender
 
@@ -20,32 +20,37 @@ import CuiRender
 main :: IO ()
 main = do
     let param = Character.Parameter {
-          Character.strength = 12 -- ^ 力
-        , Character.iq       = 10 -- ^ 知恵
-        , Character.piety    = 10 -- ^ 信仰心
-        , Character.vitality = 10 -- ^ 生命力
-        , Character.agility  = 10 -- ^ 素早さ
-        , Character.luck     = 10 -- ^ 運の強さ
+          Character.strength = 12
+        , Character.iq       = 10
+        , Character.piety    = 10
+        , Character.vitality = 10
+        , Character.agility  = 10
+        , Character.luck     = 10
         }
     let testChara1 = Character.Character {
-          Character.name     = "test1"  -- ^ 名前
-        , Character.age      = 18       -- ^ 年齢
-        , Character.lv       = 1        -- ^ レベル
-        , Character.exp      = 4000     -- ^ 経験値
-        , Character.gold     = 1000     -- ^ 所持金
+          Character.name     = "FIG1"
+        , Character.age      = 18
+        , Character.lv       = 1
+        , Character.exp      = 4000
+        , Character.gold     = 1000
 
-        , Character.hp       = 12      -- ^ HP
-        , Character.maxhp    = 20      -- ^ MaxHP
-        , Character.param    = param   -- ^ ステータス
-        , Character.marks    = 0       -- ^ 倒した敵の数
-        , Character.rips     = 0       -- ^ 死亡数
+        , Character.hp       = 12
+        , Character.maxhp    = 20
+        , Character.param    = param
+        , Character.marks    = 0
+        , Character.rips     = 0
         
-        , Character.items    = []       -- ^ 所持アイテム
-        , Character.equips   = []       -- ^ 所持アイテム
+        , Character.items    = []
+        , Character.equips   = []
 
-        , Character.spells   = []       -- ^ 習得済みの魔法
-        , Character.mp       = ([], []) -- ^ MP
-        , Character.maxmp    = ([], []) -- ^ MP
+        , Character.spells   = []
+        , Character.mp       = ([], [])
+        , Character.maxmp    = ([], [])
+        }
+        testChara2 = testChara1 {
+          Character.name     = "FIG2"
+        , Character.hp       = 16
+        , Character.maxhp    = 18
         }
     gen <- getStdGen
     let w = World {
@@ -54,21 +59,22 @@ main = do
       , party           = []
       , place           = InCastle
 
-      , inTarvernMember = [Character.ID 1]
+      , inTarvernMember = [Character.ID 1, Character.ID 2]
       , inMazeMember    = []
       , shopItems       = Map.fromList []
 
       , allCharacters   = Map.fromList [
-                            (Character.ID 1, testChara1)
+                              (Character.ID 1, testChara1)
+                            , (Character.ID 2, testChara2)
                             ]
       }
     initGetCharNoBuffering
     let cmd = getKey
         option = Option "Q)uit Game (for Debug!)"
         scenario = Scenario {
-              scenarioOption  = option
-            , scenarioHome    = inCastle
-            , labyrinths      = [testLabyrinth]
+              scenarioOption = option
+            , scenarioHome   = inCastle
+            , mazes          = [testMaze]
             }
     runGame testRender cmd scenario (inCastle, w)
 

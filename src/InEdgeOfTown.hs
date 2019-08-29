@@ -6,8 +6,8 @@ import GameAuto
 import World
 import Characters
 import Utils
-import InLabyrinth
-import Labyrinth
+import InMaze
+import Maze
 
 
 inEdgeOfTown :: GameAuto

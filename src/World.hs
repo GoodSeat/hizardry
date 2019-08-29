@@ -6,7 +6,7 @@ import qualified Data.Map as Map
 
 import qualified Characters as Character
 import qualified Items as Item
-import Labyrinth
+import Maze
 
 data World = World {
       randomGen       :: StdGen
@@ -28,7 +28,7 @@ data Place  = InCastle
             | TempleOfCant 
             | InEdgeOfTown
             | TrainingGrounds
-            | InLabyrinth Position
+            | InMaze Position
     deriving (Show, Eq)
 
 

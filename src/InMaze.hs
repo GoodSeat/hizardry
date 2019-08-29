@@ -1,11 +1,11 @@
-module InLabyrinth
+module InMaze
 where
 
 
 import GameAuto
 import World
 import Characters
-import Labyrinth
+import Maze
 import Utils
 
 exitGame' :: GameAuto
@@ -14,14 +14,14 @@ exitGame' = Auto $ return (Exit, const exitGame')
 -- =======================================================================
 enterGrid :: Position -> GameAuto
 enterGrid p = Auto $ do
-    movePlace $ InLabyrinth p
+    movePlace $ InMaze p
     case event allEvents p of
         Nothing -> select (Message $ show p) $ moves p
         Just a  -> run a
 
 turnOnGrid :: Position -> GameAuto
 turnOnGrid p = Auto $ do
-    movePlace $ InLabyrinth p
+    movePlace $ InMaze p
     select (Message $ show p) $ moves p
 
 ouch :: Position -> GameAuto
@@ -37,7 +37,7 @@ moves p = [(Key "a", turnOnGrid $ turnLeft p)
           ]
   where
     goStraight p f = Auto $ do
-        lab <- labyrinthAt $ z p
+        lab <- mazeAt $ z p
         case f lab p of Nothing -> run $ ouch p
                         Just p' -> run $ enterGrid p'
 
@@ -65,8 +65,12 @@ stairsToCastle :: Position -> GameAuto
 stairsToCastle p = Auto $ do
     toCastle <- home
     select (Message "there is climbing stairs.\n...climbing?\n\n(Y/N)")
-        [(Key "y", toCastle), (Key "n", turnOnGrid p)]
+        [(Key "y", Auto $ whenReturnCastle >> run toCastle), (Key "n", turnOnGrid p)]
 
+-- | state machine when return to castle.
+whenReturnCastle :: GameState ()
+whenReturnCastle = return ()
+-- todo: cure poison, remove dead/stoned/staned characters etc.
 
 -- =======================================================================
 

@@ -6,7 +6,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import World
-import Labyrinth
+import Maze
 
 data Input = Key String
            | Clock
@@ -27,7 +27,7 @@ data Option = Option String
 data Scenario = Scenario {
       scenarioOption :: Option
     , scenarioHome   :: GameAuto
-    , labyrinths     :: [Labyrinth]
+    , mazes          :: [Maze]
     }
 
 -- | State used in game.
@@ -84,8 +84,8 @@ option = scenarioOption <$> ask
 home :: GameState GameAuto
 home = scenarioHome <$> ask
 
-labyrinthAt :: Int -> GameState Labyrinth
-labyrinthAt z = do
-   ls <- labyrinths <$> ask
+mazeAt :: Int -> GameState Maze
+mazeAt z = do
+   ls <- mazes <$> ask
    return $ ls !! z
 

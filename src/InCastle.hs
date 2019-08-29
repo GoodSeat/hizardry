@@ -61,16 +61,16 @@ inAdventure'sInn :: GameAuto
 inAdventure'sInn = Auto $ do
     movePlace Adventure'sInn
     ids <- party <$> world
-    let lst = [(Key "l", inCastle, True) 
+    let msg = Message $ "Who will stay?\n" ++ 
+                        "#)Select\n" ++
+                        "L)eave\n"
+        lst = [(Key "l", inCastle, True) 
               ,(Key "1", selectStayPlan (ids !! 0), length ids >= 1)
               ,(Key "2", selectStayPlan (ids !! 1), length ids >= 2)
               ,(Key "3", selectStayPlan (ids !! 2), length ids >= 3)
               ,(Key "4", selectStayPlan (ids !! 3), length ids >= 4)
               ,(Key "5", selectStayPlan (ids !! 4), length ids >= 5)
               ,(Key "6", selectStayPlan (ids !! 5), length ids >= 6)]
-        msg = Message $ "Who will stay?\n" ++ 
-                        "#)Select\n" ++
-                        "L)eave\n"
     selectWhen msg lst
 
 selectStayPlan :: Character.ID -> GameAuto
