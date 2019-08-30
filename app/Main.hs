@@ -76,7 +76,7 @@ main = do
             , scenarioHome   = inCastle
             , mazes          = [testMaze]
             }
-    putStrLn =<< runGame testRender cmd scenario (inCastle, w)
+    putStrLn =<< runGame (testRender scenario) cmd scenario (inCastle, w)
 
 
 getKey :: IO Input
@@ -85,10 +85,12 @@ getKey = do
     return $ Key [x]
 
 
-testRender :: Event -> World -> IO()
-testRender (Message m) w = do
+testRender :: Scenario -> Event -> World -> IO()
+testRender s (Message m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
-    render $ msgBox m <> status' (concat $ maybeToList <$> ps)
-testRender e w = print e
+    render $ msgBox m
+          <> status (concat $ maybeToList <$> ps)
+          <> scene (place w) s
+testRender s e w = print e
 

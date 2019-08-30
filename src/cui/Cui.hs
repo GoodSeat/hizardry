@@ -102,11 +102,30 @@ type Transform = Point -> Point
 translateP :: (Int, Int) -> Transform
 translateP (dx, dy) (x, y) = (x + dx, y + dy)
 
+reverseHP :: Int -> Transform
+reverseHP c (x, y) = (-(x - c) + c, y)
+
+reverseVP :: Int -> Transform
+reverseVP c (x, y) = (x, -(y - c) + c)
+
+
 type Filter = Craphic -> Craphic
+
+filterWith :: Transform -> Filter
+filterWith t v = Craphic $ at v . t
+
 translate :: (Int, Int) -> Filter
-translate (dx, dy) v = Craphic $ at v . translateP (-dx, -dy)
+translate (dx, dy) = filterWith $ translateP (-dx, -dy)
 
+reverseH :: Int -> Filter
+reverseH c = filterWith $ reverseHP c
 
+reverseV :: Int -> Filter
+reverseV c = filterWith $ reverseVP c
+
+replace :: Dot -> Dot -> Filter
+replace d1 d2 v = Craphic $ \(x, y) -> let o = at v (x, y) in
+                                       if o == d1 then d2 else o
 
 -- ========================================================================
 -- | length of string.(count non-half character as 2)

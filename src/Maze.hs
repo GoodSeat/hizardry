@@ -194,14 +194,8 @@ turnLeft p = p { direction = sideOf L $ direction p }
 turnRight :: Position -> Position
 turnRight p = p { direction = sideOf R $ direction p }
 
-kickForward :: Maze -> Position -> Maybe Position
-kickForward lab p = if visiblityAt lab p 0 0 F /= Wall then Just $ moveForward lab p else Nothing
-
-walkForward :: Maze -> Position -> Maybe Position
-walkForward lab p = if visiblityAt lab p 0 0 F == Passage then Just $ moveForward lab p else Nothing
-
-moveForward :: Maze -> Position -> Position
-moveForward lab p = p { x = x', y = y' }
+moveForward :: Position -> Position
+moveForward p = p { x = x', y = y' }
   where
     dir  = direction p
     x'   = x p + if      dir == E then  1
@@ -210,6 +204,23 @@ moveForward lab p = p { x = x', y = y' }
     y'   = y p + if      dir == N then  1
                  else if dir == S then -1
                  else                   0
+
+moveBack :: Position -> Position
+moveBack p = p { x = x', y = y' }
+  where
+    dir  = direction p
+    x'   = x p + if      dir == E then -1
+                 else if dir == W then  1
+                 else                   0
+    y'   = y p + if      dir == N then -1
+                 else if dir == S then  1
+                 else                   0
+
+kickForward :: Maze -> Position -> Maybe Position
+kickForward mz p = if visiblityAt mz p 0 0 F /= Wall then Just $ moveForward p else Nothing
+
+walkForward :: Maze -> Position -> Maybe Position
+walkForward mz p = if visiblityAt mz p 0 0 F == Passage then Just $ moveForward p else Nothing
 
 -- ==========================================================================
 
