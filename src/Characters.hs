@@ -53,7 +53,7 @@ lvup c = (txt, c {
     , hp    = hp c + uphp
     })
   where
-    txt = name c ++ " is Lv Up!!\n\n  * HP up 5. \n"
+    txt = "You made the next level !\n\n You gained 5 HitPoitns.\n"
     uphp = 5
 
 healHp :: Int -> Character -> Character

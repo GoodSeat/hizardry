@@ -92,5 +92,8 @@ testRender s (Message m) w = do
     render $ msgBox m
           <> status (concat $ maybeToList <$> ps)
           <> scene (place w) s
-testRender s e w = print e
+testRender s None w = do
+    clearScreen
+    let ps = flip Map.lookup (allCharacters w) <$> party w
+    render $ scene (place w) s
 

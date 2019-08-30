@@ -15,7 +15,7 @@ exitGame' = Auto $ return (Exit, const exitGame')
 enterGrid :: Maybe GameAuto -> Position -> GameAuto
 enterGrid e p = Auto $ do
     movePlace $ InMaze p
-    case e of Nothing -> select (Message $ show p) $ moves p
+    case e of Nothing -> select None $ moves p
               Just a  -> run a
 
 ouch :: Position -> GameAuto

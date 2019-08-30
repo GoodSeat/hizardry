@@ -13,20 +13,18 @@ import qualified Characters as Character
 
 
 movePlace :: Place -> GameState ()
-movePlace p = do
-    w <- world
-    put w { place = p }
+movePlace p = modify $ \w -> w { place = p }
 
 -- =================================================================================
 
 characterOf :: Character.ID -> GameState Character.Character
 characterOf id = do
-    db <- allCharacters <$> get
+    db <- allCharacters <$> world
     return $ db ! id
 
 toParty :: Character.ID -> GameState ()
 toParty id = do
-    w <- get
+    w <- world
     let w' = w { party           = party w ++ [id]
                , inTarvernMember = filter (/= id) $ inTarvernMember w
                , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
@@ -35,21 +33,28 @@ toParty id = do
 
 updateCharacter :: Character.ID -> Character.Character -> GameState ()
 updateCharacter id c = do
-    w  <- get
+    w  <- world
     let db = allCharacters w
         w' = w { allCharacters = insert id c db }
     put w'
 
 updateCharacterWith :: Character.ID -> (Character.Character -> Character.Character) -> GameState ()
 updateCharacterWith id f = do
-    db <- allCharacters <$> get
+    db <- allCharacters <$> world
     updateCharacter id (f $ db ! id)
+
+poolGold :: Character.ID -> GameState ()
+poolGold id = do
+    ids <- party <$> world
+    cs  <- sequence $ characterOf <$> ids
+    let gp = sum $ Character.gold <$> cs
+    forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Character.gold = if id' == id then gp else 0 }
 
 -- =================================================================================
 
 randomNext :: Int -> Int -> GameState Int
 randomNext min max = do
-    w <- get
+    w <- world
     let (v, g') = randomR (min, max) $ randomGen w
     put w { randomGen = g' }
     return v

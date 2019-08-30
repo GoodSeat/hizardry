@@ -75,19 +75,25 @@ inAdventure'sInn = Auto $ do
 
 selectStayPlan :: Character.ID -> GameAuto
 selectStayPlan id = Auto $ do
-    let msg = Message $ "Where do you stay?\n" ++
-                        "H)orse House               Free!!\n" ++
-                        "N)ormal Room       10 Gold / Week\n" ++
-                        "S)uite Room        50 Gold / Week\n" ++
-                        "D)elax Suite      200 Gold / Week\n" ++
-                        "?)Suite           500 Gold / Week\n\n" ++
+    c <- characterOf id
+    let nam = Character.name c
+        gp  = Character.gold c
+    let msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " GP.\n\n" ++
+                        "We have:\n" ++
+                        "A)The Stables        (FREE)\n" ++
+                        "B)A Cot               10 GP/Week\n" ++
+                        "C)Economy Rooms       50 GP/Week\n" ++
+                        "D)Merchant Suites    200 GP/Week\n" ++
+                        "E)The Royal Suite    500 GP/Week\n\n" ++
+                        "P)ool Gold\n" ++
                         "L)eave\n"
         lst = [(Key "l", inAdventure'sInn)
-              ,(Key "h", sleep id  0   0)
-              ,(Key "n", sleep id  1  10)
-              ,(Key "s", sleep id  3  50)
+              ,(Key "p", Auto $ poolGold id >> (run $ selectStayPlan id))
+              ,(Key "a", sleep id  0   0)
+              ,(Key "b", sleep id  1  10)
+              ,(Key "c", sleep id  3  50)
               ,(Key "d", sleep id  7 200)
-              ,(Key "?", sleep id 10 500)]
+              ,(Key "e", sleep id 10 500)]
     select msg lst
 
 sleep :: Character.ID
@@ -114,8 +120,8 @@ checkLvup :: Character.ID -> GameAuto
 checkLvup id = Auto $ do
     c <- characterOf id
     let nextLvExp = neps !! (Character.lv c - 1)
-        nextLvMsg = Character.name c ++ " needs "
-                  ++ show (nextLvExp - Character.exp c) ++ " Exps for next lv."
+        nextLvMsg = "You need " ++ show (nextLvExp - Character.exp c) ++ 
+                    " more E.P.\nto make the next level."
     if Character.exp c >= nextLvExp
         then run $ doLvup id
         else run $ events [Message nextLvMsg] $ selectStayPlan id
