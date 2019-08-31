@@ -10,15 +10,17 @@ import Maze
 
 data World = World {
       randomGen       :: StdGen
+    , guideOn         :: !Bool   -- ^ visible guidw window in maze.
+    , statusOn        :: !Bool   -- ^ visible status window in maze.
 
-    , party           :: [Character.ID]
-    , place           :: Place
+    , party           :: ![Character.ID]
+    , place           :: !Place
 
-    , inTarvernMember :: [Character.ID]
-    , inMazeMember    :: [(Character.ID, Position)]
-    , shopItems       :: Map.Map Item.ID Int
+    , inTarvernMember :: ![Character.ID]
+    , inMazeMember    :: ![(Character.ID, Position)]
+    , shopItems       :: !(Map.Map Item.ID Int)
 
-    , allCharacters   :: Character.DB
+    , allCharacters   :: !Character.DB
 } deriving (Show)
 
 data Place  = InCastle
@@ -29,6 +31,7 @@ data Place  = InCastle
             | InEdgeOfTown
             | TrainingGrounds
             | InMaze Position
+            | Camping Position
     deriving (Show, Eq)
 
 

@@ -1,6 +1,7 @@
 module InMaze
 where
 
+import Control.Monad.State
 
 import GameAuto
 import World
@@ -28,6 +29,8 @@ moves p = [(Key "a", enterGrid Nothing $ turnLeft p)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
           ,(Key "q", exitGame')
+          ,(Key "s", Auto $ modify (\w -> w { statusOn = not $ statusOn w }) >> run (enterGrid Nothing p))
+          ,(Key "o", Auto $ modify (\w -> w { guideOn = not $ guideOn w }) >> run (enterGrid Nothing p))
           ]
   where
     goStraight p f = Auto $ do
@@ -38,7 +41,7 @@ moves p = [(Key "a", enterGrid Nothing $ turnLeft p)
 -- =======================================================================
 
 openCamp :: Position -> GameAuto
-openCamp p = Auto $ select (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
+openCamp p = Auto $ movePlace (Camping p) >> select (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
         [(Key "l", enterGrid (eventOn allEvents p) p)]
 
 

@@ -55,6 +55,8 @@ main = do
     gen <- getStdGen
     let w = World {
         randomGen       = gen
+      , guideOn         = True
+      , statusOn        = True
 
       , party           = []
       , place           = InCastle
@@ -90,10 +92,24 @@ testRender s (Message m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ msgBox m
-          <> status (concat $ maybeToList <$> ps)
+          <> (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
+          <> (if guideWindow w then guide else mempty)
+          <> frame
           <> scene (place w) s
 testRender s None w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
-    render $ scene (place w) s
+    render $ (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
+          <> (if guideWindow w then guide else mempty)
+          <> frame
+          <> scene (place w) s
 
+statusWindow :: World -> Bool
+statusWindow w = let inMaze = case place w of InMaze _ -> True
+                                              _        -> False
+    in statusOn w || not inMaze
+
+guideWindow :: World -> Bool
+guideWindow w = let inMaze = case place w of InMaze _ -> True
+                                             _        -> False
+    in guideOn w && inMaze
