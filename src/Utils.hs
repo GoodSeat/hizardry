@@ -5,11 +5,11 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import Data.Map hiding (filter)
-import System.Random
 
 import GameAuto
 import World
 import qualified Characters as Character
+import qualified Formula as Formula
 
 
 movePlace :: Place -> GameState ()
@@ -52,11 +52,7 @@ poolGold id = do
 
 -- =================================================================================
 
-randomNext :: Int -> Int -> GameState Int
-randomNext min max = do
-    w <- world
-    let (v, g') = randomR (min, max) $ randomGen w
-    put w { randomGen = g' }
-    return v
+eval :: Formula.Formula -> GameState Int
+eval f = Formula.eval (fromList []) f
 
 

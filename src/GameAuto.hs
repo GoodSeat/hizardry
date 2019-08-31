@@ -2,6 +2,7 @@
 module GameAuto
 where
 
+import System.Random
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
@@ -91,5 +92,14 @@ mazeAt z = do
    ls <- mazes <$> ask
    return $ ls !! z
 
-err :: String -> GameMachine
-err msg = throwError msg >> undefined
+err :: String -> GameState a
+err msg = throwError msg
+
+-- =================================================================================
+
+randomNext :: Int -> Int -> GameState Int
+randomNext min max = do
+    w <- world
+    let (v, g') = randomR (min, max) $ randomGen w
+    put w { randomGen = g' }
+    return v

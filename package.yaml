@@ -26,6 +26,7 @@ dependencies:
 - random
 - containers
 - ansi-terminal
+- parsec
 - no-buffering-workaround
 
 library:
