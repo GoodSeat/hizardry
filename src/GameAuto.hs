@@ -6,9 +6,11 @@ import System.Random
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
+import qualified Data.Map as Map
 
 import World
 import Maze
+import qualified Enemies as Enemy
 
 data Input = Key String
            | Clock
@@ -27,9 +29,11 @@ data Option = Option String
 -- ==========================================================================
 -- | scenario immutable data.
 data Scenario = Scenario {
-      scenarioOption :: Option
-    , scenarioHome   :: GameAuto
-    , mazes          :: [Maze]
+      scenarioOption :: !Option
+    , scenarioHome   :: !GameAuto
+    , mazes          :: ![Maze]
+    , encountMap     ::  Map.Map Coord [(Int, [Enemy.ID])]
+    , enemies        :: !Enemy.DB
     }
 
 -- | State used in game.

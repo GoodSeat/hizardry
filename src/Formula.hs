@@ -1,19 +1,23 @@
 module Formula (
-      Formula
-    , parseFormula
-    , eval
+      Formula(..)
+    , Operator(..)
+    , Formula.parse
+    , parse'
 ) where
 
 import Text.ParserCombinators.Parsec hiding (token)
 import qualified Data.Map as Map
 import Control.Applicative ((<*>), (<*), (*>))
-import GameAuto
 
 main = do
-    print $ parse expr "" "(5+2)*2+3d2"
+    print $ Formula.parse "(5+2)*2+3d2"
 
-parseFormula :: String -> Either ParseError Formula
-parseFormula s = parse expr "" s
+parse :: String -> Either ParseError Formula
+parse s = Text.ParserCombinators.Parsec.parse expr "" s
+
+parse' :: String -> Formula
+parse' s = case Formula.parse s of Right f -> f
+                                   Left  _ -> undefined
 
 -- ================================================================================
 --
@@ -80,13 +84,3 @@ dice :: GenParser Char st Formula
 dice = Dice <$> natural <*> (char 'd' >> natural)
 
 -- ================================================================================
-
-eval :: Map.Map String Int -> Formula -> GameState Int
-eval _ (Value n) = return n
-eval m (Operate Addition    n1 n2) = (+) <$> eval m n1 <*> eval m n2
-eval m (Operate Subtraction n1 n2) = (-) <$> eval m n1 <*> eval m n2
-eval m (Operate Production  n1 n2) = (*) <$> eval m n1 <*> eval m n2
-eval m (Operate Division    n1 n2) = div <$> eval m n1 <*> eval m n2
-eval m (Variable name) = case Map.lookup name m of Nothing -> err $ "not defined value of " ++ name
-                                                   Just v  -> return v
-eval _ (Dice n1 n2) = (n1*) <$> randomNext 1 n2

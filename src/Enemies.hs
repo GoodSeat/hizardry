@@ -1,19 +1,80 @@
 module Enemies
 where
 
+import qualified Data.Map as Map
 
+import Formula
+import qualified Characters as Character
+import qualified Spells as Spell
+import qualified Items as Item
+
+newtype ID = ID {
+    num :: Int
+} deriving (Show, Eq, Ord)
 
 data Instance = Instance {
-      id :: !Int
-    , hp :: !Int
+      id            :: !ID
+    , hp            :: !Int
+    , statusErrors  :: ![Character.StatusError]
 } deriving (Show, Eq)
 
 data Define = Define {
       name              :: !String
     , nameUndetermined  :: !String
     , lv                :: !Int
-    , maxhp             :: !Int
+    , maxhp             :: !Formula
 
-} deriving (Show, Eq)
+    , param             :: !Character.Parameter
+    , ac                :: !Int
 
+    , exp               :: !Int
+    , kind              :: !String
+    , frendlyProb       :: !Int
+    , numOfOccurrences  :: !Formula
+    , resistProbM       :: !Int
+    , resistProbP       :: !Int
+    , healPerTurn       :: !Int
+    , moveFrontProb     :: !Int
+
+    , resistError       :: ![(Character.StatusError, Int)]
+    , resistAttributes  :: ![Spell.Attribute]
+    , weakAttributes    :: ![Spell.Attribute]
+
+    , actions           :: ![Action]
+
+    , dropItem          :: ![(Int, Formula)] -- ^ drop probablity, and it's item ID.
+    , dropGold          :: !Formula
+
+    , withBackProb      :: !Int
+    , backEnemyID       :: !Formula
+
+    , enableRun         :: !Bool
+    , trapCandidate     :: ![Trap]
+
+} deriving (Show)
+
+data Action = Fight Int     -- ^ count of attack.
+                    Formula -- ^ damage per hit.
+                    Formula -- ^ target number. 1~3 are front member, 4~6 are back member.
+                    [(Int, Character.StatusError)] -- ^ additinal effect, and it's probablity.
+            | Spelling Formula -- ^ spel id.
+            | Brath Formula    -- ^ damage.
+            | Run
+    deriving (Show)
+
+data Trap = DropDirectly
+          | NoTrap
+          | PoisonNeedle
+          | GasBomb
+          | CrossbowBolt
+          | ExplodingBox
+          | Stunner
+          | Teleporter
+          | MageBlaster
+          | PriestBlaster
+          | Alarm
+    deriving (Show, Eq, Enum)
+
+-- | data base of enemies.
+type DB = Map.Map Int Define
 

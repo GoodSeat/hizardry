@@ -47,8 +47,6 @@ openCamp p = Auto $ movePlace (Camping p) >> select (Message "#)Inspect\nR)eorde
 
 -- =======================================================================
 
-type Coord = (Int, Int, Int)
-
 eventOn :: [(Coord, GameAuto)] -> Position -> Maybe GameAuto
 eventOn [] _ = Nothing
 eventOn (((x', y', z'), e):es) p = if x p == x' && y p == y' && z p == z'

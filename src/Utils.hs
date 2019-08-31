@@ -9,7 +9,7 @@ import Data.Map hiding (filter)
 import GameAuto
 import World
 import qualified Characters as Character
-import qualified Formula as Formula
+import Formula
 
 
 movePlace :: Place -> GameState ()
@@ -52,7 +52,17 @@ poolGold id = do
 
 -- =================================================================================
 
-eval :: Formula.Formula -> GameState Int
-eval f = Formula.eval (fromList []) f
+eval :: Formula -> GameState Int
+eval f = evalWith (fromList []) f
+
+evalWith :: Map String Int -> Formula -> GameState Int
+evalWith _ (Value n) = return n
+evalWith m (Operate Addition    n1 n2) = (+) <$> evalWith m n1 <*> evalWith m n2
+evalWith m (Operate Subtraction n1 n2) = (-) <$> evalWith m n1 <*> evalWith m n2
+evalWith m (Operate Production  n1 n2) = (*) <$> evalWith m n1 <*> evalWith m n2
+evalWith m (Operate Division    n1 n2) = div <$> evalWith m n1 <*> evalWith m n2
+evalWith m (Variable name) = case Data.Map.lookup name m of Nothing -> err $ "not defined value of " ++ name
+                                                            Just v  -> return v
+evalWith _ (Dice n1 n2) = (n1*) <$> randomNext 1 n2
 
 

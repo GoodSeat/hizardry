@@ -11,38 +11,55 @@ data ID = ID {
 } deriving (Show, Eq, Ord)
 
 data Character = Character { 
-      name     :: String     -- ^ 名前
-    , age      :: Int        -- ^ 年齢
-    , lv       :: Int        -- ^ レベル
-    , exp      :: Int        -- ^ 経験値
-    , gold     :: Int        -- ^ 所持金
+      name         :: !String         -- ^ name of character.
+    , age          :: !Int            -- ^ age
+    , days         :: !Int            -- ^ past days after last birth.
+    , lv           :: !Int            -- ^ level.
+    , exp          :: !Int            -- ^ experiment points.
+    , gold         :: !Int            -- ^ gold.
 
-    , hp       :: Int        -- ^ HP
-    , maxhp    :: Int        -- ^ MaxHP
-    , param    :: Parameter  -- ^ ステータス
-    , marks    :: Int        -- ^ 倒した敵の数
-    , rips     :: Int        -- ^ 死亡数
+    , hp           :: !Int            -- ^ HP
+    , maxhp        :: !Int            -- ^ MaxHP
+    , param        :: !Parameter      -- ^ parameters.
+    , marks        :: !Int            -- ^ count of defeated enemies.
+    , rips         :: !Int            -- ^ count of dead.
+    , statusErrors :: ![StatusError]  -- ^ status errors.
     
-    , items    :: [Item.ID]      -- ^ 所持アイテム
-    , equips   :: [Item.ID]      -- ^ 装備中のアイテム
+    , items        :: ![Item.ID]      -- ^ items you have.
+    , equips       :: ![Item.ID]      -- ^ items you equips.
 
-    , spells   :: [Spell.Spell]  -- ^ 習得済みの魔法
-    , mp       :: ([Int], [Int]) -- ^ MP
-    , maxmp    :: ([Int], [Int]) -- ^ MaxMP
+    , spells       :: ![Spell.ID]     -- ^ learned spells.
+    , mp           :: !([Int], [Int]) -- ^ MP
+    , maxmp        :: !([Int], [Int]) -- ^ MaxMP
 } deriving (Show, Eq)
 
 -- | define of character's parameter.
 data Parameter = Parameter {
-      strength :: Int -- ^ strength
-    , iq       :: Int -- ^ I.Q.
-    , piety    :: Int -- ^ piety
-    , vitality :: Int -- ^ vitality
-    , agility  :: Int -- ^ agility
-    , luck     :: Int -- ^ luck
+      strength :: !Int -- ^ strength
+    , iq       :: !Int -- ^ I.Q.
+    , piety    :: !Int -- ^ piety
+    , vitality :: !Int -- ^ vitality
+    , agility  :: !Int -- ^ agility
+    , luck     :: !Int -- ^ luck
 } deriving (Show, Eq)
 
 -- | data base of character.
 type DB = Map.Map ID Character
+
+
+-- | type of status error.
+data StatusError = Silence
+                 | Paralysis
+                 | Stoned
+                 | Poison
+                 | Fear
+                 | Sleep
+                 | Rigor
+                 | Drain Int
+                 | Dead
+                 | Ash
+                 | Lost
+    deriving (Show, Eq)
 
 -- =================================================================================
 
