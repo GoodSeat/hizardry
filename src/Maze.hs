@@ -17,6 +17,9 @@ data Position = Position {
 -- | coordinate in maze.
 type Coord = (Int, Int, Int)
 
+coordOf :: Position -> Coord
+coordOf p = (x p, y p, z p)
+
 -- | face data around Grid.
 data Face = Wall | Door | SecretDoor | Passage deriving (Show, Eq)
 

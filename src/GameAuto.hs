@@ -32,7 +32,7 @@ data Scenario = Scenario {
       scenarioOption :: !Option
     , scenarioHome   :: !GameAuto
     , mazes          :: ![Maze]
-    , encountMap     ::  Map.Map Coord [(Int, [Enemy.ID])]
+    , encountMap     ::  Map.Map Coord (Int, [Enemy.ID])
     , enemies        :: !Enemy.DB
     }
 
@@ -96,6 +96,19 @@ mazeAt z = do
    ls <- mazes <$> ask
    return $ ls !! z
 
+checkEncount :: Coord -> GameState (Maybe Enemy.ID)
+checkEncount c = do
+    emap <- encountMap <$> ask
+    r    <- randomNext 1 100
+    let es' = do {
+        (prob, es) <- Map.lookup c emap;
+        guard $ r < prob;
+        return es
+        }
+    case es' of Nothing -> return $ Nothing
+                Just es -> Just <$> randomIn es
+
+
 err :: String -> GameState a
 err msg = throwError msg
 
@@ -107,3 +120,8 @@ randomNext min max = do
     let (v, g') = randomR (min, max) $ randomGen w
     put w { randomGen = g' }
     return v
+
+randomIn :: [a] -> GameState a
+randomIn as = do
+    n <- randomNext 1 $ length as
+    return $ as !! (n - 1)
