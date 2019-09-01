@@ -38,7 +38,12 @@ startBattle :: Enemy.ID             -- ^ encounted enemy.
 startBattle eid gp = Auto $ do
     es <- decideEnemyInstance eid
     moveToBattle es
+    -- TODO:maybe enemies (or parties) ambush.
+    run $ selectBattleCommand 1
 
+
+selectBattleCommand :: Int -- ^ character index in party.
+                    -> GameAuto
+selectBattleCommand = do
     undefined
-
 
