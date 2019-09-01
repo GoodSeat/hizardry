@@ -9,11 +9,18 @@ import Data.Map hiding (filter)
 import GameAuto
 import World
 import qualified Characters as Character
+import qualified Enemies as Enemy
 import Formula
 
 
 movePlace :: Place -> GameState ()
 movePlace p = modify $ \w -> w { place = p }
+
+moveToBattle :: [[Enemy.Instance]] -> GameState ()
+moveToBattle es = do
+    p <- place <$> world
+    case p of InMaze pos -> movePlace $ InBattle pos es
+              _          -> err "invalid moveToBattle."
 
 -- =================================================================================
 

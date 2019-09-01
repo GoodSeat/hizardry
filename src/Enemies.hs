@@ -76,5 +76,5 @@ data Trap = DropDirectly
     deriving (Show, Eq, Enum)
 
 -- | data base of enemies.
-type DB = Map.Map Int Define
+type DB = Map.Map ID Define
 

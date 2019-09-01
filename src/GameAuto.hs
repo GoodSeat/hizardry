@@ -108,6 +108,10 @@ checkEncount c = do
     case es' of Nothing -> return $ Nothing
                 Just es -> Just <$> randomIn es
 
+happens :: Int -> GameState Bool
+happens prob = do
+    r <- randomNext 1 100
+    return $ prob >= r
 
 err :: String -> GameState a
 err msg = throwError msg
@@ -125,3 +129,13 @@ randomIn :: [a] -> GameState a
 randomIn as = do
     n <- randomNext 1 $ length as
     return $ as !! (n - 1)
+
+-- =================================================================================
+--
+enemyOf :: Enemy.ID -> GameState Enemy.Define
+enemyOf eid = do
+    es <- enemies <$> ask
+    return $ (Map.!) es eid
+    
+    
+

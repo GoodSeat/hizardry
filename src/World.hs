@@ -5,6 +5,7 @@ import System.Random
 import qualified Data.Map as Map
 
 import qualified Characters as Character
+import qualified Enemies as Enemy
 import qualified Items as Item
 import Maze
 
@@ -14,7 +15,8 @@ data World = World {
     , statusOn        :: !Bool   -- ^ visible status window in maze.
 
     , party           :: ![Character.ID]
-    , place           :: !Place
+    , place           :: !Place   -- ^ current party position.
+    , roomBattled     :: ![Coord] -- ^ already room battled in current mazing.
 
     , inTarvernMember :: ![Character.ID]
     , inMazeMember    :: ![(Character.ID, Position)]
@@ -31,6 +33,7 @@ data Place  = InCastle
             | InEdgeOfTown
             | TrainingGrounds
             | InMaze Position
+            | InBattle Position [[Enemy.Instance]]
             | Camping Position
     deriving (Show, Eq)
 

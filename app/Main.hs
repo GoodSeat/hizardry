@@ -65,6 +65,7 @@ main = do
 
       , party           = []
       , place           = InCastle
+      , roomBattled   = []
 
       , inTarvernMember = [Character.ID 1, Character.ID 2]
       , inMazeMember    = []
@@ -89,7 +90,7 @@ main = do
                 , ((1, 5, 0), (3, [Enemy.ID 1]))
                 ]
             , enemies        = Map.fromList [
-                (1, Enemy.Define {
+                (Enemy.ID 1, Enemy.Define {
                       Enemy.name              = "slime"
                     , Enemy.nameUndetermined  = "moving object"
                     , Enemy.lv                = 1
