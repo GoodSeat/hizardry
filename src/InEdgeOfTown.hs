@@ -4,7 +4,7 @@ where
 
 import GameAuto
 import World
-import Characters
+import qualified Characters as Character
 import Utils
 import InMaze
 import Maze

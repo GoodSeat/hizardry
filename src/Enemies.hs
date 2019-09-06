@@ -14,6 +14,7 @@ newtype ID = ID {
 
 data Instance = Instance {
       id            :: !ID
+    , determined    :: !Bool
     , hp            :: !Int
     , statusErrors  :: ![Character.StatusError]
 } deriving (Show, Eq)

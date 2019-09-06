@@ -29,6 +29,17 @@ main = do
         , Character.agility  = 10
         , Character.luck     = 10
         }
+        fighter = Character.Job {
+          Character.jobName              = "Fighter"
+        , Character.enableAlignments     = [Character.G, Character.N, Character.E]
+        , Character.enableBattleCommands = [
+              Character.Fight
+            , Character.Spell
+            , Character.Run
+            , Character.Parry
+            , Character.UseItem
+            ]
+        }
     let testChara1 = Character.Character {
           Character.name     = "FIG1"
         , Character.age      = 18
@@ -37,6 +48,8 @@ main = do
         , Character.lv       = 1
         , Character.exp      = 4000
         , Character.gold     = 1000
+
+        , Character.job      = fighter
 
         , Character.hp       = 12
         , Character.maxhp    = 20

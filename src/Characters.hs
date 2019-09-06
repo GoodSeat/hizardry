@@ -18,6 +18,8 @@ data Character = Character {
     , exp          :: !Int            -- ^ experiment points.
     , gold         :: !Int            -- ^ gold.
 
+    , job          :: !Job            -- ^ class of character.
+
     , hp           :: !Int            -- ^ HP
     , maxhp        :: !Int            -- ^ MaxHP
     , param        :: !Parameter      -- ^ parameters.
@@ -46,6 +48,14 @@ data Parameter = Parameter {
 -- | data base of character.
 type DB = Map.Map ID Character
 
+data Alignment = G | N | E deriving (Show, Eq)
+
+-- | define of character class.
+data Job = Job {
+      jobName              :: !String
+    , enableAlignments     :: ![Alignment]
+    , enableBattleCommands :: ![BattleCommand]
+} deriving (Show, Eq)
 
 -- | type of status error.
 data StatusError = Silence
@@ -59,6 +69,15 @@ data StatusError = Silence
                  | Dead
                  | Ash
                  | Lost
+    deriving (Show, Eq)
+
+data BattleCommand = Fight
+                   | Spell
+                   | Hide
+                   | Ambush
+                   | Run
+                   | Parry
+                   | UseItem
     deriving (Show, Eq)
 
 -- =================================================================================
