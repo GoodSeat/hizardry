@@ -9,6 +9,7 @@ import Characters
 import Maze
 import Utils
 import qualified Enemies as Enemy
+import InBattle
 
 exitGame' :: GameAuto
 exitGame' = Auto $ return (Exit, const exitGame')
@@ -47,8 +48,7 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
 -- =======================================================================
 
 encountEnemy :: Enemy.ID -> GameAuto
-encountEnemy id = events [Message "encount enemy!"] escapeEvent
-
+encountEnemy id = startBattle id (escapeEvent, escapeEvent)
 
 
 -- =======================================================================

@@ -106,9 +106,11 @@ sleep id h g = Auto $ do
       run $ events [Message "not money."] $ selectStayPlan id
     else
       run $ selectNext (Message $  Character.name c
-                                ++ " is sleeping... \n\nlast gold is "
+                                ++ " is napping. \n\n"
+                                ++ show (Character.name c)
+                                ++ " has "
                                 ++ show (Character.gold c)
-                                ++ " gold.\n\nW)ake up")
+                                ++ " G.P.\n\nW)ake up")
                  [(Key "w", checkLvup id)
                  ,(Clock, next) 
                  ,(Key "n", next)]

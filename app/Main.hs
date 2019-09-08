@@ -107,7 +107,7 @@ main = do
                       Enemy.name              = "slime"
                     , Enemy.nameUndetermined  = "moving object"
                     , Enemy.lv                = 1
-                    , Enemy.maxhp             = parse' ""
+                    , Enemy.maxhp             = parse' "1d6"
 
                     , Enemy.param             = Character.Parameter 5 8 8 8 8 8
                     , Enemy.ac                = 10

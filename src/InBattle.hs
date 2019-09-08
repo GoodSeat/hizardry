@@ -48,24 +48,68 @@ data Action = Fight Int
     deriving (Show, Eq)
 
 startBattle :: Enemy.ID             -- ^ encounted enemy.
-            -> (GameAuto, GameAuto) -- ^ after battle won, run from battle..
+            -> (GameAuto, GameAuto) -- ^ after battle won, run from battle.
             -> GameAuto
 startBattle eid gp = Auto $ do
     es <- decideEnemyInstance eid
     moveToBattle es
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
-    run $ events [Message "\nEncounter!\n"] (selectBattleCommand 1 [])
+    run $ events [Message "\nEncounter!\n"] (selectBattleCommand 1 [] gp)
     -- TODO:following code is ideal...
 --  select (Message "\nEncounter!\n") [(Clock, selectBattleCommand 1)]
 
 
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
-                    -> [(Character.ID, Character.BattleCommand)]
+                    -> [(Character.ID, Action)]
+                    -> (GameAuto, GameAuto) -- ^ after battle won, run from battle.
                     -> GameAuto
-selectBattleCommand i cmds = Auto $ do
+selectBattleCommand i cmds gp = Auto $ do
     p <- party <$> world
-    c <- characterOf $ p !! (i - 1)
-    let cmds = Character.enableBattleCommands $ Character.job c
-    undefined
+    if length p < i then run $ confirmBattle cmds gp else do
+        let cid = p !! (i - 1)
+        c <- characterOf cid
+        let cs = Character.enableBattleCommands $ Character.job c
+        selectWhen (Message $ Character.name c ++ "'s Option\n\n" ++ concat (toMsg <$> cs))
+                   [( Key "f"
+                    , selectFightTarget $ \a -> selectBattleCommand (i + 1) ((cid, a) : cmds) gp
+                    , Character.Fight `elem` cs)
+                   ,( Key "p"
+                    , selectBattleCommand (i + 1) ((cid, Parry) : cmds) gp
+                    , Character.Parry `elem` cs)
+                    ]
+  where
+    toMsg cmd = case cmd of Character.Fight   -> "F)ight\n"
+                            Character.Spell   -> "S)pell\n"
+                            Character.Hide    -> "H)ide\n"
+                            Character.Ambush  -> "A)mbush\n"
+                            Character.Run     -> "R)un\n"
+                            Character.Parry   -> "P)arry\n"
+                            Character.UseItem -> "U)se Item\n"
+
+selectFightTarget :: (Action -> GameAuto) -> GameAuto
+selectFightTarget next = Auto $ do
+    ess <- lastEnemies
+    if length ess == 1 then run $ next (Fight 1)
+    else selectWhen (Message "target group?")
+                    [(Key "a", next (Fight 1), length ess > 0)
+                    ,(Key "b", next (Fight 2), length ess > 1)
+                    ,(Key "c", next (Fight 3), length ess > 2)
+                    ,(Key "d", next (Fight 4), length ess > 3)]
+
+
+confirmBattle :: [(Character.ID, Action)]
+              -> (GameAuto, GameAuto) -- ^ after battle won, run from battle.
+              -> GameAuto
+confirmBattle cmds gp = Auto $ select (Message "Are you OK?\n\nF)ight\nT)ake Back")
+                                      [(Key "f", progressBattle cmds gp)
+                                      ,(Key "t", selectBattleCommand 1 [] gp)
+                                      ]
+                            
+progressBattle :: [(Character.ID, Action)]
+               -> (GameAuto, GameAuto) -- ^ after battle won, run from battle.
+               -> GameAuto
+progressBattle = undefined
+
+
 

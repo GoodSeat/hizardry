@@ -59,6 +59,14 @@ poolGold id = do
 
 -- =================================================================================
 
+lastEnemies :: GameState [[Enemy.Instance]]
+lastEnemies = do
+    p <- place <$> world
+    case p of InBattle _ ess -> return ess
+              _              -> err "invalid lastEnemies."
+
+-- =================================================================================
+
 eval :: Formula -> GameState Int
 eval f = do
     w <- world
