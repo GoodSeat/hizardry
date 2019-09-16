@@ -86,10 +86,10 @@ world :: GameState World
 world = get
 
 option :: GameState Option
-option = scenarioOption <$> ask
+option = asks scenarioOption
 
 home :: GameState GameAuto
-home = scenarioHome <$> ask
+home = asks scenarioHome
 
 mazeAt :: Int -> GameState Maze
 mazeAt z = do
@@ -134,7 +134,7 @@ randomIn as = do
 --
 enemyOf :: Enemy.ID -> GameState Enemy.Define
 enemyOf eid = do
-    es <- enemies <$> ask
+    es <- asks enemies
     return $ (Map.!) es eid
     
     

@@ -65,6 +65,31 @@ lastEnemies = do
     case p of InBattle _ ess -> return ess
               _              -> err "invalid lastEnemies."
 
+updateEnemy :: Int            -- ^ target enemy line(1～4).
+            -> Enemy.Instance -- ^ target enemy.
+            -> (Enemy.Instance -> Enemy.Instance) -> GameState ()
+updateEnemy l e f = do
+    p <- place <$> world
+    (pos, ess) <- case p of InBattle pos ess -> return (pos, ess)
+                            _                -> err "invalid updateEnemy."
+    movePlace $ InBattle pos (updateEnemyLine l e ess f)
+  where
+    updateEnemyLine :: Int
+                    -> Enemy.Instance
+                    -> [[Enemy.Instance]]
+                    -> (Enemy.Instance -> Enemy.Instance) -> [[Enemy.Instance]]
+    updateEnemyLine _ _ [] _ = []
+    updateEnemyLine l e (es:ess) f
+        | l == 1    = updateEnemyInstance es e f : ess
+        | otherwise = es : updateEnemyLine (l - 1) e ess f
+
+    updateEnemyInstance :: [Enemy.Instance]
+                        -> Enemy.Instance
+                        -> (Enemy.Instance -> Enemy.Instance) -> [Enemy.Instance]
+    updateEnemyInstance (e1:es) e f
+        | e1 == e   = f e : es
+        | otherwise = e1 : updateEnemyInstance es e f
+
 -- =================================================================================
 
 eval :: Formula -> GameState Int

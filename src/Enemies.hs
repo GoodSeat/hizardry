@@ -59,7 +59,7 @@ data Action = Fight Int     -- ^ count of attack.
                     Formula -- ^ target number. 1~3 are front member, 4~6 are back member.
                     [(Int, Character.StatusError)] -- ^ additinal effect, and it's probablity.
             | Spelling Formula -- ^ spel id.
-            | Brath Formula    -- ^ damage.
+            | Breath Formula   -- ^ damage.
             | Run
     deriving (Show)
 
