@@ -56,17 +56,17 @@ instance Show Formula where
     show (Dice n m)      = show n ++ "d" ++ show m
 
 expr :: GenParser Char st Formula
-expr =  try (Operate Addition    <$> term <*> (char '+' >> expr))
-    <|> try (Operate Subtraction <$> term <*> (char '-' >> expr))
-    <|> term
+expr =  try (Operate Addition    <$> token term <*> (char '+' >> token expr))
+    <|> try (Operate Subtraction <$> token term <*> (char '-' >> token expr))
+    <|> token term
 
 term :: GenParser Char st Formula
-term =  try (Operate Production <$> factor <*> (char '*' >> term))
-    <|> try (Operate Division   <$> factor <*> (char '/' >> term))
-    <|> factor
+term =  try (Operate Production <$> token factor <*> (char '*' >> token term))
+    <|> try (Operate Division   <$> token factor <*> (char '/' >> token term))
+    <|> token factor
 
 factor :: GenParser Char st Formula
-factor =  (char '(' *> expr <* char ')')
+factor =  (char '(' *> token expr <* char ')')
       <|> try dice
       <|> try (Value <$> integer)
       <|> variable
