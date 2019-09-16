@@ -19,8 +19,9 @@ movePlace p = modify $ \w -> w { place = p }
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
 moveToBattle es = do
     p <- place <$> world
-    case p of InMaze pos -> movePlace $ InBattle pos es
-              _          -> err "invalid moveToBattle."
+    case p of InMaze pos     -> movePlace $ InBattle pos es
+              InBattle pos _ -> movePlace $ InBattle pos es
+              _              -> err "invalid moveToBattle."
 
 -- =================================================================================
 
@@ -65,6 +66,11 @@ lastEnemies = do
     case p of InBattle _ ess -> return ess
               _              -> err "invalid lastEnemies."
 
+enemyOf :: Enemy.ID -> GameState Enemy.Define
+enemyOf eid = do
+    es <- asks enemies
+    return $ es ! eid
+
 updateEnemy :: Int            -- ^ target enemy line(1～4).
             -> Enemy.Instance -- ^ target enemy.
             -> (Enemy.Instance -> Enemy.Instance) -> GameState ()
@@ -93,10 +99,12 @@ updateEnemy l e f = do
 -- =================================================================================
 
 eval :: Formula -> GameState Int
-eval f = do
+eval = evalWith (fromList [])
+
+evalWith :: Map String Int -> Formula -> GameState Int
+evalWith m f = do
     w <- world
-    let (res, g') = Formula.eval (fromList []) f $ randomGen w
+    let (res, g') = Formula.eval m f $ randomGen w
     put w { randomGen = g' }
     case res of Right i   -> return i
                 Left  msg -> err msg
-

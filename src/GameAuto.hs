@@ -132,10 +132,6 @@ randomIn as = do
 
 -- =================================================================================
 --
-enemyOf :: Enemy.ID -> GameState Enemy.Define
-enemyOf eid = do
-    es <- asks enemies
-    return $ (Map.!) es eid
     
     
 

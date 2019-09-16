@@ -71,6 +71,27 @@ data StatusError = Silence
                  | Lost
     deriving (Show, Eq)
 
+cantFightStatus :: [StatusError]
+cantFightStatus = [ Paralysis
+                  , Stoned
+                  , Fear
+                  , Sleep
+                  , Rigor
+                  , Dead
+                  , Ash
+                  , Lost]
+
+cantSpellStatus :: [StatusError]
+cantSpellStatus = [ Silence
+                  , Paralysis
+                  , Stoned
+                  , Fear
+                  , Sleep
+                  , Rigor
+                  , Dead
+                  , Ash
+                  , Lost]
+
 data BattleCommand = Fight
                    | Spell
                    | Hide

@@ -17,6 +17,7 @@ data Instance = Instance {
     , determined    :: !Bool
     , hp            :: !Int
     , statusErrors  :: ![Character.StatusError]
+    , maybeDropItem :: !Bool
 } deriving (Show, Eq)
 
 data Define = Define {
