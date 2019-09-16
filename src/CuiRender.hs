@@ -24,6 +24,14 @@ msgBox m = foldl1 (<>) $ fmap toText (zip [1..] ls) ++
     ls = lines m
     toText (n, t) = text (8, 5 + n) t
 
+cmdBox :: String -> Craphic
+cmdBox m = foldl1 (<>) $ fmap toText (zip [1..] ls) ++
+    [rect (44, 15) (25, 10) (Draw ' ')]
+  where
+    ls = lines m
+    toText (n, t) = text (45, 15 + n) t
+
+
 status :: [Character] -> Craphic
 status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
     [text (4, 29) "#--CHARACTER NAME---------------CLASS-----AC----HITS---STATUS"

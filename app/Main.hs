@@ -67,8 +67,9 @@ main = do
         }
         testChara2 = testChara1 {
           Character.name     = "FIG2"
-        , Character.hp       = 16
-        , Character.maxhp    = 18
+        , Character.hp       = 126
+        , Character.maxhp    = 148
+        , Character.lv       = 15
         }
     gen <- getStdGen
     let w = World {
@@ -148,6 +149,7 @@ getKey = do
     return $ Key [x]
 
 
+-- ==========================================================================
 testRender :: Scenario -> Event -> World -> IO()
 testRender s (Message m) w = do
     clearScreen
@@ -157,6 +159,26 @@ testRender s (Message m) w = do
           <> (if guideWindow w then guide else mempty)
           <> frame
           <> scene (place w) s
+testRender s (BattleCommand m) w = do
+    clearScreen
+    let ps = flip Map.lookup (allCharacters w) <$> party w
+        ess = case place w of InBattle _ ess' -> ess'
+                              _               -> undefined
+    render $ cmdBox m
+          <> msgBox (unlines $ take 4 $ fmap txtEnemy ess ++ repeat "\n")
+          <> (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
+          <> (if guideWindow w then guide else mempty)
+          <> frame
+          <> scene (place w) s
+  where
+    txtEnemy es = let e    = head es
+                      edef = enemies s Map.! Enemy.id e
+                      determined = Enemy.determined e
+                      ename = if determined then Enemy.name edef else Enemy.nameUndetermined edef
+                      nAll    = show $ length es
+                      nActive = show $ length . filter (\e' -> null $ Enemy.statusErrors e') $ es
+                  in ename ++ replicate (49 - length ename) ' ' ++ nAll ++ " (" ++ nActive ++ ")"
+        
 testRender s None w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
@@ -164,6 +186,8 @@ testRender s None w = do
           <> (if guideWindow w then guide else mempty)
           <> frame
           <> scene (place w) s
+
+
 
 statusWindow :: World -> Bool
 statusWindow w = let inMaze = case place w of InMaze _ -> True
@@ -174,3 +198,5 @@ guideWindow :: World -> Bool
 guideWindow w = let inMaze = case place w of InMaze _ -> True
                                              _        -> False
     in guideOn w && inMaze
+
+-- ==========================================================================

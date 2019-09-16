@@ -20,6 +20,7 @@ data Input = Key String
 data Event = None
            | Exit
            | Message String
+           | BattleCommand String
            | And Event Event
     deriving (Show, Eq)
 

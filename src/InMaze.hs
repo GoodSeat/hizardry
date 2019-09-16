@@ -62,9 +62,7 @@ openCamp p = Auto $ movePlace (Camping p) >> select (Message "#)Inspect\nR)eorde
 
 eventOn :: [(Coord, GameAuto)] -> Position -> Maybe GameAuto
 eventOn [] _ = Nothing
-eventOn (((x', y', z'), e):es) p = if x p == x' && y p == y' && z p == z'
-    then Just $ e
-    else eventOn es p
+eventOn (((x', y', z'), e):es) p = if x p == x' && y p == y' && z p == z' then Just e else eventOn es p
 
 allEvents :: [(Coord, GameAuto)]
 allEvents = [((1, 1, 0), stairsToCastle)]
@@ -72,8 +70,9 @@ allEvents = [((1, 1, 0), stairsToCastle)]
 escapeEvent :: GameAuto
 escapeEvent = Auto $ do
     plc <- place <$> world
-    case plc of InMaze p -> run $ enterGrid Nothing False p
-                _        -> err "failed on escapeEvent."
+    case plc of InMaze p     -> run $ enterGrid Nothing False p
+                InBattle p _ -> run $ enterGrid Nothing False p
+                _            -> err "failed on escapeEvent."
 
 stairsToCastle :: GameAuto
 stairsToCastle = Auto $ do

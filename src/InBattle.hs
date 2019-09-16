@@ -14,7 +14,6 @@ import qualified Enemies as Enemy
 import qualified Spells as Spell
 import qualified Items as Item
 
-
 data BattleAction = ByParties Character.ID Action
                   | ByEnemies Enemy.Instance Enemy.Action
     deriving (Show)
@@ -95,13 +94,16 @@ selectBattleCommand i cmds con = Auto $ do
         let cid = p !! (i - 1)
         c <- characterOf cid
         let cs = Character.enableBattleCommands $ Character.job c
-        selectWhen (Message $ Character.name c ++ "'s Option\n\n" ++ concat (toMsg <$> cs))
+        selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concat (toMsg <$> cs))
                    [( Key "f"
                     , selectFightTarget $ \a -> selectBattleCommand (i + 1) ((cid, a) : cmds) con
                     , Character.Fight `elem` cs)
                    ,( Key "p"
                     , selectBattleCommand (i + 1) ((cid, Parry) : cmds) con
                     , Character.Parry `elem` cs)
+                   ,( Key "r"
+                    , afterRun con -- TODO:implement possible of fail to run.
+                    , Character.Run `elem` cs)
                     ]
   where
     toMsg cmd = case cmd of Character.Fight   -> "F)ight\n"
@@ -116,7 +118,7 @@ selectFightTarget :: (Action -> GameAuto) -> GameAuto
 selectFightTarget next = Auto $ do
     ess <- lastEnemies
     if length ess == 1 then run $ next (Fight 1)
-    else selectWhen (Message "Target group?")
+    else selectWhen (BattleCommand "Target group?")
                     [(Key "a", next (Fight 1), length ess > 0)
                     ,(Key "b", next (Fight 2), length ess > 1)
                     ,(Key "c", next (Fight 3), length ess > 2)
@@ -126,7 +128,7 @@ selectFightTarget next = Auto $ do
 confirmBattle :: [(Character.ID, Action)]
               -> Condition
               -> GameAuto
-confirmBattle cmds con = Auto $ select (Message "Are you OK?\n\nF)ight\nT)ake Back")
+confirmBattle cmds con = Auto $ select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Back")
                                        [(Key "f", startProgressBattle cmds con)
                                        ,(Key "t", selectBattleCommand 1 [] con)
                                        ]
@@ -139,9 +141,15 @@ nextTurn con = Auto $ do
     con' <- updateCondition con
     let ess'  = filter (\e -> Enemy.hp e > 0) <$> ess -- remove dead enemy.
         ess'' = filter (not . null) ess'              -- remove null line.
-    moveToBattle ess''
-    if null ess'' then run $ wonBattle con'
+    ess''' <- sequence $ tryDetermineGroup <$> ess''
+    moveToBattle ess'''
+    if null ess''' then run $ wonBattle con'
     else run $ selectBattleCommand 1 [] con'
+
+tryDetermineGroup :: [Enemy.Instance] -> GameState [Enemy.Instance]
+tryDetermineGroup es = do
+    determine <- identifyEnemies
+    return $ if determine then fmap (\e -> e { Enemy.determined = True }) es else es
 
 updateCondition :: Condition -> GameState Condition
 updateCondition con = do
@@ -202,19 +210,19 @@ fightDamage :: Int -> Character.Character -> Enemy.Instance -> GameState (Int, I
 fightDamage l c e = do
     edef     <- enemyOf $ Enemy.id e
     let tryCountF = parse' "lv/5 + 1" -- TODO:
-        lvBonusF  = parse' "lv/3 + 2" -- TODO:
+        jobBonusF = parse' "lv/3 + 2" -- TODO:
         damageF   = parse' "2d2"      -- TODO:from wepon.
         weponAt   = 0 -- TODO:AT value of wepon.
         stBonus   = 0 -- TODO:sum of equip item's ST value.
         m         = makeMap edef
     tryCount <- max <$> (min <$> evalWith m tryCountF <*> pure 10) <*> pure weponAt
-    lvBonus  <- evalWith m lvBonusF
+    jobBonus <- evalWith m jobBonusF
     let str      = Character.strength . Character.param $ c
         strBonus = if str >= 16 then str - 15 else if str < 6 then str - 6 else 0
-        hitSkill = lvBonus + strBonus + stBonus
-        hitValue = min (l - Enemy.ac edef - hitSkill) 19
+        hitSkill = jobBonus + strBonus + stBonus
+        atSkill  = max (min (Enemy.ac edef + hitSkill - 3 * l) 19) 1
     rs <- replicateM tryCount $ do
-        hit <- (<=) <$> randomNext 1 20 <*> pure hitValue
+        hit <- (<=) <$> randomNext 1 20 <*> pure atSkill
         dam <- (+) <$> evalWith m damageF <*> pure (max 0 strBonus)
         let dam' = if (not . null $ Enemy.statusErrors e) then dam * 2 else dam
         return $ if hit then (1, dam') else (0, 0)
