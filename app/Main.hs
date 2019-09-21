@@ -109,7 +109,7 @@ main = do
                       Enemy.name              = "slime"
                     , Enemy.nameUndetermined  = "moving object"
                     , Enemy.lv                = 1
-                    , Enemy.maxhp             = parse' "1d6"
+                    , Enemy.hpFormula         = parse' "1d6"
 
                     , Enemy.param             = Parameter 5 8 8 8 8 8
                     , Enemy.ac                = 10
@@ -132,7 +132,7 @@ main = do
                     , Enemy.dropItem          = [(15, parse' "1d15+1")]
                     , Enemy.dropGold          = parse' "2d10"
 
-                    , Enemy.withBackProb      = 0
+                    , Enemy.withBackProb      = 50
                     , Enemy.backEnemyID       = parse' "1"
 
                     , Enemy.enableRun         = True
@@ -166,19 +166,20 @@ testRender s (BattleCommand m) w = do
         ess = case place w of InBattle _ ess' -> ess'
                               _               -> undefined
     render $ cmdBox m
-          <> msgBox (unlines $ take 4 $ fmap txtEnemy ess ++ repeat "\n")
+          <> msgBox (unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n")
           <> (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
           <> (if guideWindow w then guide else mempty)
           <> frame
           <> scene (place w) s
   where
-    txtEnemy es = let e    = head es
-                      edef = enemies s Map.! Enemy.id e
-                      determined = Enemy.determined e
-                      ename = if determined then Enemy.name edef else Enemy.nameUndetermined edef
-                      nAll    = show $ length es
-                      nActive = show $ length . filter (\e' -> null $ Enemy.statusErrors e') $ es
-                  in ename ++ replicate (49 - length ename) ' ' ++ nAll ++ " (" ++ nActive ++ ")"
+    txtEnemy (l, es) = let
+         e    = head es
+         edef = enemies s Map.! Enemy.id e
+         determined = Enemy.determined e
+         ename = if determined then Enemy.name edef else Enemy.nameUndetermined edef
+         nAll    = show $ length es
+         nActive = show $ length . filter (\e' -> null $ Enemy.statusErrors e') $ es
+      in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
         
 testRender s None w = do
     clearScreen

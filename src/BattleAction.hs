@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module BattleAction
 where
 
@@ -13,6 +12,7 @@ import Formula
 import Primitive
 import qualified Enemies as Enemy
 import qualified Characters as Character
+import qualified Spells as Spell
 
 
 type ActionOfCharacter = Character.ID       -- ^ id of actor.
@@ -43,7 +43,7 @@ fightDamage l c e = do
         damageF   = parse' "2d2"      -- TODO:from wepon.
         weponAt   = 0 -- TODO:AT value of wepon.
         stBonus   = 0 -- TODO:sum of equip item's ST value.
-        m         = makeMap edef
+        m         = formulaMap c (e, edef)
     tryCount <- max <$> (min <$> evalWith m tryCountF <*> pure 10) <*> pure weponAt
     jobBonus <- evalWith m jobBonusF
     let str      = strength . Character.param $ c
@@ -56,11 +56,6 @@ fightDamage l c e = do
         let dam' = if not . null $ Enemy.statusErrors e then dam * 2 else dam
         return $ if hit then (1, dam') else (0, 0)
     return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
-  where
-    makeMap edef = Map.fromList [("ac", Enemy.ac edef)
-                                ,("lv", Character.lv c)
-                                ,("str", strength . Character.param $ c)
-                                ]
 
 fightMessage :: Character.Character -> Enemy.Instance -> (Int, Int) -> GameState [String]
 fightMessage c e (h, d) = do
@@ -77,4 +72,43 @@ enemyNameOf :: Enemy.Instance -> GameState String
 enemyNameOf e = nameOf <$> enemyOf (Enemy.id e)
   where
     nameOf = if Enemy.determined e then Enemy.name else Enemy.nameUndetermined
+
+
+
+formulaMap :: Object s => Object o => s -> o -> Map.Map String Int
+formulaMap s o = Map.fromList [
+     ("ac"      , acOf s)
+    ,("lv"      , lvOf s)
+    ,("hp"      , hpOf s)
+    ,("maxhp"   , maxhpOf s)
+    ,("str"     , strength.paramOf $ s)
+    ,("iq"      , iq      .paramOf $ s)
+    ,("pie"     , piety   .paramOf $ s)
+    ,("vit"     , vitality.paramOf $ s)
+    ,("agi"     , agility .paramOf $ s)
+    ,("luc"     , luck    .paramOf $ s)
+    ,("o.ac"    , acOf o)
+    ,("o.lv"    , lvOf o)
+    ,("o.hp"    , hpOf o)
+    ,("o.maxhp" , maxhpOf o)
+    ,("o.str"   , strength.paramOf $ o)
+    ,("o.iq"    , iq      .paramOf $ o)
+    ,("o.pie"   , piety   .paramOf $ o)
+    ,("o.vit"   , vitality.paramOf $ o)
+    ,("o.agi"   , agility .paramOf $ o)
+    ,("o.luc"   , luck    .paramOf $ o)
+    ]
+
+
+-- spellOfCharacter :: ActionOfCharacter
+-- spellOfCharacter id l = do
+    
+
+damageSpell :: Object s => Object o => Formula -> s -> o -> GameState (o, Int)
+damageSpell f s o = do
+   d <- evalWith (formulaMap s o) f
+   return (setHp o (hpOf o - d), d)
+
+halito :: Object s => Object o => s -> o -> GameState (o, Int)
+halito = damageSpell $ parse' "1d8"
 

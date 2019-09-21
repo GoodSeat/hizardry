@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Enemies
 where
 
@@ -17,15 +18,17 @@ data Instance = Instance {
       id            :: !ID
     , determined    :: !Bool
     , hp            :: !Int
+    , maxhp         :: !Int
     , statusErrors  :: ![StatusError]
     , maybeDropItem :: !Bool
+    , modAc         :: !Int
 } deriving (Show, Eq)
 
 data Define = Define {
       name              :: !String
     , nameUndetermined  :: !String
     , lv                :: !Int
-    , maxhp             :: !Formula
+    , hpFormula         :: !Formula
 
     , param             :: !Parameter
     , ac                :: !Int
@@ -55,6 +58,21 @@ data Define = Define {
     , trapCandidate     :: ![Trap]
 
 } deriving (Show)
+
+
+instance Object (Instance, Define) where
+  hpOf            = hp . fst
+  maxhpOf         = maxhp . fst
+  paramOf         = param . snd
+  acOf (e, def)   = ac def + modAc e
+  lvOf            = lv . snd
+  statusErrorsOf  = statusErrors . fst
+
+  setHp           (e, def) v = (e { hp = v }, def)
+  setAc           (e, def) v = let mod = v - acOf (e, def)
+                               in (e { modAc = modAc e + mod }, def)
+  setStatusErrors (e, def) v = (e { statusErrors = v }, def)
+
 
 data Action = Fight Int     -- ^ count of attack.
                     Formula -- ^ damage per hit.

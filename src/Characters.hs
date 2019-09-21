@@ -37,6 +37,19 @@ data Character = Character {
     , maxmp        :: !([Int], [Int]) -- ^ MaxMP
 } deriving (Show, Eq)
 
+instance Object Character where
+  hpOf            = hp          
+  maxhpOf         = maxhp       
+  paramOf         = param       
+  acOf            = const 10 -- TODO:
+  lvOf            = lv          
+  statusErrorsOf  = statusErrors
+
+  setHp           c v = c { hp = v }
+  setAc           c v = c -- TODO:
+  setStatusErrors c v = c { statusErrors = v }
+
+
 -- | data base of character.
 type DB = Map.Map ID Character
 

@@ -30,10 +30,12 @@ data Attribute = None
 -- data Effect = Attack Int [StatusError]
 --             | Cure   Int [StatusError]
 
-data TargetType = Attack Int
-                | AttackAll
-                | Cure   Int
-                | CureAll
+data TargetType = OpponentSingle
+                | OpponentGroup
+                | OpponentAll
+                | AllySingle
+                | AllyGroup
+                | AllyAll
 
 type DB = Map.Map ID Define
 

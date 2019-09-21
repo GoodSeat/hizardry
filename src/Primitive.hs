@@ -33,11 +33,10 @@ class Object o where
   maxhpOf         :: o -> Int
   paramOf         :: o -> Parameter
   acOf            :: o -> Int
-  lvOf            :: o -> lv
+  lvOf            :: o -> Int
   statusErrorsOf  :: o -> [StatusError]  -- ^ status errors.
 
   setHp           :: o -> Int -> o
-  setParam        :: o -> Parameter -> o
   setAc           :: o -> Int -> o
   setStatusErrors :: o -> [StatusError] -> o
 

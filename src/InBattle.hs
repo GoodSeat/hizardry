@@ -60,9 +60,15 @@ createEnemyInstances 0 _ _              = return []
 createEnemyInstances n eid dropItem = do
     def <- enemyOf eid
     es  <- createEnemyInstances (n - 1) eid False
-    mhp <- eval $ Enemy.maxhp def
+    mhp <- eval $ Enemy.hpFormula def
     let e = Enemy.Instance {
-      Enemy.id = eid, Enemy.determined = False, Enemy.hp = mhp, Enemy.statusErrors = [], Enemy.maybeDropItem = dropItem
+        Enemy.id = eid
+      , Enemy.determined = False
+      , Enemy.hp    = mhp
+      , Enemy.maxhp = mhp
+      , Enemy.statusErrors = []
+      , Enemy.maybeDropItem = dropItem
+      , Enemy.modAc = 0
     }
     return $ e : es
 
@@ -124,10 +130,10 @@ selectFightTarget next = Auto $ do
     ess <- lastEnemies
     if length ess == 1 then run $ next (Fight 1)
     else selectWhen (BattleCommand "Target group?")
-                    [(Key "a", next (Fight 1), length ess > 0)
-                    ,(Key "b", next (Fight 2), length ess > 1)
-                    ,(Key "c", next (Fight 3), length ess > 2)
-                    ,(Key "d", next (Fight 4), length ess > 3)]
+                    [(Key "1", next (Fight 1), length ess > 0)
+                    ,(Key "2", next (Fight 2), length ess > 1)
+                    ,(Key "3", next (Fight 3), length ess > 2)
+                    ,(Key "4", next (Fight 4), length ess > 3)]
 
 
 confirmBattle :: [(Character.ID, Action)]
