@@ -27,7 +27,7 @@ data Define = Define {
     , lv                :: !Int
     , maxhp             :: !Formula
 
-    , param             :: !Character.Parameter
+    , param             :: !Parameter
     , ac                :: !Int
 
     , exp               :: !Int

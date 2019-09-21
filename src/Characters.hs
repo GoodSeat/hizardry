@@ -37,16 +37,6 @@ data Character = Character {
     , maxmp        :: !([Int], [Int]) -- ^ MaxMP
 } deriving (Show, Eq)
 
--- | define of character's parameter.
-data Parameter = Parameter {
-      strength :: !Int -- ^ strength
-    , iq       :: !Int -- ^ I.Q.
-    , piety    :: !Int -- ^ piety
-    , vitality :: !Int -- ^ vitality
-    , agility  :: !Int -- ^ agility
-    , luck     :: !Int -- ^ luck
-} deriving (Show, Eq)
-
 -- | data base of character.
 type DB = Map.Map ID Character
 

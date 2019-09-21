@@ -22,13 +22,13 @@ import CuiRender
 
 main :: IO ()
 main = do
-    let param = Character.Parameter {
-          Character.strength = 12
-        , Character.iq       = 10
-        , Character.piety    = 10
-        , Character.vitality = 10
-        , Character.agility  = 10
-        , Character.luck     = 10
+    let param = Parameter {
+          strength = 12
+        , iq       = 10
+        , piety    = 10
+        , vitality = 10
+        , agility  = 10
+        , luck     = 10
         }
         fighter = Character.Job {
           Character.jobName              = "Fighter"
@@ -111,7 +111,7 @@ main = do
                     , Enemy.lv                = 1
                     , Enemy.maxhp             = parse' "1d6"
 
-                    , Enemy.param             = Character.Parameter 5 8 8 8 8 8
+                    , Enemy.param             = Parameter 5 8 8 8 8 8
                     , Enemy.ac                = 10
 
                     , Enemy.exp               = 55
