@@ -15,16 +15,17 @@ import qualified Characters as Character
 import qualified Spells as Spell
 
 
-type ActionOfCharacter = Character.ID       -- ^ id of actor.
-                      -> Int                -- ^ number that means target.
-                      -> GameState [String] -- ^ text that represent result.
+type ActionOfCharacter = Character.ID -- ^ id of actor.
+                      -> Int          -- ^ number that means target.
+                      -> GameAuto     -- ^ next game auto.
+                      -> GameAuto     -- ^ game auto.
 
 
 fightOfCharacter :: ActionOfCharacter
-fightOfCharacter id l = do
+fightOfCharacter id l next = Auto $ do
     ses <- Character.statusErrors <$> characterOf id
     enm <- filter (\e -> Enemy.hp e > 0) <$> ((!!) <$> lastEnemies <*> pure (l - 1))
-    if   any (`elem` Character.cantFightStatus) ses || null enm then return []
+    if   any (`elem` Character.cantFightStatus) ses || null enm then run next
     else do
         c <- characterOf id
         e <- return $ head enm
@@ -33,7 +34,8 @@ fightOfCharacter id l = do
             st' = Enemy.statusErrors e ++ [Dead | hp' <= 0]
             e'  = e { Enemy.hp = hp', Enemy.statusErrors = st' }
         updateEnemy l e $ const e' 
-        fightMessage c e' (h, d)
+        es <- fmap Message <$> fightMessage c e' (h, d)
+        run $ events es next
 
 fightDamage :: Int -> Character.Character -> Enemy.Instance -> GameState (Int, Int)
 fightDamage l c e = do

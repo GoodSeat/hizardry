@@ -190,19 +190,19 @@ nextProgressBattle :: [BattleAction]
                    -> Condition
                    -> GameAuto
 nextProgressBattle [] con     = nextTurn con
-nextProgressBattle (a:as) con = Auto $ run =<< events <$> act a <*> pure (nextProgressBattle as con)
+nextProgressBattle (a:as) con = act a (nextProgressBattle as con)
 
-act :: BattleAction -> GameState [Event]
-act (ByParties id a) = case a of
-    Fight l -> fmap Message <$> fightOfCharacter id l
-    Parry   -> return []
-    Run     -> return []
-act (ByEnemies l e a) = case a of
-    Enemy.Fight n d t effs -> return []
-    Enemy.Run              -> do
+act :: BattleAction -> GameAuto -> GameAuto
+act (ByParties id a) next = case a of
+    Fight l -> fightOfCharacter id l next
+    Parry   -> next
+    Run     -> next
+act (ByEnemies l e a) next = case a of
+    Enemy.Fight n d t effs -> next -- TODO:
+    Enemy.Run              -> Auto $ do
         en   <- enemyNameOf e
         updateEnemy l e $ const e { Enemy.hp = 0}
-        return [Message $ en ++ " flees."]
+        run $ events [Message $ en ++ " flees."] next
 
 --  vs = ["charges at", "claws at"]
 
