@@ -4,6 +4,7 @@ where
 import qualified Data.Map as Map
 
 import Formula
+import Primitive
 import qualified Characters as Character
 import qualified Spells as Spell
 import qualified Items as Item
@@ -16,7 +17,7 @@ data Instance = Instance {
       id            :: !ID
     , determined    :: !Bool
     , hp            :: !Int
-    , statusErrors  :: ![Character.StatusError]
+    , statusErrors  :: ![StatusError]
     , maybeDropItem :: !Bool
 } deriving (Show, Eq)
 
@@ -38,7 +39,7 @@ data Define = Define {
     , healPerTurn       :: !Int
     , moveFrontProb     :: !Int
 
-    , resistError       :: ![(Character.StatusError, Int)]
+    , resistError       :: ![(StatusError, Int)]
     , resistAttributes  :: ![Spell.Attribute]
     , weakAttributes    :: ![Spell.Attribute]
 
@@ -58,7 +59,7 @@ data Define = Define {
 data Action = Fight Int     -- ^ count of attack.
                     Formula -- ^ damage per hit.
                     Formula -- ^ target number. 1~3 are front member, 4~6 are back member.
-                    [(Int, Character.StatusError)] -- ^ additinal effect, and it's probablity.
+                    [(Int, StatusError)] -- ^ additinal effect, and it's probablity.
             | Spelling Formula -- ^ spel id.
             | Breath Formula   -- ^ damage.
             | Run

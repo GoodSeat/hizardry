@@ -6,6 +6,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import System.Random
 
+import Primitive
 import GameAuto
 import World
 import InCastle
@@ -122,7 +123,7 @@ main = do
                     , Enemy.healPerTurn       = 2
                     , Enemy.moveFrontProb     = 20
 
-                    , Enemy.resistError       = [(Character.Dead, 6)]
+                    , Enemy.resistError       = [(Dead, 6)]
                     , Enemy.resistAttributes  = []
                     , Enemy.weakAttributes    = []
 

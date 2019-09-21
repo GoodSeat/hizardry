@@ -9,6 +9,7 @@ import Control.Monad.State
 import GameAuto
 import Utils
 import World
+import Primitive
 import Formula (parse')
 import qualified Characters as Character
 import qualified Enemies as Enemy
@@ -154,7 +155,7 @@ updateCondition con = do
     ess   <- lastEnemies
     drops <- forM (concat ess) (\e -> do
         edef <- enemyOf $ Enemy.id e
-        if notElem Character.Dead $ Enemy.statusErrors e then return (0, 0, [])
+        if notElem Dead $ Enemy.statusErrors e then return (0, 0, [])
         else (,,) <$> eval (Enemy.dropGold edef) <*> pure (Enemy.exp edef) <*> pure [])
     let (g, exp, is) = foldl' (\(g1, e1, is1) (g2, e2, is2) -> (g1 + g2, e1 + e2, is1 ++ is2)) (0, 0, []) drops
     return $ con { dropGold = dropGold con + g, gotExps = gotExps con + exp, dropItems = dropItems con ++ is }
@@ -192,10 +193,10 @@ act (ByParties id a) = case a of
       if   any (`elem` Character.cantFightStatus) ses || null enm then return []
       else do
         c <- characterOf id
-        e <- randomIn enm
+        e <- return $ head enm
         (h, d) <- fightDamage l c e
         let hp' = Enemy.hp e - d
-            st' = Enemy.statusErrors e ++ [Character.Dead | hp' <= 0]
+            st' = Enemy.statusErrors e ++ [Dead | hp' <= 0]
             e'  = e { Enemy.hp = hp', Enemy.statusErrors = st' }
         updateEnemy l e (const e')
         fmap Message <$> fightMessage c e' (h, d)

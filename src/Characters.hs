@@ -6,6 +6,8 @@ import qualified Data.Map as Map
 import qualified Spells as Spell
 import qualified Items as Item
 
+import Primitive
+
 data ID = ID {
     id :: Int
 } deriving (Show, Eq, Ord)
@@ -57,19 +59,6 @@ data Job = Job {
     , enableBattleCommands :: ![BattleCommand]
 } deriving (Show, Eq)
 
--- | type of status error.
-data StatusError = Silence
-                 | Paralysis
-                 | Stoned
-                 | Poison
-                 | Fear
-                 | Sleep
-                 | Rigor
-                 | Drain Int
-                 | Dead
-                 | Ash
-                 | Lost
-    deriving (Show, Eq)
 
 cantFightStatus :: [StatusError]
 cantFightStatus = [ Paralysis
