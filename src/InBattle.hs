@@ -193,10 +193,13 @@ nextProgressBattle [] con     = nextTurn con
 nextProgressBattle (a:as) con = act a (nextProgressBattle as con)
 
 act :: BattleAction -> GameAuto -> GameAuto
-act (ByParties id a) next = case a of
-    Fight l -> fightOfCharacter id l next
-    Parry   -> next
-    Run     -> next
+act (ByParties id a) next = Auto $ do
+    ses <- Character.statusErrors <$> characterOf id
+    if any (`elem` Character.cantFightStatus) ses then run next
+    else case a of
+        Fight l -> run $ fightOfCharacter id l next
+        Parry   -> run $ spellHalito (Left id) 1 next
+        Run     -> run next
 act (ByEnemies l e a) next = case a of
     Enemy.Fight n d t effs -> next -- TODO:
     Enemy.Run              -> Auto $ do

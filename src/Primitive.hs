@@ -36,7 +36,7 @@ class Object o where
   lvOf            :: o -> Int
   statusErrorsOf  :: o -> [StatusError]  -- ^ status errors.
 
-  setHp           :: o -> Int -> o
-  setAc           :: o -> Int -> o
-  setStatusErrors :: o -> [StatusError] -> o
+  setHp           :: Int -> o -> o
+  setAc           :: Int -> o -> o
+  setStatusErrors :: [StatusError] -> o -> o
 

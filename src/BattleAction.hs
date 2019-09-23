@@ -23,12 +23,11 @@ type ActionOfCharacter = Character.ID -- ^ id of actor.
 
 fightOfCharacter :: ActionOfCharacter
 fightOfCharacter id l next = Auto $ do
-    ses <- Character.statusErrors <$> characterOf id
-    enm <- filter (\e -> Enemy.hp e > 0) <$> ((!!) <$> lastEnemies <*> pure (l - 1))
-    if   any (`elem` Character.cantFightStatus) ses || null enm then run next
-    else do
+    e1 <- aliveEnemyLineHead l
+    case e1 of
+      Nothing -> run next
+      Just e  -> do
         c <- characterOf id
-        e <- return $ head enm
         (h, d) <- fightDamage l c e
         let hp' = Enemy.hp e - d
             st' = Enemy.statusErrors e ++ [Dead | hp' <= 0]
@@ -106,11 +105,47 @@ formulaMap s o = Map.fromList [
 -- spellOfCharacter id l = do
     
 
+type SpellEffect  = Either Character.ID Enemy.Instance
+                 -> Int
+                 -> GameAuto
+                 -> GameAuto
+
+
+
 damageSpell :: Object s => Object o => Formula -> s -> o -> GameState (o, Int)
 damageSpell f s o = do
    d <- evalWith (formulaMap s o) f
-   return (setHp o (hpOf o - d), d)
+   let hp' = hpOf o - d
+       st' = statusErrorsOf o ++ [Dead | hp' <= 0]
+       o'  = setHp hp' . setStatusErrors st' $ o
+   return (o', d)
 
 halito :: Object s => Object o => s -> o -> GameState (o, Int)
 halito = damageSpell $ parse' "1d8"
+
+spellHalito :: SpellEffect
+spellHalito (Left id) l next = Auto $ do
+    e1 <- aliveEnemyLineHead l
+    case e1 of
+      Nothing -> run next
+      Just e  -> do
+        c            <- characterOf id
+        edef         <- enemyOf $ Enemy.id e
+        ((e', _), d) <- halito c (e, edef)
+        updateEnemy l e $ const e'
+        let ts  = ["", Enemy.name edef ++ " takes " ++ show d ++ "."]
+            ts' = ts ++ (if Enemy.hp e' <= 0 then [Enemy.name edef ++ " is killed."] else [])
+            toMsg t = Message $ (Character.name c ++ " spells halito.\n") ++ t
+        run $ events (toMsg <$> ts') next
+
+
+
+-- ==========================================================================
+aliveEnemiesLine :: Int -> GameState [Enemy.Instance]
+aliveEnemiesLine l = filter (\e -> Enemy.hp e > 0) <$> ((!!) <$> lastEnemies <*> pure (l - 1))
+
+aliveEnemyLineHead :: Int -> GameState (Maybe Enemy.Instance)
+aliveEnemyLineHead l = do
+    es <- aliveEnemiesLine l
+    return $ if null es then Nothing else Just $ head es
 

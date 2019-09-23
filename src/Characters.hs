@@ -45,9 +45,9 @@ instance Object Character where
   lvOf            = lv          
   statusErrorsOf  = statusErrors
 
-  setHp           c v = c { hp = v }
-  setAc           c v = c -- TODO:
-  setStatusErrors c v = c { statusErrors = v }
+  setHp           v c = c { hp = v }
+  setAc           v c = c -- TODO:
+  setStatusErrors v c = c { statusErrors = v }
 
 
 -- | data base of character.

@@ -68,10 +68,10 @@ instance Object (Instance, Define) where
   lvOf            = lv . snd
   statusErrorsOf  = statusErrors . fst
 
-  setHp           (e, def) v = (e { hp = v }, def)
-  setAc           (e, def) v = let mod = v - acOf (e, def)
+  setHp           v (e, def) = (e { hp = v }, def)
+  setAc           v (e, def) = let mod = v - acOf (e, def)
                                in (e { modAc = modAc e + mod }, def)
-  setStatusErrors (e, def) v = (e { statusErrors = v }, def)
+  setStatusErrors v (e, def) = (e { statusErrors = v }, def)
 
 
 data Action = Fight Int     -- ^ count of attack.
