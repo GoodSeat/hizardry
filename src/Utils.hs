@@ -10,6 +10,7 @@ import GameAuto
 import World
 import qualified Characters as Character
 import qualified Enemies as Enemy
+import qualified Spells as Spell
 import Formula
 
 
@@ -95,6 +96,12 @@ updateEnemy l e f = do
     updateEnemyInstance (e1:es) e f
         | e1 == e   = f e : es
         | otherwise = e1 : updateEnemyInstance es e f
+
+-- =================================================================================
+spellByName :: String -> GameState (Maybe Spell.Define)
+spellByName n = do
+    ss <- asks spells
+    return $ pure ((!) ss) <*> Spell.findID ss n
 
 -- =================================================================================
 

@@ -22,7 +22,7 @@ data BattleAction = ByParties Character.ID Action
     deriving (Show)
 
 data Action = Fight Int
-            | Spell Spell.ID Int
+            | Spell String Int
             | Hide
             | Ambush Int
             | Run
@@ -104,14 +104,19 @@ selectBattleCommand i cmds con = Auto $ do
     if length p < i then run $ confirmBattle cmds con else do
         let cid = p !! (i - 1)
         c <- characterOf cid
-        let cs = Character.enableBattleCommands $ Character.job c
+        let cs   = Character.enableBattleCommands $ Character.job c
+            next = \a -> selectBattleCommand (i + 1) ((cid, a) : cmds) con
+            cancel = selectBattleCommand i cmds con
         selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concat (toMsg <$> cs))
                    [( Key "f"
-                    , selectFightTarget $ \a -> selectBattleCommand (i + 1) ((cid, a) : cmds) con
+                    , selectFightTarget next
                     , Character.Fight `elem` cs)
                    ,( Key "p"
-                    , selectBattleCommand (i + 1) ((cid, Parry) : cmds) con
+                    , next Parry
                     , Character.Parry `elem` cs)
+                   ,( Key "s"
+                    , inputSpell next cancel
+                    , Character.Spell `elem` cs)
                    ,( Key "r"
                     , events [Message $ Character.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
                     , Character.Run `elem` cs)
@@ -134,6 +139,33 @@ selectFightTarget next = Auto $ do
                     ,(Key "2", next (Fight 2), length ess > 1)
                     ,(Key "3", next (Fight 3), length ess > 2)
                     ,(Key "4", next (Fight 4), length ess > 3)]
+
+inputSpell :: (Action -> GameAuto) -> GameAuto -> GameAuto
+inputSpell next cancel = Auto $ do
+    return ((SpellCommand "Input spell.\n(Empty to cancel casting.)"),
+            (\i -> case i of Key s -> if null s then cancel
+                                      else selectCastTarget s next))
+
+selectCastTarget :: String -> (Action -> GameAuto) -> GameAuto
+selectCastTarget s next = Auto $ do
+    ess <- lastEnemies
+    p   <- party <$> world
+    def <- spellByName s
+    case def of 
+        Nothing  -> run $ next (Spell s 1)
+        Just def -> case Spell.target def of
+            Spell.OpponentSingle -> select (length ess) (\n -> next (Spell s n))
+            Spell.OpponentGroup  -> select (length ess) (\n -> next (Spell s n))
+            Spell.AllySingle     -> select (length p  ) (\n -> next (Spell s n))
+            _                    -> run $ next (Spell s 0)
+  where
+    select mx nextWith = selectWhen (BattleCommand "Target group?")
+                            [(Key "1", nextWith 1, mx > 0)
+                            ,(Key "2", nextWith 2, mx > 1)
+                            ,(Key "3", nextWith 3, mx > 2)
+                            ,(Key "4", nextWith 4, mx > 3)
+                            ,(Key "5", nextWith 5, mx > 4)
+                            ,(Key "6", nextWith 6, mx > 5)]
 
 
 confirmBattle :: [(Character.ID, Action)]
@@ -197,9 +229,10 @@ act (ByParties id a) next = Auto $ do
     ses <- Character.statusErrors <$> characterOf id
     if any (`elem` Character.cantFightStatus) ses then run next
     else case a of
-        Fight l -> run $ fightOfCharacter id l next
-        Parry   -> run $ spellHalito (Left id) 1 next
-        Run     -> run next
+        Fight l   -> run $ fightOfCharacter id l next
+        Spell s l -> run $ spell s (Left id) l next
+        Parry     -> run next
+        Run       -> run next
 act (ByEnemies l e a) next = case a of
     Enemy.Fight n d t effs -> next -- TODO:
     Enemy.Run              -> Auto $ do

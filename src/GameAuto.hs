@@ -11,16 +11,20 @@ import qualified Data.Map as Map
 import World
 import Maze
 import qualified Enemies as Enemy
+import qualified Spells as Spell
 
 data Input = Key String
            | Clock
            | Abort
     deriving (Show, Eq)
 
+data InputType = SingleKey | SequenceKey
+
 data Event = None
            | Exit
            | Message String
            | BattleCommand String
+           | SpellCommand String
            | And Event Event
     deriving (Show, Eq)
 
@@ -35,6 +39,7 @@ data Scenario = Scenario {
     , mazes          :: ![Maze]
     , encountMap     ::  Map.Map Coord (Int, [Enemy.ID])
     , enemies        :: !Enemy.DB
+    , spells         :: !Spell.DB
     }
 
 -- | State used in game.
@@ -49,7 +54,7 @@ type GameMachine = GameState (Event, Input -> GameAuto)
     
 
 runGame :: (Event -> World -> IO a)     -- ^ renderer of game.
-        -> IO Input                     -- ^ input command.
+        -> (InputType -> IO Input)      -- ^ input command.
         -> Scenario                     -- ^ game scenario.
         -> (GameAuto, World)            -- ^ target GameAuto, and current environment.
         -> IO String
@@ -59,7 +64,9 @@ runGame render cmd scenario (game, w) = do
                 Right (e, next) -> if e == Exit then return "thank you for playing."
                                    else do
                                        render e w'
-                                       i <- cmd
+                                       let itype = case e of SpellCommand _ -> SequenceKey
+                                                             _              -> SingleKey
+                                       i <- cmd itype
                                        runGame render cmd scenario (next i, w')
 
 -- ==========================================================================

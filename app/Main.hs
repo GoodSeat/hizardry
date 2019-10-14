@@ -12,6 +12,7 @@ import World
 import InCastle
 import qualified Characters as Character
 import qualified Enemies as Enemy
+import qualified Spells as Spell
 import Maze
 import Formula
 
@@ -139,16 +140,25 @@ main = do
                     , Enemy.trapCandidate     = [Enemy.NoTrap, Enemy.PoisonNeedle, Enemy.GasBomb, Enemy.CrossbowBolt, Enemy.ExplodingBox]
                 })
                 ]
+            , spells         = Map.fromList [
+                (Spell.ID 1, Spell.Define {
+                      Spell.name      = "halito"
+                    , Spell.kind      = Spell.M
+                    , Spell.lv        = 1
+                    , Spell.attribute = Spell.Fire
+                    , Spell.target    = Spell.OpponentSingle
+                })
+                ]
             }
     initGetCharNoBuffering
     putStrLn =<< runGame (testRender scenario) cmd scenario (inCastle, w)
 
 
-getKey :: IO Input
-getKey = do
+getKey :: InputType -> IO Input
+getKey SingleKey = do
     x <- getCharNoBuffering
     return $ Key [x]
-
+getKey SequenceKey = Key <$> getLine
 
 -- ==========================================================================
 testRender :: Scenario -> Event -> World -> IO()
@@ -160,6 +170,7 @@ testRender s (Message m) w = do
           <> (if guideWindow w then guide else mempty)
           <> frame
           <> scene (place w) s
+testRender s (SpellCommand m) w = testRender s (BattleCommand m) w
 testRender s (BattleCommand m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w

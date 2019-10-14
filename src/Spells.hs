@@ -13,10 +13,11 @@ data ID = ID {
 data Kind = M | P deriving (Show, Eq)
 
 data Define = Define {
-      name       :: String    -- ^ name of spell.
-    , kind       :: Kind      -- ^ kind of spell.
-    , lv         :: Int       -- ^ level of spell.
-    , attribute  :: Attribute -- ^ attribute of spell.
+      name       :: String     -- ^ name of spell.
+    , kind       :: Kind       -- ^ kind of spell.
+    , lv         :: Int        -- ^ level of spell.
+    , attribute  :: Attribute  -- ^ attribute of spell.
+    , target     :: TargetType -- ^ type of target.
 } deriving (Show, Eq)
 
 data Attribute = None
@@ -36,6 +37,7 @@ data TargetType = OpponentSingle
                 | AllySingle
                 | AllyGroup
                 | AllyAll
+    deriving (Show, Eq)
 
 type DB = Map.Map ID Define
 
