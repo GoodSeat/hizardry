@@ -51,7 +51,7 @@ newtype GameAuto = Auto { run :: GameMachine }
 
 -- | Machine used in GameAuto.
 type GameMachine = GameState (Event, Input -> GameAuto)
-    
+
 
 runGame :: (Event -> World -> IO a)     -- ^ renderer of game.
         -> (InputType -> IO Input)      -- ^ input command.
@@ -83,7 +83,7 @@ selectWhen e ns = return (e, select' ns)
     select' [] _ = Auto $ selectWhen e ns
 
 select :: Event -> [(Input, GameAuto)] -> GameMachine
-select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns 
+select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns
 
 selectNext :: Event -> [(Input, GameAuto)] -> GameAuto
 selectNext e ns = Auto $ select e ns
@@ -101,19 +101,19 @@ home = asks scenarioHome
 
 mazeAt :: Int -> GameState Maze
 mazeAt z = do
-   ls <- mazes <$> ask
+   ls <- asks mazes
    return $ ls !! z
 
 checkEncount :: Coord -> GameState (Maybe Enemy.ID)
 checkEncount c = do
-    emap <- encountMap <$> ask
+    emap <- asks encountMap
     r    <- randomNext 1 100
     let es' = do {
         (prob, es) <- Map.lookup c emap;
         guard $ r < prob;
         return es
         }
-    case es' of Nothing -> return $ Nothing
+    case es' of Nothing -> return Nothing
                 Just es -> Just <$> randomIn es
 
 happens :: Int -> GameState Bool
@@ -122,7 +122,7 @@ happens prob = do
     return $ prob >= r
 
 err :: String -> GameState a
-err msg = throwError msg
+err = throwError
 
 -- =================================================================================
 
@@ -140,6 +140,6 @@ randomIn as = do
 
 -- =================================================================================
 --
-    
-    
+
+
 
