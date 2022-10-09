@@ -35,7 +35,7 @@ data Define = Define {
 
     , exp               :: !Int
     , kind              :: !String
-    , frendlyProb       :: !Int
+    , friendlyProb      :: !Int
     , numOfOccurrences  :: !Formula
     , resistProbM       :: !Int
     , resistProbP       :: !Int
