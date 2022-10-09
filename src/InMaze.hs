@@ -2,12 +2,14 @@ module InMaze
 where
 
 import Control.Monad.State
+import Data.Function
 
 import GameAuto
 import World
 import Characters
 import Maze
 import Utils
+import Primitive
 import qualified Enemies as Enemy
 import InBattle
 
@@ -43,7 +45,12 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
     goStraight p f = GameAuto $ do
         lab <- mazeAt $ z p
         case f lab p of Nothing -> run $ ouch p
-                        Just p' -> run $ enterGrid (eventOn allEvents p') True p'
+                        Just p' -> do 
+                          ps <- party <$> world
+                          forM_ ps $ \p -> do
+                            c <- characterOf p
+                            updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
+                          run $ enterGrid (eventOn allEvents p') True p'
 
 -- =======================================================================
 

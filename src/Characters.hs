@@ -45,7 +45,7 @@ instance Object Character where
   lvOf            = lv          
   statusErrorsOf  = statusErrors
 
-  setHp           v c = c { hp = v }
+  setHp           v c = c { hp = max 0 v }
   setAc           v c = c -- TODO:
   setStatusErrors v c = c { statusErrors = v }
 
@@ -61,6 +61,9 @@ data Job = Job {
     , enableAlignments     :: ![Alignment]
     , enableBattleCommands :: ![BattleCommand]
 } deriving (Show, Eq)
+
+
+-- =================================================================================
 
 
 cantFightStatus :: [StatusError]

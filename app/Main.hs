@@ -72,6 +72,7 @@ main = do
         , Character.hp       = 126
         , Character.maxhp    = 148
         , Character.lv       = 15
+        , Character.statusErrors = [Poison 5]
         }
     gen <- getStdGen
     let w = World {

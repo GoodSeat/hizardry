@@ -3,6 +3,7 @@ where
 
 import Data.List
 import Data.Maybe
+import Data.Function
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
@@ -179,7 +180,13 @@ confirmBattle cmds con = GameAuto $ select (BattleCommand "Are you OK?\n\nF)ight
 -- ==========================================================================
 
 nextTurn :: Condition -> GameAuto
-nextTurn con = Auto $ do
+nextTurn con = GameAuto $ do
+    ps   <- party <$> world
+    rs   <- sequence $ take 6 . repeat $ randomNext 0 100
+    forM_ (zip ps rs) $ \(p, r) -> do
+      c <- characterOf p
+      updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c) 
+
     con' <- updateCondition con
     ess  <- execState (do
                 modify $ fmap $ filter (\e -> Enemy.hp e > 0) -- remove dead or fleed enemy.
