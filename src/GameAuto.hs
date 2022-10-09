@@ -47,7 +47,7 @@ newtype GameState o = GameState { exec :: ExceptT String (StateT World (Reader S
     deriving (Functor, Applicative, Monad, MonadReader Scenario, MonadState World, MonadError String)
 
 -- | Automaton for running game.
-newtype GameAuto = Auto { run :: GameMachine }
+newtype GameAuto = GameAuto { run :: GameMachine }
 
 -- | Machine used in GameAuto.
 type GameMachine = GameState (Event, Input -> GameAuto)
@@ -73,20 +73,20 @@ runGame render cmd scenario (game, w) = do
 
 events :: [Event] -> GameAuto -> GameAuto
 events [] l     = l
-events (e:es) l = Auto $ return (e, \_ -> events es l)
+events (e:es) l = GameAuto $ return (e, \_ -> events es l)
 
 
 selectWhen :: Event -> [(Input, GameAuto, Bool)] -> GameMachine
 selectWhen e ns = return (e, select' ns)
   where
     select' ((i1, s1, enable):ns) i = if i == i1 && enable then s1 else select' ns i
-    select' [] _ = Auto $ selectWhen e ns
+    select' [] _ = GameAuto $ selectWhen e ns
 
 select :: Event -> [(Input, GameAuto)] -> GameMachine
 select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns
 
 selectNext :: Event -> [(Input, GameAuto)] -> GameAuto
-selectNext e ns = Auto $ select e ns
+selectNext e ns = GameAuto $ select e ns
 
 -- ==========================================================================
 

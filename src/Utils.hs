@@ -111,7 +111,7 @@ eval = evalWith (fromList [])
 evalWith :: Map String Int -> Formula -> GameState Int
 evalWith m f = do
     w <- world
-    let (res, g') = Formula.eval m f $ randomGen w
+    let (res, g') = evalFormula m f $ randomGen w
     put w { randomGen = g' }
     case res of Right i   -> return i
                 Left  msg -> err msg

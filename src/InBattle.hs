@@ -83,7 +83,7 @@ tryDetermineEnemies = sequence . fmap tryDetermineGroup
 startBattle :: Enemy.ID             -- ^ encounted enemy.
             -> (GameAuto, GameAuto) -- ^ after battle won, run from battle.
             -> GameAuto
-startBattle eid (g1, g2) = Auto $ do
+startBattle eid (g1, g2) = GameAuto $ do
     es <- decideEnemyInstance eid
     moveToBattle es
     -- TODO:maybe enemies (or parties) ambush.
@@ -99,7 +99,7 @@ selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> [(Character.ID, Action)]
                     -> Condition
                     -> GameAuto
-selectBattleCommand i cmds con = Auto $ do
+selectBattleCommand i cmds con = GameAuto $ do
     p <- party <$> world
     if length p < i then run $ confirmBattle cmds con else do
         let cid = p !! (i - 1)
@@ -131,7 +131,7 @@ selectBattleCommand i cmds con = Auto $ do
                             Character.UseItem -> "U)se Item\n"
 
 selectFightTarget :: (Action -> GameAuto) -> GameAuto
-selectFightTarget next = Auto $ do
+selectFightTarget next = GameAuto $ do
     ess <- lastEnemies
     if length ess == 1 then run $ next (Fight 1)
     else selectWhen (BattleCommand "Target group?")
@@ -141,13 +141,13 @@ selectFightTarget next = Auto $ do
                     ,(Key "4", next (Fight 4), length ess > 3)]
 
 inputSpell :: (Action -> GameAuto) -> GameAuto -> GameAuto
-inputSpell next cancel = Auto $ do
+inputSpell next cancel = GameAuto $ do
     return ((SpellCommand "Input spell.\n(Empty to cancel casting.)"),
             (\i -> case i of Key s -> if null s then cancel
                                       else selectCastTarget s next))
 
 selectCastTarget :: String -> (Action -> GameAuto) -> GameAuto
-selectCastTarget s next = Auto $ do
+selectCastTarget s next = GameAuto $ do
     ess <- lastEnemies
     p   <- party <$> world
     def <- spellByName s
@@ -171,10 +171,10 @@ selectCastTarget s next = Auto $ do
 confirmBattle :: [(Character.ID, Action)]
               -> Condition
               -> GameAuto
-confirmBattle cmds con = Auto $ select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Back")
-                                       [(Key "f", startProgressBattle cmds con)
-                                       ,(Key "t", selectBattleCommand 1 [] con)
-                                       ]
+confirmBattle cmds con = GameAuto $ select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Back")
+                                           [(Key "f", startProgressBattle cmds con)
+                                           ,(Key "t", selectBattleCommand 1 [] con)
+                                           ]
                             
 -- ==========================================================================
 
@@ -200,7 +200,7 @@ updateCondition con = do
     return $ con { dropGold = dropGold con + g, gotExps = gotExps con + exp, dropItems = dropItems con ++ is }
 
 wonBattle :: Condition -> GameAuto
-wonBattle con = Auto $ do
+wonBattle con = GameAuto $ do
     ps <- party <$> world
     let e = gotExps con  `div` length ps
         g = dropGold con `div` length ps
@@ -215,7 +215,7 @@ wonBattle con = Auto $ do
 startProgressBattle :: [(Character.ID, Action)]
                     -> Condition
                     -> GameAuto
-startProgressBattle cmds con = Auto $ run =<< nextProgressBattle <$> determineActions cmds <*> pure con
+startProgressBattle cmds con = GameAuto $ run =<< nextProgressBattle <$> determineActions cmds <*> pure con
 
 
 nextProgressBattle :: [BattleAction]
@@ -225,7 +225,7 @@ nextProgressBattle [] con     = nextTurn con
 nextProgressBattle (a:as) con = act a (nextProgressBattle as con)
 
 act :: BattleAction -> GameAuto -> GameAuto
-act (ByParties id a) next = Auto $ do
+act (ByParties id a) next = GameAuto $ do
     ses <- Character.statusErrors <$> characterOf id
     if any (`elem` Character.cantFightStatus) ses then run next
     else case a of
@@ -235,9 +235,9 @@ act (ByParties id a) next = Auto $ do
         Run       -> run next
 act (ByEnemies l e a) next = case a of
     Enemy.Fight n d t effs -> next -- TODO:
-    Enemy.Run              -> Auto $ do
+    Enemy.Run              -> GameAuto $ do
         en   <- enemyNameOf e
-        updateEnemy l e $ const e { Enemy.hp = 0}
+        updateEnemy l e $ const e { Enemy.hp = 0 }
         run $ events [Message $ en ++ " flees."] next
 
 --  vs = ["charges at", "claws at"]

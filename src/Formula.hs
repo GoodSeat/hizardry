@@ -2,7 +2,7 @@ module Formula (
       Formula
     , Formula.parse
     , parse'
-    , eval
+    , evalFormula
 ) where
 
 import System.Random
@@ -88,8 +88,8 @@ dice = Dice <$> natural <*> (char 'd' >> natural)
 
 -- ================================================================================
 
-eval :: Map.Map String Int -> Formula -> StdGen -> (Either String Int, StdGen)
-eval m f g = State.runState (runExceptT $ eval' m f) g
+evalFormula :: Map.Map String Int -> Formula -> StdGen -> (Either String Int, StdGen)
+evalFormula m f g = State.runState (runExceptT $ eval' m f) g
 
 eval' :: Map.Map String Int -> Formula -> ExceptT String (State.State StdGen) Int
 eval' _ (Value n) = return n

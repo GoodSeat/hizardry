@@ -22,7 +22,7 @@ type ActionOfCharacter = Character.ID -- ^ id of actor.
 
 
 fightOfCharacter :: ActionOfCharacter
-fightOfCharacter id l next = Auto $ do
+fightOfCharacter id l next = GameAuto $ do
     e1 <- aliveEnemyLineHead l
     case e1 of
       Nothing -> run next
@@ -94,7 +94,7 @@ halito :: Object s => Object o => s -> o -> GameState (o, Int)
 halito = damageSpell $ parse' "1d8"
 
 spellHalito :: SpellEffect
-spellHalito (Left id) l next = Auto $ do
+spellHalito (Left id) l next = GameAuto $ do
     e1 <- aliveEnemyLineHead l
     case e1 of
       Nothing -> run next
@@ -109,7 +109,7 @@ spellHalito (Left id) l next = Auto $ do
         run $ events (toMsg <$> ts') next
 
 spellUnkown :: String -> SpellEffect
-spellUnkown n (Left id) _ next = Auto $ do
+spellUnkown n (Left id) _ next = GameAuto $ do
     c <- characterOf id
     let ts  = ["", "no happens."]
         toMsg t = Message $ (Character.name c ++ " spells " ++ n ++ ".\n") ++ t 

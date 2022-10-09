@@ -12,14 +12,14 @@ import qualified Enemies as Enemy
 import InBattle
 
 exitGame' :: GameAuto
-exitGame' = Auto $ return (Exit, const exitGame')
+exitGame' = GameAuto $ return (Exit, const exitGame')
 
 -- =======================================================================
 enterGrid :: Maybe GameAuto -- ^ happened event.
           -> Bool           -- ^ probably encount enemy.
           -> Position       -- ^ moved position.
           -> GameAuto
-enterGrid e probEncount p = Auto $ do
+enterGrid e probEncount p = GameAuto $ do
     movePlace $ InMaze p
     encountId <- if probEncount then checkEncount $ coordOf p else return Nothing
     case e of Nothing -> case encountId of Nothing -> select None $ moves p
@@ -27,7 +27,7 @@ enterGrid e probEncount p = Auto $ do
               Just a  -> run a
 
 ouch :: Position -> GameAuto
-ouch p = Auto $ select (Message "Ouch !!") $ moves p
+ouch p = GameAuto $ select (Message "Ouch !!") $ moves p
 
 moves :: Position -> [(Input, GameAuto)]
 moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
@@ -36,11 +36,11 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
           ,(Key "q", exitGame')
-          ,(Key "s", Auto $ modify (\w -> w { statusOn = not $ statusOn w }) >> run (enterGrid Nothing False p))
-          ,(Key "o", Auto $ modify (\w -> w { guideOn = not $ guideOn w })   >> run (enterGrid Nothing False p))
+          ,(Key "s", GameAuto $ modify (\w -> w { statusOn = not $ statusOn w }) >> run (enterGrid Nothing False p))
+          ,(Key "o", GameAuto $ modify (\w -> w { guideOn = not $ guideOn w })   >> run (enterGrid Nothing False p))
           ]
   where
-    goStraight p f = Auto $ do
+    goStraight p f = GameAuto $ do
         lab <- mazeAt $ z p
         case f lab p of Nothing -> run $ ouch p
                         Just p' -> run $ enterGrid (eventOn allEvents p') True p'
@@ -54,7 +54,7 @@ encountEnemy id = startBattle id (escapeEvent, escapeEvent)
 -- =======================================================================
 
 openCamp :: Position -> GameAuto
-openCamp p = Auto $ movePlace (Camping p) >> select (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
+openCamp p = GameAuto $ movePlace (Camping p) >> select (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
         [(Key "l", enterGrid (eventOn allEvents p) False p)]
 
 
@@ -68,17 +68,17 @@ allEvents :: [(Coord, GameAuto)]
 allEvents = [((1, 1, 0), stairsToCastle)]
 
 escapeEvent :: GameAuto
-escapeEvent = Auto $ do
+escapeEvent = GameAuto $ do
     plc <- place <$> world
     case plc of InMaze p     -> run $ enterGrid Nothing False p
                 InBattle p _ -> run $ enterGrid Nothing False p
                 _            -> err "failed on escapeEvent."
 
 stairsToCastle :: GameAuto
-stairsToCastle = Auto $ do
+stairsToCastle = GameAuto $ do
     toCastle <- home
     select (Message "there is climbing stairs.\n...climbing?\n\n(Y/N)")
-        [(Key "y", Auto $ whenReturnCastle >> run toCastle), (Key "n", escapeEvent)]
+        [(Key "y", GameAuto $ whenReturnCastle >> run toCastle), (Key "n", escapeEvent)]
 
 -- | state machine when return to castle.
 whenReturnCastle :: GameState ()

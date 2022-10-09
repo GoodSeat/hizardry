@@ -11,7 +11,7 @@ import Maze
 
 
 inEdgeOfTown :: GameAuto
-inEdgeOfTown = Auto $ do
+inEdgeOfTown = GameAuto $ do
     movePlace InEdgeOfTown
     let msg = Message $ "M)aze\n" ++
                         "T)raining Grounds\n" ++
@@ -39,7 +39,7 @@ inTrainingGrounds = undefined
 -- =======================================================================
 
 exitGame :: GameAuto
-exitGame = Auto $ return (Exit, const exitGame)
+exitGame = GameAuto $ return (Exit, const exitGame)
 
 
 
