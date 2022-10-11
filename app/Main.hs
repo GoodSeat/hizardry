@@ -52,6 +52,7 @@ main = do
         , Character.gold     = 1000
 
         , Character.job      = fighter
+        , Character.alignment= Character.G
 
         , Character.hp       = 12
         , Character.maxhp    = 20

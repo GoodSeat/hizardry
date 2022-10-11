@@ -21,6 +21,7 @@ data Character = Character {
     , gold         :: !Int            -- ^ gold.
 
     , job          :: !Job            -- ^ class of character.
+    , alignment    :: !Alignment      -- ^ alignment of character.
 
     , hp           :: !Int            -- ^ HP
     , maxhp        :: !Int            -- ^ MaxHP

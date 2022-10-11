@@ -38,7 +38,7 @@ status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
     ,rect (3, 29) (68, 8) (Draw ' ')]
   where
     toStatusLine (n, c) =  text (4,  29 + n) (show n ++ "  " ++ name c)
-                        <> text (35, 29 + n) " G-Sam"
+                        <> text (36, 29 + n) (show (alignment c) ++ "-" ++ take 3 (jobName $ job c))
                         <> text (46, 29 + n) (show ac)
                         <> text (54, 29 + n) (show $ hp c)
                         <> text (61, 29 + n) (show $ maxhp c)
