@@ -7,6 +7,7 @@ import Cui
 import World
 import GameAuto
 import Maze
+import qualified Enemies as Enemy
 
 
 render :: Craphic -> IO ()
@@ -67,6 +68,10 @@ dunsion p scenario = foldl1 mappend $ front <$> [(d, s) | d <-[0..1], s <- [(-1)
                      Wall -> sideWall d s
                      Door -> sideDoor d s
                      _    -> mempty
+
+enemyPic :: Place -> Craphic
+enemyPic (InBattle _ (es:_)) = werdna -- Enemy.Id $ head es
+enemyPic _                   = mempty
 
 -- ========================================================================
 

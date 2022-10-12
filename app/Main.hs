@@ -170,6 +170,7 @@ testRender s (Message m) w = do
     render $ msgBox m
           <> (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
           <> (if guideWindow w then guide else mempty)
+          <> enemyPic (place w)
           <> frame
           <> scene (place w) s
 testRender s (SpellCommand m) w = testRender s (BattleCommand m) w
@@ -182,6 +183,7 @@ testRender s (BattleCommand m) w = do
           <> msgBox (unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n")
           <> (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
           <> (if guideWindow w then guide else mempty)
+          <> enemyPic (place w)
           <> frame
           <> scene (place w) s
   where
@@ -191,17 +193,19 @@ testRender s (BattleCommand m) w = do
          determined = Enemy.determined e
          ename = if determined then Enemy.name edef else Enemy.nameUndetermined edef
          nAll    = show $ length es
-         nActive = show $ length . filter (\e' -> null $ Enemy.statusErrors e') $ es
+         nActive = show $ length . filter (null . Enemy.statusErrors) $ es
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
         
 testRender s None w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
-    render $ (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
+    render $ (if statusWindow w && not inBattle then status (concat $ maybeToList <$> ps) else mempty)
           <> (if guideWindow w then guide else mempty)
+          <> enemyPic (place w)
           <> frame
           <> scene (place w) s
-
+  where inBattle = case place w of InBattle _ _ -> True
+                                   _            -> False
 
 
 statusWindow :: World -> Bool

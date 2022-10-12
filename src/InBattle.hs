@@ -84,10 +84,10 @@ startBattle :: Enemy.ID             -- ^ encounted enemy.
             -> GameAuto
 startBattle eid (g1, g2) = GameAuto $ do
     es <- decideEnemyInstance eid
-    moveToBattle es
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
-    run $ events [Message "\nEncounter!\n"] (selectBattleCommand 1 [] con)
+    run $ events [Message "\nEncounter!\n"]
+          (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
     -- TODO:following code is ideal...
 --  select (Message "\nEncounter!\n") [(Clock, selectBattleCommand 1)]
   where
@@ -119,6 +119,9 @@ selectBattleCommand i cmds con = GameAuto $ do
                    ,( Key "r"
                     , events [Message $ Character.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
                     , Character.Run `elem` cs)
+                   ,( Key " "
+                    , events [None] (selectBattleCommand i cmds con)
+                    , True)
                     ]
   where
     toMsg cmd = case cmd of Character.Fight   -> "F)ight\n"
