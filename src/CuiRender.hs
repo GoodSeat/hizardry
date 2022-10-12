@@ -46,8 +46,9 @@ status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
     
 
 scene :: Place -> Scenario -> Craphic
-scene (InMaze p)  = dunsion p
-scene (Camping p) = dunsion p
+scene (InMaze p)     = dunsion p
+scene (Camping p)    = dunsion p
+scene (InBattle p _) = dunsion p 
 scene _ = const mempty
 
 dunsion :: Position -> Scenario -> Craphic
