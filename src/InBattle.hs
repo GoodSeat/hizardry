@@ -32,7 +32,7 @@ data Action = Fight Int
     deriving (Show, Eq)
 
 data Condition = Condition {
-      afterWin  :: GameAuto 
+      afterWin  :: GameAuto
     , afterRun  :: GameAuto
     , gotExps   :: Int
     , dropGold  :: Int
@@ -48,7 +48,7 @@ decideEnemyInstance e = decideEnemyInstance' 1 e >>= tryDetermineEnemies
         def <- enemyOf eid
         n   <- eval $ Enemy.numOfOccurrences def
         withBack <- happens $ Enemy.withBackProb def
-        bl  <- if withBack then decideEnemyInstance' (n + 1) =<< (Enemy.ID <$> eval (Enemy.backEnemyID def))
+        bl  <- if withBack then decideEnemyInstance' (n + 1) . Enemy.ID =<< eval (Enemy.backEnemyID def)
                            else return []
         el  <- createEnemyInstances n eid True
         return $ el : bl
@@ -74,11 +74,9 @@ createEnemyInstances n eid dropItem = do
     return $ e : es
 
 tryDetermineEnemies :: [[Enemy.Instance]] -> GameState [[Enemy.Instance]]
-tryDetermineEnemies = sequence . fmap tryDetermineGroup
-  where
-    tryDetermineGroup es = do
-        determine <- (<=) <$> randomNext 1 10 <*> (length . party <$> world)
-        return $ if determine then fmap (\e -> e { Enemy.determined = True }) es else es
+tryDetermineEnemies = mapM $ \es -> do
+    determine <- (<=) <$> randomNext 1 10 <*> (length . party <$> world)
+    return $ if determine then fmap (\e -> e { Enemy.determined = True }) es else es
 
 -- ==========================================================================
 startBattle :: Enemy.ID             -- ^ encounted enemy.
@@ -136,28 +134,27 @@ selectFightTarget next = GameAuto $ do
     ess <- lastEnemies
     if length ess == 1 then run $ next (Fight 1)
     else selectWhen (BattleCommand "Target group?")
-                    [(Key "1", next (Fight 1), length ess > 0)
+                    [(Key "1", next (Fight 1), not (null ess))
                     ,(Key "2", next (Fight 2), length ess > 1)
                     ,(Key "3", next (Fight 3), length ess > 2)
                     ,(Key "4", next (Fight 4), length ess > 3)]
 
 inputSpell :: (Action -> GameAuto) -> GameAuto -> GameAuto
-inputSpell next cancel = GameAuto $ do
-    return ((SpellCommand "Input spell.\n(Empty to cancel casting.)"),
-            (\i -> case i of Key s -> if null s then cancel
-                                      else selectCastTarget s next))
+inputSpell next cancel = GameAuto $
+    return (SpellCommand "Input spell.\n(Empty to cancel casting.)",
+            \(Key s) -> if null s then cancel else selectCastTarget s next)
 
 selectCastTarget :: String -> (Action -> GameAuto) -> GameAuto
 selectCastTarget s next = GameAuto $ do
     ess <- lastEnemies
     p   <- party <$> world
     def <- spellByName s
-    case def of 
+    case def of
         Nothing  -> run $ next (Spell s 1)
         Just def -> case Spell.target def of
-            Spell.OpponentSingle -> select (length ess) (\n -> next (Spell s n))
-            Spell.OpponentGroup  -> select (length ess) (\n -> next (Spell s n))
-            Spell.AllySingle     -> select (length p  ) (\n -> next (Spell s n))
+            Spell.OpponentSingle -> select (length ess) (next . Spell s)
+            Spell.OpponentGroup  -> select (length ess) (next . Spell s)
+            Spell.AllySingle     -> select (length p  ) (next . Spell s)
             _                    -> run $ next (Spell s 0)
   where
     select mx nextWith = selectWhen (BattleCommand "Target group?")
@@ -176,16 +173,16 @@ confirmBattle cmds con = GameAuto $ select (BattleCommand "Are you OK?\n\nF)ight
                                            [(Key "f", startProgressBattle cmds con)
                                            ,(Key "t", selectBattleCommand 1 [] con)
                                            ]
-                            
+
 -- ==========================================================================
 
 nextTurn :: Condition -> GameAuto
 nextTurn con = GameAuto $ do
     ps   <- party <$> world
-    rs   <- sequence $ take 6 . repeat $ randomNext 0 100
+    rs   <- replicateM 6 (randomNext 0 100)
     forM_ (zip ps rs) $ \(p, r) -> do
       c <- characterOf p
-      updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c) 
+      updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c)
 
     con' <- updateCondition con
     ess  <- execState (do
@@ -211,9 +208,7 @@ wonBattle con = GameAuto $ do
     ps <- party <$> world
     let e = gotExps con  `div` length ps
         g = dropGold con `div` length ps
-        es = Just (Message $ "Each survivor got " ++ show e ++ " E.P.")
-           : (if g > 0 then Just (Message $ "Each survivor got " ++ show g ++ " G.P.") else Nothing)
-           : []
+        es = [Just (Message $ "Each survivor got " ++ show e ++ " E.P."), if g > 0 then Just (Message $ "Each survivor got " ++ show g ++ " G.P.") else Nothing]
     forM_ ps $ flip updateCharacterWith (\c -> c { Character.exp = Character.exp c + e, Character.gold = Character.gold c + g })
     run $ events (catMaybes es) (afterWin con)
 
@@ -228,8 +223,7 @@ startProgressBattle cmds con = GameAuto $ run =<< nextProgressBattle <$> determi
 nextProgressBattle :: [BattleAction]
                    -> Condition
                    -> GameAuto
-nextProgressBattle [] con     = nextTurn con
-nextProgressBattle (a:as) con = act a (nextProgressBattle as con)
+nextProgressBattle as con = foldr act (nextTurn con) as
 
 act :: BattleAction -> GameAuto -> GameAuto
 act (ByParties id a) next = GameAuto $ do
@@ -282,14 +276,14 @@ agiBonus agi = do
     b <- (+) <$> randomNext 1 10 <*> pure (bonus agi)
     return $ max 2 (min 10 b)
   where
-    bonus agi | agi <=  3 =  3 
-              | agi <=  5 =  2 
-              | agi <=  7 =  1 
-              | agi <= 14 =  0 
-              | agi <= 15 = -1 
-              | agi <= 16 = -2 
-              | agi <= 17 = -3 
-              | otherwise = -4 
+    bonus agi | agi <=  3 =  3
+              | agi <=  5 =  2
+              | agi <=  7 =  1
+              | agi <= 14 =  0
+              | agi <= 15 = -1
+              | agi <= 16 = -2
+              | agi <= 17 = -3
+              | otherwise = -4
 
 -- ==========================================================================
 

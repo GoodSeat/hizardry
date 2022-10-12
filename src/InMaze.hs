@@ -39,7 +39,7 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
           ,(Key "c", openCamp p)
           ,(Key "q", exitGame')
           ,(Key "s", GameAuto $ modify (\w -> w { statusOn = not $ statusOn w }) >> run (enterGrid Nothing False p))
-          ,(Key "o", GameAuto $ modify (\w -> w { guideOn = not $ guideOn w })   >> run (enterGrid Nothing False p))
+          ,(Key "o", GameAuto $ modify (\w -> w { guideOn  = not $ guideOn  w }) >> run (enterGrid Nothing False p))
           ]
   where
     goStraight p f = GameAuto $ do
@@ -89,8 +89,13 @@ stairsToCastle = GameAuto $ do
 
 -- | state machine when return to castle.
 whenReturnCastle :: GameState ()
-whenReturnCastle = return ()
--- todo: cure poison, remove dead/stoned/staned characters etc.
+whenReturnCastle = do
+    ps <- party <$> world
+    forM_ ps $ \p -> do
+      c <- characterOf p
+      updateCharacter p $ foldl (&) c (whenToNextCastle <$> statusErrorsOf c) 
+
+-- todo: remove dead/stoned/staned characters etc.
 
 -- =======================================================================
 

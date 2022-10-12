@@ -41,6 +41,10 @@ class Object o where
   setStatusErrors :: [StatusError] -> o -> o
 
 
+whenToNextCastle :: Object o => StatusError -> o -> o
+whenToNextCastle (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o
+whenToNextCastle _ o = o
+
 whenToNextTurn :: Object o => Int -> StatusError -> o -> o
 whenToNextTurn _ (Poison n) o = setHp (hpOf o - n) o
 whenToNextTurn n (Sleep   ) o = if n < 50 then o else whenBattleEnd Sleep o

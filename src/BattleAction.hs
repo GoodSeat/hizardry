@@ -32,7 +32,7 @@ fightOfCharacter id l next = GameAuto $ do
         let hp' = Enemy.hp e - d
             st' = Enemy.statusErrors e ++ [Dead | hp' <= 0]
             e'  = e { Enemy.hp = hp', Enemy.statusErrors = st' }
-        updateEnemy l e $ const e' 
+        updateEnemy l e $ const e'
         es <- fmap Message <$> fightMessage c e' (h, d)
         run $ events es next
 
@@ -48,7 +48,10 @@ fightDamage l c e = do
     tryCount <- max <$> (min <$> evalWith m tryCountF <*> pure 10) <*> pure weponAt
     jobBonus <- evalWith m jobBonusF
     let str      = strength . Character.param $ c
-        strBonus = if str >= 16 then str - 15 else if str < 6 then str - 6 else 0
+        strBonus
+          | str >= 16 = str - 15
+          | str < 6   = str - 6
+          | otherwise = 0
         hitSkill = jobBonus + strBonus + stBonus
         atSkill  = max (min (Enemy.ac edef + hitSkill - 3 * l) 19) 1
     rs <- replicateM tryCount $ do
@@ -65,7 +68,7 @@ fightMessage c e (h, d) = do
     let m1 = Character.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
     let m3 = if Enemy.hp e <= 0 then en ++ " is killed." else ""
-    return $ (m1 ++ m2) : if null m3 then [] else [m1 ++ m3]
+    return $ (m1 ++ m2) : [m1 ++ m3 | not (null m3)]
   where
     vs = ["leaps at", "attempts to slice", "thrusts violently at", "tries to ram", "tries to bash", "charges at", "tries to slash"]
 
@@ -73,7 +76,7 @@ fightMessage c e (h, d) = do
 
 -- spellOfCharacter :: ActionOfCharacter
 -- spellOfCharacter id l = do
-    
+
 
 type SpellEffect  = Either Character.ID Enemy.Instance
                  -> Int
@@ -104,7 +107,7 @@ spellHalito (Left id) l next = GameAuto $ do
         ((e', _), d) <- halito c (e, edef)
         updateEnemy l e $ const e'
         let ts  = ["", Enemy.name edef ++ " takes " ++ show d ++ "."]
-            ts' = ts ++ (if Enemy.hp e' <= 0 then [last ts ++ "\n" ++ Enemy.name edef ++ " is killed."] else [])
+            ts' = ts ++ ([last ts ++ "\n" ++ Enemy.name edef ++ " is killed." | Enemy.hp e' <= 0])
             toMsg t = Message $ (Character.name c ++ " spells halito.\n") ++ t
         run $ events (toMsg <$> ts') next
 
@@ -112,7 +115,7 @@ spellUnkown :: String -> SpellEffect
 spellUnkown n (Left id) _ next = GameAuto $ do
     c <- characterOf id
     let ts  = ["", "no happens."]
-        toMsg t = Message $ (Character.name c ++ " spells " ++ n ++ ".\n") ++ t 
+        toMsg t = Message $ (Character.name c ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
 
 spell :: String -> SpellEffect
