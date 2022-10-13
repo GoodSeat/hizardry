@@ -139,32 +139,34 @@ werdna = fromTexts ' '
   ,"                                                                      "   --   8
   ,"                                                                      "   --   9
   ,"                                                                      "   --   10
-  ,"                                    .8H[                              "   --   11
-  ,"                                   .HKON-  .m,                        "   --   12
-  ,"                                  . HHkK` .dNg,                       "   --   13
-  ,"                       WUHX+...  jNNMQQWNNLdMM]  ...J++,              "   --   14
-  ,"                            dM8dHNMdMHmdHuHMBkMM9^?!   ?`             "   --   15
-  ,"                           (NgdkMMW#dC>dYMMMNQMb                      "   --   16
-  ,"                       ..gHMMMSdkNKVw<(+4dMMMNNHMHWH,                 "   --   17
-  ,"                    .&HHMHHHMNMMMMK1W$~j+NHMMMHMMMMMM|                "   --   18
-  ,"                   .MMMHNMMMMMMMHMSljD<_vHWMMMMMMMMMMN,               "   --   19
-  ,"                JHgWMMMHMMMMMMMMMMh+Wl~(WJHMMMMMMM#Cd#!               "   --   20
-  ,"                4HMMHMHMMMMMNMMMNH5dXb(<UWHMM^!    T#`                "   --   21
-  ,"                dHHHNHMMHMMMMMNMMSRzZPI~(dNM~                         "   --   22
-  ,"               (F`  7^=7T^1dNMMMNWNOP$<~+gMM]                         "   --   23
-  ,"             .MY        .dMMMMMMNM#dR1>((WHM]                         "   --   24
-  ,"            .MP        .8JHMMM#MMMHMNk>(<1dNK+                        "   --   25
-  ,"            (MR        JndmMMMMMMbMMMMz(l_dNWd~                       "   --   26
-  ,"             ?Hn.,  . .HHHqHMMN#MNKHMMwJRwWMBf                        "   --   27
-  ,"              (H;   .~JFOgHNMMMMM#qMMEdH6dMMM%                        "   --   28
-  ,"               .74JT^ (;(HMMMMMHMHWHQHMBdMMM]                         "   --   29
-  ,"                       ?(HHMMM#HM@@MMMNdMNMM]                         "   --   30
-  ,"                          ?4MNNHHMHqMNMMHMHM]                         "   --   31
-  ,"                       .   .BYHHMHYGiMMMMMHM]                         "   --   32
-  ,"                       h, .HNMNHMMMMMMqMMMgM+....                     "   --   33
-  ,"                   +JNMMNmgMMNMHMNHMMqkMqMNMMMMMY^                    "   --   34
-  ,"                        .??????^^WHMMNNMNMHB^=!                       "   --   35
-  ,"                                                                      "]  --   36
+  ,"                                                                      "   --   11
+  ,"                                                                      "   --   12
+  ,"                                    .8H[                              "   --   13
+  ,"                                   .HKON-  .m,                        "   --   14
+  ,"                                  . HHkK` .dNg,                       "   --   15
+  ,"                       WUHX+...  jNNMQQWNNLdMM]  ...J++,              "   --   16
+  ,"                            dM8dHNMdMHmdHuHMBkMM9^?!   ?`             "   --   17
+  ,"                           (NgdkMMW#dC>dYMMMNQMb                      "   --   18
+  ,"                       ..gHMMMSdkNKVw<(+4dMMMNNHMHWH,                 "   --   19
+  ,"                    .&HHMHHHMNMMMMK1W$~j+NHMMMHMMMMMM|                "   --   20
+  ,"                   .MMMHNMMMMMMMHMSljD<_vHWMMMMMMMMMMN,               "   --   21
+  ,"                JHgWMMMHMMMMMMMMMMh+Wl~(WJHMMMMMMM#Cd#!               "   --   22
+  ,"                4HMMHMHMMMMMNMMMNH5dXb(<UWHMM^!    T#`                "   --   23
+  ,"                dHHHNHMMHMMMMMNMMSRzZPI~(dNM~                         "   --   24
+  ,"               (F`  7^=7T^1dNMMMNWNOP$<~+gMM]                         "   --   25
+  ,"             .MY        .dMMMMMMNM#dR1>((WHM]                         "   --   26
+  ,"            .MP        .8JHMMM#MMMHMNk>(<1dNK+                        "   --   27
+  ,"            (MR        JndmMMMMMMbMMMMz(l_dNWd~                       "   --   28
+  ,"             ?Hn.,  . .HHHqHMMN#MNKHMMwJRwWMBf                        "   --   29
+  ,"              (H;   .~JFOgHNMMMMM#qMMEdH6dMMM%                        "   --   30
+  ,"               .74JT^ (;(HMMMMMHMHWHQHMBdMMM]                         "   --   31
+  ,"                       ?(HHMMM#HM@@MMMNdMNMM]                         "   --   32
+  ,"                          ?4MNNHHMHqMNMMHMHM]                         "   --   33
+  ,"                       .   .BYHHMHYGiMMMMMHM]                         "   --   34
+  ,"                       h, .HNMNHMMMMMMqMMMgM+....                     "   --   35
+  ,"                   +JNMMNmgMMNMHMNHMMqkMqMNMMMMMY^                    "   --   36
+  ,"                        .??????^^WHMMNNMNMHB^=!                       "   --   37
+  ,"                                                                      "]  --   38
 --  1234567890123456789012345678901234567890123456789012345678901234567890
 --           1         2         3         4         5         6         7
                                                    

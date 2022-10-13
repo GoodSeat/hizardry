@@ -173,7 +173,25 @@ sideOf R E = S
 sideOf R S = W
 sideOf R W = N
 
-visiblityAt :: Maze -- ^ target Maze.
+noticesInView :: Maze      -- ^ target Maze.
+              -> Position  -- ^ current position.
+              -> Int       -- ^ distance to target grid. 0 means grid at current position.
+              -> Int       -- ^ side distance. front is 0, and left is minus value.
+              -> [Notice]
+noticesInView l p d lr = ns
+  where
+    dir  = direction p
+    dx | dir == E  =  d
+       | dir == W  = -d
+       | dir == N  =  lr
+       | dir == S  = -lr
+    dy | dir == N  =  d
+       | dir == S  = -d
+       | dir == E  = -lr
+       | dir == W  =  lr
+    Grid (_, _, _, _) ns = l (x p + dx, y p + dy)
+
+visiblityAt :: Maze      -- ^ target Maze.
             -> Position  -- ^ current position.
             -> Int       -- ^ distance to target grid. 0 means grid at current position.
             -> Int       -- ^ side distance. front is 0, and left is minus value.
@@ -236,13 +254,27 @@ testMaze = fromText (lines txt) (4, 5)
     txt = "+--------+--+\n" ++
           "|     K  |[]|\n" ++
           "|  +^-+  +--+\n" ++
-          "|  |  >  |##|\n" ++
+          "|  |_ >  |##|\n" ++
           "|  |   ^^|  |\n" ++
           "|  D     =##|\n" ++
           "|++|     |  |\n" ++
           "|  |     |  |\n" ++
           "|  +v-+vv+  |\n" ++
           "|~ <  =  |_ |\n" ++
+          "+-----+-----+\n"
+testMaze2 :: Maze
+testMaze2 = fromText (lines txt) (4, 5)
+  where
+    txt = "+--------+--+\n" ++
+          "|     K  |[]|\n" ++
+          "|  +^-+  +--+\n" ++
+          "|  |~ >  |##|\n" ++
+          "|  |   ^^|  |\n" ++
+          "|  D     =##|\n" ++
+          "|++|     |  |\n" ++
+          "|  |     |  |\n" ++
+          "|  +v-+vv+  |\n" ++
+          "|  <  =  |_ |\n" ++
           "+-----+-----+\n"
 
 

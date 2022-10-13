@@ -101,7 +101,7 @@ main = do
         scenario = Scenario {
               scenarioOption = option
             , scenarioHome   = inCastle
-            , mazes          = [testMaze]
+            , mazes          = [testMaze, testMaze2]
             , encountMap     = Map.fromList [
                   ((1, 1, 0), (30, [Enemy.ID 1]))
                 , ((1, 2, 0), (30, [Enemy.ID 1]))
@@ -156,6 +156,8 @@ main = do
             }
     putStrLn =<< runGame (testRender scenario) cmd scenario (inCastle, w)
 
+
+-- ==========================================================================
 
 getKey :: InputType -> IO Input
 getKey SingleKey = do
