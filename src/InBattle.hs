@@ -86,7 +86,7 @@ startBattle eid (g1, g2) = GameAuto $ do
     es <- decideEnemyInstance eid
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
-    run $ events [Message "\nEncounter!\n"]
+    run $ events [MessageTime (-1000) "\nEncounter!\n"]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
     -- TODO:following code is ideal...
 --  select (Message "\nEncounter!\n") [(Clock, selectBattleCommand 1)]
@@ -103,8 +103,8 @@ selectBattleCommand i cmds con = GameAuto $ do
     if length p < i then run $ confirmBattle cmds con else do
         let cid = p !! (i - 1)
         c <- characterOf cid
-        let cs   = Character.enableBattleCommands $ Character.job c
-            next = \a -> selectBattleCommand (i + 1) ((cid, a) : cmds) con
+        let cs     = Character.enableBattleCommands $ Character.job c
+            next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
             cancel = selectBattleCommand i cmds con
         selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concat (toMsg <$> cs))
                    [( Key "f"
@@ -144,7 +144,7 @@ selectFightTarget next = GameAuto $ do
 
 inputSpell :: (Action -> GameAuto) -> GameAuto -> GameAuto
 inputSpell next cancel = GameAuto $
-    return (SpellCommand "Input spell.\n(Empty to cancel casting.)",
+    return (SpellCommand "Input spell.\n(Empty to cancel.)",
             \(Key s) -> if null s then cancel else selectCastTarget s next)
 
 selectCastTarget :: String -> (Action -> GameAuto) -> GameAuto

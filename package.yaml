@@ -27,6 +27,7 @@ dependencies:
 - containers
 - ansi-terminal
 - parsec
+- async
 
 library:
   source-dirs: 

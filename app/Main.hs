@@ -1,11 +1,13 @@
 module Main where
 
-import System.IO (getChar, hSetBuffering, stdin, BufferMode(..))
+import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
 import System.Console.ANSI (clearScreen)
 import qualified Data.Map as Map
 import Data.Maybe
 import System.Random
-import Control.Concurrent
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async
+import Control.Monad (foldM)
 
 import Primitive
 import GameAuto
@@ -61,7 +63,7 @@ main = do
         , Character.marks    = 0
         , Character.rips     = 0
         , Character.statusErrors = []
-        
+
         , Character.items    = []
         , Character.equips   = []
 
@@ -165,7 +167,25 @@ getKey SingleKey = do
 getKey SequenceKey = do
     hSetBuffering stdin LineBuffering
     Key <$> getLine
-getKey (WaitClock n) = threadDelay (n * 1000) >> return Clock
+getKey (WaitClock n)
+  | n > 0     = threadDelay (n * 1000) >> return Clock
+  | otherwise = do
+      waitTime <- async (threadDelay $ n * (-1000))
+      waitKey  <- async $ do
+        hSetBuffering stdin NoBuffering
+        foldM (\alreadyCanceled _ -> do
+          buf <- hReady stdin
+          if buf && not alreadyCanceled then do
+            getChar
+            cancel waitTime
+            return True
+          else do
+            threadDelay 50000 -- 50ms
+            return alreadyCanceled
+          ) False (repeat False)
+      waitCatch waitTime
+      return Clock
+
 
 -- ==========================================================================
 testRender :: Scenario -> Event -> World -> IO()
@@ -201,7 +221,7 @@ testRender s (BattleCommand m) w = do
          nAll    = show $ length es
          nActive = show $ length . filter (null . Enemy.statusErrors) $ es
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
-        
+
 testRender s (Time _) w = testRender s None w
 testRender s None w = do
     clearScreen
@@ -213,6 +233,8 @@ testRender s None w = do
           <> sceneTrans w (scene (place w) s)
   where inBattle = case place w of InBattle _ _ -> True
                                    _            -> False
+
+testRender _ Exit _ = undefined
 
 
 statusWindow :: World -> Bool

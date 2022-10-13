@@ -20,16 +20,15 @@ data Input = Key String
 
 data InputType = SingleKey
                | SequenceKey
-               | WaitClock Int -- ^ time to wait(ms)
+               | WaitClock Int -- ^ time to wait(ms), negative wait time means enable to skip by key input
 
 data Event = None
            | Exit
-           | Message String
-           | MessageTime Int String
-           | Time Int
+           | Message       String
+           | MessageTime   Int String -- ^ negative wait time means enable to skip by key input
+           | Time          Int        -- ^ negative wait time means enable to skip by key input
            | BattleCommand String
-           | SpellCommand String
-           | And Event Event
+           | SpellCommand  String
     deriving (Show, Eq)
 
 data Option = Option String
