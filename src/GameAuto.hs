@@ -18,12 +18,15 @@ data Input = Key String
            | Abort
     deriving (Show, Eq)
 
-data InputType = SingleKey | SequenceKey | WaitClock
+data InputType = SingleKey
+               | SequenceKey
+               | WaitClock Int -- ^ time to wait(ms)
 
 data Event = None
            | Exit
            | Message String
-           | MessageTime String
+           | MessageTime Int String
+           | Time Int
            | BattleCommand String
            | SpellCommand String
            | And Event Event
@@ -65,17 +68,21 @@ runGame render cmd scenario (game, w) = do
                 Right (e, next) -> if e == Exit then return "thank you for playing."
                                    else do
                                        render e w'
-                                       let itype = case e of SpellCommand _ -> SequenceKey
-                                                             MessageTime _  -> WaitClock
-                                                             _              -> SingleKey
+                                       let itype = case e of SpellCommand _  -> SequenceKey
+                                                             MessageTime n _ -> WaitClock n
+                                                             Time n          -> WaitClock n
+                                                             _               -> SingleKey
                                        i <- cmd itype
                                        runGame render cmd scenario (next i, w')
 
 -- ==========================================================================
 
 events :: [Event] -> GameAuto -> GameAuto
-events [] l     = l
-events (e:es) l = GameAuto $ return (e, \_ -> events es l)
+events es = events' (zip (repeat $ return ()) es)
+
+events' :: [(GameState a, Event)] -> GameAuto -> GameAuto
+events' []           l = l
+events' ((gs, e):es) l = GameAuto $ gs >> return (e, const $ events' es l)
 
 
 selectWhen :: Event -> [(Input, GameAuto, Bool)] -> GameMachine

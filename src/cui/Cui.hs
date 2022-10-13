@@ -66,7 +66,7 @@ fromTexts :: Char     -- ^ character that treat as blank.
           -> Craphic  -- ^ created graphic
 fromTexts blank s = Craphic $ \(c, r) -> at (lineOf r) c
   where
-    lineOf r = if length s < r then [] else s !! (r - 1)
+    lineOf r = if length s < r || r < 1 then [] else s !! (r - 1)
     at [] _                 = Blank
     at (t:cs) c | c < 1     = Blank
                 | c == 1    = if t == blank then Blank else Draw t

@@ -94,6 +94,7 @@ main = do
                               (Character.ID 1, testChara1)
                             , (Character.ID 2, testChara2)
                             ]
+      , sceneTrans      = id
       }
     let cmd = getKey
         option = Option "Q)uit Game (for Debug!)"
@@ -162,11 +163,11 @@ getKey SingleKey = do
     x <- getCharNoBuffering
     return $ Key [x]
 getKey SequenceKey = Key <$> getLine
-getKey WaitClock = threadDelay (1000*1000) >> return Clock
+getKey (WaitClock n) = threadDelay (n * 1000) >> return Clock
 
 -- ==========================================================================
 testRender :: Scenario -> Event -> World -> IO()
-testRender s (MessageTime m) w = testRender s (Message m) w
+testRender s (MessageTime _ m) w = testRender s (Message m) w
 testRender s (Message m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
@@ -175,7 +176,7 @@ testRender s (Message m) w = do
           <> (if guideWindow w then guide else mempty)
           <> enemyPic (place w)
           <> frame
-          <> scene (place w) s
+          <> sceneTrans w (scene (place w) s)
 testRender s (SpellCommand m) w = testRender s (BattleCommand m) w
 testRender s (BattleCommand m) w = do
     clearScreen
@@ -188,7 +189,7 @@ testRender s (BattleCommand m) w = do
           <> (if guideWindow w then guide else mempty)
           <> enemyPic (place w)
           <> frame
-          <> scene (place w) s
+          <> sceneTrans w (scene (place w) s)
   where
     txtEnemy (l, es) = let
          e    = head es
@@ -199,6 +200,7 @@ testRender s (BattleCommand m) w = do
          nActive = show $ length . filter (null . Enemy.statusErrors) $ es
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
         
+testRender s (Time _) w = testRender s None w
 testRender s None w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
@@ -206,7 +208,7 @@ testRender s None w = do
           <> (if guideWindow w then guide else mempty)
           <> enemyPic (place w)
           <> frame
-          <> scene (place w) s
+          <> sceneTrans w (scene (place w) s)
   where inBattle = case place w of InBattle _ _ -> True
                                    _            -> False
 

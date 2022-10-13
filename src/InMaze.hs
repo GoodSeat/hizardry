@@ -6,12 +6,13 @@ import Data.Function
 
 import GameAuto
 import World
-import Characters
 import Maze
 import Utils
 import Primitive
 import qualified Enemies as Enemy
 import InBattle
+
+import Cui
 
 exitGame' :: GameAuto
 exitGame' = GameAuto $ return (Exit, const exitGame')
@@ -84,8 +85,12 @@ escapeEvent = GameAuto $ do
 stairsToCastle :: GameAuto
 stairsToCastle = GameAuto $ do
     toCastle <- home
+    let upStep  = modify (\w -> w { sceneTrans = sceneTrans w . translate (0, 5) })
+    let upReset = modify (\w -> w { sceneTrans = id })
     select (Message "there is climbing stairs.\n...climbing?\n\n(Y/N)")
-        [(Key "y", GameAuto $ whenReturnCastle >> run toCastle), (Key "n", escapeEvent)]
+        [ (Key "y", events' (replicate 3 (upStep, Time 400)) (GameAuto $ upReset >> whenReturnCastle >> run toCastle))
+        , (Key "n", escapeEvent)
+        ]
 
 -- | state machine when return to castle.
 whenReturnCastle :: GameState ()

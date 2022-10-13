@@ -9,6 +9,8 @@ import qualified Enemies as Enemy
 import qualified Items as Item
 import Maze
 
+import Cui
+
 data World = World {
       randomGen       :: StdGen
     , guideOn         :: !Bool   -- ^ visible guidw window in maze.
@@ -23,7 +25,9 @@ data World = World {
     , shopItems       :: !(Map.Map Item.ID Int)
 
     , allCharacters   :: !Character.DB
-} deriving (Show)
+
+    , sceneTrans      :: Filter
+} -- deriving (Show)
 
 data Place  = InCastle
             | Gilgamesh'sTarvern 
