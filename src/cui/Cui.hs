@@ -129,45 +129,47 @@ isHalfChar c = n <= 0xdf -- cp932
 
 werdna :: Craphic
 werdna = fromTexts ' '
-  ["                                                                      "   --   1
-  ,"                                                                      "   --   2
-  ,"                                                                      "   --   3
-  ,"                                                                      "   --   4
-  ,"                                                                      "   --   5
-  ,"                                                                      "   --   6
-  ,"                                                                      "   --   7
-  ,"                                                                      "   --   8
-  ,"                                                                      "   --   9
-  ,"                                                                      "   --   10
-  ,"                                                                      "   --   11
-  ,"                                                                      "   --   12
-  ,"                                    .8H[                              "   --   13
-  ,"                                   .HKON-  .m,                        "   --   14
-  ,"                                  . HHkK` .dNg,                       "   --   15
-  ,"                       WUHX+...  jNNMQQWNNLdMM]  ...J++,              "   --   16
-  ,"                            dM8dHNMdMHmdHuHMBkMM9^?!   ?`             "   --   17
-  ,"                           (NgdkMMW#dC>dYMMMNQMb                      "   --   18
-  ,"                       ..gHMMMSdkNKVw<(+4dMMMNNHMHWH,                 "   --   19
-  ,"                    .&HHMHHHMNMMMMK1W$~j+NHMMMHMMMMMM|                "   --   20
-  ,"                   .MMMHNMMMMMMMHMSljD<_vHWMMMMMMMMMMN,               "   --   21
-  ,"                JHgWMMMHMMMMMMMMMMh+Wl~(WJHMMMMMMM#Cd#!               "   --   22
-  ,"                4HMMHMHMMMMMNMMMNH5dXb(<UWHMM^!    T#`                "   --   23
-  ,"                dHHHNHMMHMMMMMNMMSRzZPI~(dNM~                         "   --   24
-  ,"               (F`  7^=7T^1dNMMMNWNOP$<~+gMM]                         "   --   25
-  ,"             .MY        .dMMMMMMNM#dR1>((WHM]                         "   --   26
-  ,"            .MP        .8JHMMM#MMMHMNk>(<1dNK+                        "   --   27
-  ,"            (MR        JndmMMMMMMbMMMMz(l_dNWd~                       "   --   28
-  ,"             ?Hn.,  . .HHHqHMMN#MNKHMMwJRwWMBf                        "   --   29
-  ,"              (H;   .~JFOgHNMMMMM#qMMEdH6dMMM%                        "   --   30
-  ,"               .74JT^ (;(HMMMMMHMHWHQHMBdMMM]                         "   --   31
-  ,"                       ?(HHMMM#HM@@MMMNdMNMM]                         "   --   32
-  ,"                          ?4MNNHHMHqMNMMHMHM]                         "   --   33
-  ,"                       .   .BYHHMHYGiMMMMMHM]                         "   --   34
-  ,"                       h, .HNMNHMMMMMMqMMMgM+....                     "   --   35
-  ,"                   +JNMMNmgMMNMHMNHMMqkMqMNMMMMMY^                    "   --   36
-  ,"                        .??????^^WHMMNNMNMHB^=!                       "   --   37
-  ,"                                                                      "]  --   38
---  1234567890123456789012345678901234567890123456789012345678901234567890
+  ["                                                                           "   --    1
+  ,"                                                                           "   --    2
+  ,"                                                                           "   --    3
+  ,"                                                                           "   --    4
+  ,"                                                                           "   --    5
+  ,"                                                                           "   --    6
+  ,"                                                                           "   --    7
+  ,"                                                                           "   --    8
+  ,"                                                                           "   --    9
+  ,"                                                                           "   --   10
+  ,"                                                                           "   --   11
+  ,"                                                                           "   --   12
+  ,"                                                                           "   --   13
+  ,"                                       .8H[                                "   --   14
+  ,"                                      .HKON-  .m,                          "   --   15
+  ,"                                     . HHkK` .dNg,                         "   --   16
+  ,"                          WUHX+...  jNNMQQWNNLdMM]  ...J++,                "   --   17
+  ,"                               dM8dHNMdMHmdHuHMBkMM9^?!   ?`               "   --   18
+  ,"                              (NgdkMMW#dC>dYMMMNQMb                        "   --   19
+  ,"                          ..gHMMMSdkNKVw<(+4dMMMNNHMHWH,                   "   --   20
+  ,"                       .&HHMHHHMNMMMMK1W$~j+NHMMMHMMMMMM|                  "   --   21
+  ,"                      .MMMHNMMMMMMMHMSljD<_vHWMMMMMMMMMMN,                 "   --   22
+  ,"                   JHgWMMMHMMMMMMMMMMh+Wl~(WJHMMMMMMM#Cd#!                 "   --   23
+  ,"                   4HMMHMHMMMMMNMMMNH5dXb(<UWHMM^!    T#`                  "   --   24
+  ,"                   dHHHNHMMHMMMMMNMMSRzZPI~(dNM~                           "   --   25
+  ,"                  (F`  7^=7T^1dNMMMNWNOP$<~+gMM]                           "   --   26
+  ,"                .MY        .dMMMMMMNM#dR1>((WHM]                           "   --   27
+  ,"               .MP        .8JHMMM#MMMHMNk>(<1dNK+                          "   --   28
+  ,"               (MR        JndmMMMMMMbMMMMz(l_dNWd~                         "   --   29
+  ,"                ?Hn.,  . .HHHqHMMN#MNKHMMwJRwWMBf                          "   --   30
+  ,"                 (H;   .~JFOgHNMMMMM#qMMEdH6dMMM%                          "   --   31
+  ,"                  .74JT^ (;(HMMMMMHMHWHQHMBdMMM]                           "   --   32
+  ,"                          ?(HHMMM#HM@@MMMNdMNMM]                           "   --   33
+  ,"                             ?4MNNHHMHqMNMMHMHM]                           "   --   34
+  ,"                          .   .BYHHMHYGiMMMMMHM]                           "   --   35
+  ,"                          h, .HNMNHMMMMMMqMMMgM+....                       "   --   36
+  ,"                      +JNMMNmgMMNMHMNHMMqkMqMNMMMMMY^                      "   --   37
+  ,"                           .??????^^WHMMNNMNMHB^=!                         "   --   38
+  ,"                                                                           "   --   39
+  ,"                                                                           "]  --   40
+--  123456789012345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6         7
                                                    
                                                    
