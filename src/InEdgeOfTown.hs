@@ -27,7 +27,7 @@ inEdgeOfTown = GameAuto $ do
 -- =======================================================================
 
 enteringMaze :: GameAuto
-enteringMaze = events [Message "\n\n  *** Entering Test Maze... *** \n\n\n"] $ openCamp p
+enteringMaze = events [MessageTime "\n\n  *** Entering Test Maze... *** \n\n\n"] $ openCamp p
   where
     p = Position { direction = N, x = 1, y = 1, z = 0 }
 

@@ -18,11 +18,12 @@ data Input = Key String
            | Abort
     deriving (Show, Eq)
 
-data InputType = SingleKey | SequenceKey
+data InputType = SingleKey | SequenceKey | WaitClock
 
 data Event = None
            | Exit
            | Message String
+           | MessageTime String
            | BattleCommand String
            | SpellCommand String
            | And Event Event
@@ -65,6 +66,7 @@ runGame render cmd scenario (game, w) = do
                                    else do
                                        render e w'
                                        let itype = case e of SpellCommand _ -> SequenceKey
+                                                             MessageTime _  -> WaitClock
                                                              _              -> SingleKey
                                        i <- cmd itype
                                        runGame render cmd scenario (next i, w')

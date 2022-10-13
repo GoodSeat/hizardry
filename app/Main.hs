@@ -5,6 +5,7 @@ import System.Console.ANSI
 import qualified Data.Map as Map
 import Data.Maybe
 import System.Random
+import Control.Concurrent
 
 import Primitive
 import GameAuto
@@ -161,9 +162,11 @@ getKey SingleKey = do
     x <- getCharNoBuffering
     return $ Key [x]
 getKey SequenceKey = Key <$> getLine
+getKey WaitClock = threadDelay (1000*1000) >> return Clock
 
 -- ==========================================================================
 testRender :: Scenario -> Event -> World -> IO()
+testRender s (MessageTime m) w = testRender s (Message m) w
 testRender s (Message m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
