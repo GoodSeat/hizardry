@@ -1,7 +1,7 @@
 module Main where
 
-import System.IO.NoBufferingWorkaround
-import System.Console.ANSI
+import System.IO (getChar, hSetBuffering, stdin, BufferMode(..))
+import System.Console.ANSI (clearScreen)
 import qualified Data.Map as Map
 import Data.Maybe
 import System.Random
@@ -154,15 +154,17 @@ main = do
                 })
                 ]
             }
-    initGetCharNoBuffering
     putStrLn =<< runGame (testRender scenario) cmd scenario (inCastle, w)
 
 
 getKey :: InputType -> IO Input
 getKey SingleKey = do
-    x <- getCharNoBuffering
+    hSetBuffering stdin NoBuffering
+    x <- getChar
     return $ Key [x]
-getKey SequenceKey = Key <$> getLine
+getKey SequenceKey = do
+    hSetBuffering stdin LineBuffering
+    Key <$> getLine
 getKey (WaitClock n) = threadDelay (n * 1000) >> return Clock
 
 -- ==========================================================================
