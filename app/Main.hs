@@ -21,8 +21,6 @@ import Formula
 
 import CuiRender
 
--- https://kuo3.dev/2019/06/29/haskellでコンソールゲームを作りたい。共通編入力処/
--- http://hiratara.hatenadiary.jp/entry/2017/02/11/140028
 
 main :: IO ()
 main = do
