@@ -99,7 +99,9 @@ eval' m (Operate Production  n1 n2) = (*) <$> eval' m n1 <*> eval' m n2
 eval' m (Operate Division    n1 n2) = div <$> eval' m n1 <*> eval' m n2
 eval' m (Variable name) = case Map.lookup name m of Nothing -> throwError $ "not defined value of " ++ name
                                                     Just v  -> return v
-eval' _ (Dice n1 n2) = do
-    (v, g') <- randomR (1, n2) <$> State.get
+eval' _ (Dice 0   _) = return 0
+eval' _ (Dice n1  1) = return n1
+eval' m (Dice n1 n2) = do
+    (v, g') <- State.gets (randomR (1, n2))
     State.put g'
-    return $ n1 * v
+    (v + ) <$> eval' m (Dice (n1 - 1) n2)
