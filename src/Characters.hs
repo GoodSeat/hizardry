@@ -56,8 +56,6 @@ instance Object Character where
      else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] c'
      else                                         c'
 
-addStatusError s c = setStatusErrors (s : statusErrorsOf c) c
-
 
 
 -- | data base of character.

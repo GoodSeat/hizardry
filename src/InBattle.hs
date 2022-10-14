@@ -46,32 +46,34 @@ decideEnemyInstance :: Enemy.ID -> GameState [[Enemy.Instance]]
 decideEnemyInstance e = decideEnemyInstance' 1 e >>= tryDetermineEnemies
   where
     decideEnemyInstance' :: Int -> Enemy.ID -> GameState [[Enemy.Instance]]
-    decideEnemyInstance' n eid = if n > 4 then return [] else do
+    decideEnemyInstance' l eid = if l > 4 then return [] else do
         def <- enemyOf eid
         n   <- eval $ Enemy.numOfOccurrences def
         withBack <- happens $ Enemy.withBackProb def
-        bl  <- if withBack then decideEnemyInstance' (n + 1) . Enemy.ID =<< eval (Enemy.backEnemyID def)
+        bl  <- if withBack then decideEnemyInstance' (l + 1) . Enemy.ID =<< eval (Enemy.backEnemyID def)
                            else return []
-        el  <- createEnemyInstances n eid True
+        el  <- createEnemyInstances n l eid True
         return $ el : bl
 
 createEnemyInstances :: Int          -- ^ num of create instaces.
+                     -> Int          -- ^ belong line no.
                      -> Enemy.ID     -- ^ target id of enemy.
                      -> Bool         -- ^ maybe drop item or not.
                      -> GameState [Enemy.Instance]
-createEnemyInstances 0 _ _              = return []
-createEnemyInstances n eid dropItem = do
+createEnemyInstances 0 _ _ _              = return []
+createEnemyInstances n l eid dropItem = do
     def <- enemyOf eid
-    es  <- createEnemyInstances (n - 1) eid False
+    es  <- createEnemyInstances (n - 1) l eid False
     mhp <- eval $ Enemy.hpFormula def
     let e = Enemy.Instance {
-        Enemy.id = eid
-      , Enemy.determined = False
-      , Enemy.hp    = mhp
-      , Enemy.maxhp = mhp
-      , Enemy.statusErrors = []
+        Enemy.id            = eid
+      , Enemy.noID          = n + 10 * l
+      , Enemy.determined    = False
+      , Enemy.hp            = mhp
+      , Enemy.maxhp         = mhp
+      , Enemy.statusErrors  = []
       , Enemy.maybeDropItem = dropItem
-      , Enemy.modAc = 0
+      , Enemy.modAc         = 0
     }
     return $ e : es
 
@@ -169,7 +171,8 @@ selectCastTarget s next = GameAuto $ do
             Spell.AllySingle     -> select (length p  ) (next . Spell s)
             _                    -> run $ next (Spell s 0)
   where
-    select mx nextWith = selectWhen (BattleCommand "Target group?")
+    select mx nextWith = if mx <= 1 then run (nextWith 1) else
+                         selectWhen (BattleCommand "Target group?")
                             [(Key "1", nextWith 1, mx > 0)
                             ,(Key "2", nextWith 2, mx > 1)
                             ,(Key "3", nextWith 3, mx > 2)
@@ -248,14 +251,21 @@ act (ByParties id a) next = GameAuto $ do
         Parry     -> run next
         Run       -> run next
         CantMove  -> run next
-act (ByEnemies l e a) next = case a of
-    Enemy.Fight n d t effs -> next -- TODO:
-    Enemy.Run              -> GameAuto $ do
-        en   <- enemyNameOf e
-        updateEnemy l e $ const e { Enemy.hp = 0 }
-        run $ events [Message $ en ++ " flees."] next
-
---  vs = ["charges at", "claws at"]
+        _         -> undefined
+act (ByEnemies l e a) next = GameAuto $ do
+    e_ <- currentEnemyByNo $ Enemy.noID e
+    case e_ of
+      Nothing -> run next
+      Just e' -> do
+        edef <- enemyOf $ Enemy.id e'
+        if isCantFight (e', edef) then run next
+        else case a of
+          Enemy.Fight n d t effs -> run $ fightOfEnemy e' n d t effs next
+          Enemy.Run              -> do
+              en   <- enemyNameOf e'
+              updateEnemy l e' $ const e' { Enemy.hp = 0 }
+              run $ events [Message $ en ++ " flees."] next
+          _                      -> undefined
 
 -- "*** hidden away"
 --  vs = ["tries to ambush"]

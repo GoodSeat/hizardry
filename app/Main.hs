@@ -103,11 +103,11 @@ main = do
             , scenarioHome   = inCastle
             , mazes          = [testMaze, testMaze2]
             , encountMap     = Map.fromList [
-                  ((1, 1, 0), (30, [Enemy.ID 1]))
-                , ((1, 2, 0), (30, [Enemy.ID 1]))
-                , ((1, 3, 0), (30, [Enemy.ID 1]))
-                , ((1, 4, 0), (30, [Enemy.ID 1]))
-                , ((1, 5, 0), (30, [Enemy.ID 1]))
+                  ((1, 1, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
+                , ((1, 2, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
+                , ((1, 3, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
+                , ((1, 4, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
+                , ((1, 5, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
                 ]
             , enemies        = Map.fromList [
                 (Enemy.ID 1, Enemy.Define {
@@ -139,6 +139,43 @@ main = do
 
                     , Enemy.withBackProb      = 50
                     , Enemy.backEnemyID       = parse' "1"
+
+                    , Enemy.enableRun         = True
+                    , Enemy.trapCandidate     = [Enemy.NoTrap, Enemy.PoisonNeedle, Enemy.GasBomb, Enemy.CrossbowBolt, Enemy.ExplodingBox]
+                })
+                , (Enemy.ID 2, Enemy.Define {
+                      Enemy.name              = "goblin"
+                    , Enemy.nameUndetermined  = "humanoid creature"
+                    , Enemy.lv                = 2
+                    , Enemy.hpFormula         = parse' "2d3+1"
+
+                    , Enemy.param             = Parameter 5 8 8 8 8 8
+                    , Enemy.ac                = 8
+
+                    , Enemy.exp               = 415
+                    , Enemy.kind              = "animal"
+                    , Enemy.friendlyProb      = 15
+                    , Enemy.numOfOccurrences  = parse' "2d3"
+                    , Enemy.resistProbM       = 0
+                    , Enemy.resistProbP       = 0
+                    , Enemy.healPerTurn       = 0
+                    , Enemy.moveFrontProb     = 20
+
+                    , Enemy.resistError       = [(Dead, 12)]
+                    , Enemy.resistAttributes  = []
+                    , Enemy.weakAttributes    = []
+
+                    , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
+                                                ,Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
+                                                ,Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
+                                                ,Enemy.Run
+                                                ]
+
+                    , Enemy.dropItem          = [(15, parse' "1d15+1")]
+                    , Enemy.dropGold          = parse' "2d10"
+
+                    , Enemy.withBackProb      = 15
+                    , Enemy.backEnemyID       = parse' "2"
 
                     , Enemy.enableRun         = True
                     , Enemy.trapCandidate     = [Enemy.NoTrap, Enemy.PoisonNeedle, Enemy.GasBomb, Enemy.CrossbowBolt, Enemy.ExplodingBox]

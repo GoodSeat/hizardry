@@ -40,6 +40,9 @@ class Object o where
   setAc           :: Int -> o -> o
   setStatusErrors :: [StatusError] -> o -> o
 
+addStatusError :: Object o => StatusError -> o -> o
+addStatusError s o = setStatusErrors (s : statusErrorsOf o) o
+
 
 whenToNextCastle :: Object o => StatusError -> o -> o
 whenToNextCastle (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o

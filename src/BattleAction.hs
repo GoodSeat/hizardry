@@ -27,11 +27,10 @@ fightOfCharacter id l next = GameAuto $ do
     case e1 of
       Nothing -> run next
       Just e  -> do
-        c <- characterOf id
+        edef   <- enemyOf $ Enemy.id e
+        c      <- characterOf id
         (h, d) <- fightDamage l c e
-        let hp' = Enemy.hp e - d
-            st' = Enemy.statusErrors e ++ [Dead | hp' <= 0]
-            e'  = e { Enemy.hp = hp', Enemy.statusErrors = st' }
+        let (e', _) = setHp (hpOf (e, edef) - d) (e, edef)
         updateEnemy l e $ const e'
         es <- fmap Message <$> fightMessage c e' (h, d)
         run $ events es next
@@ -74,6 +73,64 @@ fightMessage c e (h, d) = do
 
 -- ================================================================================
 
+fightOfEnemy :: Enemy.Instance       -- ^ attacker enemy.
+             -> Int                  -- ^ count of attack.
+             -> Formula              -- ^ damage per hit.
+             -> Formula              -- ^ target number. 1~3 are front member, 4~6 are back member.
+             -> [(Int, StatusError)] -- ^ additinal effect, and it's probablity.
+             -> GameAuto             -- ^ next game auto.
+             -> GameAuto             -- ^ game auto.
+fightOfEnemy e n dmg tgt sts next = GameAuto $ do
+    edef <- enemyOf $ Enemy.id e
+    ps   <- party <$> world
+    idc  <- flip mod (length ps) <$> eval tgt
+    c    <- characterOf (ps !! idc)
+    if hpOf c == 0 then run next
+    else do
+      (h, d) <- fightDamageE n e c dmg
+      let c' = setHp (hpOf c - d) c
+         -- TODO:lv drain, poison, critical ...etc
+      updateCharacter (ps !! idc) c'
+      es <- fmap Message <$> fightMessageE e c' (h, d)
+      run $ events es next
+
+fightDamageE :: Int                 -- ^ count of attack.
+             -> Enemy.Instance      -- ^ attacker enemy.
+             -> Character.Character -- ^ target character.
+             -> Formula             -- ^ damage per hit.
+             -> GameState (Int, Int)
+fightDamageE n e c dmg = do
+    edef <- enemyOf $ Enemy.id e
+    let p  = -2 -- TODO!:parry bonus of c.
+        a  = 19 + p - acOf c - lvOf (e, edef)
+        b  = a - acOf (e, edef)
+        m  = formulaMap (e, edef) c
+        hv |  19 <= b  = 19 
+           |   0 <= b  = b
+           | -36 <= b  = 0
+           |   a < 0   = 0
+           | otherwise = 19
+    rs <- replicateM n $ do
+        hit <- (<=) <$> randomNext 1 20 <*> pure (19 - hv)
+        dam <- evalWith m dmg
+        let dam' = if not . null $ statusErrorsOf c then dam * 2 else dam
+        return $ if hit then (1, dam') else (0, 0)
+    return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
+
+fightMessageE :: Enemy.Instance -> Character.Character -> (Int, Int) -> GameState [String]
+fightMessageE e c (h, d) = do
+    en <- enemyNameOf e
+    v  <- randomIn vs
+    let m1 = en ++ " " ++ v ++ "\n " ++ Character.name c ++ ".\n"
+    let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
+    let m3 = if hpOf c <= 0 then Character.name c  ++ " is killed." else ""
+    return $ (m1 ++ m2) : [m1 ++ m3 | not (null m3)]
+  where
+    vs = ["charges at", "claws at"]
+
+
+-- ================================================================================
+
 -- spellOfCharacter :: ActionOfCharacter
 -- spellOfCharacter id l = do
 
@@ -83,7 +140,8 @@ type SpellEffect  = Either Character.ID Enemy.Instance
                  -> GameAuto
                  -> GameAuto
 
-
+spell :: String -> SpellEffect
+spell s = if s == "halito" then spellHalito else spellUnkown s
 
 damageSpell :: Object s => Object o => Formula -> s -> o -> GameState (o, Int)
 damageSpell f s o = do
@@ -117,9 +175,7 @@ spellUnkown n (Left id) _ next = GameAuto $ do
     let ts  = ["", "no happens."]
         toMsg t = Message $ (Character.name c ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
-
-spell :: String -> SpellEffect
-spell s = if s == "halito" then spellHalito else spellUnkown s
+spellUnkown _ (Right id) _ _ = undefined -- enemy never casts unknown spell.
 
 
 -- ==========================================================================

@@ -2,6 +2,7 @@
 module Enemies
 where
 
+import Data.List (nub)
 import qualified Data.Map as Map
 
 import Formula
@@ -16,6 +17,7 @@ newtype ID = ID {
 
 data Instance = Instance {
       id            :: !ID
+    , noID          :: !Int
     , determined    :: !Bool
     , hp            :: !Int
     , maxhp         :: !Int
@@ -68,10 +70,16 @@ instance Object (Instance, Define) where
   lvOf            = lv . snd
   statusErrorsOf  = statusErrors . fst
 
-  setHp           v (e, def) = (e { hp = v }, def)
+  setHp           v (e, def) = let e' = e { hp = max 0 v } in
+                               if hp e' == 0 then addStatusError Dead (e', def) else (e', def)
   setAc           v (e, def) = let mod = v - acOf (e, def)
                                in (e { modAc = modAc e + mod }, def)
-  setStatusErrors v (e, def) = (e { statusErrors = v }, def)
+  setStatusErrors v (e, def) = let e' = e { statusErrors = nub v }
+                                   ss = statusErrorsOf (e', def) in
+     if      Lost `elem` ss && length ss > 1 then setStatusErrors [Lost] (e', def)
+     else if Ash  `elem` ss && length ss > 1 then setStatusErrors [Ash]  (e', def)
+     else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] (e', def)
+     else                                         (e', def)
 
 
 data Action = Fight Int     -- ^ count of attack.

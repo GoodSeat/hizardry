@@ -4,6 +4,7 @@ where
 import Control.Monad.State
 import Control.Monad.Reader
 
+import Data.List (find)
 import Data.Map hiding (filter, null)
 
 import Primitive
@@ -85,6 +86,14 @@ enemyOf eid = do
     es <- asks enemies
     return $ es ! eid
 
+currentEnemyByNo :: Int -- ^ target enemy noID.
+                 -> GameState (Maybe Enemy.Instance)
+currentEnemyByNo no = do
+    p <- place <$> world
+    (pos, ess) <- case p of InBattle pos ess -> return (pos, ess)
+                            _                -> err "invalid updateEnemy."
+    return $ find (\ei -> Enemy.noID ei == no) (concat ess)
+
 updateEnemy :: Int            -- ^ target enemy line(1～4).
             -> Enemy.Instance -- ^ target enemy.
             -> (Enemy.Instance -> Enemy.Instance) -> GameState ()
@@ -109,6 +118,7 @@ updateEnemy l e f = do
     updateEnemyInstance (e1:es) e f
         | e1 == e   = f e : es
         | otherwise = e1 : updateEnemyInstance es e f
+    updateEnemyInstance [] _ _ = undefined
 
 -- =================================================================================
 spellByName :: String -> GameState (Maybe Spell.Define)
