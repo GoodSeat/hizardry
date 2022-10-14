@@ -29,14 +29,16 @@ data Action = Fight Int
             | Run
             | Parry
             | UseItem Item.ID Int
+            | CantMove
     deriving (Show, Eq)
 
 data Condition = Condition {
-      afterWin  :: GameAuto
-    , afterRun  :: GameAuto
-    , gotExps   :: Int
-    , dropGold  :: Int
-    , dropItems :: [Int]
+      afterWin     :: GameAuto
+    , afterRun     :: GameAuto
+    , gotExps      :: Int
+    , dropGold     :: Int
+    , dropItems    :: [Int]
+    , defaultOrder :: [Character.ID] -- ^ party order when battle started.
     }
 
 -- ==========================================================================
@@ -84,14 +86,16 @@ startBattle :: Enemy.ID             -- ^ encounted enemy.
             -> GameAuto
 startBattle eid (g1, g2) = GameAuto $ do
     es <- decideEnemyInstance eid
+    ps <- party <$> world
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
+    let con = Condition {
+      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [], defaultOrder = ps
+    }
     run $ events [MessageTime (-1000) "\nEncounter!\n"]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
     -- TODO:following code is ideal...
 --  select (Message "\nEncounter!\n") [(Clock, selectBattleCommand 1)]
-  where
-    con = Condition { afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [] }
 
 
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
@@ -100,16 +104,21 @@ selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> GameAuto
 selectBattleCommand i cmds con = GameAuto $ do
     p <- party <$> world
-    if length p < i then run $ confirmBattle cmds con else do
-        let cid = p !! (i - 1)
-        c <- characterOf cid
-        let cs     = Character.enableBattleCommands $ Character.job c
-            next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
-            cancel = selectBattleCommand i cmds con
+    if length p < i then
+      run $ confirmBattle cmds con
+    else do
+      let cid = p !! (i - 1)
+      c <- characterOf cid
+      let cs     = Character.enableBattleCommands $ Character.job c
+          next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
+          cancel = selectBattleCommand i cmds con
+      if isCantFight c then
+        run $ next CantMove
+      else 
         selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concatMap toMsg cs)
                    [( Key "f"
                     , selectFightTarget next
-                    , Character.Fight `elem` cs)
+                    , Character.Fight `elem` cs && i <= 3)
                    ,( Key "p"
                     , next Parry
                     , Character.Parry `elem` cs)
@@ -182,10 +191,11 @@ confirmBattle cmds con = GameAuto $ select (BattleCommand "Are you OK?\n\nF)ight
 nextTurn :: Condition -> GameAuto
 nextTurn con = GameAuto $ do
     ps   <- party <$> world
-    rs   <- replicateM 6 (randomNext 0 100)
+    rs   <- replicateM (length ps) (randomNext 0 100)
     forM_ (zip ps rs) $ \(p, r) -> do
       c <- characterOf p
       updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c)
+    sortPartyAutoWith (defaultOrder con)
 
     con' <- updateCondition con
     ess  <- execState (do
@@ -230,13 +240,14 @@ nextProgressBattle as con = foldr act (nextTurn con) as
 
 act :: BattleAction -> GameAuto -> GameAuto
 act (ByParties id a) next = GameAuto $ do
-    ses <- Character.statusErrors <$> characterOf id
-    if any (`elem` Character.cantFightStatus) ses then run next
+    cantFight <- isCantFight <$> characterOf id
+    if cantFight then run next
     else case a of
         Fight l   -> run $ fightOfCharacter id l next
         Spell s l -> run $ spell s (Left id) l next
         Parry     -> run next
         Run       -> run next
+        CantMove  -> run next
 act (ByEnemies l e a) next = case a of
     Enemy.Fight n d t effs -> next -- TODO:
     Enemy.Run              -> GameAuto $ do
@@ -289,4 +300,3 @@ agiBonus agi = do
               | otherwise = -4
 
 -- ==========================================================================
-

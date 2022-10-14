@@ -4,8 +4,9 @@ where
 import Control.Monad.State
 import Control.Monad.Reader
 
-import Data.Map hiding (filter)
+import Data.Map hiding (filter, null)
 
+import Primitive
 import GameAuto
 import World
 import qualified Characters as Character
@@ -58,6 +59,18 @@ poolGold id = do
     cs  <- mapM characterOf ids
     let gp = sum $ Character.gold <$> cs
     forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Character.gold = if id' == id then gp else 0 }
+
+sortPartyAuto :: GameState ()
+sortPartyAuto = sortPartyAutoWith . party =<< world
+
+sortPartyAutoWith :: [Character.ID] -> GameState ()
+sortPartyAutoWith psOrg = do
+    w   <- world
+    ps' <- zip psOrg <$> mapM characterOf psOrg
+    let p2s = filter (isCantFight . snd) ps'
+        p1s = filter (`notElem` p2s) ps'
+    put $ w { party = fst <$> (p1s ++ p2s) }
+
 
 -- =================================================================================
 

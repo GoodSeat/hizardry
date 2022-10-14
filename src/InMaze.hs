@@ -73,6 +73,7 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
                           forM_ ps $ \p -> do
                             c <- characterOf p
                             updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
+                          sortPartyAuto
                           run $ enterMaybeEncount p'
 
 -- =======================================================================

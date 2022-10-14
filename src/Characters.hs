@@ -1,6 +1,7 @@
 module Characters
 where
 
+import Data.List (nub)
 import qualified Data.Map as Map
 
 import qualified Spells as Spell
@@ -46,9 +47,17 @@ instance Object Character where
   lvOf            = lv          
   statusErrorsOf  = statusErrors
 
-  setHp           v c = c { hp = max 0 v }
+  setHp           v c = let c' = c { hp = max 0 v } in if hp c' == 0 then addStatusError Dead c' else c'
   setAc           v c = c -- TODO:
-  setStatusErrors v c = c { statusErrors = v }
+  setStatusErrors v c = let c' = c { statusErrors = nub v }
+                            ss = statusErrorsOf c' in
+     if      Lost `elem` ss && length ss > 1 then setStatusErrors [Lost] c'
+     else if Ash  `elem` ss && length ss > 1 then setStatusErrors [Ash]  c'
+     else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] c'
+     else                                         c'
+
+addStatusError s c = setStatusErrors (s : statusErrorsOf c) c
+
 
 
 -- | data base of character.
@@ -65,28 +74,6 @@ data Job = Job {
 
 
 -- =================================================================================
-
-
-cantFightStatus :: [StatusError]
-cantFightStatus = [ Paralysis
-                  , Stoned
-                  , Fear
-                  , Sleep
-                  , Rigor
-                  , Dead
-                  , Ash
-                  , Lost]
-
-cantSpellStatus :: [StatusError]
-cantSpellStatus = [ Silence
-                  , Paralysis
-                  , Stoned
-                  , Fear
-                  , Sleep
-                  , Rigor
-                  , Dead
-                  , Ash
-                  , Lost]
 
 data BattleCommand = Fight
                    | Spell

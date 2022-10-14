@@ -61,3 +61,30 @@ whenBattleEnd Sleep   o = setStatusErrors (filter (/= Sleep) $ statusErrorsOf o)
 whenBattleEnd Rigor   o = setStatusErrors (filter (/= Rigor) $ statusErrorsOf o) o
 whenBattleEnd _ o = o
 
+hasStatusError :: Object o => o -> StatusError -> Bool
+hasStatusError o = (`elem` statusErrorsOf o)
+
+isCantFight :: Object o => o -> Bool
+isCantFight o = any (hasStatusError o) cantFightStatus
+
+cantFightStatus :: [StatusError]
+cantFightStatus = [ Paralysis
+                  , Stoned
+                  , Fear
+                  , Sleep
+                  , Rigor
+                  , Dead
+                  , Ash
+                  , Lost]
+
+cantSpellStatus :: [StatusError]
+cantSpellStatus = [ Silence
+                  , Paralysis
+                  , Stoned
+                  , Fear
+                  , Sleep
+                  , Rigor
+                  , Dead
+                  , Ash
+                  , Lost]
+
