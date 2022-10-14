@@ -6,8 +6,8 @@ import qualified Data.Map as Map
 import Data.Maybe
 import System.Random
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async
-import Control.Monad (foldM)
+import Control.Concurrent.Async (race_)
+import Control.Monad (void)
 
 import Primitive
 import GameAuto
@@ -170,22 +170,15 @@ getKey SequenceKey = do
 getKey (WaitClock n)
   | n > 0     = threadDelay (n * 1000) >> return Clock
   | otherwise = do
-      waitTime <- async (threadDelay $ n * (-1000))
-      waitKey  <- async $ do
-        hSetBuffering stdin NoBuffering
-        foldM (\alreadyCanceled _ -> do
-          buf <- hReady stdin
-          if buf && not alreadyCanceled then do
-            getChar
-            cancel waitTime
-            return True
-          else do
-            threadDelay 50000 -- 50ms
-            return alreadyCanceled
-          ) False (repeat False)
-      waitCatch waitTime
+      race_ (threadDelay $ n * (-1000)) waitKey
       return Clock
 
+waitKey :: IO ()
+waitKey = do
+    hSetBuffering stdin NoBuffering
+    buf <- hReady stdin
+    if buf then void getChar
+           else threadDelay 50000 >> waitKey
 
 -- ==========================================================================
 testRender :: Scenario -> Event -> World -> IO()
