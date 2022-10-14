@@ -55,7 +55,7 @@ updateCharacterWith id f = do
 poolGold :: Character.ID -> GameState ()
 poolGold id = do
     ids <- party <$> world
-    cs  <- sequence $ characterOf <$> ids
+    cs  <- mapM characterOf ids
     let gp = sum $ Character.gold <$> cs
     forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Character.gold = if id' == id then gp else 0 }
 
@@ -101,12 +101,12 @@ updateEnemy l e f = do
 spellByName :: String -> GameState (Maybe Spell.Define)
 spellByName n = do
     ss <- asks spells
-    return $ pure ((!) ss) <*> Spell.findID ss n
+    return $ (ss!) <$> Spell.findID ss n
 
 -- =================================================================================
 
 eval :: Formula -> GameState Int
-eval = evalWith (fromList [])
+eval = evalWith empty
 
 evalWith :: Map String Int -> Formula -> GameState Int
 evalWith m f = do

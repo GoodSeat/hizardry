@@ -187,7 +187,7 @@ testRender s (Message m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ msgBox m
-          <> (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
+          <> (if statusWindow w then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
           <> enemyPic (place w)
           <> frame
@@ -200,7 +200,7 @@ testRender s (BattleCommand m) w = do
                               _               -> undefined
     render $ cmdBox m
           <> msgBox (unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n")
-          <> (if statusWindow w then status (concat $ maybeToList <$> ps) else mempty)
+          <> (if statusWindow w then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
           <> enemyPic (place w)
           <> frame
@@ -219,7 +219,7 @@ testRender s (Time _) w = testRender s None w
 testRender s None w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
-    render $ (if statusWindow w && not inBattle then status (concat $ maybeToList <$> ps) else mempty)
+    render $ (if statusWindow w && not inBattle then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
           <> enemyPic (place w)
           <> frame

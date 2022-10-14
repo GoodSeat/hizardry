@@ -106,7 +106,7 @@ selectBattleCommand i cmds con = GameAuto $ do
         let cs     = Character.enableBattleCommands $ Character.job c
             next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
             cancel = selectBattleCommand i cmds con
-        selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concat (toMsg <$> cs))
+        selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concatMap toMsg cs)
                    [( Key "f"
                     , selectFightTarget next
                     , Character.Fight `elem` cs)
@@ -252,11 +252,11 @@ act (ByEnemies l e a) next = case a of
 -- ==========================================================================
 determineActions :: [(Character.ID, Action)]
                  -> GameState [BattleAction]
-determineActions cmds = do
-    pcs  <- sequence $ toPair <$> cmds
+determineActions cmds = do 
+    pcs  <- mapM toPair cmds
     elss <- zip [1..] <$> lastEnemies
-    let els = concat $ (\(l, es) -> zip (repeat l) es) <$> elss
-    ecs  <- sequence $ toEnemyAction <$> els
+    let els = concatMap (\(l, es) -> zip (repeat l) es) elss
+    ecs  <- mapM toEnemyAction els
     return $ snd <$> sortOn fst (pcs ++ ecs)
   where
     toPair :: (Character.ID, Action) -> GameState (Int, BattleAction)
