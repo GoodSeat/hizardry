@@ -2,8 +2,9 @@ module CuiRender where
 
 import Control.Monad
 
-import Characters
 import Cui
+import Primitive
+import Characters
 import World
 import GameAuto
 import Maze
@@ -43,10 +44,9 @@ status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
   where
     toStatusLine (n, c) =  text (6,  windowH - 7 + n) (show n ++ "  " ++ name c)
                         <> text (36, windowH - 7 + n) (show (alignment c) ++ "-" ++ take 3 (jobName $ job c))
-                        <> text (46, windowH - 7 + n) (show ac)
+                        <> text (46, windowH - 7 + n) (show $ acOf c)
                         <> text (54, windowH - 7 + n) (show $ hp c)
                         <> text (61, windowH - 7 + n) (show $ maxhp c)
-    ac = -7
     
 
 scene :: Place -> Scenario -> Craphic
@@ -75,9 +75,8 @@ dunsion p scenario = foldl1 mappend $ front <$> [(d, s) | d <-[0..1], s <- [(-1)
         upn = if Up   `elem` nots then upNotice   d s else mempty
         dwn = if Down `elem` nots then downNotice d s else mempty
 
-enemyPic :: Place -> Craphic
-enemyPic (InBattle _ (es:_)) = werdna -- Enemy.Id $ head es
-enemyPic _                   = mempty
+enemyPic :: Enemy.Define -> Bool -> Craphic
+enemyPic edef isDetermined = werdna
 
 -- ========================================================================
 
@@ -1061,3 +1060,49 @@ frontWall 0 0 = fromTexts '*'
 --  123456789012345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6         7
 -}
+
+werdna :: Craphic
+werdna = fromTexts ' '
+  ["                                                                           "   --    1
+  ,"                                                                           "   --    2
+  ,"                                                                           "   --    3
+  ,"                                                                           "   --    4
+  ,"                                                                           "   --    5
+  ,"                                                                           "   --    6
+  ,"                                                                           "   --    7
+  ,"                                                                           "   --    8
+  ,"                                                                           "   --    9
+  ,"                                                                           "   --   10
+  ,"                                                                           "   --   11
+  ,"                                                                           "   --   12
+  ,"                                                                           "   --   13
+  ,"                                       .8H[                                "   --   14
+  ,"                                      .HKON-  .m,                          "   --   15
+  ,"                                     . HHkK` .dNg,                         "   --   16
+  ,"                          WUHX+...  jNNMQQWNNLdMM]  ...J++,                "   --   17
+  ,"                               dM8dHNMdMHmdHuHMBkMM9^?!   ?`               "   --   18
+  ,"                              (NgdkMMW#dC>dYMMMNQMb                        "   --   19
+  ,"                          ..gHMMMSdkNKVw<(+4dMMMNNHMHWH,                   "   --   20
+  ,"                       .&HHMHHHMNMMMMK1W$~j+NHMMMHMMMMMM|                  "   --   21
+  ,"                      .MMMHNMMMMMMMHMSljD<_vHWMMMMMMMMMMN,                 "   --   22
+  ,"                   JHgWMMMHMMMMMMMMMMh+Wl~(WJHMMMMMMM#Cd#!                 "   --   23
+  ,"                   4HMMHMHMMMMMNMMMNH5dXb(<UWHMM^!    T#`                  "   --   24
+  ,"                   dHHHNHMMHMMMMMNMMSRzZPI~(dNM~                           "   --   25
+  ,"                  (F`  7^=7T^1dNMMMNWNOP$<~+gMM]                           "   --   26
+  ,"                .MY        .dMMMMMMNM#dR1>((WHM]                           "   --   27
+  ,"               .MP        .8JHMMM#MMMHMNk>(<1dNK+                          "   --   28
+  ,"               (MR        JndmMMMMMMbMMMMz(l_dNWd~                         "   --   29
+  ,"                ?Hn.,  . .HHHqHMMN#MNKHMMwJRwWMBf                          "   --   30
+  ,"                 (H;   .~JFOgHNMMMMM#qMMEdH6dMMM%                          "   --   31
+  ,"                  .74JT^ (;(HMMMMMHMHWHQHMBdMMM]                           "   --   32
+  ,"                          ?(HHMMM#HM@@MMMNdMNMM]                           "   --   33
+  ,"                             ?4MNNHHMHqMNMMHMHM]                           "   --   34
+  ,"                          .   .BYHHMHYGiMMMMMHM]                           "   --   35
+  ,"                          h, .HNMNHMMMMMMqMMMgM+....                       "   --   36
+  ,"                      +JNMMNmgMMNMHMNHMMqkMqMNMMMMMY^                      "   --   37
+  ,"                           .??????^^WHMMNNMNMHB^=!                         "   --   38
+  ,"                                                                           "   --   39
+  ,"                                                                           "]  --   40
+--  123456789012345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6         7
+                                                   

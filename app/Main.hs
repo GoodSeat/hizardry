@@ -19,6 +19,7 @@ import qualified Spells as Spell
 import Maze
 import Formula
 
+import Cui
 import CuiRender
 
 
@@ -226,7 +227,7 @@ testRender s (Message m) w = do
     render $ msgBox m
           <> (if statusWindow w then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
-          <> enemyPic (place w)
+          <> enemyScene s (place w)
           <> frame
           <> sceneTrans w (scene (place w) s)
 testRender s (SpellCommand m) w = testRender s (BattleCommand m) w
@@ -239,7 +240,7 @@ testRender s (BattleCommand m) w = do
           <> msgBox (unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n")
           <> (if statusWindow w then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
-          <> enemyPic (place w)
+          <> enemyScene s (place w)
           <> frame
           <> sceneTrans w (scene (place w) s)
   where
@@ -258,13 +259,20 @@ testRender s None w = do
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ (if statusWindow w && not inBattle then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
-          <> enemyPic (place w)
+          <> enemyScene s (place w)
           <> frame
           <> sceneTrans w (scene (place w) s)
   where inBattle = case place w of InBattle _ _ -> True
                                    _            -> False
 
 testRender _ Exit _ = undefined
+
+
+enemyScene :: Scenario -> Place -> Craphic
+enemyScene s (InBattle _ (es:_)) = let e    = head es
+                                       edef = enemies s Map.! Enemy.id e
+                                   in  enemyPic edef $ Enemy.determined e
+enemyScene _ _ = mempty
 
 
 statusWindow :: World -> Bool
