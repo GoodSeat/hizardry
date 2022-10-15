@@ -23,14 +23,22 @@ inCastle = GameAuto $ do
 -- =======================================================================
 
 inGilgamesh'sTarvern :: GameAuto
-inGilgamesh'sTarvern = GameAuto $ movePlace Gilgamesh'sTarvern >>
-    select (Message $ "A)dd\n" ++ 
-                      "R)emove\n" ++
-                      "#)Inspect\n" ++
-                      "D)ivvy Gold\n" ++
-                      "L)eave\n")
-            [(Key "l", inCastle)
-            ,(Key "a", selectCharacterAddToParty)]
+inGilgamesh'sTarvern = GameAuto $ do
+    movePlace Gilgamesh'sTarvern
+    ids <- party <$> world
+    selectWhen (Message $ "A)dd\n" ++ 
+                          "R)emove\n" ++
+                          "#)Inspect\n" ++
+                          "D)ivvy Gold\n" ++
+                          "L)eave\n")
+            [(Key "l", inCastle, True)
+            ,(Key "1", inspectCharacter inGilgamesh'sTarvern False 1, length ids >= 1)
+            ,(Key "2", inspectCharacter inGilgamesh'sTarvern False 2, length ids >= 2)
+            ,(Key "3", inspectCharacter inGilgamesh'sTarvern False 3, length ids >= 3)
+            ,(Key "4", inspectCharacter inGilgamesh'sTarvern False 4, length ids >= 4)
+            ,(Key "5", inspectCharacter inGilgamesh'sTarvern False 5, length ids >= 5)
+            ,(Key "6", inspectCharacter inGilgamesh'sTarvern False 6, length ids >= 6)
+            ,(Key "a", selectCharacterAddToParty, length ids < 6)]
 
 selectCharacterAddToParty :: GameAuto
 selectCharacterAddToParty = GameAuto $ do
@@ -53,7 +61,6 @@ selectCharacterAddToParty = GameAuto $ do
   where
     addParty id = GameAuto $ toParty id >> run selectCharacterAddToParty
     toShow (n, c) = show n ++ ") " ++ Character.name c
-
 
 -- =======================================================================
 

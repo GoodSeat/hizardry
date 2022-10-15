@@ -265,6 +265,13 @@ testRender s None w = do
           <> sceneTrans w (scene (place w) s)
   where inBattle = case place w of InBattle _ _ -> True
                                    _            -> False
+testRender s (ShowStatus i m) w = do
+    clearScreen
+    let ps = flip Map.lookup (allCharacters w) <$> party w
+    render $ status (catMaybes ps)
+          <> statusView m (ps !! (i - 1))
+          <> frame
+          <> sceneTrans w (scene (place w) s)
 
 testRender _ Exit _ = undefined
 

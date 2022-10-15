@@ -1,6 +1,7 @@
 module CuiRender where
 
 import Control.Monad
+import Data.List (isPrefixOf)
 
 import Cui
 import Primitive
@@ -23,15 +24,15 @@ txts c = do
   return $ concat [show $ at c (col, l) | col <- [1..windowW]]
 
 msgBox :: String -> Craphic
-msgBox m = foldl1 (<>) $ fmap toText (zip [1..] ls) ++
-    [rect (8, 5) (61, length ls + 2) (Draw ' ')]
+msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls)) 
+        <> rect (8, 5) (61, length ls + 2) (Draw ' ')
   where
     ls = lines m
     toText (n, t) = text (9, 5 + n) t
 
 cmdBox :: String -> Craphic
-cmdBox m = foldl1 (<>) $ fmap toText (zip [1..] ls) ++
-    [rect (45, 15) (26, 10) (Draw ' ')]
+cmdBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
+        <> rect (45, 15) (26, 10) (Draw ' ')
   where
     ls = lines m
     toText (n, t) = text (46, 15 + n) t
@@ -47,6 +48,70 @@ status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> text (46, windowH - 7 + n) (show $ acOf c)
                         <> text (54, windowH - 7 + n) (show $ hp c)
                         <> text (61, windowH - 7 + n) (show $ maxhp c)
+
+statusView :: String -> Maybe Character -> Craphic
+statusView _ Nothing  = undefined   
+statusView msg (Just c) = 
+    (foldl1 (<>) $ fmap toText (zip [1..] ls)) <>
+    rect (8, 24) (61, 7) (Draw ' ') <>
+    ( translate (5, 4)
+    $ fromTexts ' ' $ replaceText "[Name]" (name c) (Left 30)
+                    . replaceText "[Lv]"  (show $ lv c) (Right 4)
+                    . replaceText "[STR]" (show $ strength st) (Right 3)
+                    . replaceText "[IQ]"  (show $ iq st) (Right 3)
+                    . replaceText "[PIE]" (show $ piety st) (Right 3)
+                    . replaceText "[VIT]" (show $ vitality st) (Right 3)
+                    . replaceText "[AGI]" (show $ agility st) (Right 3)
+                    . replaceText "[LUK]" (show $ luck st) (Right 3)
+                    $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
+  where
+    st = paramOf c
+    ls = lines msg
+    toText (n, t) = text (11, 25 + n) t
+
+
+replaceText :: String -> String -> Either Int Int -> [String] -> [String]
+replaceText src dst align ls = replaceLine src dst align <$> ls
+
+replaceLine :: String -> String -> Either Int Int -> String -> String
+replaceLine src dst align = rep src' dst''
+  where
+    n'    = max (length src) (length dst)
+    dst'  = case align of Left  i -> fill (i - length dst) dst False
+                          Right i -> fill (i - length dst) dst True
+    dst'' = take n' $ dst' ++ repeat ' '
+    src'  = take n' $ src  ++ repeat ' '
+    fill 0 s _ = s
+    fill n s toL = if toL then ' ' : fill (n - 1) s toL else fill (n - 1) s toL ++ " "
+
+rep :: Eq a => [a] -> [a] -> [a] -> [a]
+rep _   _  [] = []
+rep src dst s = if src `isPrefixOf` s then dst ++ rep src dst (drop (length src) s) else head s : rep src dst (tail s)
+     
+
+statusViewPlaceHolder =
+  ["                                                                 "  --   1
+  ,"    [Name]                          Lv [Lv]           [KAJ]      "  --   2
+  ,"                                                                 "  --   3
+  ,"                       HP : [HP]/[MaxHp]  Status : [Status]      "  --   4
+  ,"    STR :[STR]                                                   "  --   5
+  ,"     IQ :[IQ]         Exp : [Exp]            Age : [Age]         "  --   6
+  ,"    PIE :[PIE]       Next : [Next]            AC : [AC]          "  --   7
+  ,"    VIT :[VIT]       Gold : [Gold]         Marks : [Marks]       "  --   8
+  ,"    AGI :[AGI]                              RIPs : [RIPs]        "  --   9
+  ,"    LUK :[LUK]                                                   "  --   10
+  ,"                       Spell M:M1/M2/M3/M4/M5/M6/M7              "  --   11
+  ,"                             P:P1/P2/P3/P4/P5/P6/P7              "  --   12
+  ,"                                                                 "  --   13
+  ,"     A) [Item1]                  F) [Item6]                      "  --   14
+  ,"     B) [Item2]                  G) [Item7]                      "  --   15
+  ,"     C) [Item3]                  H) [Item8]                      "  --   16
+  ,"     D) [Item4]                  I) [Item9]                      "  --   17
+  ,"     E) [Item5]                  J) [Item0]                      "  --   18
+  ]
+--  12345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6      
+
     
 
 scene :: Place -> Scenario -> Craphic

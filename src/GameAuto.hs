@@ -29,6 +29,7 @@ data Event = None
            | Time          Int        -- ^ negative wait time means enable to skip by key input
            | BattleCommand String
            | SpellCommand  String
+           | ShowStatus    Int String -- ^ order of member, manu message.
     deriving (Show, Eq)
 
 data Option = Option String

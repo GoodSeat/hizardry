@@ -85,8 +85,18 @@ encountEnemy id = startBattle id (escapeEvent, escapeEvent)
 -- =======================================================================
 
 openCamp :: Position -> GameAuto
-openCamp p = GameAuto $ movePlace (Camping p) >> select (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
-        [(Key "l", enterWithoutEncount p)]
+openCamp p = GameAuto $ do
+    movePlace (Camping p)
+    ids <- party <$> world
+    selectWhen (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
+        [(Key "l", enterWithoutEncount p, True)
+        ,(Key "1", inspectCharacter (openCamp p) True 1, length ids >= 1)
+        ,(Key "2", inspectCharacter (openCamp p) True 2, length ids >= 2)
+        ,(Key "3", inspectCharacter (openCamp p) True 3, length ids >= 3)
+        ,(Key "4", inspectCharacter (openCamp p) True 4, length ids >= 4)
+        ,(Key "5", inspectCharacter (openCamp p) True 5, length ids >= 5)
+        ,(Key "6", inspectCharacter (openCamp p) True 6, length ids >= 6)
+        ]
 
 
 -- =======================================================================
