@@ -6,7 +6,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import System.Random
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async (race_)
+import Control.Concurrent.Async (race)
 import Control.Monad (void)
 
 import Primitive
@@ -208,14 +208,15 @@ getKey SequenceKey = do
 getKey (WaitClock n)
   | n > 0     = threadDelay (n * 1000) >> return Clock
   | otherwise = do
-      race_ (threadDelay $ n * (-1000)) waitKey
-      return Clock
+      x <- race (threadDelay $ n * (-1000)) waitKey
+      return $ case x of Left  _ -> Clock
+                         Right c -> Key [c]
 
-waitKey :: IO ()
+waitKey :: IO Char
 waitKey = do
     hSetBuffering stdin NoBuffering
     buf <- hReady stdin
-    if buf then void getChar
+    if buf then getChar
            else threadDelay 50000 >> waitKey
 
 -- ==========================================================================

@@ -97,5 +97,13 @@ lvup c = (txt, c {
 healHp :: Int -> Character -> Character
 healHp p c = c { hp = min (hp c + p) (maxhp c) }
 
+healMp :: Character -> Character
+healMp c = c { mp = maxmp c }
+
 useGold :: Int -> Character -> Character
 useGold p c = c { gold = gold c - p }
+
+addDay :: Int -> Character -> Character
+addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age = age c + 1 }
+                                                 else c { days = d' }
+

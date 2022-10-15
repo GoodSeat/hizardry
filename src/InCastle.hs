@@ -88,35 +88,35 @@ selectStayPlan id = GameAuto $ do
                         "P)ool Gold\n" ++
                         "L)eave\n"
         lst = [(Key "l", inAdventure'sInn)
-              ,(Key "p", GameAuto $ poolGold id >> (run $ selectStayPlan id))
-              ,(Key "a", sleep id  0   0)
-              ,(Key "b", sleep id  1  10)
-              ,(Key "c", sleep id  3  50)
-              ,(Key "d", sleep id  7 200)
-              ,(Key "e", sleep id 10 500)]
+              ,(Key "p", GameAuto $ poolGold id >> run (selectStayPlan id))
+              ,(Key "a", sleep id  0   0 1)
+              ,(Key "b", sleep id  1  10 7)
+              ,(Key "c", sleep id  3  50 7)
+              ,(Key "d", sleep id  7 200 7)
+              ,(Key "e", sleep id 10 500 7)]
     select msg lst
 
 sleep :: Character.ID
       -> Int         -- heal hp per week.
       -> Int         -- charge per week.
+      -> Int         -- pass days per week.
       -> GameAuto
-sleep id h g = GameAuto $ do
+sleep id h g d = GameAuto $ do
     c <- characterOf id 
     if Character.gold c < g then
       run $ events [Message "not money."] $ selectStayPlan id
-    else
-      run $ selectNext (Message $  Character.name c
+    else do
+      updateCharacterWith id Character.healMp
+      run $ selectNext (MessageTime (-1000) $ Character.name c
                                 ++ " is napping. \n\n"
-                                ++ show (Character.name c)
-                                ++ " has "
-                                ++ show (Character.gold c)
-                                ++ " G.P.\n\nW)ake up")
+                                ++ show (Character.name c) ++ " has "
+                                ++ show (Character.gold c) ++ " G.P.\n\n"
+                                ++ "W)ake up")
                  [(Key "w", checkLvup id)
-                 ,(Clock, next) 
-                 ,(Key "n", next)]
+                 ,(Clock  , next)]
   where
-    next = GameAuto $  updateCharacterWith id (Character.healHp h . Character.useGold g)
-                    >> run (sleep id h g)
+    next = GameAuto $  updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
+                    >> run (sleep id h g $ if d == 1 then 0 else d)
 
 checkLvup :: Character.ID -> GameAuto
 checkLvup id = GameAuto $ do
@@ -128,7 +128,7 @@ checkLvup id = GameAuto $ do
         then run $ doLvup id
         else run $ events [Message nextLvMsg] $ selectStayPlan id
   where
-    neps = [1100, 3500, 5000]
+    neps = [1100, 3500, 5000] -- TODO
 
 doLvup :: Character.ID -> GameAuto
 doLvup id = GameAuto $ do
