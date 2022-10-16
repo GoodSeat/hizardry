@@ -63,6 +63,28 @@ statusView msg (Just c) =
                     . replaceText "[VIT]" (show $ vitality st) (Right 3)
                     . replaceText "[AGI]" (show $ agility st) (Right 3)
                     . replaceText "[LUK]" (show $ luck st) (Right 3)
+                    . replaceText "[HP]" (show $ hp c) (Right 4)
+                    . replaceText "[MaxHP]" (show $ maxhp c) (Right 4)
+                    . replaceText "[Exp]"  (show $ Characters.exp c) (Right 8)
+                    . replaceText "[Gold]" (show $ gold c) (Right 8)
+                    . replaceText "[Age]" (show $ age c) (Right 4)
+                    . replaceText "[AC]" (show $ acOf c) (Right 4)
+                    . replaceText "[Marks]" (show $ marks c) (Right 4)
+                    . replaceText "[RIPs]"  (show $ rips c) (Right 4)
+                    . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
+                    . replaceText "M2"  (show $ (fst (mp c) ++ repeat 0) !! 1) (Right 2)
+                    . replaceText "M3"  (show $ (fst (mp c) ++ repeat 0) !! 2) (Right 2)
+                    . replaceText "M4"  (show $ (fst (mp c) ++ repeat 0) !! 3) (Right 2)
+                    . replaceText "M5"  (show $ (fst (mp c) ++ repeat 0) !! 4) (Right 2)
+                    . replaceText "M6"  (show $ (fst (mp c) ++ repeat 0) !! 5) (Right 2)
+                    . replaceText "M7"  (show $ (fst (mp c) ++ repeat 0) !! 6) (Right 2)
+                    . replaceText "P1"  (show $ (snd (mp c) ++ repeat 0) !! 0) (Right 2)
+                    . replaceText "P2"  (show $ (snd (mp c) ++ repeat 0) !! 1) (Right 2)
+                    . replaceText "P3"  (show $ (snd (mp c) ++ repeat 0) !! 2) (Right 2)
+                    . replaceText "P4"  (show $ (snd (mp c) ++ repeat 0) !! 3) (Right 2)
+                    . replaceText "P5"  (show $ (snd (mp c) ++ repeat 0) !! 4) (Right 2)
+                    . replaceText "P6"  (show $ (snd (mp c) ++ repeat 0) !! 5) (Right 2)
+                    . replaceText "P7"  (show $ (snd (mp c) ++ repeat 0) !! 6) (Right 2)
                     $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
   where
     st = paramOf c
@@ -76,9 +98,9 @@ replaceText src dst align ls = replaceLine src dst align <$> ls
 replaceLine :: String -> String -> Either Int Int -> String -> String
 replaceLine src dst align = rep src' dst''
   where
-    n'    = max (length src) (length dst)
     dst'  = case align of Left  i -> fill (i - length dst) dst False
                           Right i -> fill (i - length dst) dst True
+    n'    = max (length src) (length dst')
     dst'' = take n' $ dst' ++ repeat ' '
     src'  = take n' $ src  ++ repeat ' '
     fill 0 s _ = s
@@ -93,7 +115,7 @@ statusViewPlaceHolder =
   ["                                                                 "  --   1
   ,"    [Name]                          Lv [Lv]           [KAJ]      "  --   2
   ,"                                                                 "  --   3
-  ,"                       HP : [HP]/[MaxHp]  Status : [Status]      "  --   4
+  ,"                       HP : [HP]/[MaxHP]  Status : [Status]      "  --   4
   ,"    STR :[STR]                                                   "  --   5
   ,"     IQ :[IQ]         Exp : [Exp]            Age : [Age]         "  --   6
   ,"    PIE :[PIE]       Next : [Next]            AC : [AC]          "  --   7
