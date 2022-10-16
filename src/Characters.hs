@@ -107,3 +107,30 @@ addDay :: Int -> Character -> Character
 addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age = age c + 1 }
                                                  else c { days = d' }
 
+
+-- =================================================================================
+
+
+knowSpell :: Spell.ID -> Character -> Bool
+knowSpell id c = id `elem` spells c
+
+canSpell :: Spell.DB -> Spell.ID -> Character -> Bool
+canSpell db id c = knowSpell id c && (typ (mp c) !! lv) > 0
+  where
+    def = (Map.!) db id
+    lv  = Spell.lv def
+    typ = if Spell.kind def == Spell.M then fst else snd
+
+costSpell :: Spell.DB -> Spell.ID -> Character -> Character
+costSpell db id c = c { mp = (m', p') }
+  where
+    def = (Map.!) db id
+    lv  = Spell.lv def
+    isM = Spell.kind def == Spell.M
+    cost 1  (n:ns) = n - 1 : ns
+    cost lv (n:ns) = n : cost (lv - 1) ns
+    m' = if isM     then cost lv (fst $ mp c) else fst $ mp c
+    p' = if not isM then cost lv (snd $ mp c) else snd $ mp c
+
+
+

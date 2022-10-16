@@ -141,41 +141,55 @@ type SpellEffect  = Either Character.ID Enemy.Instance
                  -> GameAuto
 
 spell :: String -> SpellEffect
-spell s = if s == "halito" then spellHalito else spellUnkown s
+spell s tgt l next = GameAuto $ do
+    spellDef <- spellByName s
+    case spellDef of Just def -> run $ spell' def tgt l next
+                     Nothing  -> run $ spellUnknown s tgt l next
 
-damageSpell :: Object s => Object o => Formula -> s -> o -> GameState (o, Int)
-damageSpell f s o = do
-   d <- evalWith (formulaMap s o) f
-   let hp' = hpOf o - d
-       st' = statusErrorsOf o ++ [Dead | hp' <= 0]
-       o'  = setHp hp' . setStatusErrors st' $ o
-   return (o', d)
+spell' :: Spell.Define -> SpellEffect
+spell' def = case Spell.effect def of
+    Spell.Damage f  -> castDamageSpell (Spell.name def) f
+    Spell.Cure f ss -> undefined
 
-halito :: Object s => Object o => s -> o -> GameState (o, Int)
-halito = damageSpell $ parse' "1d8"
-
-spellHalito :: SpellEffect
-spellHalito (Left id) l next = GameAuto $ do
+castDamageSpell :: String -> Formula -> SpellEffect
+castDamageSpell n f (Left id) l next = GameAuto $ do
     e1 <- aliveEnemyLineHead l
     case e1 of
       Nothing -> run next
       Just e  -> do
-        c            <- characterOf id
-        edef         <- enemyOf $ Enemy.id e
-        ((e', _), d) <- halito c (e, edef)
+        c    <- characterOf id
+        edef <- enemyOf $ Enemy.id e
+        d    <- evalWith (formulaMap c (e, edef)) f
+        let (e', _) = setHp (hpOf (e, edef) - d) (e, edef) 
         updateEnemy l e $ const e'
         let ts  = ["", Enemy.name edef ++ " takes " ++ show d ++ "."]
             ts' = ts ++ ([last ts ++ "\n" ++ Enemy.name edef ++ " is killed." | Enemy.hp e' <= 0])
-            toMsg t = Message $ (Character.name c ++ " spells halito.\n") ++ t
+            toMsg t = Message $ (Character.name c ++ " spells " ++ n ++ ".\n") ++ t
         run $ events (toMsg <$> ts') next
+castDamageSpell n f (Right e) i next = GameAuto $ do
+    ps <- party <$> world
+    let idc = i `mod` length ps
+    c  <- characterOf (ps !! idc)
+    if hpOf c == 0 then run next
+    else do
+      edef <- enemyOf $ Enemy.id e
+      d    <- evalWith (formulaMap (e, edef) c) f
+      let c' = setHp (hpOf c - d) c
+      updateCharacter (ps !! idc) c'
+      let ts  = ["", Character.name c ++ " takes " ++ show d ++ "."]
+          ts' = ts ++ ([last ts ++ "\n" ++ Character.name c' ++ " is killed." | hpOf c' <= 0])
+          toMsg t = Message $ (Enemy.name edef ++ " spells " ++ n ++ ".\n") ++ t
+      run $ events (toMsg <$> ts') next
+    
 
-spellUnkown :: String -> SpellEffect
-spellUnkown n (Left id) _ next = GameAuto $ do
+
+spellUnknown :: String -> SpellEffect
+spellUnknown n (Left id) _ next = GameAuto $ do
     c <- characterOf id
     let ts  = ["", "no happens."]
         toMsg t = Message $ (Character.name c ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
-spellUnkown _ (Right id) _ _ = undefined -- enemy never casts unknown spell.
+spellUnknown _ (Right id) _ _ = undefined -- enemy never casts unknown spell.
 
 
 -- ==========================================================================

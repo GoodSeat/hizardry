@@ -5,6 +5,7 @@ import qualified Data.Map as Map
 import Data.List
 
 import Primitive
+import Formula
 
 data ID = ID {
     id :: Int -- ^ identify number.
@@ -18,7 +19,8 @@ data Define = Define {
     , lv         :: Int        -- ^ level of spell.
     , attribute  :: Attribute  -- ^ attribute of spell.
     , target     :: TargetType -- ^ type of target.
-} deriving (Show, Eq)
+    , effect     :: Effect     -- ^ type of effect.
+} deriving (Show)
 
 data Attribute = None
                | Fire
@@ -28,8 +30,9 @@ data Attribute = None
 
 -- type SpellEffect = 
 -- 
--- data Effect = Attack Int [StatusError]
---             | Cure   Int [StatusError]
+data Effect = Damage Formula
+            | Cure   Formula [StatusError]
+    deriving (Show)
 
 data TargetType = OpponentSingle
                 | OpponentGroup

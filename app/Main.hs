@@ -189,6 +189,7 @@ main = do
                     , Spell.lv        = 1
                     , Spell.attribute = Spell.Fire
                     , Spell.target    = Spell.OpponentSingle
+                    , Spell.effect    = Spell.Damage (parse' "6d6")
                 })
                 ]
             }
