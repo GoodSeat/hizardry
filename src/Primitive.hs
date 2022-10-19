@@ -29,6 +29,7 @@ data Parameter = Parameter {
 
 
 class Object o where
+  nameOf          :: o -> String
   hpOf            :: o -> Int
   maxhpOf         :: o -> Int
   paramOf         :: o -> Parameter

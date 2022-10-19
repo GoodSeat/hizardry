@@ -261,9 +261,14 @@ act (ByEnemies l e a) next = GameAuto $ do
         if isCantFight (e', edef) then run next
         else case a of
           Enemy.Fight n d t effs -> run $ fightOfEnemy e' n d t effs next
+          Enemy.Spelling f       -> do
+              s'  <- spellByID . Spell.ID =<< eval f
+              cid <- eval $ parse' "1d6"
+              case s' of Just s  -> run $ spell' s (Right e') cid next
+                         Nothing -> run $ spellUnknown "?" (Right e') 0 next
           Enemy.Run              -> do
               en   <- enemyNameOf e'
-              updateEnemy l e' $ const e' { Enemy.hp = 0 }
+              updateEnemy e' $ const e' { Enemy.hp = 0 }
               run $ events [Message $ en ++ " flees."] next
           _                      -> undefined
 

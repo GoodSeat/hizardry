@@ -6,6 +6,7 @@ import Control.Monad.Reader
 
 import Data.List (find)
 import Data.Map hiding (filter, null)
+import Data.Maybe (fromMaybe)
 
 import Primitive
 import GameAuto
@@ -113,14 +114,27 @@ currentEnemyByNo :: Int -- ^ target enemy noID.
 currentEnemyByNo no = do
     p <- place <$> world
     (pos, ess) <- case p of InBattle pos ess -> return (pos, ess)
-                            _                -> err "invalid updateEnemy."
+                            _                -> err "invalid currentEnemyByNo."
     return $ find (\ei -> Enemy.noID ei == no) (concat ess)
 
-updateEnemy :: Int            -- ^ target enemy line(1～4).
-            -> Enemy.Instance -- ^ target enemy.
-            -> (Enemy.Instance -> Enemy.Instance) -> GameState ()
-updateEnemy l e f = do
+findEnemyLine :: Enemy.Instance -- ^ target enemy.
+              -> GameState (Maybe Int)
+findEnemyLine e = do
     p <- place <$> world
+    (_, ess) <- case p of InBattle pos ess -> return (pos, ess)
+                          _                -> err "invalid findEnemyLine."
+    return $ search 1 e ess
+  where
+    search _ _ []       = Nothing
+    search l e (es:ess) = if e `elem` es then Just l else search (l + 1) e ess
+    
+
+updateEnemy :: Enemy.Instance -- ^ target enemy.
+            -> (Enemy.Instance -> Enemy.Instance) -> GameState ()
+updateEnemy e f = do
+    l' <- findEnemyLine e
+    let l  = Data.Maybe.fromMaybe undefined l'
+    p  <- place <$> world
     (pos, ess) <- case p of InBattle pos ess -> return (pos, ess)
                             _                -> err "invalid updateEnemy."
     movePlace $ InBattle pos (updateEnemyLine l e ess f)
@@ -143,6 +157,11 @@ updateEnemy l e f = do
     updateEnemyInstance [] _ _ = undefined
 
 -- =================================================================================
+spellByID :: Spell.ID -> GameState (Maybe Spell.Define)
+spellByID n = do
+    ss <- asks spells
+    return $ Data.Map.lookup n ss
+
 spellByName :: String -> GameState (Maybe Spell.Define)
 spellByName n = do
     ss <- asks spells

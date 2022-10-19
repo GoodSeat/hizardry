@@ -40,6 +40,7 @@ data Character = Character {
 } deriving (Show, Eq)
 
 instance Object Character where
+  nameOf          = name
   hpOf            = hp          
   maxhpOf         = maxhp       
   paramOf         = param       

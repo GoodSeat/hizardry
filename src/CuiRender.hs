@@ -24,7 +24,7 @@ txts c = do
   return $ concat [show $ at c (col, l) | col <- [1..windowW]]
 
 msgBox :: String -> Craphic
-msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls)) 
+msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
         <> rect (8, 5) (61, length ls + 2) (Draw ' ')
   where
     ls = lines m
@@ -50,12 +50,12 @@ status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> text (61, windowH - 7 + n) (show $ maxhp c)
 
 statusView :: String -> Maybe Character -> Craphic
-statusView _ Nothing  = undefined   
-statusView msg (Just c) = 
-    (foldl1 (<>) $ fmap toText (zip [1..] ls)) <>
+statusView _ Nothing  = undefined
+statusView msg (Just c) =
+    foldl1 (<>) (fmap toText (zip [1..] ls)) <>
     rect (8, 24) (61, 7) (Draw ' ') <>
-    ( translate (5, 4)
-    $ fromTexts ' ' $ replaceText "[Name]" (name c) (Left 30)
+    ( translate (5, 4) $
+      fromTexts ' ' $ replaceText "[Name]" (name c) (Left 30)
                     . replaceText "[Lv]"  (show $ lv c) (Right 4)
                     . replaceText "[STR]" (show $ strength st) (Right 3)
                     . replaceText "[IQ]"  (show $ iq st) (Right 3)
@@ -109,7 +109,7 @@ replaceLine src dst align = rep src' dst''
 rep :: Eq a => [a] -> [a] -> [a] -> [a]
 rep _   _  [] = []
 rep src dst s = if src `isPrefixOf` s then dst ++ rep src dst (drop (length src) s) else head s : rep src dst (tail s)
-     
+
 
 statusViewPlaceHolder =
   ["                                                                 "  --   1
@@ -134,12 +134,12 @@ statusViewPlaceHolder =
 --  12345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6      
 
-    
+
 
 scene :: Place -> Scenario -> Craphic
 scene (InMaze p)     = dunsion p
 scene (Camping p)    = dunsion p
-scene (InBattle p _) = dunsion p 
+scene (InBattle p _) = dunsion p
 scene _ = const mempty
 
 dunsion :: Position -> Scenario -> Craphic
@@ -152,7 +152,7 @@ dunsion p scenario = foldl1 mappend $ front <$> [(d, s) | d <-[0..1], s <- [(-1)
                  Wall -> frontWall d s
                  Door -> frontDoor d s
                  _    -> mempty
-        sw = if s == 0 then mempty 
+        sw = if s == 0 then mempty
              else let (side, s') = if s > 0 then (R, s - 1) else (L, s + 1) in
                  case visiblityAt m p d s' side of
                      Wall -> sideWall d s
@@ -209,7 +209,7 @@ frame = fromTexts '*'
   ," |***********************************************************************| "  --  38
   ," +-----------------------------------------------------------------------+ "  --  39
   ,"                                                                           "] --  40
-guide :: Craphic 
+guide :: Craphic
 guide = fromTexts '*'
   ["*********+-------------------------------------------------------+********"  --  1
   ,"*********|   C)AMP  S)TATUS  I)NSPECT  Q)UIT  O)FF   A-W-D   K   |********"  --  2
@@ -1192,4 +1192,4 @@ werdna = fromTexts ' '
   ,"                                                                           "]  --   40
 --  123456789012345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6         7
-                                                   
+

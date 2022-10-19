@@ -16,8 +16,8 @@ newtype ID = ID {
 } deriving (Show, Eq, Ord)
 
 data Instance = Instance {
-      id            :: !ID
-    , noID          :: !Int
+      id            :: !ID     -- ^ define id.
+    , noID          :: !Int    -- ^ number for identiry inscance.
     , determined    :: !Bool
     , hp            :: !Int
     , maxhp         :: !Int
@@ -63,6 +63,7 @@ data Define = Define {
 
 
 instance Object (Instance, Define) where
+  nameOf          = name . snd
   hpOf            = hp . fst
   maxhpOf         = maxhp . fst
   paramOf         = param . snd

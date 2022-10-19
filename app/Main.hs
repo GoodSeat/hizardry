@@ -44,6 +44,17 @@ main = do
             , Character.UseItem
             ]
         }
+        priest = Character.Job {
+          Character.jobName              = "Priest"
+        , Character.enableAlignments     = [Character.G, Character.N]
+        , Character.enableBattleCommands = [
+              Character.Fight
+            , Character.Spell
+            , Character.Run
+            , Character.Parry
+            , Character.UseItem
+            ]
+        }
     let testChara1 = Character.Character {
           Character.name     = "FIG1"
         , Character.age      = 18
@@ -77,6 +88,16 @@ main = do
         , Character.lv       = 15
         , Character.statusErrors = [Poison 5]
         }
+        testChara3 = testChara1 {
+          Character.name     = "PRI1"
+        , Character.hp       = 34
+        , Character.maxhp    = 48
+        , Character.lv       = 5
+        , Character.statusErrors = []
+
+        , Character.job      = priest
+        , Character.alignment= Character.N
+        }
     gen <- getStdGen
     let w = World {
         randomGen       = gen
@@ -87,13 +108,14 @@ main = do
       , place           = InCastle
       , roomBattled   = []
 
-      , inTarvernMember = [Character.ID 1, Character.ID 2]
+      , inTarvernMember = [Character.ID 1, Character.ID 2, Character.ID 3]
       , inMazeMember    = []
       , shopItems       = Map.fromList []
 
       , allCharacters   = Map.fromList [
                               (Character.ID 1, testChara1)
                             , (Character.ID 2, testChara2)
+                            , (Character.ID 3, testChara3)
                             ]
       , sceneTrans      = id
       }
@@ -167,8 +189,9 @@ main = do
                     , Enemy.weakAttributes    = []
 
                     , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
-                                                ,Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
-                                                ,Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
+                                                ,Enemy.Spelling (parse' "11")
+                                                ,Enemy.Spelling (parse' "21")
+                                                ,Enemy.Spelling (parse' "71")
                                                 ,Enemy.Run
                                                 ]
 
@@ -183,14 +206,33 @@ main = do
                 })
                 ]
             , spells         = Map.fromList [
-                (Spell.ID 1, Spell.Define {
+                (Spell.ID 11, Spell.Define {
                       Spell.name      = "halito"
                     , Spell.kind      = Spell.M
                     , Spell.lv        = 1
                     , Spell.attribute = Spell.Fire
                     , Spell.target    = Spell.OpponentSingle
-                    , Spell.effect    = Spell.Damage (parse' "6d6")
+                    , Spell.effect    = Spell.Damage (parse' "1d6")
                 })
+                ,
+                (Spell.ID 21, Spell.Define {
+                      Spell.name      = "mahalito"
+                    , Spell.kind      = Spell.M
+                    , Spell.lv        = 2
+                    , Spell.attribute = Spell.Fire
+                    , Spell.target    = Spell.OpponentGroup
+                    , Spell.effect    = Spell.Damage (parse' "2d6")
+                })
+                ,
+                (Spell.ID 71, Spell.Define {
+                      Spell.name      = "tiltowait"
+                    , Spell.kind      = Spell.M
+                    , Spell.lv        = 7
+                    , Spell.attribute = Spell.None
+                    , Spell.target    = Spell.OpponentAll
+                    , Spell.effect    = Spell.Damage (parse' "10d10")
+                })
+ 
                 ]
             }
     putStrLn =<< runGame (testRender scenario) cmd scenario (inCastle, w)
