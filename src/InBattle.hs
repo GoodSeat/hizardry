@@ -199,6 +199,7 @@ nextTurn con = GameAuto $ do
       c <- characterOf p
       updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c)
     sortPartyAutoWith (defaultOrder con)
+    -- TODO!:if all character dead, move to gameover.
 
     con' <- updateCondition con
     ess  <- execState (do

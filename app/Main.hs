@@ -303,8 +303,8 @@ testRender s None w = do
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ (if statusWindow w && not inBattle then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
-          <> enemyScene s (place w)
           <> frame
+          <> enemyScene s (place w)
           <> sceneTrans w (scene (place w) s)
   where inBattle = case place w of InBattle _ _ -> True
                                    _            -> False

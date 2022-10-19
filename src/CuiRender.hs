@@ -140,6 +140,9 @@ scene :: Place -> Scenario -> Craphic
 scene (InMaze p)     = dunsion p
 scene (Camping p)    = dunsion p
 scene (InBattle p _) = dunsion p
+scene InCastle           = const $ translate (0, 3) city2
+scene InEdgeOfTown       = const $ translate (0, 3) edgeOfTown
+scene Gilgamesh'sTarvern = const $ translate (0, 3) tarvern
 scene _ = const mempty
 
 dunsion :: Position -> Scenario -> Craphic
@@ -163,7 +166,8 @@ dunsion p scenario = foldl1 mappend $ front <$> [(d, s) | d <-[0..1], s <- [(-1)
         dwn = if Down `elem` nots then downNotice d s else mempty
 
 enemyPic :: Enemy.Define -> Bool -> Craphic
-enemyPic edef isDetermined = werdna
+enemyPic edef True = werdna
+enemyPic edef False = himiko
 
 -- ========================================================================
 
@@ -1193,3 +1197,232 @@ werdna = fromTexts ' '
 --  123456789012345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6         7
 
+himiko :: Craphic
+himiko = fromTexts ' '
+  ["                                                                           "   --   1
+  ,"                                                                           "   --   2
+  ,"                                                                           "   --   3
+  ,"                                                                           "   --   4
+  ,"                                                                           "   --   5
+  ,"                                                                           "   --   6
+  ,"                                                                           "   --   7
+  ,"                                                                           "   --   8
+  ,"                                                                           "   --   9
+  ,"                                                                           "   --   10
+  ,"                                                                           "   --   11
+  ,"                                                                           "   --   12
+  ,"                                 .                                         "   --   13
+  ,"                                .(+&.                                      "   --   14
+  ,"                                (MMdW%                                     "   --   15
+  ,"                                .1Q9s(.                                    "   --   16
+  ,"                                .(T9>_<<(.                                 "   --   17
+  ,"                                .(+gIj(JTXo.                               "   --   18
+  ,"                 .T~....      .8jWQdoZMMN/1+-                              "   --   19
+  ,"                  _    1&(_(-,TzdsRkzdMMMN.~                               "   --   20
+  ,"                  :      /'?NKRcagJv<T9dMMN.                               "   --   21
+  ,"                  :     .[ (Xb#tdMNE0NHj~w/<... ``  `                      "   --   22
+  ,"                        .b..d6#%?MMCdMWw/7'J) `  _4C                       "   --   23
+  ,"                        ,#~.d(@{(X+(0N#dx .(R.         `                   "   --   24
+  ,"                        .M(_J<NrJXdZ0MHJb< ~dh                             "   --   25
+  ,"                        dM[!v NCd0dbcMM|N+<(?@N                            "   --   26
+  ,"                        ,MN.\\ NlXOdb$MMb,Nx<<d#!                          "   --   27
+  ,"                         (9! `NlKVdbIMMN; 7h<J`                            "   --   28
+  ,"                             H#lHkX@OdMM@m,.\"=                            "   --   29
+  ,"                            .M#3MZXH?dMMNMb                                "   --   30
+  ,"                           `.M#CMXwM(dNMNHg.                               "   --   31
+  ,"                            JM#CMmkN(cMMMMHL                               "   --   32
+  ,"                            WM#1HNMN;zHNMNHH,                              "   --   33
+  ,"                           .@M@lMNMNL1?NNMNMh                              "   --   34
+  ,"                           .@M@}MNMMW,IdM#MHMh                             "   --   35
+  ,"                           dNN9:dMMMNb(IMMMMMMh.                           "   --   36
+  ,"                        ` dNM5! MMMMNM,(1WMMHMMNm..`   `                   "   --   37
+  ,"                          `!`   ?T\"\"\"\"^  .?THMHT\"!                    "   --   38
+  ,"                                                                           "   --   39
+  ,"                                                                           "]  --   40
+--  123456789012345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6         7
+
+
+
+city :: Craphic
+city = fromTexts ' '
+  ["HMHk,d$_.     `` ::::_~_ ~::::::~:~~~~~..`   .  ``                                    `  `"   --    1
+  ,"MNHMkkI-``     __~::~_   __:~~~~~~~~~._...                                         ` `   `"   --    2
+  ,"lvMNWHCXk-...   ` ~~_ .  ..~~~~~~...._......    `     `                           ` ``    "   --    3
+  ,"zlldMMMmWkXHHn.   __        `__......````  ````      ` ````                              `"   --    4
+  ,"zz==zTMkNXWkUMkn, `..     `    `.. .`.   ````` `     `     `   `  `  `  `  `  `         ` "   --    5
+  ,"zz1z==1TNHmUNHHNkU&.         `  `              ``                             ..  `  `   ."   --    6
+  ,"Nc1=?1??1TMMHMmZWNgU&.          `                 `        `             ` ._``  ` -..~~_."   --    7
+  ,"vTnvzl?1z+?WMNVS?YKWWczmn.XC```                                      `  `` ...`  -_~~~_  ."   --    8
+  ,"NgwzOz1++?+>?WMsdNJWqdUd?T4>`    `                  `         `  `  ``` ``.`..__~:;:~__   "   --    9
+  ,"NMMMNmzzz+???<?WNdNZTHHZUGwXy,``          `            `  `           ``.  .....~~:~~~____"   --   10
+  ,"NHMMMMMMNszvz>><?HHHmlr1TGJ<74A(.   ` `    `` ` `            `  ` ``  ..   .~~__~__:::<~` "   --   11
+  ,"MHMN<(HdHMMMNmaJIv7TWHr(_ <(+(?Ww-.` ````      _  `  ``    `  ``      ..   ..~_   .``.__~~"   --   12
+  ,"MHMM~-Sd$WM.._?HMMHmazz-(-.JdG_wz(wC_  `` `` .--..  .. `        ```    _.``..___ ``  -_.._"   --   13
+  ,"VTUHkJkdmW#.._ wJM!(VVHHm&+v4WdXww+z+-._.   .1<<-__JO1. .   ```   ```  ``. . .`.`.__~~...`"   --   14
+  ,"XjVJdjRdVTURa+.kJM`(XOXI_(?UHAZVXku+1+Tz.. (<<<<<jJv<(1i.`  _    `..........~~~~~~~~(__```"   --   15
+  ,"KU0dhJRXI==dzdzXVU6dGzXl >..:_(USdvv++<<-?1<X(-+<II++__?zi(O1+<<(~   ....___....`` .WWHWkQ"   --   16
+  ,"HHkHWWSXRUWVSWdAkd10??R(jO-.}- z0d1<?<vIaJ+-.(II1zo(+zwZtwXX>+(.(Gu_``.-...&dp3.` .WWWWWWk"   --   17
+  ,"F(MNJHZXdZO7TkHkXAAXVOk-u1<(1zzInCz1vv+JdZI<zC<7WWyz+vOVOwVUo+wI(oJo(jOzUmJ+OU+. .VWkHbbHH"   --   18
+  ,"bdM#(WId9H0`.#(HHdM`.Z0_??7OwGnc(+???<<??6l<?(vOCXWWAxJ<~(<<+;+<<dyOUwvSyvHHHH8WWVfWWWWbHH"   --   19
+  ,"bdMNjdkdIdr..MdMHdH ,OI_ - ( _`(dd-(<_?<zzl(<(<vj0??7TTXfzk?:~<(<v0OdXXWX0XZSXXyXXXWXHkWHg"   --   20
+  ,"YT#HyJRd0VWU#W9XHUWJJun/.; . _ (?vC?0><jlc>(_-<<jI+>((<+?1v1+-((jkXXXWqWWWWXXWWXHHkWqHggHH"   --   21
+  ,"hWuMbg#?OwdRKuHyXOddzz$(J1vrC1>>_._.._:11z>(-(i+JD=711ju+(A-<<<jWWKXWXWHWkHNHHWHHMHHmHH@NH"   --   22
+  ,"MMMMWgMHHWHHMHHHWkWfYTHk+<<<<<<?:++.._(JI+><<??<dfI$++1J76VC<++jkV\"\"\"7THHHMMMNWNNHMHHHNMMH"   --   23
+  ,"99VOTUWX<<MQkc(gmozJkD~jkknJ.(J-_dv=(r?zzku(>.(>dCC0CXQd>Xm<ukHuWIXbNddkdW#HHXJMHHMMMdMHMM"   --   24
+  ,"MMMMHNHXdG&dK0MMHRzdbR:(MMMNr-gk_vz. (jXzZd??jJ<dAOXwHHWIWMz1wUkJoaAzkddwwvM9M#WNMMMMH#MMN"   --   25
+  ,"HXMNHMHWdXHd#kNM#HvzH0_(HMNNl-HbTUI+JO&4MtJOz(6<?WykwC7Oms.(jwwdyXWU0WddWXWHHNMHMH#HMMMMMM"   --   26
+  ,"NWMM@M#NNTMHdbyMMEwwkZl(HMMMM5++(SXvWOy1C0OIJMHR/Xhgs-_?XHjgHNMMMMMMMHMMNH9VUHMMMMMHHWgqmq"   --   27
+  ,"MHMMMNNNHHHMHWHHWWmsXyyzWDTM8<X+XWX-P<r`(HzA.(T9!d&WMh(AHWMMMMMMMMMMMkWNuNmg+WppppbkbHqqqq"   --   28
+  ,"NNMNHHMNMMHNHHHHWW#UVY\"!(% .jAdzXs1++n-<J@I(<v<<+JdWHXXmgHfVWW0WHHBUQmNNgNNMmAXWbbkkbkkkqk"   --   29
+  ,"MMHWBHkXMHH9YTVO<jP<<~_.(L(&JVM9MMNNmZq2V8XWkXW0VwIdWkwUwXuXZVzOZ=!`_7>jMMMWWpWXXUVUWkHkHq"   --   30
+  ,"UWkv+1<_Hi-(_(i(_(hJzY\"1j@I7iJW?3udMMR(&dUUXUOAQnxzdHWwkVXOwIz?~~ -.~++XVXIwUUUUOOwUXWUUWH"   --   31
+  ,"                                                                                          "   --   32
+  ,"                                                                                          "   --   33
+  ,"                                                                                          "   --   34
+  ,"                                                                                          "   --   35
+  ,"                                                                                          "   --   36
+  ,"                                                                                          "   --   37
+  ,"                                                                                          "   --   38
+  ,"                                                                                          "   --   39
+  ,"                                                                                          "]  --   40
+--  123456789012345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6         7
+--
+
+city2 :: Craphic
+city2 = fromTexts ' '
+  ["O_.?<~~:::::~~~~....`.``````````(<._~~_::~~~~~~~....~_..-~.....` `  ` `` _<<z??!?<=?????dHWWWlt"   --    1
+  ,"Z..(:~::::::::~~~~_....._...```.......~~::::::~~~~~~~~~~~~~~~...```` `   `` .``   (????dMMSzSwd"   --    2
+  ,"3..(x::::~:::::::::~~~.(,.... `...~....~_~:::::::::~~~~~~~~~~~~...````` ````````` .????XMXRddH9"   --    3
+  ,"..._1;;;;;:;:;;>>;;:::~(>~~~~___~.~~~....____~:::::::~~~~~~~~~~~~~~...```...--...._~~+dM@XWqSWZ"   --    4
+  ,"o_..(c;;;;;>>>>>>?>>;jK$v<:~:~~~~~~~~~....  -.--_:::::~~:~~~:~~:~~~~~~....(ROwwwrrvrrwWMXWkq0WH"   --    5
+  ,"_1i__1<;;;;;;;>>>>>>+dHYTz&<;::::~~~~~~~~~__~:~~~::::::::::::::~~~~~~~..``JHywuzXzzzudM#tXWH9Wr"   --    6
+  ,"<._1+(+++?++++<;;>>>>Xk>+J(<>>;;:::::::~::::~~:::::::::::::::~_~~~~~~~~...dMHZzuzuuXXHMXdX9krdr"   --    7
+  ,">x-.(zz====l====?+<<;XH>dR_~<<~~~:~~~::::~:~::~:::::::::::::~~~~~~~~((((((NWHWrzzzuzXMNX0drXzdX"   --    8
+  ,"><j:.(z1z1==v<<~~?<<<XH>?C((((<++???<<++++>><<<<(_~___~::::::::~~~~~drOrrd#WWHROwwXwHMSO0dwdHgH"   --    9
+  ,"z+j~`-Z===+_:~-  . ` Xy>+1<. ?!???????????????????+<-(<_((<_~:_____(HZrrrdMMMHWwOrwX#8kdAWHHHkt"   --   10
+  ,"?(l_.(Xy====z&_~_-...zu>~(_`````(?>????????????????????>>>>>>;;<j++gNRrrwWHWOWXkZOdM#AXmHHW0HKw"   --   11
+  ,".._~.(uXy=???zW+::_~_uX>:((`````-<_<<_`` ~<!~<<>>>>>>>>>>>><~___dz=dM#tOwMKXwWuWXyW#MHHWkMSybKr"   --   12
+  ,".....(ZuXc=??=?Uy+;:_XXC<+(```` _~__~__-. ```` _<<<<<>>;>;;+_~~(HI=WW9wwdNKWHHWmHMHMHHudWHkwkRd"   --   13
+  ,".....(WWZUx=????Zk=+;XU><<(...._~~~~~~~~~..`` `````` <;;;;;zzOOdNdd#wXHMM#WWWHHkXHMWWHXdqHWXHkW"   --   14
+  ,"-_..-(uuZZXx?=1??vWz?Zu>~(~_~Ju+_~~~~~~:~~__. `.. ``` _<;;<zCttWSkWNHHVXdHWHXRdKdHNdWHudH@MMHwS"   --   15
+  ,"<6i-.duZZZZWz??dmx14eXX&us-_(yuz<:;;;;;;;;:~~~~~~~~___(:::jwVzw#WXWSXHVdMHXKXKdHXWNIXqHHXXdKWXQ"   --   16
+  ,"<<+<.dZZXZZuWsz?zWHkdHXuuI.?dHWW6<;;;<<<::___:::::::::::::wXZ1d9wwUwU9GWHWdHdWyXQMMkWdSkWXXWHHH"   --   17
+  ,"v1+~~qmmmmmQQQkyz?dOvHkXZI`.uZXZZZZZX<<:::::::::::~::::<~(zzGOHUw0kGgHHSHHZQdHHWWHMM@QkgHgqHHHM"   --   18
+  ,"<?1<~XHHHHHUUC?9WkAxz?UdWI..vrwXZZZZ0wk~~::~~~~~~~~~~~~~~(wzrj#udwXXWWWkHHHWyXWHXHM6WgHHHMHkXKk"   --   19
+  ,".~..~XWXVOlzO>(~.._7WkAzWR.,UBYYSZZZCXWJ/~~::~::~~~~:~:~~jwuXdRUZwwXUVIzHkXHXKXHwpqVWHWWH#zWHNk"   --   20
+  ,"~.~._WVXyllOrI(_+_`.(_-?4X&.11><jZZZ<d0XI:::~:_~::~:~~~(_wZuXMAXUwwQAgWHWpXHdKdHdWHUWNwdHNwWkNV"   --   21
+  ,"-.~~~<<zC1zOOz(_+_`.+_``< (7TXA;(ZZk:j6k2~~~:(c~:~~~~::dOKXXUudXRKWXXHHHXbXHWyyyyXHzXH0JH#UXkNI"   --   22
+  ,"I-..~_~~__<~~(d__`.+.```+_-.-z-!?XH3~(+XI~:~~($(XzzzwvwwIUXwXXXWSSUVdNM8XyyUWUUXVWHOdHZdHNOdHMn"   --   23
+  ,"U0I~~_~___~~_zd_...l_.`.j>(.<u(~>W#zXW7dI:_::JwdHrwOzzdzkzXZZzrtrrrrduWkwVfXffffVWKOdHHkHHUHMMN"   --   24
+  ,"wZz~~~.~~~_~(rd<?_(O2...zo(`(l>`_Z0j_>&<+yXXXWXHHkkwXOWWWU0UXurwwwyrHuUSyf0VwCdkXWKOVMMMZXWMNMH"   --   25
+  ,"wwz_~~~~~~~(Wydl>_zd$..(OR<.tXo.-WHdXR?$WXVWHbWWWkHkwzdZSjyWWWkWWMNwwHHMXHk<w>dWfWHXwWWZZZZMMNW"   --   26
+  ,"wkz~~~<~~_~(fkdO<(tdw-.IrHI.tZC.-VSZnk((XppWWkHWHkWWdwXZ0=WWWWHH998UuZXWkkkkXmdWWWUZZwzZXWHWHNH"   --   27
+  ,"<?<~(+OtwwIzpkdwx(zdko-zvZO-OOwo.dWXWXwSuwkZW9WWHHHQkHWH9AQkQKUUXzMMHHHMH@@@@HHHWkWWkWqHWHMHM@@"   --   28
+  ,"(JX0XKSCQdkAOWdZt<rwWHHUUVvWNMNpHHHyWXdwkXHHWWW8HWHMHkddWAkkkmJzvCTMHWWWfbHHHfppbHNHMMMMMMMMHH@"   --   29
+  ,"M0UUWHWXXWNQQkHmmnwkOOOv(_,(MNMHHHWWyXXyVfffffffpfpppWMMNNMHwdgZzdM@kzOwwXXWXWWWWWMMMMHMMHHMHHH"   --   30
+  ,"                                                                                               "   --   31
+  ,"                                                                                               "   --   32
+  ,"                                                                                               "   --   33
+  ,"                                                                                               "   --   34
+  ,"                                                                                               "   --   35
+  ,"                                                                                               "   --   36
+  ,"                                                                                               "   --   37
+  ,"                                                                                               "   --   38
+  ,"                                                                                               "   --   39
+  ,"                                                                                               "]  --   40
+--  123456789012345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6         7
+--
+
+tarvern :: Craphic
+tarvern = fromTexts ' '
+  ["+?;:_~<?1zHWNWb.`..````   .~..`` _``````.-~~~~:::::;>:;;;<?z>1z?+?=zzz=lOtzvOtrr"   --    1
+  ,"z1<<~<(judS+zZ0~`````` ~~~..~.   <-________(:<(;:;;;<:;;<+=z>11???=zz?zlllzzZltt"   --    2
+  ,"<+<<~~~_(j(-..~````````. ...`.`` +;;;;<+<<>+>>>?><<<z+>>?+=z?zO???zlz?O=OlzvIllt"   --    3
+  ,"++<:<<<(iXWWpS_  ....```..._.`` _+>>?+?1???=?1z=>?z+z<???1l??z=z?z=tl==zZ=OrZllO"   --    4
+  ,"=+;;<(+twkWXpI+-..-....____... ..z?===zzl==zzl?l??z+z>?==zOz?zl=??=tl?=lO=OzOllz"   --    5
+  ,"1+;<:<1zdHWpWI+-_~___--.-_~~._.__z1lllzwrllwItzl1z=+I?===zOz+zOl===tl===llwzIlvz"   --    6
+  ,"++<<<;zOw0OrwzZ-_~~~_~~~~-_~~_~-(OzrrtwzvIOwZrOl===zw====zOz=ztt=?zrl=lll=wwIlzw"   --    7
+  ,"WWUUUUUUUUUUUWgH<~<<_~_____<_~~(<wOzwrwuuOwwwXtw=lzzax1llzOI=ztt==zwl=zOt=wZOl=w"   --    8
+  ,"IlOwvOOOOwrwZd@@I<:<<(<___(<:::<<wwuXwXXuZwwwXOOllzdHWztOwwI=Otr=zzrO==lr=OOtl=w"   --    9
+  ,"vwwwZOzzzzzzldMHn++z+jHHkHHc::(z+ZXyXXXyZwuwXutrzltdHHzrtwXIlOtvllzXwz=ttlwOrt=w"   --   10
+  ,"yrOwwwwOXXvOOdHO1=llOHMMMHHN+<<zluXXXwXXXZXXzZwwz<1dWDRwtwXIlrOullOkvz=rrlrOttlw"   --   11
+  ,"zuzzzrwvZC(+dWKzwZzrwXHHHMMSz+1ZzyZVWXfyZuXuXwwOjJuHWXRXOwuZwkwullwwvzlOrtttttlX"   --   12
+  ,"ww&AAAgQQQQkWWDOwVXVwdmHHHg01zzwzVyVWWpfWuuuzzZtdbdWKdk0OOVZtrwullvwvvzOwtOzXOOX"   --   13
+  ,"MMMM@@@ggHHHWWKUOwUMMMMMNMMMWB=77TC1zOOOrOtOOO3zdbdNX#wwwwzuXwzwz=wXwzzwwtOtzwwZ"   --   14
+  ,"NNNMMMMH@MMkWWSwXXWM#HWMMHaJJ---(+<1+;<;;<+11?zzXHMNMHXwwwwwXwZ0XXZuwwwwwwwwzvwX"   --   15
+  ,"NN#MMHHHHMMMHHWWHHM#NXXMMkSdH#MHHMMMMHMMMMMMMMHHHH@HHHWwwwuzuwwzXOdSrXXXZyZZXwwX"   --   16
+  ,"MMHMM#HMMHMMMMMMMMMMNNNNMN#HNNNHWkgNMMMMMMNkWfWWWH@HHHHXwwZuuwZzwZztvOzwrwuXUUZZ"   --   17
+  ,"MHgM#HHMMM#HHH@HMHMNNNNMNNM#N#HNWqMMmqMMNkbMHppWpHHMMHHXZXZZZXZ0wZvOzwzwzruwzzrt"   --   18
+  ,"@@gHHHMM#MMHMM@MHMM@@gggM@g@@@MggMNHHWMM#UUT9TTC7z11><11-((++++((-((?+1zwwXvzrvr"   --   19
+  ,"@@@HHMHHMMHMNpbHWMMHHHpWWHHkHHqHqHNHKCC<<;;;;>>>??>+<1111zzzz=llllOOIzwwrrrwzzuz"   --   20
+  ,"MH@MH@MHMMMMH@MMMMNWyyXZZXWWWWfWpHN@o:<;;<<>>>??????>+zlll?==ztltrvzvrrwOOltrrvz"   --   21
+  ,"HHHMH@MH#MHHWmHgH@HUuXXzvvzXXXUWWWM@Mme+<_(+??????11??1==lz1zzz1zzrwztOOttzOttrz"   --   22
+  ,"MHHHHMNHMMM#M@@HHMWuvrrOtttrrrvuXMMHUHMMNmge&++;>>>>>>??????????=<<<<<<<<~~_~~(1"   --   23
+  ,"MMMMH@HMMMMMMNNNNNuwtllOllltOwQkMHMMMNHHMMMMMMNNmmmQAwzzOzzzttlltz-(++z&-_~~~~~:"   --   24
+  ,"HHHkW@M@MNNMH#MMMHuOll=z=11udHBWUZXWWW#bHWHWHmmHMMMMMMM#MMNNNHHQQQQmmQQQQQmmmQQQ"   --   25
+  ,"HHggg@MMMMMMMMMHMHuOl=??1?dMIOOvuuXHWMNHHMHHHMH@MMMMMMMMMH#MMHHMMMMMMMMMMMMMMMMM"   --   26
+  ,"NNMMMNNM@MHHmHHyyZwO=??>+>j#TWQmmwXNHMHbHMgHHM@MM@@HHHHHMMMNNMMNMMNMNNmkbkpkkkbm"   --   27
+  ,"MMMHMMMMHgqkppfWyXwOz??>>zj#=zwrrXXMMMMMHM@mHMH@MMHHfpffWMMMHMMMMMMNWWMMNHbHqHkM"   --   28
+  ,"HM@gHHWggqkkpffXuwttl???>+J#?lOwuZXpMM@MHMHHMMMHVpkkbbkWMMkWHMMMMMNNHWkqMMNggHqm"   --   29
+  ,"HHMHHpH@qHbbWHWWyXwtllz===d#llOvXZWpHMMMMNkWyWWHHHHHHHMMHgggMMHNMMNMNHHHHMMMgggg"   --   30
+  ,"MMMHHHH@HHmHkHpWWuuwttOz=?zHzzzXUyWWWNHMNWHMMMHMg@HHHMNNNMNNMMNMMMNMMHH#MMMM@gg@"   --   31
+  ,"                                                                                "   --   32
+  ,"                                                                                "   --   33
+  ,"                                                                                "   --   34
+  ,"                                                                                "   --   35
+  ,"                                                                                "   --   36
+  ,"                                                                                "   --   37
+  ,"                                                                                "   --   38
+  ,"                                                                                "   --   39
+  ,"                                                                                "]  --   40
+--  123456789012345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6         7
+--
+
+edgeOfTown :: Craphic
+edgeOfTown = fromTexts ' '
+  ["MMNNMM##MMHMN2~...-........``...-    .......---..~.~~<-&. `...-.-~.._` `  _:~~~<"   --    1
+  ,"NNMNM####MHHMHmdHR!```........ _..~~..._..__~~~~~~~~(WjZZX....`.__  ```    .`` ."   --    2
+  ,"MNMNNNNMHHMHHMHXY3_.`.```....`````.`....`.` .._`` _JV$wXXZZk,.....`` ~____~~~~~~"   --    3
+  ,"MNNMNNNNNNMMHMMMHp.....````````...`` ` ...~~__.``.XWfjXXXZZXXk,_.~_-~~~~:~_.__~~"   --    4
+  ,"NMNMNNNNNNN#HMHHHk;.~..........` .... ``..... ``.yQmWWkkQkkkXXXG,~~.~~~~~_~~::(:"   --    5
+  ,"MNNMNMNNNM#M##HMMMM2~_~~~~.~_...-....._`  _~___JWHHW0XuXuXwzXUUV9WkaJ~__:;;;;<;>"   --    6
+  ,"MNMNNNN#MMM#MHHMMMM><:~~~~~(__:::::~~__-   .-(dHVWZX><?+771myzOrrwO<::_:(<?+<+<?"   --    7
+  ,"MMMNNNNM###M#HHHf=!~~_::::<<<<~__~~:;;<:___(XWXZXWZ0<_~~:~(M$-__~~.(<<<<<~(J-<<<"   --    8
+  ,"NMNNMMMN###HHM#T\\ .::::~_-_~~~~~~::;;>;;;:<~(ZXSuUZC<~~:~~~___:~_~_(<1jJZTz==+(<"   --    9
+  ,"NNMNNMNNN#MM##HNs~:~<:;<(<<;<:;;<__:;;>>;;:_(XXuVC=z<_~_~:_<~~~:~(JZC<<<<++1=z1z"   --   10
+  ,"MMMMNNNMMNM#HMHB3_~_(;>>;;>>>>>;;::::;:;;::_(VC?????<~~_~__~~~~::::;+<+??<><>>zl"   --   11
+  ,"NMMMMMMMMMMN?T<<<~:~_<<>;;;>>>;;;<<+;;;>>+wOz???1?z1<.(~_~~:~~~~<_;<>>+><>1<1?+="   --   12
+  ,"NNNMNNNNNM#H8<<(<<<((<>>>?????1uAdXXwz??zOwXy+??z?1z<__~__.~~~_~:~<<>>?>?<++?+?1"   --   13
+  ,"NMNMMNMNMMMHN?????<>>??==llzzdWWbWWHkkOOZXXbR>?>?<>1<~~_~(.____~~~;;>?><><><<1?z"   --   14
+  ,"MNMMMMMNMMMmzll=111+??=zzOOtwXpHWgHHHSz11OUHD?<<?<<+<____.__~.~_~_:;;;><<?+<<<><"   --   15
+  ,"MHMMMMNM#HNOtttttttlll====zdXWHHHHHbkHI(XSdW0<><<<+1<__~_~~~__~~__::;<>+<<<+><<;"   --   16
+  ,"MMMNNMMN#MHVOCz7zzz71<1v?1+zXHHWwZzdXZdZZWyZ0>>>??+=>_____~~-~_~(_~(:;;;;;;>>>1+"   --   17
+  ,"MM#H#MNNMM3(;;;>+x+dWWWWkZXSWHHUUZOtwwwZXZyW0+++<>?1<.__~~~~__~__~_:<;;v;;;><>>?"   --   18
+  ,"MMMNMMMN1?1zz1uJHWWXwXyywzOOUUSVOzzzwwwXuwXXI<>;<>++<__-~._~-~~.(~<:<++><>><<+??"   --   19
+  ,"HMMMMmxzgdvCUXVXIO0OzwXrr<1zOOI1<>>zwOtwXX0OC<><<?1+<--~__<__.(_~_(<<<;?<>;>>+?+"   --   20
+  ,"MNMMMMSOWS><OOv?I1Zz+zzI<:<<+O?<+++lOzdWmHdvz++<+<1zC______~~~_ ~_._---~-.____-."   --   21
+  ,"HMMMMMMWkR-((<:jz=+<<1Xkc+&zzOZ<jzdWKwWMMMWHR>><><??<-__.~~__~~~_______-___~___-"   --   22
+  ,"HMMMNMMHagZCOuSyzuz<><dZjIXWuZ1+vVC4WwdMHWHH#<<;+>+?<_.~_~__~__:_(~__~~_.___~:_-"   --   23
+  ,"NHNNMHQkWHHM@mJv7=<:~(wwXwWWfW&vddsZwwX8OdHHk<<><><<>__~~._(-- -..._-.._____.___"   --   24
+  ,"N#N#HHMHHHMHkWWHHpmx-.~?77\"Tv7(WWSrOWXwOwHHWD<><>>>1<.-~~_~~<!_...-_ __._.--._._"   --   25
+  ,"NN#NNN#MMMHMMHNHWVyZyk>`  `_._~!~~1w0wkXVKXky(<<<?><<..~~_(_-_-.._..`~.__-(2___~"   --   26
+  ,"MNNNN####HHHHMHMHbWWkk>_       ~_<-(?wWHkWHW$>><<<;<<_.~____.._(<<__~__~___<___~"   --   27
+  ,"NNNNNNNNN###HHHHHHMHHkH&+_____~_<i1+++1OZXWXS;><>;>><.~.._....__.____._________~"   --   28
+  ,"MMNNMNN##MH###H#HH#HHHHbkHkae++dkyWXWXWkHHH0D<>>;><<<....._..._.______._._~____~"   --   29
+  ,"NNMNNNNNNN###HMNMM#H##HMHkpHXXkbkHWWWWWWWH8C!_<<J<>><-..`_..-_. ~.._..._...._-~~"   --   30
+  ,"MMNMMNNNNNNN#MMMHMMMMMMgMMHWWWWWWHbHHWHkRyr.  ..<_!<<_._-_.._....__..__....____~"   --   31
+  ,"                                                                                "   --   32
+  ,"                                                                                "   --   33
+  ,"                                                                                "   --   34
+  ,"                                                                                "   --   35
+  ,"                                                                                "   --   36
+  ,"                                                                                "   --   37
+  ,"                                                                                "   --   38
+  ,"                                                                                "   --   39
+  ,"                                                                                "]  --   40
+--  123456789012345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6         7

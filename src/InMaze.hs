@@ -74,6 +74,7 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
                             c <- characterOf p
                             updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
                           sortPartyAuto
+                          -- TODO!:if all character dead, move to gameover.
                           run $ enterMaybeEncount p'
 
 -- =======================================================================
