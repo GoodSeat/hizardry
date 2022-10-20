@@ -17,6 +17,7 @@ import qualified Characters as Character
 import qualified Enemies as Enemy
 import qualified Spells as Spell
 import Maze
+import qualified MazeEvent as Ev
 import Formula
 
 import Cui
@@ -132,10 +133,50 @@ main = do
                 , ((1, 4, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
                 , ((1, 5, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
                 ]
+            , mazeEvents = Map.fromList [
+                  (Ev.ID 010100, Ev.Events [
+                     Ev.QuestionKey "there is climbing stairs.\n...climbing?\n\n(Y/N)" Nothing [
+                       ("y", Ev.ReturnCastle), ("n", Ev.Escape)]
+                   ])
+                , (Ev.ID 020400, Ev.Events [
+                     Ev.QuestionKey "there is ladder to go down.\n...go down?\n\n(Y/N)" Nothing [
+                       ("y", Ev.Events [
+                           Ev.StairsToLower (2, 4, 1)
+                         , Ev.End
+                         ])
+                     , ("n", Ev.Escape)
+                     ]
+                   ])
+                , (Ev.ID 020401, Ev.Events [
+                     Ev.QuestionKey "there is ladder to go up.\n...go up?\n\n(Y/N)" Nothing [
+                       ("y", Ev.Events [
+                           Ev.StairsToUpper (2, 4, 0)
+                         , Ev.End
+                         ])
+                     , ("n", Ev.Escape)
+                     ]
+                   ])
+                , (Ev.ID 010101, Ev.Events [
+                     Ev.QuestionText "what's your name?" Nothing [
+                       ("werdna", Ev.Events [
+                           Ev.Message "OH MY GOD!" Nothing
+                         ])
+                     , ("", Ev.Message "who?" Nothing)
+                     ]
+                   ])
+                ]
+            , eventMap = Map.fromList [
+                  ((1, 1, 0), Ev.ID 010100)
+                , ((2, 4, 0), Ev.ID 020400)
+                , ((2, 4, 1), Ev.ID 020401)
+                , ((1, 1, 1), Ev.ID 010101)
+                ]
             , enemies        = Map.fromList [
                 (Enemy.ID 1, Enemy.Define {
                       Enemy.name              = "slime"
                     , Enemy.nameUndetermined  = "moving object"
+                    , Enemy.pic               = PictureID 1001
+                    , Enemy.picUndetermined   = PictureID 2001
                     , Enemy.lv                = 1
                     , Enemy.hpFormula         = parse' "1d6"
 
@@ -169,6 +210,8 @@ main = do
                 , (Enemy.ID 2, Enemy.Define {
                       Enemy.name              = "goblin"
                     , Enemy.nameUndetermined  = "humanoid creature"
+                    , Enemy.pic               = PictureID 1002
+                    , Enemy.picUndetermined   = PictureID 2002
                     , Enemy.lv                = 2
                     , Enemy.hpFormula         = parse' "2d3+1"
 
@@ -264,6 +307,7 @@ waitKey = do
 
 -- ==========================================================================
 testRender :: Scenario -> Event -> World -> IO()
+testRender s (Ask m) w = testRender s (Message m) w
 testRender s (MessageTime _ m) w = testRender s (Message m) w
 testRender s (Message m) w = do
     clearScreen

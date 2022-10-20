@@ -29,6 +29,8 @@ data Instance = Instance {
 data Define = Define {
       name              :: !String
     , nameUndetermined  :: !String
+    , pic               :: !PictureID
+    , picUndetermined   :: !PictureID
     , lv                :: !Int
     , hpFormula         :: !Formula
 

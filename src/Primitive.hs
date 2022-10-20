@@ -1,7 +1,9 @@
 module Primitive
 where
 
-
+newtype PictureID = PictureID {
+    num :: Int
+} deriving (Show, Eq, Ord)
 
 -- | type of status error.
 data StatusError = Silence

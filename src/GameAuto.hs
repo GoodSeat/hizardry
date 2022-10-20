@@ -10,6 +10,7 @@ import qualified Data.Map as Map
 
 import World
 import Maze
+import MazeEvent
 import qualified Enemies as Enemy
 import qualified Spells as Spell
 
@@ -24,6 +25,7 @@ data InputType = SingleKey
 
 data Event = None
            | Exit
+           | Ask           String
            | Message       String
            | MessageTime   Int String -- ^ negative wait time means enable to skip by key input
            | Time          Int        -- ^ negative wait time means enable to skip by key input
@@ -42,6 +44,8 @@ data Scenario = Scenario {
     , scenarioHome   :: !GameAuto
     , mazes          :: ![Maze]
     , encountMap     ::  Map.Map Coord (Int, [Enemy.ID])
+    , eventMap       ::  Map.Map Coord MazeEvent.ID
+    , mazeEvents     :: !MazeEvent.DB
     , enemies        :: !Enemy.DB
     , spells         :: !Spell.DB
     }
@@ -71,6 +75,7 @@ runGame render cmd scenario (game, w) = do
                                        let itype = case e of SpellCommand _  -> SequenceKey
                                                              MessageTime n _ -> WaitClock n
                                                              Time n          -> WaitClock n
+                                                             Ask _           -> SequenceKey
                                                              _               -> SingleKey
                                        i <- cmd itype
                                        runGame render cmd scenario (next i, w')
@@ -89,6 +94,8 @@ selectWhen :: Event -> [(Input, GameAuto, Bool)] -> GameMachine
 selectWhen e ns = return (e, select' ns)
   where
     select' ((i1, s1, enable):ns) i = if i == i1 && enable then s1 else select' ns i
+    select' [] (Key s) = if s /= "" then select' ns (Key "")
+                                    else GameAuto $ selectWhen e ns
     select' [] _ = GameAuto $ selectWhen e ns
 
 select :: Event -> [(Input, GameAuto)] -> GameMachine

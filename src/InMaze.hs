@@ -2,11 +2,14 @@ module InMaze
 where
 
 import Control.Monad.State
+import Control.Monad.Reader (asks)
 import Data.Function
+import qualified Data.Map as Map
 
 import GameAuto
 import World
 import Maze
+import qualified MazeEvent as Ev
 import Utils
 import Primitive
 import qualified Enemies as Enemy
@@ -17,6 +20,7 @@ import Cui
 exitGame' :: GameAuto
 exitGame' = GameAuto $ return (Exit, const exitGame')
 
+currentPosition :: GameState Position
 currentPosition = do
     plc <- place <$> world
     case plc of InMaze p     -> return p
@@ -27,29 +31,36 @@ currentPosition = do
 -- depends on Scenario.
 
 enterWithoutEncount :: Position -> GameAuto
-enterWithoutEncount p = enterGrid (eventOn allEvents p) False p
+enterWithoutEncount p = GameAuto $ do
+  ev <- eventOn p
+  run $ enterGrid ev False p
 
 enterMaybeEncount :: Position -> GameAuto
-enterMaybeEncount p = enterGrid (eventOn allEvents p) True p
+enterMaybeEncount p = GameAuto $ do
+  ev <- eventOn p
+  run $ enterGrid ev True p
 
-allEvents :: [(Coord, GameAuto)]
-allEvents = [((1, 1, 0), stairsToCastle)
-            ,((2, 4, 0), stairsToLower (2, 4, 1))
-            ,((2, 4, 1), stairsToUpper (2, 4, 0))
-            ]
+eventOn :: Position -> GameState (Maybe Ev.Define)
+eventOn p = do
+  evMap <- asks eventMap
+  evDB  <- asks mazeEvents
+  case Map.lookup (x p, y p, z p) evMap of
+    Nothing  -> return Nothing
+    Just eid -> return $ Map.lookup eid evDB
 
 -- =======================================================================
 
-enterGrid :: Maybe GameAuto -- ^ happened event.
-          -> Bool           -- ^ probably encount enemy.
-          -> Position       -- ^ moved position.
+enterGrid :: Maybe Ev.Define -- ^ happened event.
+          -> Bool            -- ^ probably encount enemy.
+          -> Position        -- ^ moved position.
           -> GameAuto
 enterGrid e probEncount p = GameAuto $ do
     movePlace $ InMaze p
+    -- TODO!:all character lost if they are in stone.
     encountId <- if probEncount then checkEncount $ coordOf p else return Nothing
-    case e of Nothing -> case encountId of Nothing -> select None $ moves p
-                                           Just ei -> run $ encountEnemy ei
-              Just a  -> run a
+    case e of Nothing   -> case encountId of Nothing -> select None $ moves p
+                                             Just ei -> run $ encountEnemy ei
+              Just edef -> run $ doEvent edef
 
 ouch :: Position -> GameAuto
 ouch p = GameAuto $ select (Message "Ouch !!") $ moves p
@@ -99,47 +110,59 @@ openCamp p = GameAuto $ do
         ,(Key "6", inspectCharacter (openCamp p) True 6, length ids >= 6)
         ]
 
-
--- =======================================================================
-
-eventOn :: [(Coord, GameAuto)] -> Position -> Maybe GameAuto
-eventOn [] _ = Nothing
-eventOn (((x', y', z'), e):es) p = if x p == x' && y p == y' && z p == z' then Just e else eventOn es p
+endEvent :: GameAuto
+endEvent = GameAuto $ do
+    p <- currentPosition
+    run $ enterWithoutEncount p
 
 escapeEvent :: GameAuto
 escapeEvent = GameAuto $ do
     p <- currentPosition
     run $ enterGrid Nothing False p
 
-stairsToCastle :: GameAuto
-stairsToCastle = GameAuto $ do
-    toCastle <- home
-    let upStep  = modify (\w -> w { sceneTrans = sceneTrans w . translate (0, 5) })
-    let upReset = modify (\w -> w { sceneTrans = id })
-    select (Message "there is climbing stairs.\n...climbing?\n\n(Y/N)")
-        [ (Key "y", events' (replicate 3 (upStep, Time 300)) (GameAuto $ upReset >> whenReturnCastle >> run toCastle))
-        , (Key "n", escapeEvent) ]
+-- =======================================================================
 
-stairsToLower :: Coord -> GameAuto
-stairsToLower (x', y', z') = GameAuto $ do
-    p <- currentPosition
-    let p' = p { x = x', y = y', z = z' }
-    select (Message "there is ladder to go down.\n...go down?\n\n(Y/N)")
-        [ (Key "y", events' (upEffect p' False) (enterWithoutEncount p'))
-        , (Key "n", escapeEvent) ]
+doEvent :: Ev.Define -> GameAuto
+doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
+  where
+    doEvent' :: Ev.Define -> GameAuto -> GameAuto
+    doEvent' Ev.ReturnCastle next = GameAuto $ do
+        toCastle <- home
+        whenReturnCastle >> run toCastle
+    doEvent' (Ev.MoveTo (x', y', z')) next = GameAuto $ do
+        p <- currentPosition
+        let p' = p { x = x', y = y', z = z' }
+        movePlace (InMaze p) >> run next
+    doEvent' (Ev.StairsToUpper (x', y', z')) next = GameAuto $ do
+        p <- currentPosition
+        let p' = p { x = x', y = y', z = z' }
+        run $ events' (updownEffect p' True) next
+    doEvent' (Ev.StairsToLower (x', y', z')) next = GameAuto $ do
+        p <- currentPosition
+        let p' = p { x = x', y = y', z = z' }
+        run $ events' (updownEffect p' False) next
+    doEvent' (Ev.Message msg picID) next = events [Message msg] next
+    doEvent' (Ev.QuestionText msg picID ways) next = GameAuto $ select (Ask msg) ss
+      where
+        ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
+        -- TODO!:otherwise
+    doEvent' (Ev.QuestionKey msg picID ways) next = GameAuto $ select (Message msg) ss
+      where
+        ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
+    doEvent' (Ev.Events []) next = next
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next
+    doEvent' (Ev.Reference eid) next = GameAuto $ do
+      evDB  <- asks mazeEvents
+      case Map.lookup eid evDB of
+        Nothing   -> run next
+        Just edef -> run $ doEvent' edef next
+    doEvent' Ev.Escape _ = escapeEvent
+    doEvent' Ev.End _    = endEvent
 
-stairsToUpper :: Coord -> GameAuto
-stairsToUpper (x', y', z') = GameAuto $ do
-    p <- currentPosition
-    let p' = p { x = x', y = y', z = z' }
-    select (Message "there is ladder to go up.\n...go up?\n\n(Y/N)")
-        [ (Key "y", events' (upEffect p' True) (enterWithoutEncount p'))
-        , (Key "n", escapeEvent) ]
-
-upEffect :: Position -> Bool -> [(GameState (), Event)]
-upEffect p toUp = replicate c (upStep, Time 150)
-               ++ [(upRest >> movePlace (InMaze p), Time 150)]
-               ++ replicate c (upStep, Time 150)
+updownEffect :: Position -> Bool -> [(GameState (), Event)]
+updownEffect p toUp = replicate c (upStep, Time 150)
+                   ++ [(upRest >> movePlace (InMaze p), Time 150)]
+                   ++ replicate c (upStep, Time 150)
   where
     r = if toUp then 1 else -1
     u = 5 -- translate length by step.
@@ -147,7 +170,6 @@ upEffect p toUp = replicate c (upStep, Time 150)
     upStep = modify (\w -> w { sceneTrans = sceneTrans w . translate (0, u * r) })
     upRest = modify (\w -> w { sceneTrans = translate (0, -u * c * r) })
     
-
 
 -- | state machine when return to castle.
 whenReturnCastle :: GameState ()
