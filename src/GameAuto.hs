@@ -75,7 +75,7 @@ runGame render cmd scenario (game, w) = do
                                        let itype = case e of SpellCommand _  -> SequenceKey
                                                              MessageTime n _ -> WaitClock n
                                                              Time n          -> WaitClock n
-                                                             Ask _           -> SequenceKey
+                                                             GameAuto.Ask _  -> SequenceKey
                                                              _               -> SingleKey
                                        i <- cmd itype
                                        runGame render cmd scenario (next i, w')

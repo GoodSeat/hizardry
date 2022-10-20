@@ -135,11 +135,11 @@ main = do
                 ]
             , mazeEvents = Map.fromList [
                   (Ev.ID 010100, Ev.Events [
-                     Ev.QuestionKey "there is climbing stairs.\n...climbing?\n\n(Y/N)" Nothing [
+                     Ev.Select "there is climbing stairs.\n...climbing?\n\n(Y/N)" Nothing [
                        ("y", Ev.ReturnCastle), ("n", Ev.Escape)]
                    ])
                 , (Ev.ID 020400, Ev.Events [
-                     Ev.QuestionKey "there is ladder to go down.\n...go down?\n\n(Y/N)" Nothing [
+                     Ev.Select "there is ladder to go down.\n...go down?\n\n(Y/N)" Nothing [
                        ("y", Ev.Events [
                            Ev.StairsToLower (2, 4, 1)
                          , Ev.End
@@ -148,7 +148,7 @@ main = do
                      ]
                    ])
                 , (Ev.ID 020401, Ev.Events [
-                     Ev.QuestionKey "there is ladder to go up.\n...go up?\n\n(Y/N)" Nothing [
+                     Ev.Select "there is ladder to go up.\n...go up?\n\n(Y/N)" Nothing [
                        ("y", Ev.Events [
                            Ev.StairsToUpper (2, 4, 0)
                          , Ev.End
@@ -157,7 +157,7 @@ main = do
                      ]
                    ])
                 , (Ev.ID 010101, Ev.Events [
-                     Ev.QuestionText "what's your name?" Nothing [
+                     Ev.Ask "what's your name?" Nothing [
                        ("werdna", Ev.Events [
                            Ev.Message "OH MY GOD!" Nothing
                          ])

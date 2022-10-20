@@ -132,7 +132,7 @@ doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
     doEvent' (Ev.MoveTo (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
-        movePlace (InMaze p) >> run next
+        movePlace (InMaze p') >> run next
     doEvent' (Ev.StairsToUpper (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
@@ -142,20 +142,16 @@ doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
         let p' = p { x = x', y = y', z = z' }
         run $ events' (updownEffect p' False) next
     doEvent' (Ev.Message msg picID) next = events [Message msg] next
-    doEvent' (Ev.QuestionText msg picID ways) next = GameAuto $ select (Ask msg) ss
-      where
-        ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
-        -- TODO!:otherwise
-    doEvent' (Ev.QuestionKey msg picID ways) next = GameAuto $ select (Message msg) ss
-      where
-        ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
+    doEvent' (Ev.Ask msg picID ways) next = GameAuto $ select (Ask msg) ss
+      where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
+    doEvent' (Ev.Select msg picID ways) next = GameAuto $ select (Message msg) ss
+      where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
     doEvent' (Ev.Events []) next = next
     doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next
     doEvent' (Ev.Reference eid) next = GameAuto $ do
       evDB  <- asks mazeEvents
-      case Map.lookup eid evDB of
-        Nothing   -> run next
-        Just edef -> run $ doEvent' edef next
+      case Map.lookup eid evDB of Nothing   -> run next
+                                  Just edef -> run $ doEvent' edef next
     doEvent' Ev.Escape _ = escapeEvent
     doEvent' Ev.End _    = endEvent
 
