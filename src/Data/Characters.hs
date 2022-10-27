@@ -1,13 +1,13 @@
-module Characters
+module Data.Characters
 where
 
 import Data.List (nub)
 import qualified Data.Map as Map
 
-import qualified Spells as Spell
-import qualified Items as Item
+import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 
-import Primitive
+import Data.Primitive
 
 data ID = ID {
     id :: Int

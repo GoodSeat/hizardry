@@ -1,18 +1,19 @@
-module BattleAction
+module Engine.BattleAction
 where
 
 
 import qualified Data.Map as Map
 import Data.List
 import Control.Monad
-import GameAuto
-import World
-import Utils
-import Formula
-import Primitive
-import qualified Enemies as Enemy
-import qualified Characters as Character
-import qualified Spells as Spell
+
+import Engine.GameAuto
+import Engine.Utils
+import Data.World
+import Data.Formula
+import Data.Primitive
+import qualified Data.Enemies as Enemy
+import qualified Data.Characters as Character
+import qualified Data.Spells as Spell
 
 
 type ActionOfCharacter = Character.ID -- ^ id of actor.

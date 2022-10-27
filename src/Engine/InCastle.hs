@@ -1,11 +1,11 @@
-module InCastle
+module Engine.InCastle
 where
 
-import GameAuto
-import World
-import qualified Characters as Character
-import Utils
-import InEdgeOfTown
+import Engine.GameAuto
+import Engine.Utils
+import Engine.InEdgeOfTown
+import Data.World
+import qualified Data.Characters as Character
 
 inCastle :: GameMachine
 inCastle = GameAuto $ do

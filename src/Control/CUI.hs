@@ -1,4 +1,4 @@
-module Cui
+module Control.CUI
 where
 
 import Control.Monad

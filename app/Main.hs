@@ -9,19 +9,19 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void)
 
-import Primitive
-import GameAuto
-import World
-import InCastle
-import qualified Characters as Character
-import qualified Enemies as Enemy
-import qualified Spells as Spell
-import Maze
-import qualified MazeEvent as Ev
-import Formula
+import Engine.GameAuto
+import Engine.InCastle
+import Data.Primitive
+import Data.World
+import Data.Maze
+import Data.Formula
+import qualified Data.Characters as Character
+import qualified Data.Enemies as Enemy
+import qualified Data.Spells as Spell
+import qualified Data.MazeEvent as Ev
 
-import Cui
-import CuiRender
+import Control.CUI
+import UI.CuiRender
 
 
 main :: IO ()

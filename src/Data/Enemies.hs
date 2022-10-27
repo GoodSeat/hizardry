@@ -1,15 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
-module Enemies
+module Data.Enemies
 where
 
 import Data.List (nub)
 import qualified Data.Map as Map
 
-import Formula
-import Primitive
-import qualified Characters as Character
-import qualified Spells as Spell
-import qualified Items as Item
+import Data.Formula
+import Data.Primitive
+import qualified Data.Characters as Character
+import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 
 newtype ID = ID {
     num :: Int

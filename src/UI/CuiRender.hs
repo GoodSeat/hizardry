@@ -1,15 +1,15 @@
-module CuiRender where
+module UI.CuiRender where
 
 import Control.Monad
 import Data.List (isPrefixOf)
 
-import Cui
-import Primitive
-import Characters
-import World
-import GameAuto
-import Maze
-import qualified Enemies as Enemy
+import Control.CUI
+import Engine.GameAuto
+import Data.Primitive
+import Data.Characters as Character
+import Data.World
+import Data.Maze
+import qualified Data.Enemies as Enemy
 
 
 windowW = 75
@@ -65,7 +65,7 @@ statusView msg (Just c) =
                     . replaceText "[LUK]" (show $ luck st) (Right 3)
                     . replaceText "[HP]" (show $ hp c) (Right 4)
                     . replaceText "[MaxHP]" (show $ maxhp c) (Right 4)
-                    . replaceText "[Exp]"  (show $ Characters.exp c) (Right 8)
+                    . replaceText "[Exp]"  (show $ Character.exp c) (Right 8)
                     . replaceText "[Gold]" (show $ gold c) (Right 8)
                     . replaceText "[Age]" (show $ age c) (Right 4)
                     . replaceText "[AC]" (show $ acOf c) (Right 4)

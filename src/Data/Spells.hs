@@ -1,11 +1,11 @@
-module Spells
+module Data.Spells
 where
 
 import qualified Data.Map as Map
 import Data.List
 
-import Primitive
-import Formula
+import Data.Primitive
+import Data.Formula
 
 data ID = ID {
     id :: Int -- ^ identify number.

@@ -1,4 +1,4 @@
-module Utils
+module Engine.Utils
 where
 
 import System.Random
@@ -10,14 +10,14 @@ import Data.List (find)
 import Data.Map hiding (filter, null)
 import Data.Maybe (fromMaybe)
 
-import Primitive
-import GameAuto
-import World
-import Maze
-import qualified Characters as Character
-import qualified Enemies as Enemy
-import qualified Spells as Spell
-import Formula
+import Engine.GameAuto
+import Data.Primitive
+import Data.World
+import Data.Maze
+import Data.Formula
+import qualified Data.Characters as Character
+import qualified Data.Enemies as Enemy
+import qualified Data.Spells as Spell
 
 
 -- =================================================================================

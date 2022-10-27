@@ -1,15 +1,15 @@
-module World
+module Data.World
 where
 
 import System.Random
 import qualified Data.Map as Map
 
-import qualified Characters as Character
-import qualified Enemies as Enemy
-import qualified Items as Item
-import Maze
+import qualified Data.Characters as Character
+import qualified Data.Enemies as Enemy
+import qualified Data.Items as Item
+import Data.Maze
 
-import Cui
+import Control.CUI (Filter)
 
 data World = World {
       randomGen       :: StdGen

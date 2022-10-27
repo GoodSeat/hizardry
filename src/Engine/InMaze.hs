@@ -1,4 +1,4 @@
-module InMaze
+module Engine.InMaze
 where
 
 import Control.Monad.State
@@ -6,16 +6,16 @@ import Control.Monad.Reader (asks)
 import Data.Function
 import qualified Data.Map as Map
 
-import GameAuto
-import World
-import Maze
-import qualified MazeEvent as Ev
-import Utils
-import Primitive
-import qualified Enemies as Enemy
-import InBattle
+import Engine.GameAuto
+import Engine.Utils
+import Engine.InBattle
+import Data.World
+import Data.Maze
+import Data.Primitive
+import qualified Data.MazeEvent as Ev
+import qualified Data.Enemies as Enemy
 
-import Cui
+import Control.CUI (translate)
 
 exitGame' :: GameMachine
 exitGame' = GameAuto $ return (Exit, const exitGame')

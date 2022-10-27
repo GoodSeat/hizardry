@@ -1,13 +1,12 @@
-module InEdgeOfTown
+module Engine.InEdgeOfTown
 where
 
-
-import GameAuto
-import World
-import qualified Characters as Character
-import Utils
-import InMaze
-import Maze
+import Engine.GameAuto
+import Engine.Utils
+import Engine.InMaze
+import Data.World
+import Data.Maze
+import qualified Data.Characters as Character
 
 inEdgeOfTown :: GameMachine
 inEdgeOfTown = GameAuto $ do

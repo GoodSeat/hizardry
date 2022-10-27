@@ -1,6 +1,6 @@
-module Formula (
+module Data.Formula (
       Formula
-    , Formula.parse
+    , Data.Formula.parse
     , parse'
     , evalFormula
 ) where
@@ -13,14 +13,14 @@ import qualified Control.Monad.State as State
 import Control.Monad.Except
 
 main = do
-    print $ Formula.parse "(5+2)*2+3d2"
+    print $ Data.Formula.parse "(5+2)*2+3d2"
 
 parse :: String -> Either ParseError Formula
 parse s = Text.ParserCombinators.Parsec.parse expr "" s
 
 parse' :: String -> Formula
-parse' s = case Formula.parse s of Right f -> f
-                                   Left  _ -> undefined
+parse' s = case Data.Formula.parse s of Right f -> f
+                                        Left  _ -> undefined
 
 -- ================================================================================
 --

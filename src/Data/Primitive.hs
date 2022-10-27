@@ -1,4 +1,4 @@
-module Primitive
+module Data.Primitive
 where
 
 newtype PictureID = PictureID {

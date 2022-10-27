@@ -1,4 +1,4 @@
-module GameAuto
+module Engine.GameAuto
 where
 
 import Control.Monad.Except
@@ -6,11 +6,11 @@ import Control.Monad.State
 import Control.Monad.Reader
 import qualified Data.Map as Map
 
-import World
-import Maze
-import MazeEvent
-import qualified Enemies as Enemy
-import qualified Spells as Spell
+import Data.World
+import Data.Maze
+import qualified Data.MazeEvent as MazeEvent
+import qualified Data.Enemies as Enemy
+import qualified Data.Spells as Spell
 
 -- ==========================================================================
 
@@ -77,11 +77,11 @@ runGame render cmd scenario (game, w) = do
                 Right (e, next) -> if e == Exit then return "thank you for playing."
                                    else do
                                        render e w'
-                                       let itype = case e of SpellCommand _  -> SequenceKey
-                                                             MessageTime n _ -> WaitClock n
-                                                             Time n          -> WaitClock n
-                                                             GameAuto.Ask _  -> SequenceKey
-                                                             _               -> SingleKey
+                                       let itype = case e of SpellCommand _        -> SequenceKey
+                                                             MessageTime n _       -> WaitClock n 
+                                                             Time n                -> WaitClock n
+                                                             Engine.GameAuto.Ask _ -> SequenceKey
+                                                             _                     -> SingleKey
                                        i <- cmd itype
                                        runGame render cmd scenario (next i, w')
 

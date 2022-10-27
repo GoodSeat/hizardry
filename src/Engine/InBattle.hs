@@ -1,4 +1,4 @@
-module InBattle
+module Engine.InBattle
 where
 
 import Data.List
@@ -7,16 +7,17 @@ import Data.Function
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
-import GameAuto
-import Utils
-import World
-import Primitive
-import Formula (parse')
-import qualified Characters as Character
-import qualified Enemies as Enemy
-import qualified Spells as Spell
-import qualified Items as Item
-import BattleAction
+
+import Engine.GameAuto
+import Engine.Utils
+import Engine.BattleAction
+import Data.World
+import Data.Primitive
+import Data.Formula (parse')
+import qualified Data.Characters as Character
+import qualified Data.Enemies as Enemy
+import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 
 data BattleAction = ByParties Character.ID Action
                   | ByEnemies Int Enemy.Instance Enemy.Action

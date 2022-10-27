@@ -1,4 +1,4 @@
-module Maze
+module Data.Maze
 where
 
 import Data.List

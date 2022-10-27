@@ -1,9 +1,9 @@
-module MazeEvent
+module Data.MazeEvent
 where
 
 import qualified Data.Map as Map
-import Maze
-import Primitive
+import Data.Maze
+import Data.Primitive
 
 newtype ID = ID {
     num :: Int
