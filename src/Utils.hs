@@ -28,18 +28,18 @@ moveToBattle es = do
               _              -> err "invalid moveToBattle."
 
 
-inspectCharacter :: GameAuto -> Bool -> Int -> GameAuto
+inspectCharacter :: GameMachine -> Bool -> Int -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
     ids <- party <$> world
-    selectWhen (ShowStatus i msg)
-            [(Key "l", h, True)
-            ,(Key "1", inspectCharacter h canSpell 1, length ids >= 1)
-            ,(Key "2", inspectCharacter h canSpell 2, length ids >= 2)
-            ,(Key "3", inspectCharacter h canSpell 3, length ids >= 3)
-            ,(Key "4", inspectCharacter h canSpell 4, length ids >= 4)
-            ,(Key "5", inspectCharacter h canSpell 5, length ids >= 5)
-            ,(Key "6", inspectCharacter h canSpell 6, length ids >= 6)
-            ]
+    run $ selectWhen (ShowStatus i msg)
+                     [(Key "l", h, True)
+                     ,(Key "1", inspectCharacter h canSpell 1, length ids >= 1)
+                     ,(Key "2", inspectCharacter h canSpell 2, length ids >= 2)
+                     ,(Key "3", inspectCharacter h canSpell 3, length ids >= 3)
+                     ,(Key "4", inspectCharacter h canSpell 4, length ids >= 4)
+                     ,(Key "5", inspectCharacter h canSpell 5, length ids >= 5)
+                     ,(Key "6", inspectCharacter h canSpell 6, length ids >= 6)
+                     ]
   where
     msg = if canSpell then
             "U)se Item     D)rop Item    T)rade Item    E)qiup  \n" ++

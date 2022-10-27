@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module GameAuto
 where
 
@@ -13,6 +12,8 @@ import Maze
 import MazeEvent
 import qualified Enemies as Enemy
 import qualified Spells as Spell
+
+-- ==========================================================================
 
 data Input = Key String
            | Clock
@@ -36,12 +37,10 @@ data Event = None
 
 data Option = Option String
 
-
--- ==========================================================================
 -- | scenario immutable data.
 data Scenario = Scenario {
       scenarioOption :: !Option
-    , scenarioHome   :: !GameAuto
+    , scenarioHome   :: !GameMachine
     , mazes          :: ![Maze]
     , encountMap     ::  Map.Map Coord (Int, [Enemy.ID])
     , eventMap       ::  Map.Map Coord MazeEvent.ID
@@ -50,24 +49,31 @@ data Scenario = Scenario {
     , spells         :: !Spell.DB
     }
 
+-- ==========================================================================
+
 -- | State used in game.
-newtype GameState o = GameState { exec :: ExceptT String (StateT World (Reader Scenario)) o }
-    deriving (Functor, Applicative, Monad, MonadReader Scenario, MonadState World, MonadError String)
+type GameState o = ExceptT String (StateT World (Reader Scenario)) o
 
--- | Automaton for running game.
-newtype GameAuto = GameAuto { run :: GameMachine }
+-- | Automaton used in Game.
+newtype GameAuto i o = GameAuto { run :: GameState (o, i -> GameAuto i o) }
 
--- | Machine used in GameAuto.
-type GameMachine = GameState (Event, Input -> GameAuto)
+instance Functor (GameAuto i) where
+  fmap f (GameAuto s) = GameAuto $ do
+    (o, next) <- s
+    return (f o, fmap f . next)
+      
+-- | GameMachine by Automaton.
+type GameMachine = GameAuto Input Event
 
+-- ==========================================================================
 
 runGame :: (Event -> World -> IO a)     -- ^ renderer of game.
         -> (InputType -> IO Input)      -- ^ input command.
         -> Scenario                     -- ^ game scenario.
-        -> (GameAuto, World)            -- ^ target GameAuto, and current environment.
+        -> (GameMachine, World)            -- ^ target GameMachine, and current environment.
         -> IO String
 runGame render cmd scenario (game, w) = do
-    let (res, w') = runReader (runStateT (runExceptT $ exec $ run game) w) scenario
+    let (res, w') = runReader (runStateT (runExceptT $ run game) w) scenario
     case res of Left msg        -> return msg
                 Right (e, next) -> if e == Exit then return "thank you for playing."
                                    else do
@@ -82,27 +88,24 @@ runGame render cmd scenario (game, w) = do
 
 -- ==========================================================================
 
-events :: [Event] -> GameAuto -> GameAuto
-events es = events' (zip (repeat $ return ()) es)
+events :: [Event] -> GameMachine -> GameMachine
+events es = events' $ zip (repeat $ return ()) es
 
-events' :: [(GameState a, Event)] -> GameAuto -> GameAuto
-events' []           l = l
-events' ((gs, e):es) l = GameAuto $ gs >> return (e, const $ events' es l)
+events' :: [(GameState a, Event)] -> GameMachine -> GameMachine
+events' []           next = next
+events' ((gs, e):es) next = GameAuto $ gs >> return (e, const $ events' es next)
 
 
-selectWhen :: Event -> [(Input, GameAuto, Bool)] -> GameMachine
-selectWhen e ns = return (e, select' ns)
+selectWhen :: Event -> [(Input, GameMachine, Bool)] -> GameMachine
+selectWhen e ns = GameAuto $ return (e, select' ns)
   where
     select' ((i1, s1, enable):ns) i = if i == i1 && enable then s1 else select' ns i
     select' [] (Key s) = if s /= "" then select' ns (Key "")
-                                    else GameAuto $ selectWhen e ns
-    select' [] _ = GameAuto $ selectWhen e ns
+                                    else selectWhen e ns
+    select' [] _ = selectWhen e ns
 
-select :: Event -> [(Input, GameAuto)] -> GameMachine
+select :: Event -> [(Input, GameMachine)] -> GameMachine
 select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns
-
-selectNext :: Event -> [(Input, GameAuto)] -> GameAuto
-selectNext e ns = GameAuto $ select e ns
 
 -- ==========================================================================
 
@@ -112,7 +115,7 @@ world = get
 option :: GameState Option
 option = asks scenarioOption
 
-home :: GameState GameAuto
+home :: GameState GameMachine
 home = asks scenarioHome
 
 mazeAt :: Int -> GameState Maze

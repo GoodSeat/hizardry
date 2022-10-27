@@ -17,8 +17,8 @@ import qualified Spells as Spell
 
 type ActionOfCharacter = Character.ID -- ^ id of actor.
                       -> Int          -- ^ number that means target.
-                      -> GameAuto     -- ^ next game auto.
-                      -> GameAuto     -- ^ game auto.
+                      -> GameMachine  -- ^ next game auto.
+                      -> GameMachine  -- ^ game auto.
 
 
 fightOfCharacter :: ActionOfCharacter
@@ -78,8 +78,8 @@ fightOfEnemy :: Enemy.Instance       -- ^ attacker enemy.
              -> Formula              -- ^ damage per hit.
              -> Formula              -- ^ target number. 1~3 are front member, 4~6 are back member.
              -> [(Int, StatusError)] -- ^ additinal effect, and it's probablity.
-             -> GameAuto             -- ^ next game auto.
-             -> GameAuto             -- ^ game auto.
+             -> GameMachine          -- ^ next game auto.
+             -> GameMachine          -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     edef <- enemyOf $ Enemy.id e
     ps   <- party <$> world
@@ -137,8 +137,8 @@ fightMessageE e c (h, d) = do
 
 type SpellEffect  = Either Character.ID Enemy.Instance
                  -> Int -- ^ target line or character no.
-                 -> GameAuto
-                 -> GameAuto
+                 -> GameMachine
+                 -> GameMachine
 
 spell :: String -> SpellEffect
 spell s tgt l next = GameAuto $ do
@@ -178,7 +178,9 @@ castDamageSpellAll n f (Left id) l next = GameAuto $ do
 castDamageSpellAll n f (Right e) l next = castDamageSpellGroup n f (Right e) l next
 
 
-castDamageSpell :: String -> Formula -> Either [Int] [Enemy.Instance] -> Either Character.ID Enemy.Instance -> GameAuto -> GameAuto
+castDamageSpell :: String -> Formula
+                -> Either [Int] [Enemy.Instance]
+                -> Either Character.ID Enemy.Instance -> GameMachine -> GameMachine
 castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
     c  <- characterOf id
     ts <- forM es $ \e -> do

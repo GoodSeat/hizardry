@@ -17,7 +17,7 @@ import InBattle
 
 import Cui
 
-exitGame' :: GameAuto
+exitGame' :: GameMachine
 exitGame' = GameAuto $ return (Exit, const exitGame')
 
 currentPosition :: GameState Position
@@ -30,12 +30,12 @@ currentPosition = do
 -- =======================================================================
 -- depends on Scenario.
 
-enterWithoutEncount :: Position -> GameAuto
+enterWithoutEncount :: Position -> GameMachine
 enterWithoutEncount p = GameAuto $ do
   ev <- eventOn p
   run $ enterGrid ev False p
 
-enterMaybeEncount :: Position -> GameAuto
+enterMaybeEncount :: Position -> GameMachine
 enterMaybeEncount p = GameAuto $ do
   ev <- eventOn p
   run $ enterGrid ev True p
@@ -53,19 +53,19 @@ eventOn p = do
 enterGrid :: Maybe Ev.Define -- ^ happened event.
           -> Bool            -- ^ probably encount enemy.
           -> Position        -- ^ moved position.
-          -> GameAuto
+          -> GameMachine
 enterGrid e probEncount p = GameAuto $ do
     movePlace $ InMaze p
     -- TODO!:all character lost if they are in stone.
     encountId <- if probEncount then checkEncount $ coordOf p else return Nothing
-    case e of Nothing   -> case encountId of Nothing -> select None $ moves p
+    case e of Nothing   -> case encountId of Nothing -> run $ select None (moves p)
                                              Just ei -> run $ encountEnemy ei
               Just edef -> run $ doEvent edef
 
-ouch :: Position -> GameAuto
-ouch p = GameAuto $ select (Message "Ouch !!") $ moves p
+ouch :: Position -> GameMachine
+ouch p = select (Message "Ouch !!") $ moves p
 
-moves :: Position -> [(Input, GameAuto)]
+moves :: Position -> [(Input, GameMachine)]
 moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
           ,(Key "d", enterGrid Nothing True $ turnRight p)
           ,(Key "w", goStraight p walkForward)
@@ -90,42 +90,41 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
 
 -- =======================================================================
 
-encountEnemy :: Enemy.ID -> GameAuto
+encountEnemy :: Enemy.ID -> GameMachine
 encountEnemy id = startBattle id (escapeEvent, escapeEvent)
-
 
 -- =======================================================================
 
-openCamp :: Position -> GameAuto
+openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p)
     ids <- party <$> world
-    selectWhen (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
-        [(Key "l", enterWithoutEncount p, True)
-        ,(Key "1", inspectCharacter (openCamp p) True 1, length ids >= 1)
-        ,(Key "2", inspectCharacter (openCamp p) True 2, length ids >= 2)
-        ,(Key "3", inspectCharacter (openCamp p) True 3, length ids >= 3)
-        ,(Key "4", inspectCharacter (openCamp p) True 4, length ids >= 4)
-        ,(Key "5", inspectCharacter (openCamp p) True 5, length ids >= 5)
-        ,(Key "6", inspectCharacter (openCamp p) True 6, length ids >= 6)
-        ]
+    run $ selectWhen (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
+          [(Key "l", enterWithoutEncount p, True)
+          ,(Key "1", inspectCharacter (openCamp p) True 1, length ids >= 1)
+          ,(Key "2", inspectCharacter (openCamp p) True 2, length ids >= 2)
+          ,(Key "3", inspectCharacter (openCamp p) True 3, length ids >= 3)
+          ,(Key "4", inspectCharacter (openCamp p) True 4, length ids >= 4)
+          ,(Key "5", inspectCharacter (openCamp p) True 5, length ids >= 5)
+          ,(Key "6", inspectCharacter (openCamp p) True 6, length ids >= 6)
+          ]
 
-endEvent :: GameAuto
+endEvent :: GameMachine
 endEvent = GameAuto $ do
     p <- currentPosition
     run $ enterWithoutEncount p
 
-escapeEvent :: GameAuto
+escapeEvent :: GameMachine
 escapeEvent = GameAuto $ do
     p <- currentPosition
     run $ enterGrid Nothing False p
 
 -- =======================================================================
 
-doEvent :: Ev.Define -> GameAuto
+doEvent :: Ev.Define -> GameMachine
 doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
   where
-    doEvent' :: Ev.Define -> GameAuto -> GameAuto
+    doEvent' :: Ev.Define -> GameMachine -> GameMachine
     doEvent' Ev.ReturnCastle next = GameAuto $ do
         toCastle <- home
         whenReturnCastle >> run toCastle
@@ -142,9 +141,9 @@ doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
         let p' = p { x = x', y = y', z = z' }
         run $ events' (updownEffect p' False) next
     doEvent' (Ev.Message msg picID) next = events [Message msg] next
-    doEvent' (Ev.Ask msg picID ways) next = GameAuto $ select (Ask msg) ss
+    doEvent' (Ev.Ask msg picID ways) next = select (Ask msg) ss
       where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
-    doEvent' (Ev.Select msg picID ways) next = GameAuto $ select (Message msg) ss
+    doEvent' (Ev.Select msg picID ways) next = select (Message msg) ss
       where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
     doEvent' (Ev.Events []) next = next
     doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next

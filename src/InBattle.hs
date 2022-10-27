@@ -33,8 +33,8 @@ data Action = Fight Int
     deriving (Show, Eq)
 
 data Condition = Condition {
-      afterWin     :: GameAuto
-    , afterRun     :: GameAuto
+      afterWin     :: GameMachine
+    , afterRun     :: GameMachine
     , gotExps      :: Int
     , dropGold     :: Int
     , dropItems    :: [Int]
@@ -83,9 +83,9 @@ tryDetermineEnemies = mapM $ \es -> do
     return $ if determine then fmap (\e -> e { Enemy.determined = True }) es else es
 
 -- ==========================================================================
-startBattle :: Enemy.ID             -- ^ encounted enemy.
-            -> (GameAuto, GameAuto) -- ^ after battle won, run from battle.
-            -> GameAuto
+startBattle :: Enemy.ID                   -- ^ encounted enemy.
+            -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
+            -> GameMachine
 startBattle eid (g1, g2) = GameAuto $ do
     es <- decideEnemyInstance eid
     ps <- party <$> world
@@ -103,7 +103,7 @@ startBattle eid (g1, g2) = GameAuto $ do
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> [(Character.ID, Action)]
                     -> Condition
-                    -> GameAuto
+                    -> GameMachine
 selectBattleCommand i cmds con = GameAuto $ do
     p <- party <$> world
     if length p < i then
@@ -117,23 +117,23 @@ selectBattleCommand i cmds con = GameAuto $ do
       if isCantFight c then
         run $ next CantMove
       else 
-        selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concatMap toMsg cs)
-                   [( Key "f"
-                    , selectFightTarget next
-                    , Character.Fight `elem` cs && i <= 3)
-                   ,( Key "p"
-                    , next Parry
-                    , Character.Parry `elem` cs)
-                   ,( Key "s"
-                    , inputSpell next cancel
-                    , Character.Spell `elem` cs)
-                   ,( Key "r"
-                    , events [Message $ Character.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
-                    , Character.Run `elem` cs)
-                   ,( Key " "
-                    , events [None] (selectBattleCommand i cmds con)
-                    , True)
-                    ]
+        run $ selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concatMap toMsg cs)
+                         [( Key "f"
+                          , selectFightTarget next
+                          , Character.Fight `elem` cs && i <= 3)
+                         ,( Key "p"
+                          , next Parry
+                          , Character.Parry `elem` cs)
+                         ,( Key "s"
+                          , inputSpell next cancel
+                          , Character.Spell `elem` cs)
+                         ,( Key "r"
+                          , events [Message $ Character.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
+                          , Character.Run `elem` cs)
+                         ,( Key " "
+                          , events [None] (selectBattleCommand i cmds con)
+                          , True)
+                          ]
   where
     toMsg cmd = case cmd of Character.Fight   -> "F)ight\n"
                             Character.Spell   -> "S)pell\n"
@@ -143,22 +143,22 @@ selectBattleCommand i cmds con = GameAuto $ do
                             Character.Parry   -> "P)arry\n"
                             Character.UseItem -> "U)se Item\n"
 
-selectFightTarget :: (Action -> GameAuto) -> GameAuto
+selectFightTarget :: (Action -> GameMachine) -> GameMachine
 selectFightTarget next = GameAuto $ do
     ess <- lastEnemies
     if length ess == 1 then run $ next (Fight 1)
-    else selectWhen (BattleCommand "Target group?")
-                    [(Key "1", next (Fight 1), not (null ess))
-                    ,(Key "2", next (Fight 2), length ess > 1)
-                    ,(Key "3", next (Fight 3), length ess > 2)
-                    ,(Key "4", next (Fight 4), length ess > 3)]
+    else run $ selectWhen (BattleCommand "Target group?")
+                          [(Key "1", next (Fight 1), not (null ess))
+                          ,(Key "2", next (Fight 2), length ess > 1)
+                          ,(Key "3", next (Fight 3), length ess > 2)
+                          ,(Key "4", next (Fight 4), length ess > 3)]
 
-inputSpell :: (Action -> GameAuto) -> GameAuto -> GameAuto
+inputSpell :: (Action -> GameMachine) -> GameMachine -> GameMachine
 inputSpell next cancel = GameAuto $
     return (SpellCommand "Input spell.\n(Empty to cancel.)",
             \(Key s) -> if null s then cancel else selectCastTarget s next)
 
-selectCastTarget :: String -> (Action -> GameAuto) -> GameAuto
+selectCastTarget :: String -> (Action -> GameMachine) -> GameMachine
 selectCastTarget s next = GameAuto $ do
     ess <- lastEnemies
     p   <- party <$> world
@@ -172,26 +172,26 @@ selectCastTarget s next = GameAuto $ do
             _                    -> run $ next (Spell s 0)
   where
     select mx nextWith = if mx <= 1 then run (nextWith 1) else
-                         selectWhen (BattleCommand "Target group?")
-                            [(Key "1", nextWith 1, mx > 0)
-                            ,(Key "2", nextWith 2, mx > 1)
-                            ,(Key "3", nextWith 3, mx > 2)
-                            ,(Key "4", nextWith 4, mx > 3)
-                            ,(Key "5", nextWith 5, mx > 4)
-                            ,(Key "6", nextWith 6, mx > 5)]
+                         run $ selectWhen (BattleCommand "Target group?")
+                               [(Key "1", nextWith 1, mx > 0)
+                               ,(Key "2", nextWith 2, mx > 1)
+                               ,(Key "3", nextWith 3, mx > 2)
+                               ,(Key "4", nextWith 4, mx > 3)
+                               ,(Key "5", nextWith 5, mx > 4)
+                               ,(Key "6", nextWith 6, mx > 5)]
 
 
 confirmBattle :: [(Character.ID, Action)]
               -> Condition
-              -> GameAuto
-confirmBattle cmds con = GameAuto $ select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Back")
-                                           [(Key "f", startProgressBattle cmds con)
-                                           ,(Key "t", selectBattleCommand 1 [] con)
-                                           ]
+              -> GameMachine
+confirmBattle cmds con = select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Back")
+                                [(Key "f", startProgressBattle cmds con)
+                                ,(Key "t", selectBattleCommand 1 [] con)
+                                ]
 
 -- ==========================================================================
 
-nextTurn :: Condition -> GameAuto
+nextTurn :: Condition -> GameMachine
 nextTurn con = GameAuto $ do
     ps   <- party <$> world
     rs   <- replicateM (length ps) (randomNext 0 100)
@@ -220,7 +220,7 @@ updateCondition con = do
     let (g, exp, is) = foldl' (\(g1, e1, is1) (g2, e2, is2) -> (g1 + g2, e1 + e2, is1 ++ is2)) (0, 0, []) drops
     return $ con { dropGold = dropGold con + g, gotExps = gotExps con + exp, dropItems = dropItems con ++ is }
 
-wonBattle :: Condition -> GameAuto
+wonBattle :: Condition -> GameMachine
 wonBattle con = GameAuto $ do
     ps <- party <$> world
     let e = gotExps con  `div` length ps
@@ -233,16 +233,16 @@ wonBattle con = GameAuto $ do
 -- ==========================================================================
 startProgressBattle :: [(Character.ID, Action)]
                     -> Condition
-                    -> GameAuto
+                    -> GameMachine
 startProgressBattle cmds con = GameAuto $ run =<< nextProgressBattle <$> determineActions cmds <*> pure con
 
 
 nextProgressBattle :: [BattleAction]
                    -> Condition
-                   -> GameAuto
+                   -> GameMachine
 nextProgressBattle as con = foldr act (nextTurn con) as
 
-act :: BattleAction -> GameAuto -> GameAuto
+act :: BattleAction -> GameMachine -> GameMachine
 act (ByParties id a) next = GameAuto $ do
     cantFight <- isCantFight <$> characterOf id
     if cantFight then run next
