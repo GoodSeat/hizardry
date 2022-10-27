@@ -1,7 +1,6 @@
 module GameAuto
 where
 
-import System.Random
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
@@ -108,57 +107,5 @@ select :: Event -> [(Input, GameMachine)] -> GameMachine
 select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns
 
 -- ==========================================================================
-
-world :: GameState World
-world = get
-
-option :: GameState Option
-option = asks scenarioOption
-
-home :: GameState GameMachine
-home = asks scenarioHome
-
-mazeAt :: Int -> GameState Maze
-mazeAt z = do
-   ls <- asks mazes
-   return $ ls !! z
-
-checkEncount :: Coord -> GameState (Maybe Enemy.ID)
-checkEncount c = do
-    emap <- asks encountMap
-    r    <- randomNext 1 100
-    let es' = do {
-        (prob, es) <- Map.lookup c emap;
-        guard $ r < prob;
-        return es
-        }
-    case es' of Nothing -> return Nothing
-                Just es -> Just <$> randomIn es
-
-happens :: Int -> GameState Bool
-happens prob = do
-    r <- randomNext 1 100
-    return $ prob >= r
-
-err :: String -> GameState a
-err = throwError
-
--- =================================================================================
-
-randomNext :: Int -> Int -> GameState Int
-randomNext min max = do
-    w <- world
-    let (v, g') = randomR (min, max) $ randomGen w
-    put w { randomGen = g' }
-    return v
-
-randomIn :: [a] -> GameState a
-randomIn as = do
-    n <- randomNext 1 $ length as
-    return $ as !! (n - 1)
-
--- =================================================================================
---
-
 
 

@@ -1,6 +1,8 @@
 module Utils
 where
 
+import System.Random
+import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
 
@@ -11,21 +13,81 @@ import Data.Maybe (fromMaybe)
 import Primitive
 import GameAuto
 import World
+import Maze
 import qualified Characters as Character
 import qualified Enemies as Enemy
 import qualified Spells as Spell
 import Formula
 
 
+-- =================================================================================
+-- General
+-- ---------------------------------------------------------------------------------
+
+world :: GameState World
+world = get
+
+option :: GameState Option
+option = asks scenarioOption
+
+home :: GameState GameMachine
+home = asks scenarioHome
+
+err :: String -> GameState a
+err = throwError
+
+-- =================================================================================
+
+eval :: Formula -> GameState Int
+eval = evalWith empty
+
+evalWith :: Map String Int -> Formula -> GameState Int
+evalWith m f = do
+    w <- world
+    let (res, g') = evalFormula m f $ randomGen w
+    put w { randomGen = g' }
+    case res of Right i   -> return i
+                Left  msg -> err msg
+
+-- =================================================================================
+-- Random
+-- ---------------------------------------------------------------------------------
+
+happens :: Int -> GameState Bool
+happens prob = (prob >=) <$> randomNext 1 100
+
+randomNext :: Int -> Int -> GameState Int
+randomNext min max = do
+    w <- world
+    let (v, g') = randomR (min, max) $ randomGen w
+    put w { randomGen = g' }
+    return v
+
+randomIn :: [a] -> GameState a
+randomIn as = do
+    n <- randomNext 1 $ length as
+    return $ as !! (n - 1)
+
+-- =================================================================================
+-- General commands.
+-- ---------------------------------------------------------------------------------
+
+mazeAt :: Int -> GameState Maze
+mazeAt z = asks $ (!!z) . mazes
+
 movePlace :: Place -> GameState ()
 movePlace p = modify $ \w -> w { place = p }
 
-moveToBattle :: [[Enemy.Instance]] -> GameState ()
-moveToBattle es = do
-    p <- place <$> world
-    case p of InMaze pos     -> movePlace $ InBattle pos es
-              InBattle pos _ -> movePlace $ InBattle pos es
-              _              -> err "invalid moveToBattle."
+
+spellByID :: Spell.ID -> GameState (Maybe Spell.Define)
+spellByID n = do
+    ss <- asks spells
+    return $ Data.Map.lookup n ss
+
+spellByName :: String -> GameState (Maybe Spell.Define)
+spellByName n = do
+    ss <- asks spells
+    return $ (ss!) <$> Spell.findID ss n
 
 
 inspectCharacter :: GameMachine -> Bool -> Int -> GameMachine
@@ -38,8 +100,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                      ,(Key "3", inspectCharacter h canSpell 3, length ids >= 3)
                      ,(Key "4", inspectCharacter h canSpell 4, length ids >= 4)
                      ,(Key "5", inspectCharacter h canSpell 5, length ids >= 5)
-                     ,(Key "6", inspectCharacter h canSpell 6, length ids >= 6)
-                     ]
+                     ,(Key "6", inspectCharacter h canSpell 6, length ids >= 6)]
   where
     msg = if canSpell then
             "U)se Item     D)rop Item    T)rade Item    E)qiup  \n" ++
@@ -50,6 +111,8 @@ inspectCharacter h canSpell i = GameAuto $ do
             "R)ead Spell   P)ool Money   #)Inspect      L)eave  "
 
 -- =================================================================================
+-- for Characters.
+-- ---------------------------------------------------------------------------------
 
 characterOf :: Character.ID -> GameState Character.Character
 characterOf id = do
@@ -97,6 +160,8 @@ sortPartyAutoWith psOrg = do
 
 
 -- =================================================================================
+-- for Enemies.
+-- ---------------------------------------------------------------------------------
 
 lastEnemies :: GameState [[Enemy.Instance]]
 lastEnemies = do
@@ -156,26 +221,8 @@ updateEnemy e f = do
         | otherwise = e1 : updateEnemyInstance es e f
     updateEnemyInstance [] _ _ = undefined
 
--- =================================================================================
-spellByID :: Spell.ID -> GameState (Maybe Spell.Define)
-spellByID n = do
-    ss <- asks spells
-    return $ Data.Map.lookup n ss
-
-spellByName :: String -> GameState (Maybe Spell.Define)
-spellByName n = do
-    ss <- asks spells
-    return $ (ss!) <$> Spell.findID ss n
 
 -- =================================================================================
+-- Other.
+-- ---------------------------------------------------------------------------------
 
-eval :: Formula -> GameState Int
-eval = evalWith empty
-
-evalWith :: Map String Int -> Formula -> GameState Int
-evalWith m f = do
-    w <- world
-    let (res, g') = evalFormula m f $ randomGen w
-    put w { randomGen = g' }
-    case res of Right i   -> return i
-                Left  msg -> err msg

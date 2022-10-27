@@ -62,6 +62,19 @@ enterGrid e probEncount p = GameAuto $ do
                                              Just ei -> run $ encountEnemy ei
               Just edef -> run $ doEvent edef
 
+checkEncount :: Coord -> GameState (Maybe Enemy.ID)
+checkEncount c = do
+    emap <- asks encountMap
+    r    <- randomNext 1 100
+    let es' = do {
+        (prob, es) <- Map.lookup c emap;
+        guard $ r < prob;
+        return es
+        }
+    case es' of Nothing -> return Nothing
+                Just es -> Just <$> randomIn es
+
+
 ouch :: Position -> GameMachine
 ouch p = select (Message "Ouch !!") $ moves p
 

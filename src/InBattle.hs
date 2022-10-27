@@ -99,6 +99,13 @@ startBattle eid (g1, g2) = GameAuto $ do
     -- TODO:following code is ideal...
 --  select (Message "\nEncounter!\n") [(Clock, selectBattleCommand 1)]
 
+moveToBattle :: [[Enemy.Instance]] -> GameState ()
+moveToBattle es = do
+    p <- place <$> world
+    case p of InMaze pos     -> movePlace $ InBattle pos es
+              InBattle pos _ -> movePlace $ InBattle pos es
+              _              -> err "invalid moveToBattle."
+
 
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> [(Character.ID, Action)]
