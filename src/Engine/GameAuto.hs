@@ -77,17 +77,19 @@ runGame :: (Event -> World -> IO a)  -- ^ renderer of game.
         -> IO String
 runGame render cmd scenario (game, w) = do
     let (res, w') = runReader (runStateT (runExceptT $ run game) w) scenario
-    case res of Left msg        -> return msg
-                Right (e, next) -> if e == Exit then return "thank you for playing."
-                                   else do
-                                       render e w'
-                                       let itype = case e of SpellCommand _          -> SequenceKey
-                                                             MessageTime n _ _       -> WaitClock n 
-                                                             Time n _                -> WaitClock n
-                                                             Engine.GameAuto.Ask _ _ -> SequenceKey
-                                                             _                       -> SingleKey
-                                       i <- cmd itype
-                                       runGame render cmd scenario (next i, w')
+    case res of
+      Left msg        -> return msg
+      Right (e, next) -> if e == Exit then return "thank you for playing."
+                         else do
+                           render e w'
+                           let itype = case e of
+                                 SpellCommand _          -> SequenceKey
+                                 MessageTime n _ _       -> WaitClock n 
+                                 Time n _                -> WaitClock n
+                                 Engine.GameAuto.Ask _ _ -> SequenceKey
+                                 _                       -> SingleKey
+                           i <- cmd itype
+                           runGame render cmd scenario (next i, w')
 
 -- ==========================================================================
 
