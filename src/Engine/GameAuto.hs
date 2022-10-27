@@ -6,6 +6,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 import qualified Data.Map as Map
 
+import Data.Primitive
 import Data.World
 import Data.Maze
 import qualified Data.MazeEvent as MazeEvent
@@ -25,10 +26,13 @@ data InputType = SingleKey
 
 data Event = None
            | Exit
-           | Ask           String
+
            | Message       String
-           | MessageTime   Int String -- ^ negative wait time means enable to skip by key input
-           | Time          Int        -- ^ negative wait time means enable to skip by key input
+           | MessagePic    String (Maybe PictureID)
+           | Ask           String (Maybe PictureID)
+           | MessageTime   Int String (Maybe PictureID) -- ^ negative wait time means enable to skip by key input
+           | Time          Int        (Maybe PictureID) -- ^ negative wait time means enable to skip by key input
+
            | BattleCommand String
            | SpellCommand  String
            | ShowStatus    Int String -- ^ order of member, manu message.
@@ -66,10 +70,10 @@ type GameMachine = GameAuto Input Event
 
 -- ==========================================================================
 
-runGame :: (Event -> World -> IO a)     -- ^ renderer of game.
-        -> (InputType -> IO Input)      -- ^ input command.
-        -> Scenario                     -- ^ game scenario.
-        -> (GameMachine, World)            -- ^ target GameMachine, and current environment.
+runGame :: (Event -> World -> IO a)  -- ^ renderer of game.
+        -> (InputType -> IO Input)   -- ^ input command.
+        -> Scenario                  -- ^ game scenario.
+        -> (GameMachine, World)      -- ^ target GameMachine, and current environment.
         -> IO String
 runGame render cmd scenario (game, w) = do
     let (res, w') = runReader (runStateT (runExceptT $ run game) w) scenario
@@ -77,11 +81,11 @@ runGame render cmd scenario (game, w) = do
                 Right (e, next) -> if e == Exit then return "thank you for playing."
                                    else do
                                        render e w'
-                                       let itype = case e of SpellCommand _        -> SequenceKey
-                                                             MessageTime n _       -> WaitClock n 
-                                                             Time n                -> WaitClock n
-                                                             Engine.GameAuto.Ask _ -> SequenceKey
-                                                             _                     -> SingleKey
+                                       let itype = case e of SpellCommand _          -> SequenceKey
+                                                             MessageTime n _ _       -> WaitClock n 
+                                                             Time n _                -> WaitClock n
+                                                             Engine.GameAuto.Ask _ _ -> SequenceKey
+                                                             _                       -> SingleKey
                                        i <- cmd itype
                                        runGame render cmd scenario (next i, w')
 

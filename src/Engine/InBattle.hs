@@ -95,7 +95,7 @@ startBattle eid (g1, g2) = GameAuto $ do
     let con = Condition {
       afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [], defaultOrder = ps
     }
-    run $ events [MessageTime (-1000) "\nEncounter!\n"]
+    run $ events [MessageTime (-1000) "\nEncounter!\n" Nothing]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
     -- TODO:following code is ideal...
 --  select (Message "\nEncounter!\n") [(Clock, selectBattleCommand 1)]

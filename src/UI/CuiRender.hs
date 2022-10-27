@@ -165,10 +165,6 @@ dunsion p scenario = foldl1 mappend $ front <$> [(d, s) | d <-[0..1], s <- [(-1)
         upn = if Up   `elem` nots then upNotice   d s else mempty
         dwn = if Down `elem` nots then downNotice d s else mempty
 
-enemyPic :: Enemy.Define -> Bool -> Craphic
-enemyPic edef True = werdna
-enemyPic edef False = himiko
-
 -- ========================================================================
 
 frame :: Craphic

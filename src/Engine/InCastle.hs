@@ -114,11 +114,12 @@ sleep id h g d = GameAuto $ do
       run $ events [Message "not money."] $ selectStayPlan id
     else do
       updateCharacterWith id Character.healMp
-      run $ select (MessageTime (-1000) $ Character.name c
-                                       ++ " is napping. \n\n"
-                                       ++ show (Character.name c) ++ " has "
-                                       ++ show (Character.gold c) ++ " G.P.\n\n"
-                                       ++ "W)ake up")
+      run $ select (MessageTime (-1000) ( Character.name c
+                                        ++ " is napping. \n\n"
+                                        ++ show (Character.name c) ++ " has "
+                                        ++ show (Character.gold c) ++ " G.P.\n\n"
+                                        ++ "W)ake up"
+                                        ) Nothing)
                    [(Key "w", checkLvup id)
                    ,(Clock  , next)]
   where

@@ -11,6 +11,7 @@ import Data.Maze
 
 import Control.CUI (Filter)
 
+
 data World = World {
       randomGen       :: StdGen
     , guideOn         :: !Bool   -- ^ visible guidw window in maze.

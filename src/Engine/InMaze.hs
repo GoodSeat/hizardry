@@ -153,10 +153,10 @@ doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
         run $ events' (updownEffect p' False) next
-    doEvent' (Ev.Message msg picID) next = events [Message msg] next
-    doEvent' (Ev.Ask msg picID ways) next = select (Ask msg) ss
+    doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] next
+    doEvent' (Ev.Ask msg picID ways) next = select (Ask msg picID) ss
       where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
-    doEvent' (Ev.Select msg picID ways) next = select (Message msg) ss
+    doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
       where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
     doEvent' (Ev.Events []) next = next
     doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next
@@ -168,9 +168,9 @@ doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
     doEvent' Ev.End _    = endEvent
 
 updownEffect :: Position -> Bool -> [(GameState (), Event)]
-updownEffect p toUp = replicate c (upStep, Time 150)
-                   ++ [(upRest >> movePlace (InMaze p), Time 150)]
-                   ++ replicate c (upStep, Time 150)
+updownEffect p toUp = replicate c (upStep, Time 150 Nothing)
+                   ++ [(upRest >> movePlace (InMaze p), Time 150 Nothing)]
+                   ++ replicate c (upStep, Time 150 Nothing)
   where
     r = if toUp then 1 else -1
     u = 5 -- translate length by step.

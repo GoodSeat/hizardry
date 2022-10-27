@@ -157,11 +157,11 @@ main = do
                      ]
                    ])
                 , (Ev.ID 010101, Ev.Events [
-                     Ev.Ask "what's your name?" Nothing [
+                     Ev.Ask "what's your name?" (Just $ PictureID 1001) [
                        ("werdna", Ev.Events [
-                           Ev.Message "OH MY GOD!" Nothing
+                           Ev.Message "OH MY GOD!" (Just $ PictureID 1002)
                          ])
-                     , ("", Ev.Message "who?" Nothing)
+                     , ("", Ev.Message "who?" (Just $ PictureID 1001))
                      ]
                    ])
                 ]
@@ -278,7 +278,16 @@ main = do
  
                 ]
             }
-    putStrLn =<< runGame (testRender scenario) cmd scenario (inCastle, w)
+
+    let pic id | id == PictureID 1001 = himiko
+               | id == PictureID 1002 = werdna
+               | id == PictureID 2001 = himiko
+               | id == PictureID 2002 = werdna
+               | otherwise            = mempty
+    let picOf = \picID -> case picID of Nothing -> mempty
+                                        Just id -> pic id
+
+    putStrLn =<< runGame (testRender picOf scenario) cmd scenario (inCastle, w)
 
 
 -- ==========================================================================
@@ -306,20 +315,22 @@ waitKey = do
            else threadDelay 50000 >> waitKey
 
 -- ==========================================================================
-testRender :: Scenario -> Event -> World -> IO()
-testRender s (Ask m) w = testRender s (Message m) w
-testRender s (MessageTime _ m) w = testRender s (Message m) w
-testRender s (Message m) w = do
+testRender :: (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
+testRender picOf s (Ask m picID)           w = testRender picOf s (MessagePic m picID) w
+testRender picOf s (MessageTime _ m picID) w = testRender picOf s (MessagePic m picID) w
+testRender picOf s (Message m)             w = testRender picOf s (MessagePic m Nothing) w
+testRender picOf s (MessagePic m picID)    w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ msgBox m
           <> (if statusWindow w then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
-          <> enemyScene s (place w)
+          <> enemyScene picOf s (place w)
+          <> picOf picID
           <> frame
           <> sceneTrans w (scene (place w) s)
-testRender s (SpellCommand m) w = testRender s (BattleCommand m) w
-testRender s (BattleCommand m) w = do
+testRender picOf s (SpellCommand m) w = testRender picOf s (BattleCommand m) w
+testRender picOf s (BattleCommand m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
         ess = case place w of InBattle _ ess' -> ess'
@@ -328,7 +339,7 @@ testRender s (BattleCommand m) w = do
           <> msgBox (unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n")
           <> (if statusWindow w then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
-          <> enemyScene s (place w)
+          <> enemyScene picOf s (place w)
           <> frame
           <> sceneTrans w (scene (place w) s)
   where
@@ -341,18 +352,19 @@ testRender s (BattleCommand m) w = do
          nActive = show $ length . filter (null . Enemy.statusErrors) $ es
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
 
-testRender s (Time _) w = testRender s None w
-testRender s None w = do
+testRender picOf s None           w = testRender picOf s (Time 0 Nothing) w
+testRender picOf s (Time _ picID) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ (if statusWindow w && not inBattle then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
           <> frame
-          <> enemyScene s (place w)
+          <> enemyScene picOf s (place w)
+          <> picOf picID
           <> sceneTrans w (scene (place w) s)
   where inBattle = case place w of InBattle _ _ -> True
                                    _            -> False
-testRender s (ShowStatus i m) w = do
+testRender _ s (ShowStatus i m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ status (catMaybes ps)
@@ -360,14 +372,16 @@ testRender s (ShowStatus i m) w = do
           <> frame
           <> sceneTrans w (scene (place w) s)
 
-testRender _ Exit _ = undefined
+testRender _ _ Exit _ = undefined
 
 
-enemyScene :: Scenario -> Place -> Craphic
-enemyScene s (InBattle _ (es:_)) = let e    = head es
-                                       edef = enemies s Map.! Enemy.id e
-                                   in  enemyPic edef $ Enemy.determined e
-enemyScene _ _ = mempty
+enemyScene :: (Maybe PictureID -> Craphic) -> Scenario -> Place -> Craphic
+enemyScene picOf s (InBattle _ (es:_)) =
+    let e    = head es
+        edef = enemies s Map.! Enemy.id e
+    in if Enemy.determined e then picOf (Just $ Enemy.pic edef)
+                             else picOf (Just $ Enemy.picUndetermined edef)
+enemyScene _ _ _ = mempty
 
 
 statusWindow :: World -> Bool
