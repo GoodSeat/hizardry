@@ -48,6 +48,8 @@ data Formula = Value Int
              | Operate Operator Formula Formula
              | Variable String
              | Dice Int Int
+-- TODO!:    | MinOf Formula Formula
+-- TODO!:    | MaxOf Formula Formula
 
 instance Show Formula where
     show (Value n)       = show n

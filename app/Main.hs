@@ -24,6 +24,19 @@ import Control.CUI
 import UI.CuiRender
 
 
+-- note
+-- * game over
+-- * shop
+-- *   identify items
+-- * temple
+-- * lvup
+-- * training ground
+-- * room battle
+-- *   treasure chest
+-- * other spells
+-- * other events
+
+
 main :: IO ()
 main = do
     let param = Parameter {
