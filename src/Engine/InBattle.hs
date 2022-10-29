@@ -271,7 +271,7 @@ act (ByEnemies l e a) next = GameAuto $ do
         else case a of
           Enemy.Fight n d t effs -> run $ fightOfEnemy e' n d t effs next
           Enemy.Spelling f       -> do
-              s'  <- spellByID . Spell.ID =<< eval f
+              s'  <- spellByID . SpellID =<< eval f
               cid <- eval $ parse' "1d6"
               case s' of Just s  -> run $ spell' s (Right e') cid next
                          Nothing -> run $ spellUnknown "?" (Right e') 0 next

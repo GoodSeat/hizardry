@@ -7,10 +7,6 @@ import Data.List
 import Data.Primitive
 import Data.Formula
 
-data ID = ID {
-    id :: Int -- ^ identify number.
-} deriving (Show, Eq, Ord)
-
 data Kind = M | P deriving (Show, Eq)
 
 data Define = Define {
@@ -42,9 +38,9 @@ data TargetType = OpponentSingle
                 | AllyAll
     deriving (Show, Eq)
 
-type DB = Map.Map ID Define
+type DB = Map.Map SpellID Define
 
 
 -- | find ID of spell from spell's name.
-findID :: DB -> String -> Maybe ID
+findID :: DB -> String -> Maybe SpellID
 findID db n = fmap fst $ find ((== n).name.snd) $ Map.assocs db

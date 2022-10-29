@@ -265,7 +265,7 @@ main = do
                 })
                 ]
             , spells         = Map.fromList [
-                (Spell.ID 11, Spell.Define {
+                (SpellID 11, Spell.Define {
                       Spell.name      = "halito"
                     , Spell.kind      = Spell.M
                     , Spell.lv        = 1
@@ -274,7 +274,7 @@ main = do
                     , Spell.effect    = Spell.Damage (parse' "1d6")
                 })
                 ,
-                (Spell.ID 21, Spell.Define {
+                (SpellID 21, Spell.Define {
                       Spell.name      = "mahalito"
                     , Spell.kind      = Spell.M
                     , Spell.lv        = 2
@@ -283,7 +283,7 @@ main = do
                     , Spell.effect    = Spell.Damage (parse' "2d6")
                 })
                 ,
-                (Spell.ID 71, Spell.Define {
+                (SpellID 71, Spell.Define {
                       Spell.name      = "tiltowait"
                     , Spell.kind      = Spell.M
                     , Spell.lv        = 7

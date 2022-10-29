@@ -4,9 +4,8 @@ where
 import qualified Data.Map as Map
 import Data.Maze
 import Data.Primitive
-import qualified Data.Characters as Character
-import qualified Data.Spells as Spell
 import Data.Formula
+import qualified Data.Characters as Character
 
 newtype ID = ID {
     num :: Int
@@ -44,7 +43,7 @@ type DB = Map.Map ID Define
 
 data Condition = PartyHasItem        ItemID
                | PartyExistAlignment [Character.Alignment]
-               | LeaderKnowSpell     Spell.ID
+               | LeaderKnowSpell     SpellID
                | LeaderIsJobOf       [String]
                | ForumlaCheckParty   Formula
                | ForumlaCheckLeader  Formula

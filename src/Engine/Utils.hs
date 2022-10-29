@@ -79,7 +79,7 @@ movePlace :: Place -> GameState ()
 movePlace p = modify $ \w -> w { place = p }
 
 
-spellByID :: Spell.ID -> GameState (Maybe Spell.Define)
+spellByID :: SpellID -> GameState (Maybe Spell.Define)
 spellByID n = do
     ss <- asks spells
     return $ Data.Map.lookup n ss

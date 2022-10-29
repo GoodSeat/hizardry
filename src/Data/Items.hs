@@ -1,8 +1,8 @@
 module Data.Items
 where
 
+import Data.Primitive
 import qualified Data.Map as Map
-import qualified Data.Spells as Spell
 
 
 data Define = Define {
@@ -19,7 +19,7 @@ data ItemType =
     deriving (Show, Eq)
 
 data Effect = 
-      EqSpell Spell.ID
+      EqSpell SpellID
 --  | Happens Ev.
     deriving (Show, Eq)
 

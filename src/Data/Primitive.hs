@@ -2,7 +2,7 @@ module Data.Primitive
 where
 
 -- ==========================================================================
--- ID and DB
+-- ID
 -- --------------------------------------------------------------------------
 
 data ItemID = ItemID {
@@ -11,9 +11,19 @@ data ItemID = ItemID {
 } deriving (Show, Eq, Ord)
 
 
+data SpellID = SpellID {
+    spellId :: Int -- ^ identify number.
+} deriving (Show, Eq, Ord)
+
+
 newtype PictureID = PictureID {
     num :: Int
 } deriving (Show, Eq, Ord)
+
+
+-- ==========================================================================
+-- object
+-- --------------------------------------------------------------------------
 
 -- | type of status error.
 data StatusError = Silence

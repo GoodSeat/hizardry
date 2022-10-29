@@ -2,11 +2,9 @@ module Data.Characters
 where
 
 import Data.List (nub)
-import qualified Data.Map as Map
-
-import qualified Data.Spells as Spell
-
 import Data.Primitive
+import qualified Data.Map as Map
+import qualified Data.Spells as Spell
 
 data ID = ID {
     id :: Int
@@ -33,7 +31,7 @@ data Character = Character {
     , items        :: ![ItemID]       -- ^ items you have.
     , equips       :: ![ItemID]       -- ^ items you equips.
 
-    , spells       :: ![Spell.ID]     -- ^ learned spells.
+    , spells       :: ![SpellID]      -- ^ learned spells.
     , mp           :: !([Int], [Int]) -- ^ MP
     , maxmp        :: !([Int], [Int]) -- ^ MaxMP
 } deriving (Show, Eq)
@@ -111,17 +109,17 @@ addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age =
 -- =================================================================================
 
 
-knowSpell :: Spell.ID -> Character -> Bool
+knowSpell :: SpellID -> Character -> Bool
 knowSpell id c = id `elem` spells c
 
-canSpell :: Spell.DB -> Spell.ID -> Character -> Bool
+canSpell :: Spell.DB -> SpellID -> Character -> Bool
 canSpell db id c = knowSpell id c && (typ (mp c) !! lv) > 0
   where
     def = (Map.!) db id
     lv  = Spell.lv def
     typ = if Spell.kind def == Spell.M then fst else snd
 
-costSpell :: Spell.DB -> Spell.ID -> Character -> Character
+costSpell :: Spell.DB -> SpellID -> Character -> Character
 costSpell db id c = c { mp = (m', p') }
   where
     def = (Map.!) db id
