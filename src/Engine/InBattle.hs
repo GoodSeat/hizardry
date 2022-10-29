@@ -29,7 +29,7 @@ data Action = Fight Int
             | Ambush Int
             | Run
             | Parry
-            | UseItem Item.ID Int
+            | UseItem ItemID Int
             | CantMove
     deriving (Show, Eq)
 

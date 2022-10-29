@@ -5,7 +5,6 @@ import qualified Data.Map as Map
 import Data.Maze
 import Data.Primitive
 import qualified Data.Characters as Character
-import qualified Data.Items as Item
 import qualified Data.Spells as Spell
 import Data.Formula
 
@@ -43,7 +42,7 @@ data Define =
 
 type DB = Map.Map ID Define
 
-data Condition = PartyHasItem        Item.ID
+data Condition = PartyHasItem        ItemID
                | PartyExistAlignment [Character.Alignment]
                | LeaderKnowSpell     Spell.ID
                | LeaderIsJobOf       [String]

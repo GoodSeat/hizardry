@@ -5,7 +5,6 @@ import Data.List (nub)
 import qualified Data.Map as Map
 
 import qualified Data.Spells as Spell
-import qualified Data.Items as Item
 
 import Data.Primitive
 
@@ -31,8 +30,8 @@ data Character = Character {
     , rips         :: !Int            -- ^ count of dead.
     , statusErrors :: ![StatusError]  -- ^ status errors.
     
-    , items        :: ![Item.ID]      -- ^ items you have.
-    , equips       :: ![Item.ID]      -- ^ items you equips.
+    , items        :: ![ItemID]       -- ^ items you have.
+    , equips       :: ![ItemID]       -- ^ items you equips.
 
     , spells       :: ![Spell.ID]     -- ^ learned spells.
     , mp           :: !([Int], [Int]) -- ^ MP

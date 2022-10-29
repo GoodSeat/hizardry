@@ -26,6 +26,9 @@ import UI.CuiRender
 
 -- note
 -- * game over
+-- * items
+-- *   equip
+-- *   sp
 -- * shop
 -- *   identify items
 -- * temple

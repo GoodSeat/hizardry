@@ -2,27 +2,43 @@ module Data.Items
 where
 
 import qualified Data.Map as Map
+import qualified Data.Spells as Spell
 
-data ID = ID {
-      id         :: Int  -- ^ identify number.
-    , determined :: Bool -- ^ already determined or not.
-} deriving (Show, Eq, Ord)
 
 data Define = Define {
       name             :: String
     , nameUndetermined :: String
-    , efficacy         :: Effect
+    , itemType         :: ItemType
+    , spEffect         :: Maybe (Effect, Int) -- ^ effect, probablity broken after sp.
 } deriving (Show, Eq)
 
-data Effect =
+
+data ItemType = 
+      Potion
+    | Equip
+    deriving (Show, Eq)
+
+data Effect = 
+      EqSpell Spell.ID
+--  | Happens Ev.
+    deriving (Show, Eq)
+
+data EquipType =
       Weapon
     | Shield
     | Helmet
     | Armor
     | Gantlett
     | Accessories
-    | Potion
     deriving (Show, Eq)
+
+
+class Equipable a where
+  canEquip :: a -> String -> Bool  -- ^ jobname
+  effectAC :: a -> Int
+  
+
+
         
 
 -- | data base of items.

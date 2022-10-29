@@ -1,6 +1,16 @@
 module Data.Primitive
 where
 
+-- ==========================================================================
+-- ID and DB
+-- --------------------------------------------------------------------------
+
+data ItemID = ItemID {
+      itemId     :: Int  -- ^ identify number.
+    , determined :: Bool -- ^ already determined or not.
+} deriving (Show, Eq, Ord)
+
+
 newtype PictureID = PictureID {
     num :: Int
 } deriving (Show, Eq, Ord)
@@ -29,6 +39,8 @@ data Parameter = Parameter {
     , luck     :: !Int -- ^ luck
 } deriving (Show, Eq)
 
+
+-- ==========================================================================
 
 class Object o where
   nameOf          :: o -> String

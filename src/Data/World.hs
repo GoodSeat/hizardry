@@ -4,9 +4,9 @@ where
 import System.Random
 import qualified Data.Map as Map
 
+import Data.Primitive
 import qualified Data.Characters as Character
 import qualified Data.Enemies as Enemy
-import qualified Data.Items as Item
 import Data.Maze
 
 import Control.CUI (Filter)
@@ -23,7 +23,7 @@ data World = World {
 
     , inTarvernMember :: ![Character.ID]
     , inMazeMember    :: ![(Character.ID, Position)]
-    , shopItems       :: !(Map.Map Item.ID Int)
+    , shopItems       :: !(Map.Map ItemID Int)
 
     , allCharacters   :: !Character.DB
 
