@@ -11,13 +11,9 @@ import qualified Data.Characters as Character
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
 
-newtype ID = ID {
-    num :: Int
-} deriving (Show, Eq, Ord)
-
 data Instance = Instance {
-      id            :: !ID     -- ^ define id.
-    , noID          :: !Int    -- ^ number for identiry inscance.
+      id            :: !EnemyID -- ^ define id.
+    , noID          :: !Int     -- ^ number for identiry inscance.
     , determined    :: !Bool
     , hp            :: !Int
     , maxhp         :: !Int
@@ -108,5 +104,5 @@ data Trap = DropDirectly
     deriving (Show, Eq, Enum)
 
 -- | data base of enemies.
-type DB = Map.Map ID Define
+type DB = Map.Map EnemyID Define
 

@@ -43,23 +43,23 @@ data Condition = Condition {
     }
 
 -- ==========================================================================
-decideEnemyInstance :: Enemy.ID -> GameState [[Enemy.Instance]]
+decideEnemyInstance :: EnemyID -> GameState [[Enemy.Instance]]
 decideEnemyInstance e = decideEnemyInstance' 1 e >>= tryDetermineEnemies
   where
-    decideEnemyInstance' :: Int -> Enemy.ID -> GameState [[Enemy.Instance]]
+    decideEnemyInstance' :: Int -> EnemyID -> GameState [[Enemy.Instance]]
     decideEnemyInstance' l eid = if l > 4 then return [] else do
         def <- enemyOf eid
         n   <- eval $ Enemy.numOfOccurrences def
         withBack <- happens $ Enemy.withBackProb def
-        bl  <- if withBack then decideEnemyInstance' (l + 1) . Enemy.ID =<< eval (Enemy.backEnemyID def)
+        bl  <- if withBack then decideEnemyInstance' (l + 1) . EnemyID =<< eval (Enemy.backEnemyID def)
                            else return []
         el  <- createEnemyInstances n l eid True
         return $ el : bl
 
-createEnemyInstances :: Int          -- ^ num of create instaces.
-                     -> Int          -- ^ belong line no.
-                     -> Enemy.ID     -- ^ target id of enemy.
-                     -> Bool         -- ^ maybe drop item or not.
+createEnemyInstances :: Int     -- ^ num of create instaces.
+                     -> Int     -- ^ belong line no.
+                     -> EnemyID -- ^ target id of enemy.
+                     -> Bool    -- ^ maybe drop item or not.
                      -> GameState [Enemy.Instance]
 createEnemyInstances 0 _ _ _              = return []
 createEnemyInstances n l eid dropItem = do
@@ -84,7 +84,7 @@ tryDetermineEnemies = mapM $ \es -> do
     return $ if determine then fmap (\e -> e { Enemy.determined = True }) es else es
 
 -- ==========================================================================
-startBattle :: Enemy.ID                   -- ^ encounted enemy.
+startBattle :: EnemyID                    -- ^ encounted enemy.
             -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
             -> GameMachine
 startBattle eid (g1, g2) = GameAuto $ do

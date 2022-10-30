@@ -20,6 +20,11 @@ data ItemInf = ItemInf {
 } deriving (Show, Eq, Ord)
 
 
+newtype EnemyID = EnemyID {
+    enemyID :: Int
+} deriving (Show, Eq, Ord)
+
+
 newtype SpellID = SpellID {
     spellId :: Int -- ^ identify number.
 } deriving (Show, Eq, Ord)

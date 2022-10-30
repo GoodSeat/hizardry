@@ -169,7 +169,7 @@ lastEnemies = do
     case p of InBattle _ ess -> return ess
               _              -> err "invalid lastEnemies."
 
-enemyOf :: Enemy.ID -> GameState Enemy.Define
+enemyOf :: EnemyID -> GameState Enemy.Define
 enemyOf eid = do
     es <- asks enemies
     return $ es ! eid

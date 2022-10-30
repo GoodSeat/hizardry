@@ -45,7 +45,7 @@ data Scenario = Scenario {
       scenarioOption :: !Option
     , scenarioHome   :: !GameMachine
     , mazes          :: ![Maze]
-    , encountMap     ::  Map.Map Coord (Int, [Enemy.ID])
+    , encountMap     ::  Map.Map Coord (Int, [EnemyID])
     , eventMap       ::  Map.Map Coord MazeEvent.ID
     , mazeEvents     :: !MazeEvent.DB
     , enemies        :: !Enemy.DB

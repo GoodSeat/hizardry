@@ -143,11 +143,11 @@ main = do
             , scenarioHome   = inCastle
             , mazes          = [testMaze, testMaze2]
             , encountMap     = Map.fromList [
-                  ((1, 1, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
-                , ((1, 2, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
-                , ((1, 3, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
-                , ((1, 4, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
-                , ((1, 5, 0), (30, [Enemy.ID 1, Enemy.ID 2]))
+                  ((1, 1, 0), (30, [EnemyID 1, EnemyID 2]))
+                , ((1, 2, 0), (30, [EnemyID 1, EnemyID 2]))
+                , ((1, 3, 0), (30, [EnemyID 1, EnemyID 2]))
+                , ((1, 4, 0), (30, [EnemyID 1, EnemyID 2]))
+                , ((1, 5, 0), (30, [EnemyID 1, EnemyID 2]))
                 ]
             , mazeEvents = Map.fromList [
                   (Ev.ID 010100, Ev.Events [
@@ -188,7 +188,7 @@ main = do
                 , ((1, 1, 1), Ev.ID 010101)
                 ]
             , enemies        = Map.fromList [
-                (Enemy.ID 1, Enemy.Define {
+                (EnemyID 1, Enemy.Define {
                       Enemy.name              = "slime"
                     , Enemy.nameUndetermined  = "moving object"
                     , Enemy.pic               = PictureID 1001
@@ -223,7 +223,7 @@ main = do
                     , Enemy.enableRun         = True
                     , Enemy.trapCandidate     = [Enemy.NoTrap, Enemy.PoisonNeedle, Enemy.GasBomb, Enemy.CrossbowBolt, Enemy.ExplodingBox]
                 })
-                , (Enemy.ID 2, Enemy.Define {
+                , (EnemyID 2, Enemy.Define {
                       Enemy.name              = "goblin"
                     , Enemy.nameUndetermined  = "humanoid creature"
                     , Enemy.pic               = PictureID 1002

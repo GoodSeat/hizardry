@@ -13,7 +13,6 @@ import Data.World
 import Data.Maze
 import Data.Primitive
 import qualified Data.MazeEvent as Ev
-import qualified Data.Enemies as Enemy
 
 import Control.CUI (translate)
 
@@ -62,7 +61,7 @@ enterGrid e probEncount p = GameAuto $ do
                                              Just ei -> run $ encountEnemy ei
               Just edef -> run $ doEvent edef
 
-checkEncount :: Coord -> GameState (Maybe Enemy.ID)
+checkEncount :: Coord -> GameState (Maybe EnemyID)
 checkEncount c = do
     emap <- asks encountMap
     r    <- randomNext 1 100
@@ -103,7 +102,7 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
 
 -- =======================================================================
 
-encountEnemy :: Enemy.ID -> GameMachine
+encountEnemy :: EnemyID -> GameMachine
 encountEnemy id = startBattle id (escapeEvent, escapeEvent)
 
 -- =======================================================================
