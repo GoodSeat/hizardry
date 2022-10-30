@@ -125,14 +125,14 @@ main = do
       , place           = InCastle
       , roomBattled   = []
 
-      , inTarvernMember = [Character.ID 1, Character.ID 2, Character.ID 3]
+      , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3]
       , inMazeMember    = []
       , shopItems       = Map.fromList []
 
       , allCharacters   = Map.fromList [
-                              (Character.ID 1, testChara1)
-                            , (Character.ID 2, testChara2)
-                            , (Character.ID 3, testChara3)
+                              (CharacterID 1, testChara1)
+                            , (CharacterID 2, testChara2)
+                            , (CharacterID 3, testChara3)
                             ]
       , sceneTrans      = id
       }

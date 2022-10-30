@@ -114,12 +114,12 @@ inspectCharacter h canSpell i = GameAuto $ do
 -- for Characters.
 -- ---------------------------------------------------------------------------------
 
-characterOf :: Character.ID -> GameState Character.Character
+characterOf :: CharacterID -> GameState Character.Character
 characterOf id = do
     db <- allCharacters <$> world
     return $ db ! id
 
-toParty :: Character.ID -> GameState ()
+toParty :: CharacterID -> GameState ()
 toParty id = do
     w <- world
     let w' = w { party           = party w ++ [id]
@@ -128,19 +128,19 @@ toParty id = do
                }
     put w'
 
-updateCharacter :: Character.ID -> Character.Character -> GameState ()
+updateCharacter :: CharacterID -> Character.Character -> GameState ()
 updateCharacter id c = do
     w  <- world
     let db = allCharacters w
         w' = w { allCharacters = insert id c db }
     put w'
 
-updateCharacterWith :: Character.ID -> (Character.Character -> Character.Character) -> GameState ()
+updateCharacterWith :: CharacterID -> (Character.Character -> Character.Character) -> GameState ()
 updateCharacterWith id f = do
     db <- allCharacters <$> world
     updateCharacter id (f $ db ! id)
 
-poolGold :: Character.ID -> GameState ()
+poolGold :: CharacterID -> GameState ()
 poolGold id = do
     ids <- party <$> world
     cs  <- mapM characterOf ids
@@ -150,7 +150,7 @@ poolGold id = do
 sortPartyAuto :: GameState ()
 sortPartyAuto = sortPartyAutoWith . party =<< world
 
-sortPartyAutoWith :: [Character.ID] -> GameState ()
+sortPartyAutoWith :: [CharacterID] -> GameState ()
 sortPartyAutoWith psOrg = do
     w   <- world
     ps' <- zip psOrg <$> mapM characterOf psOrg

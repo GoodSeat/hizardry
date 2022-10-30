@@ -19,7 +19,7 @@ import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
 
-data BattleAction = ByParties Character.ID Action
+data BattleAction = ByParties CharacterID Action
                   | ByEnemies Int Enemy.Instance Enemy.Action
     deriving (Show)
 
@@ -39,7 +39,7 @@ data Condition = Condition {
     , gotExps      :: Int
     , dropGold     :: Int
     , dropItems    :: [Int]
-    , defaultOrder :: [Character.ID] -- ^ party order when battle started.
+    , defaultOrder :: [CharacterID] -- ^ party order when battle started.
     }
 
 -- ==========================================================================
@@ -109,7 +109,7 @@ moveToBattle es = do
 
 
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
-                    -> [(Character.ID, Action)]
+                    -> [(CharacterID, Action)]
                     -> Condition
                     -> GameMachine
 selectBattleCommand i cmds con = GameAuto $ do
@@ -189,7 +189,7 @@ selectCastTarget s next = GameAuto $ do
                                ,(Key "6", nextWith 6, mx > 5)]
 
 
-confirmBattle :: [(Character.ID, Action)]
+confirmBattle :: [(CharacterID, Action)]
               -> Condition
               -> GameMachine
 confirmBattle cmds con = select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Back")
@@ -239,7 +239,7 @@ wonBattle con = GameAuto $ do
 
 
 -- ==========================================================================
-startProgressBattle :: [(Character.ID, Action)]
+startProgressBattle :: [(CharacterID, Action)]
                     -> Condition
                     -> GameMachine
 startProgressBattle cmds con = GameAuto $ run =<< nextProgressBattle <$> determineActions cmds <*> pure con
@@ -285,7 +285,7 @@ act (ByEnemies l e a) next = GameAuto $ do
 --  vs = ["tries to ambush"]
 
 -- ==========================================================================
-determineActions :: [(Character.ID, Action)]
+determineActions :: [(CharacterID, Action)]
                  -> GameState [BattleAction]
 determineActions cmds = do 
     pcs  <- mapM toPair cmds
@@ -294,7 +294,7 @@ determineActions cmds = do
     ecs  <- mapM toEnemyAction els
     return $ snd <$> sortOn fst (pcs ++ ecs)
   where
-    toPair :: (Character.ID, Action) -> GameState (Int, BattleAction)
+    toPair :: (CharacterID, Action) -> GameState (Int, BattleAction)
     toPair (id, act) = do
         agi <- agility . Character.param <$> characterOf id
         key <- agiBonus agi

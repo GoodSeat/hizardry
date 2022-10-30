@@ -5,6 +5,10 @@ where
 -- ID
 -- --------------------------------------------------------------------------
 
+data CharacterID = CharacterID {
+    characterId :: Int
+} deriving (Show, Eq, Ord)
+
 data ItemID = ItemID {
       itemId     :: Int  -- ^ identify number.
     , determined :: Bool -- ^ already determined or not.

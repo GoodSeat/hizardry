@@ -6,10 +6,6 @@ import Data.Primitive
 import qualified Data.Map as Map
 import qualified Data.Spells as Spell
 
-data ID = ID {
-    id :: Int
-} deriving (Show, Eq, Ord)
-
 data Character = Character { 
       name         :: !String         -- ^ name of character.
     , age          :: !Int            -- ^ age
@@ -57,7 +53,8 @@ instance Object Character where
 
 
 -- | data base of character.
-type DB = Map.Map ID Character
+type DB = Map.Map CharacterID Character
+
 
 data Alignment = G | N | E deriving (Show, Eq)
 

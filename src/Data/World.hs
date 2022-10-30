@@ -17,12 +17,12 @@ data World = World {
     , guideOn         :: !Bool   -- ^ visible guidw window in maze.
     , statusOn        :: !Bool   -- ^ visible status window in maze.
 
-    , party           :: ![Character.ID]
+    , party           :: ![CharacterID]
     , place           :: !Place   -- ^ current party position.
     , roomBattled     :: ![Coord] -- ^ already room battled in current mazing.
 
-    , inTarvernMember :: ![Character.ID]
-    , inMazeMember    :: ![(Character.ID, Position)]
+    , inTarvernMember :: ![CharacterID]
+    , inMazeMember    :: ![(CharacterID, Position)]
     , shopItems       :: !(Map.Map ItemID Int)
 
     , allCharacters   :: !Character.DB

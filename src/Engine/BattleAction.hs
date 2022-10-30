@@ -16,7 +16,7 @@ import qualified Data.Characters as Character
 import qualified Data.Spells as Spell
 
 
-type ActionOfCharacter = Character.ID -- ^ id of actor.
+type ActionOfCharacter = CharacterID  -- ^ id of actor.
                       -> Int          -- ^ number that means target.
                       -> GameMachine  -- ^ next game auto.
                       -> GameMachine  -- ^ game auto.
@@ -136,7 +136,7 @@ fightMessageE e c (h, d) = do
 -- spellOfCharacter id l = do
 
 
-type SpellEffect  = Either Character.ID Enemy.Instance
+type SpellEffect  = Either CharacterID Enemy.Instance
                  -> Int -- ^ target line or character no.
                  -> GameMachine
                  -> GameMachine
@@ -181,7 +181,7 @@ castDamageSpellAll n f (Right e) l next = castDamageSpellGroup n f (Right e) l n
 
 castDamageSpell :: String -> Formula
                 -> Either [Int] [Enemy.Instance]
-                -> Either Character.ID Enemy.Instance -> GameMachine -> GameMachine
+                -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
 castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
     c  <- characterOf id
     ts <- forM es $ \e -> do

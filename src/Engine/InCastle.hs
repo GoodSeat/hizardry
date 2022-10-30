@@ -5,6 +5,7 @@ import Engine.GameAuto
 import Engine.Utils
 import Engine.InEdgeOfTown
 import Data.World
+import Data.Primitive
 import qualified Data.Characters as Character
 
 inCastle :: GameMachine
@@ -84,7 +85,7 @@ inAdventure'sInn = GameAuto $ do
                  ++ "#)Select\n"
                  ++ "L)eave\n"
 
-selectStayPlan :: Character.ID -> GameMachine
+selectStayPlan :: CharacterID -> GameMachine
 selectStayPlan id = GameAuto $ do
     c <- characterOf id
     let nam = Character.name c
@@ -107,7 +108,7 @@ selectStayPlan id = GameAuto $ do
               ,(Key "e", sleep id 10 500 7)]
     run $ select msg lst
 
-sleep :: Character.ID
+sleep :: CharacterID
       -> Int         -- heal hp per week.
       -> Int         -- charge per week.
       -> Int         -- pass days per week.
@@ -130,7 +131,7 @@ sleep id h g d = GameAuto $ do
     next = GameAuto $ updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
                    >> run (sleep id h g $ if d == 1 then 0 else d)
 
-checkLvup :: Character.ID -> GameMachine
+checkLvup :: CharacterID -> GameMachine
 checkLvup id = GameAuto $ do
     c <- characterOf id
     let nextLvExp = neps !! (Character.lv c - 1)
@@ -142,7 +143,7 @@ checkLvup id = GameAuto $ do
   where
     neps = [1100, 3500, 5000] -- TODO
 
-doLvup :: Character.ID -> GameMachine
+doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do
     (txt, c') <- Character.lvup <$> characterOf id
     updateCharacter id c' >> run (events [Message txt] $ selectStayPlan id)
