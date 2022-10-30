@@ -5,17 +5,22 @@ where
 -- ID
 -- --------------------------------------------------------------------------
 
-data CharacterID = CharacterID {
+newtype CharacterID = CharacterID {
     characterId :: Int
 } deriving (Show, Eq, Ord)
 
-data ItemID = ItemID {
+
+newtype ItemID = ItemID {
       itemId     :: Int  -- ^ identify number.
+} deriving (Show, Eq, Ord)
+
+data ItemInf = ItemInf {
+      itemID     :: ItemID
     , determined :: Bool -- ^ already determined or not.
 } deriving (Show, Eq, Ord)
 
 
-data SpellID = SpellID {
+newtype SpellID = SpellID {
     spellId :: Int -- ^ identify number.
 } deriving (Show, Eq, Ord)
 

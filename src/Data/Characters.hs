@@ -24,8 +24,8 @@ data Character = Character {
     , rips         :: !Int            -- ^ count of dead.
     , statusErrors :: ![StatusError]  -- ^ status errors.
     
-    , items        :: ![ItemID]       -- ^ items you have.
-    , equips       :: ![ItemID]       -- ^ items you equips.
+    , items        :: ![ItemInf]       -- ^ items you have.
+    , equips       :: ![ItemInf]       -- ^ items you equips.
 
     , spells       :: ![SpellID]      -- ^ learned spells.
     , mp           :: !([Int], [Int]) -- ^ MP
