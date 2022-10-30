@@ -150,11 +150,11 @@ main = do
                 , ((1, 5, 0), (30, [EnemyID 1, EnemyID 2]))
                 ]
             , mazeEvents = Map.fromList [
-                  (Ev.ID 010100, Ev.Events [
+                  (MazeEventID 010100, Ev.Events [
                      Ev.Select "there is climbing stairs.\n...climbing?\n\n(Y/N)" Nothing [
                        ("y", Ev.ReturnCastle), ("n", Ev.Escape)]
                    ])
-                , (Ev.ID 020400, Ev.Events [
+                , (MazeEventID 020400, Ev.Events [
                      Ev.Select "there is ladder to go down.\n...go down?\n\n(Y/N)" Nothing [
                        ("y", Ev.Events [
                            Ev.StairsToLower (2, 4, 1)
@@ -163,7 +163,7 @@ main = do
                      , ("n", Ev.Escape)
                      ]
                    ])
-                , (Ev.ID 020401, Ev.Events [
+                , (MazeEventID 020401, Ev.Events [
                      Ev.Select "there is ladder to go up.\n...go up?\n\n(Y/N)" Nothing [
                        ("y", Ev.Events [
                            Ev.StairsToUpper (2, 4, 0)
@@ -172,7 +172,7 @@ main = do
                      , ("n", Ev.Escape)
                      ]
                    ])
-                , (Ev.ID 010101, Ev.Events [
+                , (MazeEventID 010101, Ev.Events [
                      Ev.Ask "what's your name?" (Just $ PictureID 1001) [
                        ("werdna", Ev.Events [
                            Ev.Message "OH MY GOD!" (Just $ PictureID 1002)
@@ -182,10 +182,10 @@ main = do
                    ])
                 ]
             , eventMap = Map.fromList [
-                  ((1, 1, 0), Ev.ID 010100)
-                , ((2, 4, 0), Ev.ID 020400)
-                , ((2, 4, 1), Ev.ID 020401)
-                , ((1, 1, 1), Ev.ID 010101)
+                  ((1, 1, 0), MazeEventID 010100)
+                , ((2, 4, 0), MazeEventID 020400)
+                , ((2, 4, 1), MazeEventID 020401)
+                , ((1, 1, 1), MazeEventID 010101)
                 ]
             , enemies        = Map.fromList [
                 (EnemyID 1, Enemy.Define {

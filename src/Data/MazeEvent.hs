@@ -7,10 +7,6 @@ import Data.Primitive
 import Data.Formula
 import qualified Data.Characters as Character
 
-newtype ID = ID {
-    num :: Int
-} deriving (Show, Eq, Ord)
-
 data Define =
             -- moving
               ReturnCastle
@@ -34,12 +30,12 @@ data Define =
             | LearningSpell TargetType Formula
 
             -- others
-            | Reference ID
+            | Reference MazeEventID
             | End    -- ^ if there is another event, it start.
             | Escape -- ^ end event with ignore event on there.
             | Events [Define]
 
-type DB = Map.Map ID Define
+type DB = Map.Map MazeEventID Define
 
 data Condition = PartyHasItem        ItemID
                | PartyExistAlignment [Character.Alignment]

@@ -30,8 +30,13 @@ newtype SpellID = SpellID {
 } deriving (Show, Eq, Ord)
 
 
+newtype MazeEventID = MazeEventID {
+    mazeEventID :: Int
+} deriving (Show, Eq, Ord)
+
+
 newtype PictureID = PictureID {
-    num :: Int
+    pictureID :: Int
 } deriving (Show, Eq, Ord)
 
 
