@@ -97,8 +97,6 @@ startBattle eid (g1, g2) = GameAuto $ do
     }
     run $ events [MessageTime (-1000) "\nEncounter!\n" Nothing]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
-    -- TODO:following code is ideal...
---  select (Message "\nEncounter!\n") [(Clock, selectBattleCommand 1)]
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
 moveToBattle es = do
@@ -201,8 +199,8 @@ confirmBattle cmds con = select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Bac
 
 nextTurn :: Condition -> GameMachine
 nextTurn con = GameAuto $ do
-    ps   <- party <$> world
-    rs   <- replicateM (length ps) (randomNext 0 100)
+    ps <- party <$> world
+    rs <- replicateM (length ps) (randomNext 0 100)
     forM_ (zip ps rs) $ \(p, r) -> do
       c <- characterOf p
       updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c)

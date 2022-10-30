@@ -20,7 +20,7 @@ data ItemType =
 
 data Effect = 
       EqSpell SpellID
---  | Happens Ev.
+    | Happens MazeEventID
     deriving (Show, Eq)
 
 data EquipType =
