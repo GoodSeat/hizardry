@@ -59,7 +59,7 @@ enterGrid e probEncount p = GameAuto $ do
     encountId <- if probEncount then checkEncount $ coordOf p else return Nothing
     case e of Nothing   -> case encountId of Nothing -> run $ select None (moves p)
                                              Just ei -> run $ encountEnemy ei
-              Just edef -> run $ doEvent edef
+              Just edef -> run $ doEvent edef escapeEvent endEvent
 
 checkEncount :: Coord -> GameState (Maybe EnemyID)
 checkEncount c = do
@@ -133,10 +133,11 @@ escapeEvent = GameAuto $ do
 
 -- =======================================================================
 
-doEvent :: Ev.Define -> GameMachine
-doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
+doEvent :: Ev.Define -> GameMachine -> GameMachine -> GameMachine
+doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
   where
     doEvent' :: Ev.Define -> GameMachine -> GameMachine
+    -- moving
     doEvent' Ev.ReturnCastle next = GameAuto $ do
         toCastle <- home
         whenReturnCastle >> run toCastle
@@ -152,19 +153,23 @@ doEvent edef = doEvent' edef $ doEvent' Ev.Escape undefined
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
         run $ events' (updownEffect p' False) next
+    -- interactive
     doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] next
     doEvent' (Ev.Ask msg picID ways) next = select (Ask msg picID) ss
-      where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
+      where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
     doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
-      where ss = (\(m, edef) -> (Key m, doEvent edef)) <$> ways
-    doEvent' (Ev.Events []) next = next
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next
+      where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
+    -- happens
+
+    -- others
     doEvent' (Ev.Reference eid) next = GameAuto $ do
       evDB  <- asks mazeEvents
       case Map.lookup eid evDB of Nothing   -> run next
                                   Just edef -> run $ doEvent' edef next
-    doEvent' Ev.Escape _ = escapeEvent
-    doEvent' Ev.End _    = endEvent
+    doEvent' Ev.End _    = whenEnd
+    doEvent' Ev.Escape _ = whenEscape
+    doEvent' (Ev.Events [])        next = next
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next
 
 updownEffect :: Position -> Bool -> [(GameState (), Event)]
 updownEffect p toUp = replicate c (upStep, Time 150 Nothing)

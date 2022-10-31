@@ -114,4 +114,6 @@ select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns
 
 -- ==========================================================================
 
+with :: [GameState a] -> GameMachine -> GameMachine
+with gs next = GameAuto $ sequence_ gs >> run next
 

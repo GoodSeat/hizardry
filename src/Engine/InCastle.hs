@@ -81,7 +81,7 @@ inAdventure'sInn = GameAuto $ do
             ,(Key "5", selectStayPlan (ids !! 4), length ids >= 5)
             ,(Key "6", selectStayPlan (ids !! 5), length ids >= 6)]
   where
-    msg = Message $ "Who will stay?\n"
+    msg = Message $ "Who will stay?\n\n"
                  ++ "#)Select\n"
                  ++ "L)eave\n"
 

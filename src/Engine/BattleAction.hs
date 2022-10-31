@@ -206,13 +206,13 @@ castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
       else do
         d <- evalWith (formulaMap (e, edef) c) f
         let c' = setHp (hpOf c - d) c
-        updateCharacter (ps !! idc) c'
         let msg = nameOf c ++ " takes " ++ show d ++ "."
-        return $ msg : [msg ++ "\n" ++ nameOf c ++ " is killed." | hpOf c' <= 0]
+        return $ (updateCharacter (ps !! idc) c', msg)
+               : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
     if null ts then run next
     else do
       let toMsg t = Message $ (nameOf (e, edef) ++ " spells " ++ n ++ ".\n") ++ t
-      run $ events (toMsg <$> "" : concat ts) next
+      run $ events (toMsg <$> "" : (snd <$> concat ts)) (with (fst <$> concat ts) next)
     
 castDamageSpell _ _ _ _ _ = undefined
 

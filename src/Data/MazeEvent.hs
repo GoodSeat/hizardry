@@ -16,8 +16,8 @@ data Define =
 
             -- interactive
             | Message String (Maybe PictureID)
-            | Select String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
-            | Ask String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
+            | Select  String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
+            | Ask     String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
 
             -- happens
             | Switch [(Condition, Define)]
@@ -35,6 +35,36 @@ data Define =
             | Escape -- ^ end event with ignore event on there.
             | Events [Define]
 
+instance Semigroup Define where
+    Events []  <> e2         = e2
+    e1         <> Events []  = e1
+    Events es1 <> Events es2 = Events $ es1 ++ es2
+    Events es  <> e2         = Events $ es ++ [e2]
+    e1         <> Events es2 = Events $ e1:es2
+    e1         <> e2         = Events [e1, e2]
+
+instance Monoid Define where
+    mempty  = Events []
+    mappend = (<>)
+
+containsEvent :: (Define -> Bool) -> Define -> Bool
+containsEvent f e@(Select _ _ ns) = f e || f (Events $ snd <$> ns)
+containsEvent f e@(Ask    _ _ ns) = f e || f (Events $ snd <$> ns)
+containsEvent f e@(Switch ns)     = f e || f (Events $ snd <$> ns)
+containsEvent f e@(Events es)     = f e || any f es
+containsEvent f e                 = f e
+
+
+isInMazeOnly :: Define -> Bool
+isInMazeOnly = containsEvent isInMazeOnly'
+  where
+    isInMazeOnly' ReturnCastle      = True
+    isInMazeOnly' (MoveTo _)        = True
+    isInMazeOnly' (StairsToUpper _) = True
+    isInMazeOnly' (StairsToLower _) = True
+    isInMazeOnly' _                 = False
+
+
 type DB = Map.Map MazeEventID Define
 
 data Condition = PartyHasItem        ItemID
@@ -47,7 +77,9 @@ data Condition = PartyHasItem        ItemID
                | Or  [Condition]
                | Otherwise
 
-data TargetType = Leader | All | Front | Back
+data TargetType = Leader | All deriving (Show, Read, Eq)
+
+
 
 formulaMapParty :: [Character.Character] -> Map.Map String Int
 formulaMapParty os = Map.fromList [
