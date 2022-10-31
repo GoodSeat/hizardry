@@ -1,4 +1,4 @@
-module Data.MazeEvent
+module Data.GameEvent
 where
 
 import qualified Data.Map as Map
@@ -30,7 +30,7 @@ data Define =
             | LearningSpell TargetType Formula
 
             -- others
-            | Reference MazeEventID
+            | Reference GameEventID
             | End    -- ^ if there is another event, it start.
             | Escape -- ^ end event with ignore event on there.
             | Events [Define]
@@ -65,7 +65,7 @@ isInMazeOnly = containsEvent isInMazeOnly'
     isInMazeOnly' _                 = False
 
 
-type DB = Map.Map MazeEventID Define
+type DB = Map.Map GameEventID Define
 
 data Condition = PartyHasItem        ItemID
                | PartyExistAlignment [Character.Alignment]

@@ -226,3 +226,9 @@ updateEnemy e f = do
 -- Other.
 -- ---------------------------------------------------------------------------------
 
+currentPosition :: GameState Position
+currentPosition = do
+    plc <- place <$> world
+    case plc of InMaze p     -> return p
+                InBattle p _ -> return p
+                _            -> err "failed on currentPosition."

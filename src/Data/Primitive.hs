@@ -30,7 +30,7 @@ newtype SpellID = SpellID {
 } deriving (Show, Eq, Ord)
 
 
-newtype MazeEventID = MazeEventID {
+newtype GameEventID = GameEventID {
     mazeEventID :: Int
 } deriving (Show, Eq, Ord)
 
@@ -88,9 +88,9 @@ addStatusError :: Object o => StatusError -> o -> o
 addStatusError s o = setStatusErrors (s : statusErrorsOf o) o
 
 
-whenToNextCastle :: Object o => StatusError -> o -> o
-whenToNextCastle (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o
-whenToNextCastle _ o = o
+whenReturnCastle :: Object o => StatusError -> o -> o
+whenReturnCastle (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o
+whenReturnCastle _ o = o
 
 whenToNextTurn :: Object o => Int -> StatusError -> o -> o
 whenToNextTurn _ (Poison n) o = setHp (hpOf o - n) o

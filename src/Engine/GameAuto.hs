@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import Data.Primitive
 import Data.World
 import Data.Maze
-import qualified Data.MazeEvent as MazeEvent
+import qualified Data.GameEvent as GameEvent
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
 
@@ -46,8 +46,8 @@ data Scenario = Scenario {
     , scenarioHome   :: !GameMachine
     , mazes          :: ![Maze]
     , encountMap     ::  Map.Map Coord (Int, [EnemyID])
-    , eventMap       ::  Map.Map Coord MazeEventID
-    , mazeEvents     :: !MazeEvent.DB
+    , eventMap       ::  Map.Map Coord GameEventID
+    , mazeEvents     :: !GameEvent.DB
     , enemies        :: !Enemy.DB
     , spells         :: !Spell.DB
     }
