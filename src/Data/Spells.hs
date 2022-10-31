@@ -10,12 +10,13 @@ import Data.Formula
 data Kind = M | P deriving (Show, Eq)
 
 data Define = Define {
-      name       :: String     -- ^ name of spell.
-    , kind       :: Kind       -- ^ kind of spell.
-    , lv         :: Int        -- ^ level of spell.
-    , attribute  :: Attribute  -- ^ attribute of spell.
-    , target     :: TargetType -- ^ type of target.
-    , effect     :: Effect     -- ^ type of effect.
+      name       :: String      -- ^ name of spell.
+    , kind       :: Kind        -- ^ kind of spell.
+    , lv         :: Int         -- ^ level of spell.
+    , attribute  :: Attribute   -- ^ attribute of spell.
+    , target     :: TargetType  -- ^ type of target.
+    , effect     :: Effect      -- ^ type of effect.
+    , enableIn   :: [CastPlace] -- ^ place enable to cast.
 } deriving (Show)
 
 data Attribute = None
@@ -23,11 +24,17 @@ data Attribute = None
                | Frost
     deriving (Show, Eq)
 
+data CastPlace = InCamp
+               | InCastle
+               | InBattle
+    deriving (Show, Eq)
+
 
 -- type SpellEffect = 
 -- 
 data Effect = Damage Formula
             | Cure   Formula [StatusError]
+            | Event  GameEventID
     deriving (Show)
 
 data TargetType = OpponentSingle

@@ -272,6 +272,7 @@ main = do
                     , Spell.attribute = Spell.Fire
                     , Spell.target    = Spell.OpponentSingle
                     , Spell.effect    = Spell.Damage (parse' "1d6")
+                    , Spell.enableIn  = [Spell.InBattle]
                 })
                 ,
                 (SpellID 21, Spell.Define {
@@ -281,6 +282,7 @@ main = do
                     , Spell.attribute = Spell.Fire
                     , Spell.target    = Spell.OpponentGroup
                     , Spell.effect    = Spell.Damage (parse' "2d6")
+                    , Spell.enableIn  = [Spell.InBattle]
                 })
                 ,
                 (SpellID 71, Spell.Define {
@@ -290,8 +292,29 @@ main = do
                     , Spell.attribute = Spell.None
                     , Spell.target    = Spell.OpponentAll
                     , Spell.effect    = Spell.Damage (parse' "10d10")
+                    , Spell.enableIn  = [Spell.InBattle]
                 })
  
+                ,
+                (SpellID 111, Spell.Define {
+                      Spell.name      = "dios"
+                    , Spell.kind      = Spell.P
+                    , Spell.lv        = 1
+                    , Spell.attribute = Spell.None
+                    , Spell.target    = Spell.AllySingle
+                    , Spell.effect    = Spell.Cure (parse' "1d8") []
+                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                })
+                ,
+                (SpellID 112, Spell.Define {
+                      Spell.name      = "diosa"
+                    , Spell.kind      = Spell.P
+                    , Spell.lv        = 1
+                    , Spell.attribute = Spell.None
+                    , Spell.target    = Spell.AllyAll
+                    , Spell.effect    = Spell.Cure (parse' "1d8") []
+                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                })
                 ]
             }
 

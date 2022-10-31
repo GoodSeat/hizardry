@@ -172,19 +172,20 @@ selectCastTarget s next = GameAuto $ do
     case def of
         Nothing  -> run $ next (Spell s 1)
         Just def -> case Spell.target def of
-            Spell.OpponentSingle -> select (length ess) (next . Spell s)
-            Spell.OpponentGroup  -> select (length ess) (next . Spell s)
-            Spell.AllySingle     -> select (length p  ) (next . Spell s)
+            Spell.OpponentSingle -> select True  (length ess) (next . Spell s)
+            Spell.OpponentGroup  -> select True  (length ess) (next . Spell s)
+            Spell.AllySingle     -> select False (length p  ) (next . Spell s)
             _                    -> run $ next (Spell s 0)
   where
-    select mx nextWith = if mx <= 1 then run (nextWith 1) else
-                         run $ selectWhen (BattleCommand "Target group?")
-                               [(Key "1", nextWith 1, mx > 0)
-                               ,(Key "2", nextWith 2, mx > 1)
-                               ,(Key "3", nextWith 3, mx > 2)
-                               ,(Key "4", nextWith 4, mx > 3)
-                               ,(Key "5", nextWith 5, mx > 4)
-                               ,(Key "6", nextWith 6, mx > 5)]
+    select toEnemy mx nextWith = if mx <= 1 then run (nextWith 1) else
+      run $ selectWhen (BattleCommand $ if toEnemy then "Target group?" 
+                                                   else "Target character?")
+            [(Key "1", nextWith 1, mx > 0)
+            ,(Key "2", nextWith 2, mx > 1)
+            ,(Key "3", nextWith 3, mx > 2)
+            ,(Key "4", nextWith 4, mx > 3)
+            ,(Key "5", nextWith 5, mx > 4)
+            ,(Key "6", nextWith 6, mx > 5)]
 
 
 confirmBattle :: [(CharacterID, Action)]

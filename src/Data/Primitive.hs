@@ -1,6 +1,8 @@
 module Data.Primitive
 where
 
+import Data.List (delete)
+
 -- ==========================================================================
 -- ID
 -- --------------------------------------------------------------------------
@@ -86,6 +88,9 @@ class Object o where
 
 addStatusError :: Object o => StatusError -> o -> o
 addStatusError s o = setStatusErrors (s : statusErrorsOf o) o
+
+removeStatusError :: Object o => StatusError -> o -> o
+removeStatusError s o = setStatusErrors (delete s $ statusErrorsOf o) o
 
 
 whenReturnCastle :: Object o => StatusError -> o -> o

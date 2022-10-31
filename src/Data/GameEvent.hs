@@ -19,6 +19,9 @@ data Define =
             | Select  String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
             | Ask     String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
 
+            -- in battle
+            | AsSpell SpellID
+
             -- happens
             | Switch [(Condition, Define)]
             | GetItem       TargetType Formula Bool -- item id, is wheter determined.

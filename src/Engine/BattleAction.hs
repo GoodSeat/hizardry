@@ -4,6 +4,7 @@ where
 
 import qualified Data.Map as Map
 import Data.List
+import Data.Function ((&))
 import Control.Monad
 
 import Engine.GameAuto
@@ -144,7 +145,10 @@ type SpellEffect  = Either CharacterID Enemy.Instance
 spell :: String -> SpellEffect
 spell s tgt l next = GameAuto $ do
     spellDef <- spellByName s
-    case spellDef of Just def -> run $ spell' def tgt l next
+    case spellDef of Just def -> if Spell.InBattle `elem` Spell.enableIn def then
+                                   run $ spell' def tgt l next
+                                 else
+                                   run $ spellUnknown s tgt l next
                      Nothing  -> run $ spellUnknown s tgt l next
 
 spell' :: Spell.Define -> SpellEffect
@@ -154,8 +158,12 @@ spell' def = case Spell.effect def of
       Spell.OpponentGroup  -> castDamageSpellGroup  (Spell.name def) f
       Spell.OpponentAll    -> castDamageSpellAll    (Spell.name def) f
       _                    -> undefined
-    Spell.Cure f ss -> undefined
+    Spell.Cure f ss -> case Spell.target def of
+      Spell.AllySingle     -> castCureSpellSingle (Spell.name def) f ss
+      Spell.AllyAll        -> castCureSpellAll    (Spell.name def) f ss
+      _                    -> undefined
 
+-- --------------------------------------------------------------------------------
 
 castDamageSpellSingle :: String -> Formula -> SpellEffect
 castDamageSpellSingle n f (Left id) l next = GameAuto $ do
@@ -216,7 +224,42 @@ castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
     
 castDamageSpell _ _ _ _ _ = undefined
 
+-- --------------------------------------------------------------------------------
 
+castCureSpellSingle :: String -> Formula -> [StatusError] -> SpellEffect
+castCureSpellSingle n f ss (Left id) l next = GameAuto $ do
+    ps <- party <$> world
+    run $ castCureSpell n f ss (Left [l]) (Left id) next
+castCureSpellSingle n f ss (Right ei) l next = undefined
+
+castCureSpellAll n f ss (Left id) _ next = GameAuto $ do
+    ps <- party <$> world
+    run $ castCureSpell n f ss (Left [1..length ps]) (Left id) next
+castCureSpellAll n f ss (Right ei) _ next = undefined
+
+
+castCureSpell :: String -> Formula -> [StatusError]
+              -> Either [Int] [Enemy.Instance]
+              -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
+castCureSpell n f ss (Left is) (Left cid) next = GameAuto $ do
+    ps   <- party <$> world
+    wiz  <- characterOf cid
+    ts   <- forM is $ \i -> do
+      let idc = (i - 1) `mod` length ps
+      c   <- characterOf (ps !! idc)
+      let ssc = statusErrorsOf c
+      if hpOf c == 0 && all (`notElem` ssc) ss then return []
+      else do
+        d <- evalWith (formulaMap wiz c) f
+        let c' = foldl (&) (setHp (hpOf c + d) c) (removeStatusError <$> ss)
+        let msg = if hpOf c /= hpOf c' then nameOf c ++ " heal " ++ show (hpOf c' - hpOf c) ++ "."
+                                       else nameOf c ++ " cured."
+        return $ [(updateCharacter (ps !! idc) c', msg)]
+    let toMsg t = Message $ (nameOf wiz ++ " spells " ++ n ++ ".\n") ++ t
+    run $ events (toMsg <$> "" : (snd <$> concat ts)) (with (fst <$> concat ts) next)
+castCureSpell _ _ _ _ _ _ = undefined
+
+-- --------------------------------------------------------------------------------
 
 spellUnknown :: String -> SpellEffect
 spellUnknown n (Left id) _ next = GameAuto $ do
