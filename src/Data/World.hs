@@ -20,6 +20,7 @@ data World = World {
     , party           :: ![CharacterID]
     , place           :: !Place   -- ^ current party position.
     , roomBattled     :: ![Coord] -- ^ already room battled in current mazing.
+    , visitHitory     :: !(Map.Map Coord Bool)
 
     , inTarvernMember :: ![CharacterID]
     , inMazeMember    :: ![(CharacterID, Position)]

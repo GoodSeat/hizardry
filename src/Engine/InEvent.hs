@@ -43,6 +43,8 @@ doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
       where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
     doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
       where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
+    -- in battle
+
     -- happens
 
     -- others

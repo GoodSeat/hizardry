@@ -74,8 +74,8 @@ data Condition = PartyHasItem        ItemID
                | PartyExistAlignment [Character.Alignment]
                | LeaderKnowSpell     SpellID
                | LeaderIsJobOf       [String]
-               | ForumlaCheckParty   Formula
-               | ForumlaCheckLeader  Formula
+               | ForumlaCheckParty   Formula -- ^ probablity happens(0~100).
+               | ForumlaCheckLeader  Formula -- ^ probablity happens(0~100).
                | And [Condition]
                | Or  [Condition]
                | Otherwise

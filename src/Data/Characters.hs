@@ -41,7 +41,7 @@ instance Object Character where
   lvOf            = lv          
   statusErrorsOf  = statusErrors
 
-  setHp           v c = let c' = c { hp = max 0 v } in if hp c' == 0 then addStatusError Dead c' else c'
+  setHp           v c = let c' = c { hp = min (hpOf c) (max 0 v) } in if hp c' == 0 then addStatusError Dead c' else c'
   setAc           v c = c -- TODO:
   setStatusErrors v c = let c' = c { statusErrors = nub v }
                             ss = statusErrorsOf c' in
@@ -90,7 +90,7 @@ lvup c = (txt, c {
     uphp = 5
 
 healHp :: Int -> Character -> Character
-healHp p c = c { hp = min (hp c + p) (maxhp c) }
+healHp p c = setHp (hp c + p) c
 
 healMp :: Character -> Character
 healMp c = c { mp = maxmp c }

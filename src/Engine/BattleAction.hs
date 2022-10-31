@@ -276,7 +276,10 @@ spellUnknown n (Right e) _ next = GameAuto $ do
 
 -- ==========================================================================
 aliveEnemiesLine :: Int -> GameState [Enemy.Instance]
-aliveEnemiesLine l = filter (\e -> Enemy.hp e > 0) <$> ((!!) <$> lastEnemies <*> pure (l - 1))
+aliveEnemiesLine l = do
+  ess <- lastEnemies
+  if length ess < l then return []
+                    else return $ filter (\e -> Enemy.hp e > 0) (ess !! (l - 1))
 
 aliveEnemyLineHead :: Int -> GameState (Maybe Enemy.Instance)
 aliveEnemyLineHead l = do

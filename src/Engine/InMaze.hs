@@ -47,6 +47,7 @@ enterGrid :: Maybe Ev.Define -- ^ happened event.
           -> GameMachine
 enterGrid e probEncount p = GameAuto $ do
     movePlace $ InMaze p
+    modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
     -- TODO!:all character lost if they are in stone.
     encountId <- if probEncount then checkEncount $ coordOf p else return Nothing
     case e of Nothing   -> case encountId of Nothing -> run $ select None (moves p)

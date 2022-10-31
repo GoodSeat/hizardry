@@ -123,7 +123,8 @@ main = do
 
       , party           = []
       , place           = InCastle
-      , roomBattled   = []
+      , roomBattled     = []
+      , visitHitory     = Map.fromList []
 
       , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3]
       , inMazeMember    = []

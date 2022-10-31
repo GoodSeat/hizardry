@@ -32,9 +32,11 @@ data CastPlace = InCamp
 
 -- type SpellEffect = 
 -- 
-data Effect = Damage Formula
-            | Cure   Formula [StatusError]
-            | Event  GameEventID
+data Effect = Damage   Formula
+            | Cure     Formula [StatusError]
+            | ChangeAC Formula
+            | Kill     Formula String -- ^ probability (0~100), message when kill(exp:"is dead").
+            | Event    GameEventID
     deriving (Show)
 
 data TargetType = OpponentSingle
