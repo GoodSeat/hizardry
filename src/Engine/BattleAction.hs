@@ -92,9 +92,8 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
       (h, d) <- fightDamageE n e c dmg
       let c' = setHp (hpOf c - d) c
          -- TODO:lv drain, poison, critical ...etc
-      updateCharacter (ps !! idc) c'
       es <- fmap Message <$> fightMessageE e c' (h, d)
-      run $ events es next
+      run $ events es (with [updateCharacter (ps !! idc) c'] next)
 
 fightDamageE :: Int                 -- ^ count of attack.
              -> Enemy.Instance      -- ^ attacker enemy.
