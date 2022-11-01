@@ -145,6 +145,7 @@ spell :: String -> SpellEffect
 spell s tgt l next = GameAuto $ do
     spellDef <- spellByName s
     case spellDef of Just def -> if Spell.InBattle `elem` Spell.enableIn def then
+                                   -- TODO:if case tgt of Left idc, cost MP, no more MP, can't casting it.
                                    run $ spell' def tgt l next
                                  else
                                    run $ spellUnknown s tgt l next

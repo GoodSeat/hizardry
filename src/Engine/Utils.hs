@@ -16,9 +16,16 @@ import Data.Primitive
 import Data.World
 import Data.Maze
 import Data.Formula
-import qualified Data.Characters as Character
+import qualified Data.Characters as Chara
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
+
+import GHC.Stack (HasCallStack)
+
+(!!!) :: HasCallStack => [a] -> Int -> a
+(e:es) !!! 0 = e
+(e:es) !!! n = if n < 0 then error "index too small" else es !!! (n - 1)
+[] !!! n = error "index too large"
 
 
 -- =================================================================================
@@ -90,14 +97,14 @@ spellByName n = do
     ss <- asks spells
     return $ (ss!) <$> Spell.findID ss n
 
-
 inspectCharacter :: GameMachine -> Bool -> Int -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
     ids <- party <$> world
+    c   <- characterOf (ids !! (i - 1))
     let cancel = inspectCharacter h canSpell i
     run $ selectWhen (ShowStatus i msg SingleKey)
                      [(Key "l", h, True)
-                     ,(Key "s", inputSpell iCast sCast (spellInCamp i cancel) cancel, canSpell)
+                     ,(Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
                      ,(Key "1", inspectCharacter h canSpell 1, length ids >= 1)
                      ,(Key "2", inspectCharacter h canSpell 2, length ids >= 2)
                      ,(Key "3", inspectCharacter h canSpell 3, length ids >= 3)
@@ -116,38 +123,42 @@ inspectCharacter h canSpell i = GameAuto $ do
     sCast = flip (ShowStatus i) SingleKey
 
 
-inputSpell :: (String -> Event) -> (String -> Event)
+inputSpell :: Chara.Character -> (String -> Event) -> (String -> Event)
            -> (String -> Int -> GameMachine) -> GameMachine -> GameMachine
-inputSpell msgForCasting msgForSelecting next cancel = GameAuto $
+inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $
     return (msgForCasting "Input spell.\n(Empty to cancel.)",
             \(Key s) -> if null s then cancel else selectCastTarget s next)
   where
     selectCastTarget :: String -> (String -> Int -> GameMachine) -> GameMachine
     selectCastTarget s next = GameAuto $ do
-        p   <- party <$> world
-        def <- spellByName s
-        case def of
+        ps   <- party <$> world
+        def' <- spellByName s
+        sdb  <- asks spells
+        case def' of
             Nothing  -> run $ next s 1
             Just def -> case Spell.target def of
                 Spell.OpponentSingle -> do
                                         ess <- lastEnemies
                                         select True  (length ess) (next s)
-                Spell.OpponentGroup  ->  do
+                Spell.OpponentGroup  -> do
                                         ess <- lastEnemies
-                                        select True  (length ess) (next s)
-                Spell.AllySingle     -> select False (length p  ) (next s)
+                                        let mx = if Chara.knowSpell' sdb def c then length ess else 1
+                                        select True  mx (next s)
+                Spell.AllySingle     -> do
+                                        let mx = if Chara.knowSpell' sdb def c then length ps else 1
+                                        select False mx (next s)
                 _                    -> run $ next s 0
     select toEnemy mx nextWith = if mx <= 1 then run (nextWith 1) else
-      run $ selectWhen (msgForSelecting $
-              if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel" 
-                         else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel")
-              [(Key "1", nextWith 1, mx > 0)
-              ,(Key "2", nextWith 2, mx > 1)
-              ,(Key "3", nextWith 3, mx > 2)
-              ,(Key "4", nextWith 4, mx > 3)
-              ,(Key "5", nextWith 5, mx > 4)
-              ,(Key "6", nextWith 6, mx > 5)
-              ,(Key "c", cancel, True)]
+                                 run $ selectWhen (msgForSelecting $
+                                         if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel" 
+                                                    else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel")
+                                         [(Key "1", nextWith 1, mx > 0)
+                                         ,(Key "2", nextWith 2, mx > 1)
+                                         ,(Key "3", nextWith 3, mx > 2)
+                                         ,(Key "4", nextWith 4, mx > 3)
+                                         ,(Key "5", nextWith 5, mx > 4)
+                                         ,(Key "6", nextWith 6, mx > 5)
+                                         ,(Key "c", cancel, True)]
 
 
 spellInCamp :: Int -> GameMachine -> String -> Int -> GameMachine
@@ -162,21 +173,28 @@ spellInCamp i next s l = GameAuto $ do
 spellInCamp' :: Spell.Define -> Int -> Int -> GameMachine -> GameMachine
 spellInCamp' def i l next = GameAuto $ do
     ids <- party <$> world
-    c   <- characterOf (ids !! i)
-    case Spell.effect def of
-      Spell.Damage _  -> undefined
-      Spell.Cure f ss -> do
-        let tgt = case Spell.target def of
-                    Spell.AllySingle -> [l]
-                    Spell.AllyAll    -> [1..length ids]
-                    _                -> []
-        efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
-        run $ with (fst <$> efs) (events [ShowStatus i "done" SingleKey] next)
+    c   <- characterOf (ids !! (i - 1))
+    sdb <- asks spells
+    if      not (Chara.knowSpell' sdb def c) then
+      run $ events [ShowStatus i "can't casting it." SingleKey] next
+    else if not (Chara.canSpell'  sdb def c) then
+      run $ events [ShowStatus i "no more MP." SingleKey] next
+    else do
+      updateCharacter (ids !! (i - 1)) (Chara.costSpell' sdb def c)
+      case Spell.effect def of
+        Spell.Damage _  -> undefined
+        Spell.Cure f ss -> do
+          let tgt = case Spell.target def of
+                      Spell.AllySingle -> [l]
+                      Spell.AllyAll    -> [1..length ids]
+                      _                -> []
+          efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
+          run $ with (fst <$> efs) (events [ShowStatus i "done" SingleKey] next)
 
 
 castCureSpell :: String -> Formula -> [StatusError]
-              -> Either Character.Character Enemy.Instance  -- ^ src
-              -> Either [Int] [Enemy.Instance]              -- ^ dst
+              -> Either Chara.Character Enemy.Instance  -- ^ src
+              -> Either [Int] [Enemy.Instance]          -- ^ dst
               -> GameState [(GameState (), String)]
 castCureSpell n f ss (Left src) (Left is) = do
     ps  <- party <$> world
@@ -202,7 +220,7 @@ castCureSpell _ _ _ _ _ = undefined
 -- for Characters.
 -- ---------------------------------------------------------------------------------
 
-characterOf :: CharacterID -> GameState Character.Character
+characterOf :: CharacterID -> GameState Chara.Character
 characterOf id = do
     db <- allCharacters <$> world
     return $ db ! id
@@ -216,14 +234,14 @@ toParty id = do
                }
     put w'
 
-updateCharacter :: CharacterID -> Character.Character -> GameState ()
+updateCharacter :: CharacterID -> Chara.Character -> GameState ()
 updateCharacter id c = do
     w  <- world
     let db = allCharacters w
         w' = w { allCharacters = insert id c db }
     put w'
 
-updateCharacterWith :: CharacterID -> (Character.Character -> Character.Character) -> GameState ()
+updateCharacterWith :: CharacterID -> (Chara.Character -> Chara.Character) -> GameState ()
 updateCharacterWith id f = do
     db <- allCharacters <$> world
     updateCharacter id (f $ db ! id)
@@ -232,8 +250,8 @@ poolGold :: CharacterID -> GameState ()
 poolGold id = do
     ids <- party <$> world
     cs  <- mapM characterOf ids
-    let gp = sum $ Character.gold <$> cs
-    forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Character.gold = if id' == id then gp else 0 }
+    let gp = sum $ Chara.gold <$> cs
+    forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Chara.gold = if id' == id then gp else 0 }
 
 sortPartyAuto :: GameState ()
 sortPartyAuto = sortPartyAutoWith . party =<< world

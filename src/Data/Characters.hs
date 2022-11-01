@@ -105,16 +105,21 @@ addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age =
 
 -- =================================================================================
 
-
 knowSpell :: SpellID -> Character -> Bool
 knowSpell id c = id `elem` spells c
 
+knowSpell' :: Spell.DB -> Spell.Define -> Character -> Bool
+knowSpell' db def = knowSpell (Spell.defToID db def)
+
 canSpell :: Spell.DB -> SpellID -> Character -> Bool
-canSpell db id c = knowSpell id c && (typ (mp c) !! lv) > 0
+canSpell db id c = knowSpell id c && (typ (mp c) !! (lv - 1)) > 0
   where
     def = (Map.!) db id
     lv  = Spell.lv def
     typ = if Spell.kind def == Spell.M then fst else snd
+
+canSpell' :: Spell.DB -> Spell.Define -> Character -> Bool
+canSpell' db def = canSpell db (Spell.defToID db def)
 
 costSpell :: Spell.DB -> SpellID -> Character -> Character
 costSpell db id c = c { mp = (m', p') }
@@ -127,5 +132,6 @@ costSpell db id c = c { mp = (m', p') }
     m' = if isM     then cost lv (fst $ mp c) else fst $ mp c
     p' = if not isM then cost lv (snd $ mp c) else snd $ mp c
 
-
+costSpell' :: Spell.DB -> Spell.Define -> Character -> Character
+costSpell' db def = costSpell db (Spell.defToID db def)
 

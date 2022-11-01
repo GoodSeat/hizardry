@@ -53,3 +53,10 @@ type DB = Map.Map SpellID Define
 -- | find ID of spell from spell's name.
 findID :: DB -> String -> Maybe SpellID
 findID db n = fmap fst $ find ((== n).name.snd) $ Map.assocs db
+
+
+defToID :: DB -> Define -> SpellID
+defToID db def = case findID db (name def) of Just id -> id
+                                              Nothing -> undefined
+
+

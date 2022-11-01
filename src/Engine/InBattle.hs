@@ -131,7 +131,7 @@ selectBattleCommand i cmds con = GameAuto $ do
                           , next Parry
                           , Character.Parry `elem` cs)
                          ,( Key "s"
-                          , inputSpell SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
+                          , inputSpell c SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
                           , Character.Spell `elem` cs)
                          ,( Key "r"
                           , events [Message $ Character.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
