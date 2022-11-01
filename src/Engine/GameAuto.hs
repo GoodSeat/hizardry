@@ -23,6 +23,7 @@ data Input = Key String
 data InputType = SingleKey
                | SequenceKey
                | WaitClock Int -- ^ time to wait(ms), negative wait time means enable to skip by key input
+    deriving (Show, Eq)
 
 data Event = None
            | Exit
@@ -35,7 +36,7 @@ data Event = None
 
            | BattleCommand String
            | SpellCommand  String
-           | ShowStatus    Int String -- ^ order of member, manu message.
+           | ShowStatus    Int String InputType -- ^ order of member, manu message, next input type.
     deriving (Show, Eq)
 
 data Option = Option String
@@ -84,6 +85,7 @@ runGame render cmd scenario (game, w) = do
                            render e w'
                            let itype = case e of
                                  SpellCommand _          -> SequenceKey
+                                 ShowStatus _ _ i        -> i
                                  MessageTime n _ _       -> WaitClock n 
                                  Time n _                -> WaitClock n
                                  Engine.GameAuto.Ask _ _ -> SequenceKey

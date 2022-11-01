@@ -7,8 +7,9 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import Data.List (find)
-import Data.Map hiding (filter, null)
+import Data.Map hiding (filter, null, foldl)
 import Data.Maybe (fromMaybe)
+import Data.Function ((&))
 
 import Engine.GameAuto
 import Data.Primitive
@@ -93,8 +94,10 @@ spellByName n = do
 inspectCharacter :: GameMachine -> Bool -> Int -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
     ids <- party <$> world
-    run $ selectWhen (ShowStatus i msg)
+    let cancel = inspectCharacter h canSpell i
+    run $ selectWhen (ShowStatus i msg SingleKey)
                      [(Key "l", h, True)
+                     ,(Key "s", inputSpell iCast sCast (spellInCamp i cancel) cancel, canSpell)
                      ,(Key "1", inspectCharacter h canSpell 1, length ids >= 1)
                      ,(Key "2", inspectCharacter h canSpell 2, length ids >= 2)
                      ,(Key "3", inspectCharacter h canSpell 3, length ids >= 3)
@@ -109,6 +112,91 @@ inspectCharacter h canSpell i = GameAuto $ do
           else
             "U)se Item     D)rop Item    T)rade Item    E)qiup  \n" ++
             "R)ead Spell   P)ool Money   #)Inspect      L)eave  "
+    iCast = flip (ShowStatus i) SequenceKey
+    sCast = flip (ShowStatus i) SingleKey
+
+
+inputSpell :: (String -> Event) -> (String -> Event)
+           -> (String -> Int -> GameMachine) -> GameMachine -> GameMachine
+inputSpell msgForCasting msgForSelecting next cancel = GameAuto $
+    return (msgForCasting "Input spell.\n(Empty to cancel.)",
+            \(Key s) -> if null s then cancel else selectCastTarget s next)
+  where
+    selectCastTarget :: String -> (String -> Int -> GameMachine) -> GameMachine
+    selectCastTarget s next = GameAuto $ do
+        p   <- party <$> world
+        def <- spellByName s
+        case def of
+            Nothing  -> run $ next s 1
+            Just def -> case Spell.target def of
+                Spell.OpponentSingle -> do
+                                        ess <- lastEnemies
+                                        select True  (length ess) (next s)
+                Spell.OpponentGroup  ->  do
+                                        ess <- lastEnemies
+                                        select True  (length ess) (next s)
+                Spell.AllySingle     -> select False (length p  ) (next s)
+                _                    -> run $ next s 0
+    select toEnemy mx nextWith = if mx <= 1 then run (nextWith 1) else
+      run $ selectWhen (msgForSelecting $
+              if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel" 
+                         else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel")
+              [(Key "1", nextWith 1, mx > 0)
+              ,(Key "2", nextWith 2, mx > 1)
+              ,(Key "3", nextWith 3, mx > 2)
+              ,(Key "4", nextWith 4, mx > 3)
+              ,(Key "5", nextWith 5, mx > 4)
+              ,(Key "6", nextWith 6, mx > 5)
+              ,(Key "c", cancel, True)]
+
+
+spellInCamp :: Int -> GameMachine -> String -> Int -> GameMachine
+spellInCamp i next s l = GameAuto $ do
+    spellDef <- spellByName s
+    case spellDef of Just def -> if Spell.InCamp `elem` Spell.enableIn def then
+                                   run $ spellInCamp' def i l next
+                                 else
+                                   run $ events [ShowStatus i "no happens." SingleKey] next
+                     Nothing  -> run $ events [ShowStatus i "what?" SingleKey] next
+
+spellInCamp' :: Spell.Define -> Int -> Int -> GameMachine -> GameMachine
+spellInCamp' def i l next = GameAuto $ do
+    ids <- party <$> world
+    c   <- characterOf (ids !! i)
+    case Spell.effect def of
+      Spell.Damage _  -> undefined
+      Spell.Cure f ss -> do
+        let tgt = case Spell.target def of
+                    Spell.AllySingle -> [l]
+                    Spell.AllyAll    -> [1..length ids]
+                    _                -> []
+        efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
+        run $ with (fst <$> efs) (events [ShowStatus i "done" SingleKey] next)
+
+
+castCureSpell :: String -> Formula -> [StatusError]
+              -> Either Character.Character Enemy.Instance  -- ^ src
+              -> Either [Int] [Enemy.Instance]              -- ^ dst
+              -> GameState [(GameState (), String)]
+castCureSpell n f ss (Left src) (Left is) = do
+    ps  <- party <$> world
+    ts  <- forM is $ \i -> do
+      let idc = (i - 1) `mod` length ps
+      dst <- characterOf (ps !! idc)
+      let ssc = statusErrorsOf dst
+      if hpOf dst == 0 && all (`notElem` ssc) ss then return []
+      else do
+        d <- evalWith (formulaMapSO src dst) f
+        let dst' = foldl (&) (setHp (hpOf dst + d) dst) (removeStatusError <$> ss)
+        let msg = if hpOf dst /= hpOf dst' then
+                    nameOf dst ++ " heal " ++ show (hpOf dst' - hpOf dst) ++ "."
+                  else
+                    nameOf dst ++ " cured."
+        return [(updateCharacter (ps !! idc) dst', msg)]
+    return $ concat ts
+castCureSpell _ _ _ _ _ = undefined
+
+
 
 -- =================================================================================
 -- for Characters.
@@ -167,7 +255,7 @@ lastEnemies :: GameState [[Enemy.Instance]]
 lastEnemies = do
     p <- place <$> world
     case p of InBattle _ ess -> return ess
-              _              -> err "invalid lastEnemies."
+              _              -> return []
 
 enemyOf :: EnemyID -> GameState Enemy.Define
 enemyOf eid = do
@@ -232,3 +320,29 @@ currentPosition = do
     case plc of InMaze p     -> return p
                 InBattle p _ -> return p
                 _            -> err "failed on currentPosition."
+
+formulaMapSO :: Object s => Object o => s -> o -> Map String Int
+formulaMapSO s o = fromList [
+     ("ac"      , acOf s)
+    ,("lv"      , lvOf s)
+    ,("hp"      , hpOf s)
+    ,("maxhp"   , maxhpOf s)
+    ,("str"     , strength.paramOf $ s)
+    ,("iq"      , iq      .paramOf $ s)
+    ,("pie"     , piety   .paramOf $ s)
+    ,("vit"     , vitality.paramOf $ s)
+    ,("agi"     , agility .paramOf $ s)
+    ,("luc"     , luck    .paramOf $ s)
+    ,("o.ac"    , acOf o)
+    ,("o.lv"    , lvOf o)
+    ,("o.hp"    , hpOf o)
+    ,("o.maxhp" , maxhpOf o)
+    ,("o.str"   , strength.paramOf $ o)
+    ,("o.iq"    , iq      .paramOf $ o)
+    ,("o.pie"   , piety   .paramOf $ o)
+    ,("o.vit"   , vitality.paramOf $ o)
+    ,("o.agi"   , agility .paramOf $ o)
+    ,("o.luc"   , luck    .paramOf $ o)
+    ]
+
+

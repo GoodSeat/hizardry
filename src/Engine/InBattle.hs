@@ -131,7 +131,7 @@ selectBattleCommand i cmds con = GameAuto $ do
                           , next Parry
                           , Character.Parry `elem` cs)
                          ,( Key "s"
-                          , inputSpell next cancel
+                          , inputSpell SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
                           , Character.Spell `elem` cs)
                          ,( Key "r"
                           , events [Message $ Character.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
@@ -158,34 +158,6 @@ selectFightTarget next = GameAuto $ do
                           ,(Key "2", next (Fight 2), length ess > 1)
                           ,(Key "3", next (Fight 3), length ess > 2)
                           ,(Key "4", next (Fight 4), length ess > 3)]
-
-inputSpell :: (Action -> GameMachine) -> GameMachine -> GameMachine
-inputSpell next cancel = GameAuto $
-    return (SpellCommand "Input spell.\n(Empty to cancel.)",
-            \(Key s) -> if null s then cancel else selectCastTarget s next)
-
-selectCastTarget :: String -> (Action -> GameMachine) -> GameMachine
-selectCastTarget s next = GameAuto $ do
-    ess <- lastEnemies
-    p   <- party <$> world
-    def <- spellByName s
-    case def of
-        Nothing  -> run $ next (Spell s 1)
-        Just def -> case Spell.target def of
-            Spell.OpponentSingle -> select True  (length ess) (next . Spell s)
-            Spell.OpponentGroup  -> select True  (length ess) (next . Spell s)
-            Spell.AllySingle     -> select False (length p  ) (next . Spell s)
-            _                    -> run $ next (Spell s 0)
-  where
-    select toEnemy mx nextWith = if mx <= 1 then run (nextWith 1) else
-      run $ selectWhen (BattleCommand $ if toEnemy then "Target group?" 
-                                                   else "Target character?")
-            [(Key "1", nextWith 1, mx > 0)
-            ,(Key "2", nextWith 2, mx > 1)
-            ,(Key "3", nextWith 3, mx > 2)
-            ,(Key "4", nextWith 4, mx > 3)
-            ,(Key "5", nextWith 5, mx > 4)
-            ,(Key "6", nextWith 6, mx > 5)]
 
 
 confirmBattle :: [(CharacterID, Action)]

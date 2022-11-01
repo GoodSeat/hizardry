@@ -94,7 +94,7 @@ main = do
         , Character.items    = []
         , Character.equips   = []
 
-        , Character.spells   = []
+        , Character.spells   = [SpellID 11, SpellID 21]
         , Character.mp       = ([], [])
         , Character.maxmp    = ([], [])
         }
@@ -114,6 +114,7 @@ main = do
 
         , Character.job      = priest
         , Character.alignment= Character.N
+        , Character.spells   = [SpellID 71, SpellID 111, SpellID 112]
         }
     gen <- getStdGen
     let w = World {
@@ -374,7 +375,7 @@ testRender picOf s (BattleCommand m) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
         ess = case place w of InBattle _ ess' -> ess'
-                              _               -> undefined
+                              _               -> []
     render $ cmdBox m
           <> msgBox (unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n")
           <> (if statusWindow w then status (catMaybes ps) else mempty)
@@ -404,7 +405,7 @@ testRender picOf s (Time _ picID) w = do
           <> sceneTrans w (scene (place w) s)
   where inBattle = case place w of InBattle _ _ -> True
                                    _            -> False
-testRender _ s (ShowStatus i m) w = do
+testRender _ s (ShowStatus i m _) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ status (catMaybes ps)

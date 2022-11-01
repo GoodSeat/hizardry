@@ -45,7 +45,7 @@ fightDamage l c e = do
         damageF   = parse' "2d2"      -- TODO:from wepon.
         weponAt   = 0 -- TODO:AT value of wepon.
         stBonus   = 0 -- TODO:sum of equip item's ST value.
-        m         = formulaMap c (e, edef)
+        m         = formulaMapSO c (e, edef)
     tryCount <- max <$> (min <$> evalWith m tryCountF <*> pure 10) <*> pure weponAt
     jobBonus <- evalWith m jobBonusF
     let str      = strength . Character.param $ c
@@ -105,7 +105,7 @@ fightDamageE n e c dmg = do
     let p  = -2 -- TODO!:parry bonus of c.
         a  = 19 + p - acOf c - lvOf (e, edef)
         b  = a - acOf (e, edef)
-        m  = formulaMap (e, edef) c
+        m  = formulaMapSO (e, edef) c
         hv |  19 <= b  = 19 
            |   0 <= b  = b
            | -36 <= b  = 0
@@ -195,7 +195,7 @@ castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
       edef <- enemyOf $ Enemy.id e
       if Enemy.hp e <= 0 then return []
       else do
-        d <- evalWith (formulaMap c (e, edef)) f
+        d <- evalWith (formulaMapSO c (e, edef)) f
         let (e', _) = setHp (hpOf (e, edef) - d) (e, edef) 
         updateEnemy e $ const e'
         let msg = nameOf (e, edef) ++ " takes " ++ show d ++ "."
@@ -211,7 +211,7 @@ castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
       c  <- characterOf (ps !! idc)
       if hpOf c == 0 then return []
       else do
-        d <- evalWith (formulaMap (e, edef) c) f
+        d <- evalWith (formulaMapSO (e, edef) c) f
         let c' = setHp (hpOf c - d) c
         let msg = nameOf c ++ " takes " ++ show d ++ "."
         return $ (updateCharacter (ps !! idc) c', msg)
@@ -228,35 +228,23 @@ castDamageSpell _ _ _ _ _ = undefined
 castCureSpellSingle :: String -> Formula -> [StatusError] -> SpellEffect
 castCureSpellSingle n f ss (Left id) l next = GameAuto $ do
     ps <- party <$> world
-    run $ castCureSpell n f ss (Left [l]) (Left id) next
+    run $ castCureSpellInBattle n f ss (Left [l]) (Left id) next
 castCureSpellSingle n f ss (Right ei) l next = undefined
 
 castCureSpellAll n f ss (Left id) _ next = GameAuto $ do
     ps <- party <$> world
-    run $ castCureSpell n f ss (Left [1..length ps]) (Left id) next
+    run $ castCureSpellInBattle n f ss (Left [1..length ps]) (Left id) next
 castCureSpellAll n f ss (Right ei) _ next = undefined
 
-
-castCureSpell :: String -> Formula -> [StatusError]
+castCureSpellInBattle :: String -> Formula -> [StatusError]
               -> Either [Int] [Enemy.Instance]
               -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
-castCureSpell n f ss (Left is) (Left cid) next = GameAuto $ do
-    ps   <- party <$> world
-    wiz  <- characterOf cid
-    ts   <- forM is $ \i -> do
-      let idc = (i - 1) `mod` length ps
-      c   <- characterOf (ps !! idc)
-      let ssc = statusErrorsOf c
-      if hpOf c == 0 && all (`notElem` ssc) ss then return []
-      else do
-        d <- evalWith (formulaMap wiz c) f
-        let c' = foldl (&) (setHp (hpOf c + d) c) (removeStatusError <$> ss)
-        let msg = if hpOf c /= hpOf c' then nameOf c ++ " heal " ++ show (hpOf c' - hpOf c) ++ "."
-                                       else nameOf c ++ " cured."
-        return $ [(updateCharacter (ps !! idc) c', msg)]
+castCureSpellInBattle n f ss dst (Left cid) next = GameAuto $ do
+    wiz <- characterOf cid
+    ts  <- castCureSpell n f ss (Left wiz) dst
     let toMsg t = Message $ (nameOf wiz ++ " spells " ++ n ++ ".\n") ++ t
-    run $ events (toMsg <$> "" : (snd <$> concat ts)) (with (fst <$> concat ts) next)
-castCureSpell _ _ _ _ _ _ = undefined
+    run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
+castCureSpellInBattle _ _ _ _ _ _ = undefined
 
 -- --------------------------------------------------------------------------------
 
@@ -291,30 +279,4 @@ enemyNameOf :: Enemy.Instance -> GameState String
 enemyNameOf e = nameOf <$> enemyOf (Enemy.id e)
   where
     nameOf = if Enemy.determined e then Enemy.name else Enemy.nameUndetermined
-
-
-formulaMap :: Object s => Object o => s -> o -> Map.Map String Int
-formulaMap s o = Map.fromList [
-     ("ac"      , acOf s)
-    ,("lv"      , lvOf s)
-    ,("hp"      , hpOf s)
-    ,("maxhp"   , maxhpOf s)
-    ,("str"     , strength.paramOf $ s)
-    ,("iq"      , iq      .paramOf $ s)
-    ,("pie"     , piety   .paramOf $ s)
-    ,("vit"     , vitality.paramOf $ s)
-    ,("agi"     , agility .paramOf $ s)
-    ,("luc"     , luck    .paramOf $ s)
-    ,("o.ac"    , acOf o)
-    ,("o.lv"    , lvOf o)
-    ,("o.hp"    , hpOf o)
-    ,("o.maxhp" , maxhpOf o)
-    ,("o.str"   , strength.paramOf $ o)
-    ,("o.iq"    , iq      .paramOf $ o)
-    ,("o.pie"   , piety   .paramOf $ o)
-    ,("o.vit"   , vitality.paramOf $ o)
-    ,("o.agi"   , agility .paramOf $ o)
-    ,("o.luc"   , luck    .paramOf $ o)
-    ]
-
 
