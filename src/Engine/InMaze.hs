@@ -103,15 +103,15 @@ encountEnemy id = startBattle id (escapeEvent, escapeEvent)
 openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p)
-    ids <- party <$> world
+    np <- length . party <$> world
     run $ selectWhen (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
           [(Key "l", enterWithoutEncount p, True)
-          ,(Key "1", inspectCharacter (openCamp p) True 1, length ids >= 1)
-          ,(Key "2", inspectCharacter (openCamp p) True 2, length ids >= 2)
-          ,(Key "3", inspectCharacter (openCamp p) True 3, length ids >= 3)
-          ,(Key "4", inspectCharacter (openCamp p) True 4, length ids >= 4)
-          ,(Key "5", inspectCharacter (openCamp p) True 5, length ids >= 5)
-          ,(Key "6", inspectCharacter (openCamp p) True 6, length ids >= 6)
+          ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
+          ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
+          ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)
+          ,(Key "4", inspectCharacter (openCamp p) True B4, np >= 4)
+          ,(Key "5", inspectCharacter (openCamp p) True B5, np >= 5)
+          ,(Key "6", inspectCharacter (openCamp p) True B6, np >= 6)
           ]
 
 endEvent :: GameMachine

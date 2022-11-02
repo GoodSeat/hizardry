@@ -409,7 +409,7 @@ testRender _ s (ShowStatus i m _) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
     render $ status (catMaybes ps)
-          <> statusView m (ps !! (i - 1))
+          <> statusView m (ps !! (partyPosToNum i - 1))
           <> frame
           <> sceneTrans w (scene (place w) s)
 

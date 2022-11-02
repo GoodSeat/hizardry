@@ -27,16 +27,16 @@ inCastle = GameAuto $ do
 inGilgamesh'sTarvern :: GameMachine
 inGilgamesh'sTarvern = GameAuto $ do
     movePlace Gilgamesh'sTarvern
-    ids <- party <$> world
+    np <- length . party <$> world
     run $ selectWhen msg
             [(Key "l", inCastle, True)
-            ,(Key "1", inspectCharacter inGilgamesh'sTarvern False 1, length ids >= 1)
-            ,(Key "2", inspectCharacter inGilgamesh'sTarvern False 2, length ids >= 2)
-            ,(Key "3", inspectCharacter inGilgamesh'sTarvern False 3, length ids >= 3)
-            ,(Key "4", inspectCharacter inGilgamesh'sTarvern False 4, length ids >= 4)
-            ,(Key "5", inspectCharacter inGilgamesh'sTarvern False 5, length ids >= 5)
-            ,(Key "6", inspectCharacter inGilgamesh'sTarvern False 6, length ids >= 6)
-            ,(Key "a", selectCharacterAddToParty, length ids < 6)]
+            ,(Key "1", inspectCharacter inGilgamesh'sTarvern False F1, np >= 1)
+            ,(Key "2", inspectCharacter inGilgamesh'sTarvern False F2, np >= 2)
+            ,(Key "3", inspectCharacter inGilgamesh'sTarvern False F3, np >= 3)
+            ,(Key "4", inspectCharacter inGilgamesh'sTarvern False B4, np >= 4)
+            ,(Key "5", inspectCharacter inGilgamesh'sTarvern False B5, np >= 5)
+            ,(Key "6", inspectCharacter inGilgamesh'sTarvern False B6, np >= 6)
+            ,(Key "a", selectCharacterAddToParty, np < 6)]
   where
     msg = Message $ "A)dd\n"
                  ++ "R)emove\n"

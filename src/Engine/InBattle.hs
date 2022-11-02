@@ -23,8 +23,8 @@ data BattleAction = ByParties CharacterID Action
                   | ByEnemies Int Enemy.Instance Enemy.Action
     deriving (Show)
 
-data Action = Fight Int
-            | Spell String Int
+data Action = Fight EnemyLine
+            | Spell String SpellTarget
             | Hide
             | Ambush Int
             | Run
@@ -152,12 +152,12 @@ selectBattleCommand i cmds con = GameAuto $ do
 selectFightTarget :: (Action -> GameMachine) -> GameMachine
 selectFightTarget next = GameAuto $ do
     ess <- lastEnemies
-    if length ess == 1 then run $ next (Fight 1)
+    if length ess == 1 then run $ next (Fight L1)
     else run $ selectWhen (BattleCommand "Target group?")
-                          [(Key "1", next (Fight 1), not (null ess))
-                          ,(Key "2", next (Fight 2), length ess > 1)
-                          ,(Key "3", next (Fight 3), length ess > 2)
-                          ,(Key "4", next (Fight 4), length ess > 3)]
+                          [(Key "1", next (Fight L1), not (null ess))
+                          ,(Key "2", next (Fight L2), length ess > 1)
+                          ,(Key "3", next (Fight L3), length ess > 2)
+                          ,(Key "4", next (Fight L4), length ess > 3)]
 
 
 confirmBattle :: [(CharacterID, Action)]
@@ -242,10 +242,11 @@ act (ByEnemies l e a) next = GameAuto $ do
         else case a of
           Enemy.Fight n d t effs -> run $ fightOfEnemy e' n d t effs next
           Enemy.Spelling f       -> do
-              s'  <- spellByID . SpellID =<< eval f
-              cid <- eval $ parse' "1d6"
-              case s' of Just s  -> run $ spell' s (Right e') cid next
-                         Nothing -> run $ spellUnknown "?" (Right e') 0 next
+              s' <- spellByID . SpellID =<< eval f
+              np <- length . party <$> world
+              cp <- randomIn $ toPartyPos <$> [1..np]
+              case s' of Just s  -> run $ spell' s (Right e') (Left cp) next
+                         Nothing -> run $ spellUnknown "?" (Right e') (Left cp) next
           Enemy.Run              -> do
               en   <- enemyNameOf e'
               updateEnemy e' $ const e' { Enemy.hp = 0 }

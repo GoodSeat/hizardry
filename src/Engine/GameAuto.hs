@@ -36,7 +36,7 @@ data Event = None
 
            | BattleCommand String
            | SpellCommand  String
-           | ShowStatus    Int String InputType -- ^ order of member, manu message, next input type.
+           | ShowStatus    PartyPos String InputType -- ^ target position in party, manu message, next input type.
     deriving (Show, Eq)
 
 data Option = Option String

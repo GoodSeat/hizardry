@@ -18,27 +18,27 @@ import qualified Data.Spells as Spell
 
 
 type ActionOfCharacter = CharacterID  -- ^ id of actor.
-                      -> Int          -- ^ number that means target.
+                      -> EnemyLine    -- ^ number that means target.
                       -> GameMachine  -- ^ next game auto.
                       -> GameMachine  -- ^ game auto.
 
 
 fightOfCharacter :: ActionOfCharacter
-fightOfCharacter id l next = GameAuto $ do
-    e1 <- aliveEnemyLineHead l
+fightOfCharacter id el next = GameAuto $ do
+    e1 <- aliveEnemyLineHead el
     case e1 of
       Nothing -> run next
       Just e  -> do
         edef   <- enemyOf $ Enemy.id e
         c      <- characterOf id
-        (h, d) <- fightDamage l c e
+        (h, d) <- fightDamage el c e
         let (e', _) = setHp (hpOf (e, edef) - d) (e, edef)
         updateEnemy e $ const e'
         es <- fmap Message <$> fightMessage c e' (h, d)
         run $ events es next
 
-fightDamage :: Int -> Character.Character -> Enemy.Instance -> GameState (Int, Int)
-fightDamage l c e = do
+fightDamage :: EnemyLine -> Character.Character -> Enemy.Instance -> GameState (Int, Int)
+fightDamage el c e = do
     edef <- enemyOf $ Enemy.id e
     let tryCountF = parse' "lv/5 + 1" -- TODO:
         jobBonusF = parse' "lv/3 + 2" -- TODO:
@@ -54,7 +54,7 @@ fightDamage l c e = do
           | str < 6   = str - 6
           | otherwise = 0
         hitSkill = jobBonus + strBonus + stBonus
-        atSkill  = max (min (Enemy.ac edef + hitSkill - 3 * l) 19) 1
+        atSkill  = max (min (Enemy.ac edef + hitSkill - 3 * enemyLineToNum el) 19) 1
     rs <- replicateM tryCount $ do
         hit <- (<=) <$> randomNext 1 20 <*> pure atSkill
         dam <- (+) <$> evalWith m damageF <*> pure (max 0 strBonus)
@@ -132,24 +132,21 @@ fightMessageE e c (h, d) = do
 
 -- ================================================================================
 
--- spellOfCharacter :: ActionOfCharacter
--- spellOfCharacter id l = do
-
 
 type SpellEffect  = Either CharacterID Enemy.Instance
-                 -> Int -- ^ target line or character no.
+                 -> SpellTarget -- ^ target line or character no.
                  -> GameMachine
                  -> GameMachine
 
 spell :: String -> SpellEffect
-spell s tgt l next = GameAuto $ do
+spell s src dst next = GameAuto $ do
     spellDef <- spellByName s
     case spellDef of Just def -> if Spell.InBattle `elem` Spell.enableIn def then
-                                   -- TODO:if case tgt of Left idc, cost MP, no more MP, can't casting it.
-                                   run $ spell' def tgt l next
+                                   -- TODO:if case src of Left idc, cost MP, no more MP, can't casting it.
+                                   run $ spell' def src dst next
                                  else
-                                   run $ spellUnknown s tgt l next
-                     Nothing  -> run $ spellUnknown s tgt l next
+                                   run $ spellUnknown s src dst next
+                     Nothing  -> run $ spellUnknown s src dst next
 
 spell' :: Spell.Define -> SpellEffect
 spell' def = case Spell.effect def of
@@ -166,30 +163,33 @@ spell' def = case Spell.effect def of
 -- --------------------------------------------------------------------------------
 
 castDamageSpellSingle :: String -> Formula -> SpellEffect
-castDamageSpellSingle n f (Left id) l next = GameAuto $ do
-    e1 <- aliveEnemyLineHead l
+castDamageSpellSingle n f (Left id) (Right el) next = GameAuto $ do
+    e1 <- aliveEnemyLineHead el
     case e1 of Nothing -> run next
                Just e  -> run $ castDamageSpell n f (Right [e]) (Left id) next
-castDamageSpellSingle n f (Right e) l next = castDamageSpell n f (Left [l]) (Right e) next
+castDamageSpellSingle n f (Right e) (Left l) next = castDamageSpell n f (Left [l]) (Right e) next
+castDamageSpellSingle _ _ _ _ _ = undefined
 
 castDamageSpellGroup :: String -> Formula -> SpellEffect
-castDamageSpellGroup n f (Left id) l next = GameAuto $ do
-    es <- aliveEnemiesLine l
+castDamageSpellGroup n f (Left id) (Right el) next = GameAuto $ do
+    es <- aliveEnemiesLine el
     run $ castDamageSpell n f (Right es) (Left id) next
 castDamageSpellGroup n f (Right e) _ next = GameAuto $ do
     ps <- party <$> world
-    run $ castDamageSpell n f (Left [1..length ps]) (Right e) next
+    run $ castDamageSpell n f (Left $ toPartyPos <$> [1..length ps]) (Right e) next
+castDamageSpellGroup _ _ _ _ _ = undefined
 
 castDamageSpellAll :: String -> Formula -> SpellEffect
 castDamageSpellAll n f (Left id) l next = GameAuto $ do
-    es <- sequence $ aliveEnemiesLine <$> [1..4]
+    es <- sequence $ aliveEnemiesLine . toEnemyLine <$> [1..4]
     run $ castDamageSpell n f (Right $ concat es) (Left id) next
 castDamageSpellAll n f (Right e) l next = castDamageSpellGroup n f (Right e) l next
 
 
 castDamageSpell :: String -> Formula
-                -> Either [Int] [Enemy.Instance]
-                -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
+                -> Either [PartyPos] [Enemy.Instance] -- ^ dst
+                -> Either CharacterID Enemy.Instance  -- ^ src
+                -> GameMachine -> GameMachine
 castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
     c  <- characterOf id
     ts <- forM es $ \e -> do
@@ -206,16 +206,14 @@ castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
 
 castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
     edef <- enemyOf $ Enemy.id e
-    ps   <- party <$> world
     ts   <- forM is $ \i -> do
-      let idc = (i - 1) `mod` length ps
-      c  <- characterOf (ps !! idc)
+      c <- partyAt' i
       if hpOf c == 0 then return []
       else do
         d <- evalWith (formulaMapSO (e, edef) c) f
         let c' = setHp (hpOf c - d) c
         let msg = nameOf c ++ " takes " ++ show d ++ "."
-        return $ (updateCharacter (ps !! idc) c', msg)
+        return $ (join $ updateCharacter <$> partyAt i <*> pure c', msg)
                : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
     if null ts then run next
     else do
@@ -227,18 +225,18 @@ castDamageSpell _ _ _ _ _ = undefined
 -- --------------------------------------------------------------------------------
 
 castCureSpellSingle :: String -> Formula -> [StatusError] -> SpellEffect
-castCureSpellSingle n f ss (Left id) l next = GameAuto $ do
+castCureSpellSingle n f ss (Left id) (Left l) next = GameAuto $ do
     ps <- party <$> world
     run $ castCureSpellInBattle n f ss (Left [l]) (Left id) next
-castCureSpellSingle n f ss (Right ei) l next = undefined
+castCureSpellSingle _ _ _ _ _ _ = undefined
 
 castCureSpellAll n f ss (Left id) _ next = GameAuto $ do
     ps <- party <$> world
-    run $ castCureSpellInBattle n f ss (Left [1..length ps]) (Left id) next
-castCureSpellAll n f ss (Right ei) _ next = undefined
+    run $ castCureSpellInBattle n f ss (Left $ toPartyPos <$> [1..length ps]) (Left id) next
+castCureSpellAll _ _ _ _ _ _ = undefined
 
 castCureSpellInBattle :: String -> Formula -> [StatusError]
-              -> Either [Int] [Enemy.Instance]
+              -> Either [PartyPos] [Enemy.Instance]
               -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
 castCureSpellInBattle n f ss dst (Left cid) next = GameAuto $ do
     wiz <- characterOf cid
@@ -263,15 +261,15 @@ spellUnknown n (Right e) _ next = GameAuto $ do
 
 
 -- ==========================================================================
-aliveEnemiesLine :: Int -> GameState [Enemy.Instance]
-aliveEnemiesLine l = do
+aliveEnemiesLine :: EnemyLine -> GameState [Enemy.Instance]
+aliveEnemiesLine el = do
   ess <- lastEnemies
-  if length ess < l then return []
-                    else return $ filter (\e -> Enemy.hp e > 0) (ess !! (l - 1))
+  if length ess < enemyLineToNum el then return []
+  else return $ filter (\e -> Enemy.hp e > 0) (ess !! (enemyLineToNum el - 1))
 
-aliveEnemyLineHead :: Int -> GameState (Maybe Enemy.Instance)
-aliveEnemyLineHead l = do
-    es <- aliveEnemiesLine l
+aliveEnemyLineHead :: EnemyLine -> GameState (Maybe Enemy.Instance)
+aliveEnemyLineHead el = do
+    es <- aliveEnemiesLine el
     return $ if null es then Nothing else Just $ head es
 
 
