@@ -95,8 +95,8 @@ main = do
         , Character.equips   = []
 
         , Character.spells   = [SpellID 11, SpellID 21]
-        , Character.mp       = (replicate 7 0, replicate 7 0)
-        , Character.maxmp    = (replicate 7 0, replicate 7 0)
+        , Character.mp       = (replicate 7 2, replicate 7 2)
+        , Character.maxmp    = (replicate 7 2, replicate 7 2)
         }
         testChara2 = testChara1 {
           Character.name     = "FIG2"

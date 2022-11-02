@@ -20,13 +20,6 @@ import qualified Data.Characters as Chara
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
 
-import GHC.Stack (HasCallStack)
-
-(!!!) :: HasCallStack => [a] -> Int -> a
-(e:es) !!! 0 = e
-(e:es) !!! n = if n < 0 then error "index too small" else es !!! (n - 1)
-[] !!! n = error "index too large"
-
 
 -- =================================================================================
 -- General
@@ -96,6 +89,7 @@ spellByName :: String -> GameState (Maybe Spell.Define)
 spellByName n = do
     ss <- asks spells
     return $ (ss!) <$> Spell.findID ss n
+
 
 inspectCharacter :: GameMachine -> Bool -> Int -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
@@ -167,7 +161,7 @@ spellInCamp i next s l = GameAuto $ do
     case spellDef of Just def -> if Spell.InCamp `elem` Spell.enableIn def then
                                    run $ spellInCamp' def i l next
                                  else
-                                   run $ events [ShowStatus i "no happens." SingleKey] next
+                                   run $ events [ShowStatus i "can't cast it hear." SingleKey] next
                      Nothing  -> run $ events [ShowStatus i "what?" SingleKey] next
 
 spellInCamp' :: Spell.Define -> Int -> Int -> GameMachine -> GameMachine
@@ -176,7 +170,7 @@ spellInCamp' def i l next = GameAuto $ do
     c   <- characterOf (ids !! (i - 1))
     sdb <- asks spells
     if      not (Chara.knowSpell' sdb def c) then
-      run $ events [ShowStatus i "can't casting it." SingleKey] next
+      run $ events [ShowStatus i "you can't casting it." SingleKey] next
     else if not (Chara.canSpell'  sdb def c) then
       run $ events [ShowStatus i "no more MP." SingleKey] next
     else do
