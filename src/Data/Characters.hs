@@ -66,31 +66,67 @@ data Job = Job {
 } deriving (Show, Eq)
 
 
-itemPosInChara :: String -> Maybe Int
-itemPosInChara "a" = Just 0
-itemPosInChara "b" = Just 1
-itemPosInChara "c" = Just 2
-itemPosInChara "d" = Just 3
-itemPosInChara "e" = Just 4
-itemPosInChara "f" = Just 5
-itemPosInChara "g" = Just 6
-itemPosInChara "h" = Just 7
-itemPosInChara "i" = Just 8
-itemPosInChara "j" = Just 9
-itemPosInChara _   = Nothing
+data ItemPos = ItemA
+             | ItemB
+             | ItemC
+             | ItemD
+             | ItemE
+             | ItemF
+             | ItemG
+             | ItemH
+             | ItemI
+             | ItemJ
+  deriving (Show, Eq, Ord)
 
-posToItemChar :: Int -> Char
-posToItemChar 0 = 'a'
-posToItemChar 1 = 'b'
-posToItemChar 2 = 'c'
-posToItemChar 3 = 'd'
-posToItemChar 4 = 'e'
-posToItemChar 5 = 'f'
-posToItemChar 6 = 'g'
-posToItemChar 7 = 'h'
-posToItemChar 8 = 'i'
-posToItemChar 9 = 'j'
-posToItemChar _ = error "invalid posToItemChar"
+itemAt :: Character -> ItemPos -> ItemID
+itemAt c ItemA = itemID $ items c !! 0
+itemAt c ItemB = itemID $ items c !! 1
+itemAt c ItemC = itemID $ items c !! 2
+itemAt c ItemD = itemID $ items c !! 3
+itemAt c ItemE = itemID $ items c !! 4
+itemAt c ItemF = itemID $ items c !! 5
+itemAt c ItemG = itemID $ items c !! 6
+itemAt c ItemH = itemID $ items c !! 7
+itemAt c ItemI = itemID $ items c !! 8
+itemAt c ItemJ = itemID $ items c !! 9
+
+itemPosByChar :: String -> Maybe ItemPos
+itemPosByChar "a" = Just ItemA
+itemPosByChar "b" = Just ItemB
+itemPosByChar "c" = Just ItemC
+itemPosByChar "d" = Just ItemD
+itemPosByChar "e" = Just ItemE
+itemPosByChar "f" = Just ItemF
+itemPosByChar "g" = Just ItemG
+itemPosByChar "h" = Just ItemH
+itemPosByChar "i" = Just ItemI
+itemPosByChar "j" = Just ItemJ
+itemPosByChar _   = Nothing
+
+itemPosToText :: ItemPos -> String
+itemPosToText ItemA = "A"
+itemPosToText ItemB = "B"
+itemPosToText ItemC = "C"
+itemPosToText ItemD = "D"
+itemPosToText ItemE = "E"
+itemPosToText ItemF = "F"
+itemPosToText ItemG = "G"
+itemPosToText ItemH = "H"
+itemPosToText ItemI = "I"
+itemPosToText ItemJ = "J"
+
+numToItemPos :: Int -> ItemPos
+numToItemPos 0 = ItemA
+numToItemPos 1 = ItemB
+numToItemPos 2 = ItemC
+numToItemPos 3 = ItemD
+numToItemPos 4 = ItemE
+numToItemPos 5 = ItemF
+numToItemPos 6 = ItemG
+numToItemPos 7 = ItemH
+numToItemPos 8 = ItemI
+numToItemPos 9 = ItemJ
+numToItemPos _ = error "invalid posToItemChar"
 
 -- =================================================================================
 

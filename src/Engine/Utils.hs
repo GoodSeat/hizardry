@@ -109,6 +109,7 @@ inspectCharacter h canSpell i = GameAuto $ do
     run $ selectWhen (ShowStatus i msg SingleKey)
                      [(Key "l", h, True)
                      ,(Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
+                     ,(Key "u", selectItem c sItem sCast (useItemInCamp i cancel) cancel, True)
                      ,(Key "1", inspectCharacter h canSpell F1, pn >= 1)
                      ,(Key "2", inspectCharacter h canSpell F2, pn >= 2)
                      ,(Key "3", inspectCharacter h canSpell F3, pn >= 3)
@@ -125,48 +126,62 @@ inspectCharacter h canSpell i = GameAuto $ do
             "R)ead Spell   P)ool Money   #)Inspect      L)eave  "
     iCast = flip (ShowStatus i) SequenceKey
     sCast = flip (ShowStatus i) SingleKey
-
+    sItem = const (sCast "Select item.  L)eave")
 
 -- =================================================================================
 -- for using item.
 -- ---------------------------------------------------------------------------------
 
+useItemInCamp :: PartyPos -> GameMachine -> Chara.ItemPos -> SpellTarget -> GameMachine
+useItemInCamp src next i (Left dst) = GameAuto $ do
+    c   <- partyAt' src
+    def <- itemByID $ Chara.itemAt c i
+    case Item.usingEffect def of
+      Nothing                     -> run $ events [ShowStatus src "no happens." SingleKey] next
+      Just (Item.EqSpell ids, bp) -> do
+         sdef' <- spellByID ids
+         case sdef' of
+           Just sdef -> if Spell.InCamp `elem` Spell.enableIn sdef then
+                          -- TODO!:item maybe broken.
+                          run $ spellInCampNoCost sdef src dst next
+                        else
+                          run $ events [ShowStatus src "can't use it hear." SingleKey] next
+           Nothing   -> error "invalid spellId in useItemInCamp"
+
 selectItem :: Chara.Character
             -> (String -> Event)
             -> (String -> Event)
-            -> (ItemID -> SpellTarget -> GameMachine)
+            -> (Chara.ItemPos -> SpellTarget -> GameMachine)
             -> GameMachine
             -> GameMachine
 selectItem c msgForSelect msgForTargeting next cancel = GameAuto $ do
     is <- asks items
     let nameOf id = Item.name (is ! id)
         its = Chara.items c
-        cs  = filter (identified . snd) (zip (Chara.posToItemChar <$> [0..]) its)
-        msg = (\(t, inf) -> t : ")" ++ nameOf (itemID inf)) <$> cs
-
+        cs  = filter (identified . snd) (zip (Chara.numToItemPos <$> [0..]) its)
+        msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
     return (msgForSelect $ "Select item.\nL)eave\n\n" ++ unlines msg,
-            \(Key s) -> if s == "l" then
-                          cancel
-                        else
-                          case Chara.itemPosInChara s of
-                            Nothing -> selectItem c msgForSelect msgForTargeting next cancel
-                            Just i  -> if i > length its && head s `elem` (fst <$> cs) then
-                                          selectUseTarget (itemID $ its !! i) next
-                                       else 
-                                          selectItem c msgForSelect msgForTargeting next cancel
-            )
+            \(Key s) -> if s == "l" then cancel
+                        else case Chara.itemPosByChar s of
+                          Nothing -> selectItem c msgForSelect msgForTargeting next cancel
+                          Just i  -> if i `elem` (fst <$> cs) then
+                                       selectUseTarget i next
+                                     else 
+                                       selectItem c msgForSelect msgForTargeting next cancel
+           )
   where
-    selectUseTarget :: ItemID -> (ItemID -> SpellTarget -> GameMachine) -> GameMachine
-    selectUseTarget id next = GameAuto $ do
+    selectUseTarget :: Chara.ItemPos -> (Chara.ItemPos -> SpellTarget -> GameMachine) -> GameMachine
+    selectUseTarget i next = GameAuto $ do
+        let id = Chara.itemAt c i
         ps  <- party <$> world
         def <- itemByID id
         case Item.usingEffect def of
-          Nothing                     -> run $ next id (Left F1) -- MEMO:target should be ignored...
-          Just (Item.EqSpell ids, bp) -> do
+          Nothing                    -> run $ next i (Left F1) -- MEMO:target should be ignored...
+          Just (Item.EqSpell ids, _) -> do
              sdef' <- spellByID ids
              case sdef' of
-               Just sdef -> run $ selectSpellTarget sdef undefined False (next id) msgForTargeting cancel
-               Nothing   -> error "invalid spell id in selectUseTarget"
+               Just sdef -> run $ selectSpellTarget sdef undefined False (next i) msgForTargeting cancel
+               Nothing   -> error "invalid spellId in selectUseTarget"
 
 -- =================================================================================
 -- for spelling.
@@ -235,24 +250,30 @@ spellInCamp src next s (Right dst) = error "can't target enemy in spellInCamp"
 
 spellInCamp' :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCamp' def src dst next = GameAuto $ do
-    pn  <- length . party <$> world
-    c   <- partyAt' src
-    sdb <- asks spells
-    if      not (Chara.knowSpell' sdb def c) then
+    c    <- partyAt' src
+    know <- knowSpell' c def
+    can  <- canSpell'  c def
+    if      not know then
       run $ events [ShowStatus src "you can't casting it." SingleKey] next
-    else if not (Chara.canSpell'  sdb def c) then
+    else if not can  then
       run $ events [ShowStatus src "no more MP." SingleKey] next
     else do
       join $ updateCharacter <$> partyAt src <*> costSpell' c def
-      case Spell.effect def of
-        Spell.Damage _  -> undefined
-        Spell.Cure f ss -> do
-          let tgt = case Spell.target def of
-                      Spell.AllySingle -> [dst]
-                      Spell.AllyAll    -> toPartyPos <$> [1..pn]
-                      _                -> []
-          efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
-          run $ with (fst <$> efs) (events [ShowStatus src "done" SingleKey] next)
+      run $ spellInCampNoCost def src dst next
+
+spellInCampNoCost :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
+spellInCampNoCost def src dst next = GameAuto $ do
+    pn  <- length . party <$> world
+    c   <- partyAt' src
+    case Spell.effect def of
+      Spell.Damage _  -> undefined
+      Spell.Cure f ss -> do
+        let tgt = case Spell.target def of
+                    Spell.AllySingle -> [dst]
+                    Spell.AllyAll    -> toPartyPos <$> [1..pn]
+                    _                -> []
+        efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
+        run $ with (fst <$> efs) (events [ShowStatus src "done" SingleKey] next)
 
 
 castCureSpell :: Spell.Name -> Formula -> [StatusError]
