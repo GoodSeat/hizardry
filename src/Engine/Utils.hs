@@ -22,6 +22,7 @@ import Data.Formula
 import qualified Data.Characters as Chara
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 
 
 -- =================================================================================
@@ -93,32 +94,12 @@ spellByName n = do
     ss <- asks spells
     return $ (ss!) <$> Spell.findID ss n
 
-knowSpell :: CharacterID -> SpellID -> GameState Bool
-knowSpell cid sid = do
-  c <- characterOf cid
-  return $ Chara.knowSpell sid c
+itemByID :: ItemID -> GameState Item.Define
+itemByID id = asks $ flip (!) id . items
 
-knowSpell' :: Chara.Character -> Spell.Define -> GameState Bool
-knowSpell' c def = do
-    sdb  <- asks spells
-    return $ Chara.knowSpell' sdb def c
-
-canSpell :: CharacterID -> SpellID -> GameState Bool
-canSpell cid sid = do
-  c   <- characterOf cid
-  sdb <- asks spells
-  return $ Chara.canSpell sdb sid c
-
-canSpell' :: Chara.Character -> Spell.Define -> GameState Bool
-canSpell' c def = do
-    sdb <- asks spells
-    return $ Chara.canSpell' sdb def c
-
-costSpell' :: Chara.Character -> Spell.Define -> GameState Chara.Character
-costSpell' c def = do
-    sdb <- asks spells
-    return $ Chara.costSpell' sdb def c
-
+-- =================================================================================
+-- character inspection.
+-- ---------------------------------------------------------------------------------
 
 inspectCharacter :: GameMachine -> Bool -> PartyPos -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
@@ -146,9 +127,57 @@ inspectCharacter h canSpell i = GameAuto $ do
     sCast = flip (ShowStatus i) SingleKey
 
 
-inputSpell :: Chara.Character -> (String -> Event) -> (String -> Event)
-           -> (String -> SpellTarget -> GameMachine)
-           -> GameMachine -> GameMachine
+-- =================================================================================
+-- for using item.
+-- ---------------------------------------------------------------------------------
+
+selectItem :: Chara.Character
+            -> (String -> Event)
+            -> (String -> Event)
+            -> (ItemID -> SpellTarget -> GameMachine)
+            -> GameMachine
+            -> GameMachine
+selectItem c msgForSelect msgForTargeting next cancel = GameAuto $ do
+    is <- asks items
+    let nameOf id = Item.name (is ! id)
+        its = Chara.items c
+        cs  = filter (identified . snd) (zip (Chara.posToItemChar <$> [0..]) its)
+        msg = (\(t, inf) -> t : ")" ++ nameOf (itemID inf)) <$> cs
+
+    return (msgForSelect $ "Select item.\nL)eave\n\n" ++ unlines msg,
+            \(Key s) -> if s == "l" then
+                          cancel
+                        else
+                          case Chara.itemPosInChara s of
+                            Nothing -> selectItem c msgForSelect msgForTargeting next cancel
+                            Just i  -> if i > length its && head s `elem` (fst <$> cs) then
+                                          selectUseTarget (itemID $ its !! i) next
+                                       else 
+                                          selectItem c msgForSelect msgForTargeting next cancel
+            )
+  where
+    selectUseTarget :: ItemID -> (ItemID -> SpellTarget -> GameMachine) -> GameMachine
+    selectUseTarget id next = GameAuto $ do
+        ps  <- party <$> world
+        def <- itemByID id
+        case Item.usingEffect def of
+          Nothing                     -> run $ next id (Left F1) -- MEMO:target should be ignored...
+          Just (Item.EqSpell ids, bp) -> do
+             sdef' <- spellByID ids
+             case sdef' of
+               Just sdef -> run $ selectSpellTarget sdef undefined False (next id) msgForTargeting cancel
+               Nothing   -> error "invalid spell id in selectUseTarget"
+
+-- =================================================================================
+-- for spelling.
+-- ---------------------------------------------------------------------------------
+
+inputSpell :: Chara.Character
+           -> (String -> Event)
+           -> (String -> Event)
+           -> (Spell.Name -> SpellTarget -> GameMachine)
+           -> GameMachine
+           -> GameMachine
 inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $
     return (msgForCasting "Input spell.\n(Empty to cancel.)",
             \(Key s) -> if null s then cancel else selectCastTarget s next)
@@ -158,15 +187,24 @@ inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $
         ps   <- party <$> world
         def' <- spellByName s
         case def' of
-            Nothing  -> run $ next s (Left F1) -- MEMO:target should be ignored...
-            Just def -> do
-              know          <- knowSpell' c def
-              (toEnemy, mx) <- case Spell.target def of
-                Spell.OpponentSingle -> (True,) . length <$> lastEnemies
-                Spell.OpponentGroup  -> (True,) . length <$> lastEnemies
-                Spell.AllySingle     -> return (False, length ps)
-                _                    -> return (False, 1) -- MEMO:target should be ignored...
-              select toEnemy (if know then mx else 1) (next s)
+          Nothing  -> run $ next s (Left F1) -- MEMO:target should be ignored...
+          Just def -> run $ selectSpellTarget def c True (next s) msgForSelecting cancel
+
+selectSpellTarget :: Spell.Define -> Chara.Character -> Bool
+                  -> (SpellTarget -> GameMachine)
+                  -> (String -> Event)
+                  -> GameMachine
+                  -> GameMachine
+selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
+    know <- if checkKnow then knowSpell' c def else return True
+    ps   <- party <$> world
+    (toEnemy, mx) <- case Spell.target def of
+      Spell.OpponentSingle -> (True,) . length <$> lastEnemies
+      Spell.OpponentGroup  -> (True,) . length <$> lastEnemies
+      Spell.AllySingle     -> return (False, length ps)
+      _                    -> return (False, 1) -- MEMO:target should be ignored...
+    select toEnemy (if know then mx else 1) next
+  where
     select toEnemy mx nextWith =
         let toDst = if toEnemy then Right . toEnemyLine else Left . toPartyPos in
         if mx <= 1 then
@@ -184,7 +222,7 @@ inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $
                   ,(Key "c", cancel, True)]
 
 
-spellInCamp :: PartyPos -> GameMachine -> String -> SpellTarget -> GameMachine
+spellInCamp :: PartyPos -> GameMachine -> Spell.Name -> SpellTarget -> GameMachine
 spellInCamp src next s (Left dst) = GameAuto $ do
     spellDef <- spellByName s
     case spellDef of
@@ -217,7 +255,7 @@ spellInCamp' def src dst next = GameAuto $ do
           run $ with (fst <$> efs) (events [ShowStatus src "done" SingleKey] next)
 
 
-castCureSpell :: String -> Formula -> [StatusError]
+castCureSpell :: Spell.Name -> Formula -> [StatusError]
               -> Either Chara.Character Enemy.Instance  -- ^ src
               -> Either [PartyPos] [Enemy.Instance]     -- ^ dst
               -> GameState [(GameState (), String)]
@@ -284,6 +322,33 @@ poolGold id = do
     let gp = sum $ Chara.gold <$> cs
     forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Chara.gold = if id' == id then gp else 0 }
 
+knowSpell :: CharacterID -> SpellID -> GameState Bool
+knowSpell cid sid = do
+    c <- characterOf cid
+    return $ Chara.knowSpell sid c
+
+knowSpell' :: Chara.Character -> Spell.Define -> GameState Bool
+knowSpell' c def = do
+    sdb  <- asks spells
+    return $ Chara.knowSpell' sdb def c
+
+canSpell :: CharacterID -> SpellID -> GameState Bool
+canSpell cid sid = do
+    c   <- characterOf cid
+    sdb <- asks spells
+    return $ Chara.canSpell sdb sid c
+
+canSpell' :: Chara.Character -> Spell.Define -> GameState Bool
+canSpell' c def = do
+    sdb <- asks spells
+    return $ Chara.canSpell' sdb def c
+
+costSpell' :: Chara.Character -> Spell.Define -> GameState Chara.Character
+costSpell' c def = do
+    sdb <- asks spells
+    return $ Chara.costSpell' sdb def c
+
+
 sortPartyAuto :: GameState ()
 sortPartyAuto = sortPartyAutoWith . party =<< world
 
@@ -294,7 +359,6 @@ sortPartyAutoWith psOrg = do
     let p2s = filter (isCantFight . snd) ps'
         p1s = filter (`notElem` p2s) ps'
     put $ w { party = fst <$> (p1s ++ p2s) }
-
 
 -- =================================================================================
 -- for Enemies.

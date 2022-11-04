@@ -18,6 +18,7 @@ import Data.Formula
 import qualified Data.Characters as Character
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 import qualified Data.GameEvent as Ev
 
 import Control.CUI
@@ -91,7 +92,7 @@ main = do
         , Character.rips     = 0
         , Character.statusErrors = []
 
-        , Character.items    = []
+        , Character.items    = [ItemInf (ItemID 1) True, ItemInf (ItemID 1) False]
         , Character.equips   = []
 
         , Character.spells   = [SpellID 11, SpellID 21]
@@ -318,6 +319,15 @@ main = do
                     , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
                 })
                 ]
+            , items = Map.fromList [
+                (ItemID 1, Item.Define {
+                      Item.name             = "DIOS POTION"
+                    , Item.nameUndetermined = "POTION?"
+                    , Item.itemType         = Item.Misc
+                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, 100)
+                    , Item.spEffect         = Nothing
+                })
+                ]
             }
 
     let pic id | id == PictureID 1001 = himiko
@@ -407,8 +417,11 @@ testRender picOf s (Time _ picID) w = do
 testRender _ s (ShowStatus i m _) w = do
     clearScreen
     let ps = flip Map.lookup (allCharacters w) <$> party w
+        itemNameOf id identified = let def = items s Map.! id in
+            (if identified then Item.name else Item.nameUndetermined) def
+
     render $ status (catMaybes ps)
-          <> statusView m (ps !! (partyPosToNum i - 1))
+          <> statusView m itemNameOf (ps !! (partyPosToNum i - 1))
           <> frame
           <> sceneTrans w (scene (place w) s)
 

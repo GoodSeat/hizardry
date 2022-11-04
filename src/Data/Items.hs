@@ -5,16 +5,19 @@ import Data.Primitive
 import qualified Data.Map as Map
 
 
+type Name = String
+
 data Define = Define {
-      name             :: String
-    , nameUndetermined :: String
+      name             :: Name
+    , nameUndetermined :: Name
     , itemType         :: ItemType
+    , usingEffect      :: Maybe (Effect, Int) -- ^ effect, probablity broken after using.
     , spEffect         :: Maybe (Effect, Int) -- ^ effect, probablity broken after sp.
 } deriving (Show, Eq)
 
 
 data ItemType = 
-      Potion
+      Misc
     | Equip
     deriving (Show, Eq)
 
@@ -42,5 +45,5 @@ class Equipable a where
         
 
 -- | data base of items.
-type DB = Map.Map Int Define
+type DB = Map.Map ItemID Define
 

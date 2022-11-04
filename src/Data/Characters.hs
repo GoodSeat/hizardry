@@ -66,6 +66,32 @@ data Job = Job {
 } deriving (Show, Eq)
 
 
+itemPosInChara :: String -> Maybe Int
+itemPosInChara "a" = Just 0
+itemPosInChara "b" = Just 1
+itemPosInChara "c" = Just 2
+itemPosInChara "d" = Just 3
+itemPosInChara "e" = Just 4
+itemPosInChara "f" = Just 5
+itemPosInChara "g" = Just 6
+itemPosInChara "h" = Just 7
+itemPosInChara "i" = Just 8
+itemPosInChara "j" = Just 9
+itemPosInChara _   = Nothing
+
+posToItemChar :: Int -> Char
+posToItemChar 0 = 'a'
+posToItemChar 1 = 'b'
+posToItemChar 2 = 'c'
+posToItemChar 3 = 'd'
+posToItemChar 4 = 'e'
+posToItemChar 5 = 'f'
+posToItemChar 6 = 'g'
+posToItemChar 7 = 'h'
+posToItemChar 8 = 'i'
+posToItemChar 9 = 'j'
+posToItemChar _ = error "invalid posToItemChar"
+
 -- =================================================================================
 
 data BattleCommand = Fight

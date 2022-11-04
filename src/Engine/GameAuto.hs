@@ -12,6 +12,7 @@ import Data.Maze
 import qualified Data.GameEvent as GameEvent
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 
 -- ==========================================================================
 
@@ -51,6 +52,7 @@ data Scenario = Scenario {
     , mazeEvents     :: !GameEvent.DB
     , enemies        :: !Enemy.DB
     , spells         :: !Spell.DB
+    , items          :: !Item.DB
     }
 
 -- ==========================================================================

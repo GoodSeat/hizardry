@@ -19,7 +19,7 @@ newtype ItemID = ItemID {
 
 data ItemInf = ItemInf {
       itemID     :: ItemID
-    , determined :: Bool -- ^ already determined or not.
+    , identified :: Bool -- ^ already identified or not.
 } deriving (Show, Eq, Ord)
 
 

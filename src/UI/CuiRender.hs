@@ -10,6 +10,7 @@ import Data.Characters as Character
 import Data.World
 import Data.Maze
 import qualified Data.Enemies as Enemy
+import qualified Data.Items as Item
 
 
 windowW = 75
@@ -49,28 +50,28 @@ status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> text (54, windowH - 7 + n) (show $ hp c)
                         <> text (61, windowH - 7 + n) (show $ maxhp c)
 
-statusView :: String -> Maybe Character -> Craphic
-statusView _ Nothing  = undefined
-statusView msg (Just c) =
+statusView :: String -> (ItemID -> Bool -> Item.Name)  -> Maybe Character -> Craphic
+statusView _ _ Nothing  = undefined
+statusView msg itemNameOf (Just c) =
     foldl1 (<>) (fmap toText (zip [1..] ls)) <>
     rect (8, 24) (61, 7) (Draw ' ') <>
     ( translate (5, 4) $
       fromTexts ' ' $ replaceText "[Name]" (name c) (Left 30)
-                    . replaceText "[Lv]"  (show $ lv c) (Right 4)
-                    . replaceText "[STR]" (show $ strength st) (Right 3)
-                    . replaceText "[IQ]"  (show $ iq st) (Right 3)
-                    . replaceText "[PIE]" (show $ piety st) (Right 3)
-                    . replaceText "[VIT]" (show $ vitality st) (Right 3)
-                    . replaceText "[AGI]" (show $ agility st) (Right 3)
-                    . replaceText "[LUK]" (show $ luck st) (Right 3)
-                    . replaceText "[HP]" (show $ hp c) (Right 4)
-                    . replaceText "[MaxHP]" (show $ maxhp c) (Right 4)
-                    . replaceText "[Exp]"  (show $ Character.exp c) (Right 8)
-                    . replaceText "[Gold]" (show $ gold c) (Right 8)
-                    . replaceText "[Age]" (show $ age c) (Right 4)
-                    . replaceText "[AC]" (show $ acOf c) (Right 4)
-                    . replaceText "[Marks]" (show $ marks c) (Right 4)
-                    . replaceText "[RIPs]"  (show $ rips c) (Right 4)
+                    . replaceText "[Lv]"    (show $ lv c)            (Right 4)
+                    . replaceText "[STR]"   (show $ strength st)     (Right 3)
+                    . replaceText "[IQ]"    (show $ iq st)           (Right 3)
+                    . replaceText "[PIE]"   (show $ piety st)        (Right 3)
+                    . replaceText "[VIT]"   (show $ vitality st)     (Right 3)
+                    . replaceText "[AGI]"   (show $ agility st)      (Right 3)
+                    . replaceText "[LUK]"   (show $ luck st)         (Right 3)
+                    . replaceText "[HP]"    (show $ hp c)            (Right 4)
+                    . replaceText "[MaxHP]" (show $ maxhp c)         (Right 4)
+                    . replaceText "[Exp]"   (show $ Character.exp c) (Right 8)
+                    . replaceText "[Gold]"  (show $ gold c)          (Right 8)
+                    . replaceText "[Age]"   (show $ age c)           (Right 4)
+                    . replaceText "[AC]"    (show $ acOf c)          (Right 4)
+                    . replaceText "[Marks]" (show $ marks c)         (Right 4)
+                    . replaceText "[RIPs]"  (show $ rips c)          (Right 4)
                     . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
                     . replaceText "M2"  (show $ (fst (mp c) ++ repeat 0) !! 1) (Right 2)
                     . replaceText "M3"  (show $ (fst (mp c) ++ repeat 0) !! 2) (Right 2)
@@ -85,11 +86,22 @@ statusView msg (Just c) =
                     . replaceText "P5"  (show $ (snd (mp c) ++ repeat 0) !! 4) (Right 2)
                     . replaceText "P6"  (show $ (snd (mp c) ++ repeat 0) !! 5) (Right 2)
                     . replaceText "P7"  (show $ (snd (mp c) ++ repeat 0) !! 6) (Right 2)
+                    . replaceText "[Item1]"  (items' !! 0) (Left 24)
+                    . replaceText "[Item2]"  (items' !! 1) (Left 24)
+                    . replaceText "[Item3]"  (items' !! 2) (Left 24)
+                    . replaceText "[Item4]"  (items' !! 3) (Left 24)
+                    . replaceText "[Item5]"  (items' !! 4) (Left 24)
+                    . replaceText "[Item6]"  (items' !! 5) (Left 24)
+                    . replaceText "[Item7]"  (items' !! 6) (Left 24)
+                    . replaceText "[Item8]"  (items' !! 7) (Left 24)
+                    . replaceText "[Item9]"  (items' !! 8) (Left 24)
+                    . replaceText "[Item0]"  (items' !! 9) (Left 24)
                     $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
   where
     st = paramOf c
     ls = lines msg
     toText (n, t) = text (11, 25 + n) t
+    items' = ((\(ItemInf id identified) -> itemNameOf id identified) <$> Character.items c) ++ repeat ""
 
 
 replaceText :: String -> String -> Either Int Int -> [String] -> [String]
@@ -115,21 +127,21 @@ statusViewPlaceHolder =
   ["                                                                 "  --   1
   ,"    [Name]                          Lv [Lv]           [KAJ]      "  --   2
   ,"                                                                 "  --   3
-  ,"                       HP : [HP]/[MaxHP]  Status : [Status]      "  --   4
-  ,"    STR :[STR]                                                   "  --   5
-  ,"     IQ :[IQ]         Exp : [Exp]            Age : [Age]         "  --   6
-  ,"    PIE :[PIE]       Next : [Next]            AC : [AC]          "  --   7
-  ,"    VIT :[VIT]       Gold : [Gold]         Marks : [Marks]       "  --   8
-  ,"    AGI :[AGI]                              RIPs : [RIPs]        "  --   9
-  ,"    LUK :[LUK]                                                   "  --   10
-  ,"                       Spell M:M1/M2/M3/M4/M5/M6/M7              "  --   11
-  ,"                             P:P1/P2/P3/P4/P5/P6/P7              "  --   12
+  ,"                         HP : [HP]/[MaxHP]  Status : [Status]    "  --   4
+  ,"      STR :[STR]                                                 "  --   5
+  ,"       IQ :[IQ]         Exp : [Exp]            Age : [Age]       "  --   6
+  ,"      PIE :[PIE]       Next : [Next]            AC : [AC]        "  --   7
+  ,"      VIT :[VIT]       Gold : [Gold]         Marks : [Marks]     "  --   8
+  ,"      AGI :[AGI]                              RIPs : [RIPs]      "  --   9
+  ,"      LUK :[LUK]                                                 "  --   10
+  ,"                         Spell M:M1/M2/M3/M4/M5/M6/M7            "  --   11
+  ,"                               P:P1/P2/P3/P4/P5/P6/P7            "  --   12
   ,"                                                                 "  --   13
-  ,"     A) [Item1]                  F) [Item6]                      "  --   14
-  ,"     B) [Item2]                  G) [Item7]                      "  --   15
-  ,"     C) [Item3]                  H) [Item8]                      "  --   16
-  ,"     D) [Item4]                  I) [Item9]                      "  --   17
-  ,"     E) [Item5]                  J) [Item0]                      "  --   18
+  ,"    A) [Item1]                    F) [Item6]                     "  --   14
+  ,"    B) [Item2]                    G) [Item7]                     "  --   15
+  ,"    C) [Item3]                    H) [Item8]                     "  --   16
+  ,"    D) [Item4]                    I) [Item9]                     "  --   17
+  ,"    E) [Item5]                    J) [Item0]                     "  --   18
   ]
 --  12345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6      

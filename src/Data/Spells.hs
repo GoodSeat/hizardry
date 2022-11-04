@@ -7,10 +7,13 @@ import Data.List
 import Data.Primitive
 import Data.Formula
 
+
+type Name = String
+
 data Kind = M | P deriving (Show, Eq)
 
 data Define = Define {
-      name       :: String      -- ^ name of spell.
+      name       :: Name        -- ^ name of spell.
     , kind       :: Kind        -- ^ kind of spell.
     , lv         :: Int         -- ^ level of spell.
     , attribute  :: Attribute   -- ^ attribute of spell.

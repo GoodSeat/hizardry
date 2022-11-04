@@ -139,7 +139,7 @@ type SpellEffect  = Either CharacterID Enemy.Instance
                  -> GameMachine
                  -> GameMachine
 
-spell :: String -> SpellEffect
+spell :: Spell.Name -> SpellEffect
 spell s src dst next = GameAuto $ do
     spellDef <- spellByName s
     case spellDef of
@@ -171,7 +171,7 @@ spell' def = case Spell.effect def of
 
 -- --------------------------------------------------------------------------------
 
-castDamageSpellSingle :: String -> Formula -> SpellEffect
+castDamageSpellSingle :: Spell.Name -> Formula -> SpellEffect
 castDamageSpellSingle n f (Left id) (Right el) next = GameAuto $ do
     e1 <- aliveEnemyLineHead el
     case e1 of Nothing -> run next
@@ -179,7 +179,7 @@ castDamageSpellSingle n f (Left id) (Right el) next = GameAuto $ do
 castDamageSpellSingle n f (Right e) (Left l) next = castDamageSpell n f (Left [l]) (Right e) next
 castDamageSpellSingle _ _ _ _ _ = error "invalid castDamageSpellSingle"
 
-castDamageSpellGroup :: String -> Formula -> SpellEffect
+castDamageSpellGroup :: Spell.Name -> Formula -> SpellEffect
 castDamageSpellGroup n f (Left id) (Right el) next = GameAuto $ do
     es <- aliveEnemiesLine el
     run $ castDamageSpell n f (Right es) (Left id) next
@@ -188,14 +188,14 @@ castDamageSpellGroup n f (Right e) _ next = GameAuto $ do
     run $ castDamageSpell n f (Left $ toPartyPos <$> [1..length ps]) (Right e) next
 castDamageSpellGroup _ _ _ _ _ = error "invalid castDamageSpellGroup"
 
-castDamageSpellAll :: String -> Formula -> SpellEffect
+castDamageSpellAll :: Spell.Name -> Formula -> SpellEffect
 castDamageSpellAll n f (Left id) l next = GameAuto $ do
     es <- sequence $ aliveEnemiesLine . toEnemyLine <$> [1..4]
     run $ castDamageSpell n f (Right $ concat es) (Left id) next
 castDamageSpellAll n f (Right e) l next = castDamageSpellGroup n f (Right e) l next
 
 
-castDamageSpell :: String -> Formula
+castDamageSpell :: Spell.Name -> Formula
                 -> Either [PartyPos] [Enemy.Instance] -- ^ dst
                 -> Either CharacterID Enemy.Instance  -- ^ src
                 -> GameMachine -> GameMachine
@@ -233,7 +233,7 @@ castDamageSpell _ _ _ _ _ = error "castDamageSpell"
 
 -- --------------------------------------------------------------------------------
 
-castCureSpellSingle :: String -> Formula -> [StatusError] -> SpellEffect
+castCureSpellSingle :: Spell.Name -> Formula -> [StatusError] -> SpellEffect
 castCureSpellSingle n f ss (Left id) (Left l) next = GameAuto $ do
     ps <- party <$> world
     run $ castCureSpellInBattle n f ss (Left [l]) (Left id) next
@@ -244,7 +244,7 @@ castCureSpellAll n f ss (Left id) _ next = GameAuto $ do
     run $ castCureSpellInBattle n f ss (Left $ toPartyPos <$> [1..length ps]) (Left id) next
 castCureSpellAll _ _ _ _ _ _ = error "castCureSpellAll"
 
-castCureSpellInBattle :: String -> Formula -> [StatusError]
+castCureSpellInBattle :: Spell.Name -> Formula -> [StatusError]
               -> Either [PartyPos] [Enemy.Instance]
               -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
 castCureSpellInBattle n f ss dst (Left cid) next = GameAuto $ do
@@ -256,13 +256,13 @@ castCureSpellInBattle _ _ _ _ _ _ = error "castCureSpellInBattle"
 
 -- --------------------------------------------------------------------------------
 
-spellUnknown :: String -> SpellEffect
+spellUnknown :: Spell.Name -> SpellEffect
 spellUnknown = spellNoEffect "no happens."
 
-spellNoMP :: String -> SpellEffect
+spellNoMP :: Spell.Name -> SpellEffect
 spellNoMP = spellNoEffect "no more MP."
 
-spellNoEffect :: String -> String -> SpellEffect
+spellNoEffect :: String -> Spell.Name -> SpellEffect
 spellNoEffect msg n src _ next = GameAuto $ do
     name <- case src of Left id -> Chara.name <$> characterOf id
                         Right e -> Enemy.name <$> enemyOf (Enemy.id e)
