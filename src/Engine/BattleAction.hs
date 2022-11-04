@@ -6,6 +6,7 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Function ((&))
 import Control.Monad
+import Control.Monad.Reader (asks)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -13,7 +14,7 @@ import Data.World
 import Data.Formula
 import Data.Primitive
 import qualified Data.Enemies as Enemy
-import qualified Data.Characters as Character
+import qualified Data.Characters as Chara
 import qualified Data.Spells as Spell
 
 
@@ -37,7 +38,7 @@ fightOfCharacter id el next = GameAuto $ do
         es <- fmap Message <$> fightMessage c e' (h, d)
         run $ events es next
 
-fightDamage :: EnemyLine -> Character.Character -> Enemy.Instance -> GameState (Int, Int)
+fightDamage :: EnemyLine -> Chara.Character -> Enemy.Instance -> GameState (Int, Int)
 fightDamage el c e = do
     edef <- enemyOf $ Enemy.id e
     let tryCountF = parse' "lv/5 + 1" -- TODO:
@@ -48,7 +49,7 @@ fightDamage el c e = do
         m         = formulaMapSO c (e, edef)
     tryCount <- max <$> (min <$> evalWith m tryCountF <*> pure 10) <*> pure weponAt
     jobBonus <- evalWith m jobBonusF
-    let str      = strength . Character.param $ c
+    let str      = strength . Chara.param $ c
         strBonus
           | str >= 16 = str - 15
           | str < 6   = str - 6
@@ -62,11 +63,11 @@ fightDamage el c e = do
         return $ if hit then (1, dam') else (0, 0)
     return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
 
-fightMessage :: Character.Character -> Enemy.Instance -> (Int, Int) -> GameState [String]
+fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int) -> GameState [String]
 fightMessage c e (h, d) = do
     en <- enemyNameOf e
     v  <- randomIn vs
-    let m1 = Character.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
+    let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
     let m3 = if Enemy.hp e <= 0 then en ++ " is killed." else ""
     return $ (m1 ++ m2) : [m1 ++ m3 | not (null m3)]
@@ -97,7 +98,7 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
 
 fightDamageE :: Int                 -- ^ count of attack.
              -> Enemy.Instance      -- ^ attacker enemy.
-             -> Character.Character -- ^ target character.
+             -> Chara.Character -- ^ target character.
              -> Formula             -- ^ damage per hit.
              -> GameState (Int, Int)
 fightDamageE n e c dmg = do
@@ -118,13 +119,13 @@ fightDamageE n e c dmg = do
         return $ if hit then (1, dam') else (0, 0)
     return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
 
-fightMessageE :: Enemy.Instance -> Character.Character -> (Int, Int) -> GameState [String]
+fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int) -> GameState [String]
 fightMessageE e c (h, d) = do
     en <- enemyNameOf e
     v  <- randomIn vs
-    let m1 = en ++ " " ++ v ++ "\n " ++ Character.name c ++ ".\n"
+    let m1 = en ++ " " ++ v ++ "\n " ++ Chara.name c ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if hpOf c <= 0 then Character.name c  ++ " is killed." else ""
+    let m3 = if hpOf c <= 0 then Chara.name c  ++ " is killed." else ""
     return $ (m1 ++ m2) : [m1 ++ m3 | not (null m3)]
   where
     vs = ["charges at", "claws at"]
@@ -141,12 +142,20 @@ type SpellEffect  = Either CharacterID Enemy.Instance
 spell :: String -> SpellEffect
 spell s src dst next = GameAuto $ do
     spellDef <- spellByName s
-    case spellDef of Just def -> if Spell.InBattle `elem` Spell.enableIn def then
-                                   -- TODO:if case src of Left idc, cost MP, no more MP, can't casting it.
-                                   run $ spell' def src dst next
-                                 else
-                                   run $ spellUnknown s src dst next
-                     Nothing  -> run $ spellUnknown s src dst next
+    case spellDef of
+      Nothing  -> run $ spellUnknown s src dst next
+      Just def ->
+        if Spell.InBattle `elem` Spell.enableIn def then case src of
+          Left idc -> do
+            c    <- characterOf idc
+            know <- knowSpell' c def
+            can  <- canSpell'  c def
+            if      not know then run $ spellUnknown s src dst next
+            else if not can  then run $ spellNoMP    s src dst next
+            else                  run $ with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
+          Right _  -> run $ spell' def src dst next
+        else
+          run $ spellUnknown s src dst next
 
 spell' :: Spell.Define -> SpellEffect
 spell' def = case Spell.effect def of
@@ -168,7 +177,7 @@ castDamageSpellSingle n f (Left id) (Right el) next = GameAuto $ do
     case e1 of Nothing -> run next
                Just e  -> run $ castDamageSpell n f (Right [e]) (Left id) next
 castDamageSpellSingle n f (Right e) (Left l) next = castDamageSpell n f (Left [l]) (Right e) next
-castDamageSpellSingle _ _ _ _ _ = undefined
+castDamageSpellSingle _ _ _ _ _ = error "invalid castDamageSpellSingle"
 
 castDamageSpellGroup :: String -> Formula -> SpellEffect
 castDamageSpellGroup n f (Left id) (Right el) next = GameAuto $ do
@@ -177,7 +186,7 @@ castDamageSpellGroup n f (Left id) (Right el) next = GameAuto $ do
 castDamageSpellGroup n f (Right e) _ next = GameAuto $ do
     ps <- party <$> world
     run $ castDamageSpell n f (Left $ toPartyPos <$> [1..length ps]) (Right e) next
-castDamageSpellGroup _ _ _ _ _ = undefined
+castDamageSpellGroup _ _ _ _ _ = error "invalid castDamageSpellGroup"
 
 castDamageSpellAll :: String -> Formula -> SpellEffect
 castDamageSpellAll n f (Left id) l next = GameAuto $ do
@@ -220,7 +229,7 @@ castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
       let toMsg t = Message $ (nameOf (e, edef) ++ " spells " ++ n ++ ".\n") ++ t
       run $ events (toMsg <$> "" : (snd <$> concat ts)) (with (fst <$> concat ts) next)
     
-castDamageSpell _ _ _ _ _ = undefined
+castDamageSpell _ _ _ _ _ = error "castDamageSpell"
 
 -- --------------------------------------------------------------------------------
 
@@ -228,12 +237,12 @@ castCureSpellSingle :: String -> Formula -> [StatusError] -> SpellEffect
 castCureSpellSingle n f ss (Left id) (Left l) next = GameAuto $ do
     ps <- party <$> world
     run $ castCureSpellInBattle n f ss (Left [l]) (Left id) next
-castCureSpellSingle _ _ _ _ _ _ = undefined
+castCureSpellSingle _ _ _ _ _ _ = error "castCureSpellSingle"
 
 castCureSpellAll n f ss (Left id) _ next = GameAuto $ do
     ps <- party <$> world
     run $ castCureSpellInBattle n f ss (Left $ toPartyPos <$> [1..length ps]) (Left id) next
-castCureSpellAll _ _ _ _ _ _ = undefined
+castCureSpellAll _ _ _ _ _ _ = error "castCureSpellAll"
 
 castCureSpellInBattle :: String -> Formula -> [StatusError]
               -> Either [PartyPos] [Enemy.Instance]
@@ -243,22 +252,23 @@ castCureSpellInBattle n f ss dst (Left cid) next = GameAuto $ do
     ts  <- castCureSpell n f ss (Left wiz) dst
     let toMsg t = Message $ (nameOf wiz ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
-castCureSpellInBattle _ _ _ _ _ _ = undefined
+castCureSpellInBattle _ _ _ _ _ _ = error "castCureSpellInBattle"
 
 -- --------------------------------------------------------------------------------
 
 spellUnknown :: String -> SpellEffect
-spellUnknown n (Left id) _ next = GameAuto $ do
-    c <- characterOf id
-    let ts  = ["", "no happens."]
-        toMsg t = Message $ (Character.name c ++ " spells " ++ n ++ ".\n") ++ t
-    run $ events (toMsg <$> ts) next
-spellUnknown n (Right e) _ next = GameAuto $ do
-    edef <- enemyOf $ Enemy.id e
-    let ts  = ["", "no happens."]
-        toMsg t = Message $ (Enemy.name edef ++ " spells " ++ n ++ ".\n") ++ t
-    run $ events (toMsg <$> ts) next
+spellUnknown = spellNoEffect "no happens."
 
+spellNoMP :: String -> SpellEffect
+spellNoMP = spellNoEffect "no more MP."
+
+spellNoEffect :: String -> String -> SpellEffect
+spellNoEffect msg n src _ next = GameAuto $ do
+    name <- case src of Left id -> Chara.name <$> characterOf id
+                        Right e -> Enemy.name <$> enemyOf (Enemy.id e)
+    let ts      = ["", msg]
+        toMsg t = Message $ (name ++ " spells " ++ n ++ ".\n") ++ t
+    run $ events (toMsg <$> ts) next
 
 -- ==========================================================================
 aliveEnemiesLine :: EnemyLine -> GameState [Enemy.Instance]

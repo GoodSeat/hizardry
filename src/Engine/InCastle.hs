@@ -141,7 +141,7 @@ checkLvup id = GameAuto $ do
       then run $ doLvup id
       else run $ events [Message nextLvMsg] (selectStayPlan id)
   where
-    neps = [1100, 3500, 5000] -- TODO
+    neps = [1100, 3500, 5000, 11000, 25000, 40000, 80000, 150000]  -- TODO
 
 doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do

@@ -3,7 +3,7 @@ module Main where
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
 import System.Console.ANSI (clearScreen)
 import qualified Data.Map as Map
-import Data.Maybe
+import Data.Maybe (maybe, catMaybes)
 import System.Random
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
@@ -325,8 +325,7 @@ main = do
                | id == PictureID 2001 = himiko
                | id == PictureID 2002 = werdna
                | otherwise            = mempty
-    let picOf = \picID -> case picID of Nothing -> mempty
-                                        Just id -> pic id
+    let picOf = maybe mempty pic
 
     putStrLn =<< runGame (testRender picOf scenario) cmd scenario (inCastle, w)
 

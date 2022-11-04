@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module Engine.Utils
 where
 
@@ -92,6 +93,32 @@ spellByName n = do
     ss <- asks spells
     return $ (ss!) <$> Spell.findID ss n
 
+knowSpell :: CharacterID -> SpellID -> GameState Bool
+knowSpell cid sid = do
+  c <- characterOf cid
+  return $ Chara.knowSpell sid c
+
+knowSpell' :: Chara.Character -> Spell.Define -> GameState Bool
+knowSpell' c def = do
+    sdb  <- asks spells
+    return $ Chara.knowSpell' sdb def c
+
+canSpell :: CharacterID -> SpellID -> GameState Bool
+canSpell cid sid = do
+  c   <- characterOf cid
+  sdb <- asks spells
+  return $ Chara.canSpell sdb sid c
+
+canSpell' :: Chara.Character -> Spell.Define -> GameState Bool
+canSpell' c def = do
+    sdb <- asks spells
+    return $ Chara.canSpell' sdb def c
+
+costSpell' :: Chara.Character -> Spell.Define -> GameState Chara.Character
+costSpell' c def = do
+    sdb <- asks spells
+    return $ Chara.costSpell' sdb def c
+
 
 inspectCharacter :: GameMachine -> Bool -> PartyPos -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
@@ -130,21 +157,16 @@ inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $
     selectCastTarget s next = GameAuto $ do
         ps   <- party <$> world
         def' <- spellByName s
-        sdb  <- asks spells
         case def' of
             Nothing  -> run $ next s (Left F1) -- MEMO:target should be ignored...
-            Just def -> case Spell.target def of
-                Spell.OpponentSingle -> do
-                    ess <- lastEnemies
-                    select True (length ess) (next s)
-                Spell.OpponentGroup  -> do
-                    ess <- lastEnemies
-                    let mx = if Chara.knowSpell' sdb def c then length ess else 1
-                    select True  mx (next s)
-                Spell.AllySingle     -> do
-                    let mx = if Chara.knowSpell' sdb def c then length ps else 1
-                    select False mx (next s)
-                _                    -> run $ next s (Left F1) -- MEMO:target should be ignored...
+            Just def -> do
+              know          <- knowSpell' c def
+              (toEnemy, mx) <- case Spell.target def of
+                Spell.OpponentSingle -> (True,) . length <$> lastEnemies
+                Spell.OpponentGroup  -> (True,) . length <$> lastEnemies
+                Spell.AllySingle     -> return (False, length ps)
+                _                    -> return (False, 1) -- MEMO:target should be ignored...
+              select toEnemy (if know then mx else 1) (next s)
     select toEnemy mx nextWith =
         let toDst = if toEnemy then Right . toEnemyLine else Left . toPartyPos in
         if mx <= 1 then
@@ -183,7 +205,7 @@ spellInCamp' def src dst next = GameAuto $ do
     else if not (Chara.canSpell'  sdb def c) then
       run $ events [ShowStatus src "no more MP." SingleKey] next
     else do
-      join $ updateCharacter <$> partyAt src <*> pure (Chara.costSpell' sdb def c)
+      join $ updateCharacter <$> partyAt src <*> costSpell' c def
       case Spell.effect def of
         Spell.Damage _  -> undefined
         Spell.Cure f ss -> do
