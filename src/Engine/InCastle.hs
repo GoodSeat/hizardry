@@ -4,6 +4,7 @@ where
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InEdgeOfTown
+import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Primitive
 import qualified Data.Characters as Character

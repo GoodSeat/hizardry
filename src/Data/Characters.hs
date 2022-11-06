@@ -103,6 +103,18 @@ itemPosByChar "i" = Just ItemI
 itemPosByChar "j" = Just ItemJ
 itemPosByChar _   = Nothing
 
+itemPosToNum :: ItemPos -> Int
+itemPosToNum ItemA = 0
+itemPosToNum ItemB = 1
+itemPosToNum ItemC = 2
+itemPosToNum ItemD = 3
+itemPosToNum ItemE = 4
+itemPosToNum ItemF = 5
+itemPosToNum ItemG = 6
+itemPosToNum ItemH = 7
+itemPosToNum ItemI = 8
+itemPosToNum ItemJ = 9
+
 itemPosToText :: ItemPos -> String
 itemPosToText ItemA = "A"
 itemPosToText ItemB = "B"

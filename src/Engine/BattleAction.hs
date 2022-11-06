@@ -10,6 +10,7 @@ import Control.Monad.Reader (asks)
 
 import Engine.GameAuto
 import Engine.Utils
+import Engine.CharacterAction (castCureSpell)
 import Data.World
 import Data.Formula
 import Data.Primitive

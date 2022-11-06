@@ -11,6 +11,7 @@ import Control.Monad.State
 import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
+import Engine.CharacterAction (inputSpell)
 import Data.World
 import Data.Primitive
 import Data.Formula (parse')

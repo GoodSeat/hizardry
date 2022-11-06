@@ -10,6 +10,7 @@ import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
 import Engine.InEvent (doEvent)
+import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
 import Data.Primitive

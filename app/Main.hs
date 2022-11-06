@@ -320,11 +320,19 @@ main = do
                 })
                 ]
             , items = Map.fromList [
+                (ItemID 0, Item.Define {
+                      Item.name             = "BROKEN ITEM"
+                    , Item.nameUndetermined = "BROKEN ITEM?"
+                    , Item.itemType         = Item.Misc
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                })
+                ,
                 (ItemID 1, Item.Define {
                       Item.name             = "DIOS POTION"
                     , Item.nameUndetermined = "POTION?"
                     , Item.itemType         = Item.Misc
-                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, 100)
+                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
                     , Item.spEffect         = Nothing
                 })
                 ]
