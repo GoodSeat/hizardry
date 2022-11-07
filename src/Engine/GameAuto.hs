@@ -95,6 +95,16 @@ runGame render cmd scenario (game, w) = do
                            i <- cmd itype
                            runGame render cmd scenario (next i, w')
 
+-- TODO!: playIO of gloss is
+-- playIO  :: Display
+--         -> Color
+--         -> Int
+--         -> world
+--         -> (world -> IO Picture)
+--         -> (Event -> world -> IO world)
+--         -> (Float -> world -> IO world)
+--         -> IO ()
+
 -- ==========================================================================
 
 events :: [Event] -> GameMachine -> GameMachine

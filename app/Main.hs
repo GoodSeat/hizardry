@@ -3,7 +3,7 @@ module Main where
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
 import System.Console.ANSI (clearScreen)
 import qualified Data.Map as Map
-import Data.Maybe (maybe, catMaybes)
+import Data.Maybe (maybe, catMaybes, isJust, fromJust)
 import System.Random
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
@@ -39,6 +39,10 @@ import UI.CuiRender
 -- *   treasure chest
 -- * other spells
 -- * other events
+
+-- * scenario parser, save date parser.
+-- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int
+-- *   zip compression with secret keyword. using another exe? deflate?
 
 
 main :: IO ()
@@ -373,68 +377,61 @@ waitKey = do
            else threadDelay 50000 >> waitKey
 
 -- ==========================================================================
+
 testRender :: (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
-testRender picOf s (Ask m picID)           w = testRender picOf s (MessagePic m picID) w
-testRender picOf s (MessageTime _ m picID) w = testRender picOf s (MessagePic m picID) w
+testRender picOf s (Ask m picID)           w = testRender picOf s (MessagePic m picID)   w
+testRender picOf s (MessageTime _ m picID) w = testRender picOf s (MessagePic m picID)   w
 testRender picOf s (Message m)             w = testRender picOf s (MessagePic m Nothing) w
-testRender picOf s (MessagePic m picID)    w = do
-    clearScreen
-    let ps = flip Map.lookup (allCharacters w) <$> party w
-    render $ msgBox m
-          <> (if statusWindow w then status (catMaybes ps) else mempty)
-          <> (if guideWindow w then guide else mempty)
-          <> enemyScene picOf s (place w)
-          <> picOf picID
-          <> frame
-          <> sceneTrans w (scene (place w) s)
-testRender picOf s (SpellCommand m) w = testRender picOf s (BattleCommand m) w
-testRender picOf s (BattleCommand m) w = do
-    clearScreen
-    let ps = flip Map.lookup (allCharacters w) <$> party w
-        ess = case place w of InBattle _ ess' -> ess'
-                              _               -> []
-    render $ cmdBox m
-          <> msgBox (unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n")
-          <> (if statusWindow w then status (catMaybes ps) else mempty)
-          <> (if guideWindow w then guide else mempty)
-          <> enemyScene picOf s (place w)
-          <> frame
-          <> sceneTrans w (scene (place w) s)
-  where
-    txtEnemy (l, es) = let
-         e    = head es
-         edef = enemies s Map.! Enemy.id e
-         determined = Enemy.determined e
-         ename = if determined then Enemy.name edef else Enemy.nameUndetermined edef
-         nAll    = show $ length es
-         nActive = show $ length . filter (null . Enemy.statusErrors) $ es
-      in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
+testRender picOf s (SpellCommand m)        w = testRender picOf s (BattleCommand m)      w
+testRender picOf s None                    w = testRender picOf s (Time 0 Nothing)       w
 
-testRender picOf s None           w = testRender picOf s (Time 0 Nothing) w
-testRender picOf s (Time _ picID) w = do
-    clearScreen
-    let ps = flip Map.lookup (allCharacters w) <$> party w
-    render $ (if statusWindow w && not inBattle then status (catMaybes ps) else mempty)
-          <> (if guideWindow w then guide else mempty)
-          <> frame
-          <> enemyScene picOf s (place w)
-          <> picOf picID
-          <> sceneTrans w (scene (place w) s)
-  where inBattle = case place w of InBattle _ _ -> True
-                                   _            -> False
-testRender _ s (ShowStatus i m _) w = do
-    clearScreen
-    let ps = flip Map.lookup (allCharacters w) <$> party w
-        itemNameOf id identified = let def = items s Map.! id in
-            (if identified then Item.name else Item.nameUndetermined) def
-
-    render $ status (catMaybes ps)
-          <> statusView m itemNameOf (ps !! (partyPosToNum i - 1))
-          <> frame
-          <> sceneTrans w (scene (place w) s)
+testRender picOf s (MessagePic m picID)    w = rendering  picOf s m  "" Nothing  picID   w
+testRender picOf s (BattleCommand m)       w = rendering  picOf s "" m  Nothing  Nothing w
+testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" Nothing  picID   w
+testRender picOf s (ShowStatus i m _)      w = rendering  picOf s m  "" (Just i) Nothing w
 
 testRender _ _ Exit _ = undefined
 
+-- --------------------------------------------------------------------------
+
+rendering :: (Maybe PictureID -> Craphic)
+          -> Scenario
+          -> String -- ^ message on MessageBox
+          -> String -- ^ message on CommandBox
+          -> Maybe PartyPos -- ^ inspection view target.
+          -> Maybe PictureID
+          -> World
+          -> IO()
+rendering picOf s mMsg cMsg i' picID w = do
+    clearScreen
+    render $ (if null mMsg' || isJust i' then mempty else msgBox mMsg')
+          <> (if null cMsg then mempty else cmdBox cMsg )
+          <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
+          <> (if guideWindow w then guide else mempty)
+          <> sv
+          <> enemyScene picOf s (place w)
+          <> picOf picID
+          <> frame
+          <> sceneTrans w (scene (place w) s)
+  where
+    ps    = flip Map.lookup (allCharacters w) <$> party w
+    ess   = case place w of InBattle _ ess' -> ess'
+                            _               -> []
+    mMsg' = if (not . null) mMsg || null ess then mMsg
+            else unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
+    sv    = case i' of Nothing -> mempty
+                       Just  i -> statusView mMsg itemNameOf (ps !! (partyPosToNum i - 1))
+    hideStatus = (not . null) ess && null cMsg
+    txtEnemy (l, es) = let
+         e          = head es
+         edef       = enemies s Map.! Enemy.id e
+         determined = Enemy.determined e
+         ename      = if determined then Enemy.name edef else Enemy.nameUndetermined edef
+         nAll       = show $ length es
+         nActive    = show $ length . filter (null . Enemy.statusErrors) $ es
+      in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
+    itemNameOf id identified = let def = items s Map.! id in
+        (if identified then Item.name else Item.nameUndetermined) def
 
 enemyScene :: (Maybe PictureID -> Craphic) -> Scenario -> Place -> Craphic
 enemyScene picOf s (InBattle _ (es:_)) =
@@ -448,7 +445,10 @@ enemyScene _ _ _ = mempty
 statusWindow :: World -> Bool
 statusWindow w = let inMaze = case place w of InMaze _ -> True
                                               _        -> False
-    in statusOn w || not inMaze
+    in (statusOn w && not inBattle) || not inMaze || inBattle
+  where
+    inBattle = case place w of InBattle _ _ -> True
+                               _            -> False
 
 guideWindow :: World -> Bool
 guideWindow w = let inMaze = case place w of InMaze _ -> True
