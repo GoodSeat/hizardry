@@ -11,11 +11,11 @@ import Control.Monad.State
 import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
-import Engine.CharacterAction (inputSpell)
+import Engine.CharacterAction (inputSpell, selectItem)
 import Data.World
 import Data.Primitive
 import Data.Formula (parse')
-import qualified Data.Characters as Character
+import qualified Data.Characters as Chara
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
@@ -30,7 +30,7 @@ data Action = Fight EnemyLine
             | Ambush Int
             | Run
             | Parry
-            | UseItem ItemID Int
+            | UseItem Chara.ItemPos SpellTarget
             | CantMove
     deriving (Show, Eq)
 
@@ -118,37 +118,40 @@ selectBattleCommand i cmds con = GameAuto $ do
     else do
       let cid = p !! (i - 1)
       c <- characterOf cid
-      let cs     = Character.enableBattleCommands $ Character.job c
+      let cs     = Chara.enableBattleCommands $ Chara.job c
           next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
           cancel = selectBattleCommand i cmds con
       if isCantFight c then
         run $ next CantMove
       else 
-        run $ selectWhen (BattleCommand $ Character.name c ++ "'s Option\n\n" ++ concatMap toMsg cs)
+        run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs)
                          [( Key "f"
                           , selectFightTarget next
-                          , Character.Fight `elem` cs && i <= 3)
+                          , Chara.Fight `elem` cs && i <= 3)
                          ,( Key "p"
                           , next Parry
-                          , Character.Parry `elem` cs)
+                          , Chara.Parry `elem` cs)
                          ,( Key "s"
                           , inputSpell c SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
-                          , Character.Spell `elem` cs)
+                          , Chara.Spell `elem` cs)
+                         ,( Key "u"
+                          , selectItem c BattleCommand BattleCommand (\i l -> next $ UseItem i l) cancel
+                          , Chara.Spell `elem` cs)
                          ,( Key "r"
-                          , events [Message $ Character.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
-                          , Character.Run `elem` cs)
+                          , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
+                          , Chara.Run `elem` cs)
                          ,( Key " "
                           , events [None] (selectBattleCommand i cmds con)
                           , True)
                           ]
   where
-    toMsg cmd = case cmd of Character.Fight   -> "F)ight\n"
-                            Character.Spell   -> "S)pell\n"
-                            Character.Hide    -> "H)ide\n"
-                            Character.Ambush  -> "A)mbush\n"
-                            Character.Run     -> "R)un\n"
-                            Character.Parry   -> "P)arry\n"
-                            Character.UseItem -> "U)se Item\n"
+    toMsg cmd = case cmd of Chara.Fight   -> "F)ight\n"
+                            Chara.Spell   -> "S)pell\n"
+                            Chara.Hide    -> "H)ide\n"
+                            Chara.Ambush  -> "A)mbush\n"
+                            Chara.Run     -> "R)un\n"
+                            Chara.Parry   -> "P)arry\n"
+                            Chara.UseItem -> "U)se Item\n"
 
 selectFightTarget :: (Action -> GameMachine) -> GameMachine
 selectFightTarget next = GameAuto $ do
@@ -206,7 +209,7 @@ wonBattle con = GameAuto $ do
     let e = gotExps con  `div` length ps
         g = dropGold con `div` length ps
         es = [Just (Message $ "Each survivor got " ++ show e ++ " E.P."), if g > 0 then Just (Message $ "Each survivor got " ++ show g ++ " G.P.") else Nothing]
-    forM_ ps $ flip updateCharacterWith (\c -> c { Character.exp = Character.exp c + e, Character.gold = Character.gold c + g })
+    forM_ ps $ flip updateCharacterWith (\c -> c { Chara.exp = Chara.exp c + e, Chara.gold = Chara.gold c + g })
     run $ events (catMaybes es) (afterWin con)
 
 
@@ -227,12 +230,13 @@ act (ByParties id a) next = GameAuto $ do
     cantFight <- isCantFight <$> characterOf id
     if cantFight then run next
     else case a of
-        Fight l   -> run $ fightOfCharacter id l next
-        Spell s l -> run $ spell s (Left id) l next
-        Parry     -> run next
-        Run       -> run next
-        CantMove  -> run next
-        _         -> undefined
+        Fight l     -> run $ fightOfCharacter id l next
+        Spell s l   -> run $ spell s (Left id) l next
+        Parry       -> run next
+        Run         -> run next
+        CantMove    -> run next
+        UseItem i l -> run $ events [Message "sorry, using item is not implemented."] next -- TODO!
+        _           -> undefined
 act (ByEnemies l e a) next = GameAuto $ do
     e_ <- currentEnemyByNo $ Enemy.noID e
     case e_ of
@@ -269,7 +273,7 @@ determineActions cmds = do
   where
     toPair :: (CharacterID, Action) -> GameState (Int, BattleAction)
     toPair (id, act) = do
-        agi <- agility . Character.param <$> characterOf id
+        agi <- agility . Chara.param <$> characterOf id
         key <- agiBonus agi
         return (key, ByParties id act)
 

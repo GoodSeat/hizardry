@@ -34,6 +34,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                      [(Key "l", h, True)
                      ,(Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
                      ,(Key "u", selectItem c sItem sCast (useItemInCamp i cancel) cancel, True)
+                     ,(Key "d", selectDropItem c i dItem cancel, True)
                      ,(Key "1", inspectCharacter h canSpell F1, pn >= 1)
                      ,(Key "2", inspectCharacter h canSpell F2, pn >= 2)
                      ,(Key "3", inspectCharacter h canSpell F3, pn >= 3)
@@ -51,6 +52,7 @@ inspectCharacter h canSpell i = GameAuto $ do
     iCast = flip (ShowStatus i) SequenceKey
     sCast = flip (ShowStatus i) SingleKey
     sItem = const (sCast "Select item.  L)eave")
+    dItem = const (sCast "Select drop item.  L)eave")
 
 -- =================================================================================
 -- for using item.
@@ -124,6 +126,29 @@ selectItem c msgForSelect msgForTargeting next cancel = GameAuto $ do
              case sdef' of
                Just sdef -> run $ selectSpellTarget sdef undefined False (next i) msgForTargeting cancel
                Nothing   -> error "invalid spellId in selectUseTarget"
+
+selectDropItem :: Chara.Character
+               -> PartyPos
+               -> (String -> Event)
+               -> GameMachine
+               -> GameMachine
+selectDropItem c src msgForSelect cancel = GameAuto $ do
+    is <- asks items
+    let nameOf id = Item.name (is ! id)
+        cs  = zip (Chara.numToItemPos <$> [0..]) $ Chara.items c
+        msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
+    return (msgForSelect $ "Select drop item.\nL)eave\n\n" ++ unlines msg,
+            \(Key s) -> if s == "l" then cancel
+                        else case Chara.itemPosByChar s of
+                          Nothing -> selectDropItem c src msgForSelect cancel
+                          Just i  -> if i `elem` (fst <$> cs) then
+                                       with [dropItem src i] cancel
+                                     else 
+                                       selectDropItem c src msgForSelect cancel
+           )
+
+dropItem :: PartyPos -> Chara.ItemPos -> GameState ()
+dropItem = breakItem (100, Item.Lost)
 
 -- =================================================================================
 -- for spelling.
