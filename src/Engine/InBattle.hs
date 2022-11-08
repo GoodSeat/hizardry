@@ -11,7 +11,7 @@ import Control.Monad.State
 import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
-import Engine.CharacterAction (inputSpell, selectItem)
+import Engine.CharacterAction (inputSpell, selectItem, selectUseTarget)
 import Data.World
 import Data.Primitive
 import Data.Formula (parse')
@@ -135,7 +135,8 @@ selectBattleCommand i cmds con = GameAuto $ do
                           , inputSpell c SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
                           , Chara.Spell `elem` cs)
                          ,( Key "u"
-                          , selectItem c BattleCommand BattleCommand (\i l -> next $ UseItem i l) cancel
+                          , selectItem BattleCommand identified
+                              (selectUseTarget BattleCommand (\i l -> next $ UseItem i l)) c cancel
                           , Chara.Spell `elem` cs)
                          ,( Key "r"
                           , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.

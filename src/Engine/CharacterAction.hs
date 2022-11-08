@@ -33,8 +33,8 @@ inspectCharacter h canSpell i = GameAuto $ do
     run $ selectWhen (ShowStatus i msg SingleKey)
                      [(Key "l", h, True)
                      ,(Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
-                     ,(Key "u", selectItem c sItem sCast (useItemInCamp i cancel) cancel, True)
-                     ,(Key "d", selectDropItem c i dItem cancel, True)
+                     ,(Key "u", selectItem sItem identified (selectUseTarget sCast (useItemInCamp i cancel)) c cancel, True)
+                     ,(Key "d", selectDropItem dItem i c cancel, True)
                      ,(Key "1", inspectCharacter h canSpell F1, pn >= 1)
                      ,(Key "2", inspectCharacter h canSpell F2, pn >= 2)
                      ,(Key "3", inspectCharacter h canSpell F3, pn >= 3)
@@ -92,62 +92,59 @@ breakItem (prob, to) src i = do
                            Item.ChangeTo i' -> take ix is ++ [i'] ++ drop (ix + 1) is
       updateCharacter idc (p { Chara.items = is' }) 
 
-selectItem :: Chara.Character
-            -> (String -> Event)
-            -> (String -> Event)
-            -> (Chara.ItemPos -> SpellTarget -> GameMachine)
-            -> GameMachine
-            -> GameMachine
-selectItem c msgForSelect msgForTargeting next cancel = GameAuto $ do
+selectItem :: (String -> Event)
+           -> (ItemInf -> Bool)
+           -> (Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine)
+           -> Chara.Character
+           -> GameMachine
+           -> GameMachine
+selectItem msgForSelect isTarget next c cancel = GameAuto $ do
     is <- asks items
     let nameOf id = Item.name (is ! id)
         its = Chara.items c
-        cs  = filter (identified . snd) (zip (Chara.numToItemPos <$> [0..]) its)
+        cs  = filter (isTarget . snd) (zip (Chara.numToItemPos <$> [0..]) its)
         msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
     return (msgForSelect $ "Select item.\nL)eave\n\n" ++ unlines msg,
             \(Key s) -> if s == "l" then cancel
                         else case Chara.itemPosByChar s of
-                          Nothing -> selectItem c msgForSelect msgForTargeting next cancel
-                          Just i  -> if i `elem` (fst <$> cs) then
-                                       selectUseTarget i next
-                                     else 
-                                       selectItem c msgForSelect msgForTargeting next cancel
+                          Nothing -> selectItem msgForSelect isTarget next c cancel
+                          Just i  -> if i `elem` (fst <$> cs) then next c i cancel
+                                     else selectItem msgForSelect isTarget next c cancel
            )
-  where
-    selectUseTarget :: Chara.ItemPos -> (Chara.ItemPos -> SpellTarget -> GameMachine) -> GameMachine
-    selectUseTarget i next = GameAuto $ do
-        let id = Chara.itemAt c i
-        ps  <- party <$> world
-        def <- itemByID id
-        case Item.usingEffect def of
-          Nothing                    -> run $ next i (Left F1) -- MEMO:target should be ignored...
-          Just (Item.EqSpell ids, _) -> do
-             sdef' <- spellByID ids
-             case sdef' of
-               Just sdef -> run $ selectSpellTarget sdef undefined False (next i) msgForTargeting cancel
-               Nothing   -> error "invalid spellId in selectUseTarget"
 
-selectDropItem :: Chara.Character
+selectUseTarget :: (String -> Event)
+                -> (Chara.ItemPos -> SpellTarget -> GameMachine)
+                -> Chara.Character
+                -> Chara.ItemPos
+                -> GameMachine 
+                -> GameMachine
+selectUseTarget msgForTargeting next c i cancel = GameAuto $ do
+    let id = Chara.itemAt c i
+    ps  <- party <$> world
+    def <- itemByID id
+    case Item.usingEffect def of
+      Nothing                    -> run $ next i (Left F1) -- MEMO:target should be ignored...
+      Just (Item.EqSpell ids, _) -> do
+         sdef' <- spellByID ids
+         case sdef' of
+           Just sdef -> run $ selectSpellTarget sdef undefined False (next i) msgForTargeting cancel
+           Nothing   -> error "invalid spellId in selectUseTarget"
+
+selectDropItem :: (String -> Event)
                -> PartyPos
-               -> (String -> Event)
+               -> Chara.Character
                -> GameMachine
                -> GameMachine
-selectDropItem c src msgForSelect cancel = GameAuto $ do
-    let cs = zip (Chara.numToItemPos <$> [0..]) $ Chara.items c
-    return (msgForSelect "Select drop item.\nL)eave\n\n",
-            \(Key s) -> if s == "l" then cancel
-                        else case Chara.itemPosByChar s of
-                          Nothing -> selectDropItem c src msgForSelect cancel
-                          Just i  -> if i `elem` (fst <$> cs) then GameAuto $ do
-                                       let idi = Chara.itemAt c i
-                                       def <- itemByID idi
-                                       if Item.CantDrop `elem` Item.attributes def then
-                                         run $ events [msgForSelect "you cannot drop it."] (selectDropItem c src msgForSelect cancel)
-                                       else
-                                         run $ with [dropItem src i] cancel
-                                     else 
-                                       selectDropItem c src msgForSelect cancel
-           )
+selectDropItem msgForSelect src =
+    selectItem (const $ msgForSelect "Select drop item.\nL)eave") (const True) drop
+  where
+    drop :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
+    drop c i cancel = GameAuto $ do
+                        def <- itemByID $ Chara.itemAt c i
+                        if Item.CantDrop `elem` Item.attributes def then
+                          run $ events [msgForSelect "you cannot drop it."] (selectDropItem msgForSelect src c cancel)
+                        else
+                          run $ with [dropItem src i] cancel
 
 dropItem :: PartyPos -> Chara.ItemPos -> GameState ()
 dropItem = breakItem (100, Item.Lost)
