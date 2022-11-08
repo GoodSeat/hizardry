@@ -52,10 +52,10 @@ inspectCharacter h canSpell i = GameAuto $ do
     iCast = flip (ShowStatus i) SequenceKey
     sCast = flip (ShowStatus i) SingleKey
     sItem = const (sCast "Select item.  L)eave")
-    dItem = const (sCast "Select drop item.  L)eave")
+    dItem = sCast
 
 -- =================================================================================
--- for using item.
+-- for item.
 -- ---------------------------------------------------------------------------------
 
 useItemInCamp :: PartyPos -> GameMachine -> Chara.ItemPos -> SpellTarget -> GameMachine
@@ -133,16 +133,18 @@ selectDropItem :: Chara.Character
                -> GameMachine
                -> GameMachine
 selectDropItem c src msgForSelect cancel = GameAuto $ do
-    is <- asks items
-    let nameOf id = Item.name (is ! id)
-        cs  = zip (Chara.numToItemPos <$> [0..]) $ Chara.items c
-        msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
-    return (msgForSelect $ "Select drop item.\nL)eave\n\n" ++ unlines msg,
+    let cs = zip (Chara.numToItemPos <$> [0..]) $ Chara.items c
+    return (msgForSelect "Select drop item.\nL)eave\n\n",
             \(Key s) -> if s == "l" then cancel
                         else case Chara.itemPosByChar s of
                           Nothing -> selectDropItem c src msgForSelect cancel
-                          Just i  -> if i `elem` (fst <$> cs) then
-                                       with [dropItem src i] cancel
+                          Just i  -> if i `elem` (fst <$> cs) then GameAuto $ do
+                                       let idi = Chara.itemAt c i
+                                       def <- itemByID idi
+                                       if Item.CantDrop `elem` Item.attributes def then
+                                         run $ events [msgForSelect "you cannot drop it."] (selectDropItem c src msgForSelect cancel)
+                                       else
+                                         run $ with [dropItem src i] cancel
                                      else 
                                        selectDropItem c src msgForSelect cancel
            )

@@ -9,7 +9,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import Data.List (find)
-import Data.Map hiding (filter, null, foldl, take, drop)
+import Data.Map hiding (filter, null, foldl)
 import Data.Maybe (fromMaybe)
 
 import Engine.GameAuto

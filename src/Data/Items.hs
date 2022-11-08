@@ -13,6 +13,7 @@ data Define = Define {
     , itemType         :: ItemType
     , usingEffect      :: Maybe (Effect, (Int, WhenBroken)) -- ^ effect, probablity broken after using.
     , spEffect         :: Maybe (Effect, (Int, WhenBroken)) -- ^ effect, probablity broken after sp.
+    , attributes       :: [Attribute]
 } deriving (Show, Eq)
 
 
@@ -39,6 +40,12 @@ data EquipType =
 data WhenBroken =
       Lost
     | ChangeTo ItemInf
+    deriving (Show, Eq)
+
+data Attribute =
+      CantDrop
+    | Cursed
+    | Heal Int Bool -- ^ heal or damege HP (it's value, only when equip)
     deriving (Show, Eq)
 
 class Equipable a where

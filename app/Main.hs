@@ -120,6 +120,7 @@ main = do
         , Character.job      = priest
         , Character.alignment= Character.N
         , Character.spells   = [SpellID 71, SpellID 111, SpellID 112]
+        , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
     gen <- getStdGen
     let w = World {
@@ -330,6 +331,7 @@ main = do
                     , Item.itemType         = Item.Misc
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
+                    , Item.attributes       = []
                 })
                 ,
                 (ItemID 1, Item.Define {
@@ -338,6 +340,16 @@ main = do
                     , Item.itemType         = Item.Misc
                     , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
                     , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                })
+                ,
+                (ItemID 2, Item.Define {
+                      Item.name             = "CURSED STONE"
+                    , Item.nameUndetermined = "STONE?"
+                    , Item.itemType         = Item.Misc
+                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = [Item.CantDrop, Item.Heal (-2) False]
                 })
                 ]
             }
