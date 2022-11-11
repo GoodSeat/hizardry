@@ -151,12 +151,17 @@ main = do
             , scenarioHome   = inCastle
             , mazes          = [testMaze, testMaze2]
             , encountMap     = Map.fromList [
-                  ((1, 1, 0), (30, [EnemyID 1, EnemyID 2]))
-                , ((1, 2, 0), (30, [EnemyID 1, EnemyID 2]))
-                , ((1, 3, 0), (30, [EnemyID 1, EnemyID 2]))
-                , ((1, 4, 0), (30, [EnemyID 1, EnemyID 2]))
-                , ((1, 5, 0), (30, [EnemyID 1, EnemyID 2]))
+                  ((1, 1, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((1, 2, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((1, 3, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((1, 4, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((1, 5, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((2, 3, 0), (10, [EnemyID 1, EnemyID 2]))
                 ]
+            , roomBattleMap  = Map.fromList [
+                  ((2, 3, 0), (75, [EnemyID 1, EnemyID 2]))
+                ]
+            , roomDefine = []
             , mazeEvents = Map.fromList [
                   (GameEventID 010100, Ev.Events [
                      Ev.Select "there is climbing stairs.\n...climbing?\n\n(Y/N)" Nothing [

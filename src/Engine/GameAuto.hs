@@ -48,6 +48,8 @@ data Scenario = Scenario {
     , scenarioHome   :: !GameMachine
     , mazes          :: ![Maze]
     , encountMap     ::  Map.Map Coord (Int, [EnemyID])
+    , roomBattleMap  ::  Map.Map Coord (Int, [EnemyID])
+    , roomDefine     :: [[Coord]]
     , eventMap       ::  Map.Map Coord GameEventID
     , mazeEvents     :: !GameEvent.DB
     , enemies        :: !Enemy.DB

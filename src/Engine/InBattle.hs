@@ -41,6 +41,7 @@ data Condition = Condition {
     , dropGold     :: Int
     , dropItems    :: [Int]
     , defaultOrder :: [CharacterID] -- ^ party order when battle started.
+    , isRoomBattle :: Bool
     }
 
 -- ==========================================================================
@@ -86,15 +87,16 @@ tryDetermineEnemies = mapM $ \es -> do
 
 -- ==========================================================================
 startBattle :: EnemyID                    -- ^ encounted enemy.
+            -> Bool                       -- ^ is room battle or not. 
             -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
             -> GameMachine
-startBattle eid (g1, g2) = GameAuto $ do
+startBattle eid isRB (g1, g2) = GameAuto $ do
     es <- decideEnemyInstance eid
     ps <- party <$> world
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
     let con = Condition {
-      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [], defaultOrder = ps
+      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [], defaultOrder = ps, isRoomBattle = isRB
     }
     run $ events [MessageTime (-1000) "\nEncounter!\n" Nothing]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))

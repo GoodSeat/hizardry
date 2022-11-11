@@ -1,6 +1,7 @@
 module Engine.InEvent
 where
 
+import Control.Monad (when)
 import Control.Monad.State (modify, forM_)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
@@ -28,14 +29,17 @@ doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
     doEvent' (Ev.MoveTo (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
+        when (z' /= z p) resetRoomBattle
         movePlace (InMaze p') >> run next
     doEvent' (Ev.StairsToUpper (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
+        when (z' /= z p) resetRoomBattle
         run $ events' (updownEffect p' True) next
     doEvent' (Ev.StairsToLower (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
+        when (z' /= z p) resetRoomBattle
         run $ events' (updownEffect p' False) next
     -- interactive
     doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] next
@@ -72,6 +76,7 @@ updownEffect p toUp = replicate c (upStep, Time 150 Nothing)
 -- | state machine when return to castle.
 returnToCastle :: GameState ()
 returnToCastle = do
+    resetRoomBattle
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterOf p
@@ -80,4 +85,6 @@ returnToCastle = do
 -- todo: remove dead/stoned/staned characters etc.
 
 
+resetRoomBattle :: GameState ()
+resetRoomBattle = modify $ \w -> w { roomBattled = [] }
 

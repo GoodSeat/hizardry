@@ -160,7 +160,7 @@ blockText ls (x, y) = [ (ls' `on` (y * 2 - 2)) `at` (x * 3 - 2)   -- 0
 
 -- ==========================================================================
 
-data Side = F | L | R
+data Side = F | L | R | B
 
 sideOf :: Side -> Direction -> Direction
 sideOf F d = d
@@ -172,6 +172,7 @@ sideOf R N = E
 sideOf R E = S
 sideOf R S = W
 sideOf R W = N
+sideOf B d = sideOf L .sideOf L $ d
 
 noticesInView :: Maze      -- ^ target Maze.
               -> Position  -- ^ current position.
@@ -276,53 +277,4 @@ testMaze2 = fromText (lines txt) (4, 5)
           "|  +v-+vv+  |\n" ++
           "|  <  =  |_ |\n" ++
           "+-----+-----+\n"
-
-
-main' :: IO()
-main' = do
-    let lbr = testMaze
-    print $ lbr (1, 1)
-    print $ lbr (2, 1)
-    print $ lbr (3, 1)
-    print $ lbr (4, 1)
-    print $ lbr (5, 1)
-    putStrLn ""
-    print $ lbr (1, 2)
-    print $ lbr (2, 2)
-    print $ lbr (3, 2)
-    print $ lbr (4, 2)
-    putStrLn ""
-    print $ lbr (1, 3)
-    print $ lbr (2, 3)
-    print $ lbr (3, 3)
-    print $ lbr (4, 3)
-    putStrLn ""
-    print $ lbr (1, 4)
-    print $ lbr (2, 4)
-    print $ lbr (3, 4)
-    print $ lbr (4, 4)
-    putStrLn ""
-    print $ lbr (1, 5)
-    print $ lbr (2, 5)
-    print $ lbr (3, 5)
-    print $ lbr (4, 5)
-
-    let p = Position {
-      direction = N
-    , z         = -1
-    , x         = 1
-    , y         = 1
-    }
-    putStrLn ""
-    print $ visiblityAt lbr p 0 (-1) F
-    print $ visiblityAt lbr p 0 0 L
-    print $ visiblityAt lbr p 0 0 F
-    print $ visiblityAt lbr p 0 0 R
-    print $ visiblityAt lbr p 0 1 F
-    putStrLn ""
-    print $ visiblityAt lbr p 1 (-1) F
-    print $ visiblityAt lbr p 1 0 L
-    print $ visiblityAt lbr p 1 0 F
-    print $ visiblityAt lbr p 1 0 R
-    print $ visiblityAt lbr p 1 1 F
 

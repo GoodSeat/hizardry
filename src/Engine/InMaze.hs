@@ -1,9 +1,13 @@
+{-# LANGUAGE TupleSections #-}
 module Engine.InMaze
 where
 
+import Control.Monad (when)
 import Control.Monad.State (modify, forM_, guard)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
+import Data.List (find, nub)
+import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -50,14 +54,27 @@ enterGrid e probEncount p = GameAuto $ do
     movePlace $ InMaze p
     modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
     -- TODO!:all character lost if they are in stone.
-    encountId <- if probEncount then checkEncount $ coordOf p else return Nothing
-    case e of Nothing   -> case encountId of Nothing -> run $ select None (moves p)
-                                             Just ei -> run $ encountEnemy ei
-              Just edef -> run $ doEvent edef escapeEvent endEvent
+    lab <- mazeAt $ z p
+    let c = coordOf p
+    encount <- if probEncount then
+                 if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
+                 else fmap (,False) <$> checkEncount c False
+               else return Nothing
+    case e of Just edef -> run $ doEvent edef escapeEvent endEvent
+              Nothing   -> case encount of
+                Nothing         -> run $ with [updateRoomVisit] (select None $ moves p)
+                Just (ei, isRB) -> run $ encountEnemy ei isRB
+              
 
-checkEncount :: Coord -> GameState (Maybe EnemyID)
-checkEncount c = do
-    emap <- asks encountMap
+checkRoomBattle ::  Coord -> GameState (Maybe (EnemyID, Bool))
+checkRoomBattle c = do
+    isRB <- notElem c . roomBattled <$> world
+    res  <- checkEncount c isRB
+    return $ (,isRB) <$> res
+
+checkEncount :: Coord -> Bool -> GameState (Maybe EnemyID)
+checkEncount c checkRoomBattle = do
+    emap <- if checkRoomBattle then asks roomBattleMap else asks encountMap
     r    <- randomNext 1 100
     let es' = do {
         (prob, es) <- Map.lookup c emap;
@@ -78,26 +95,35 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
           ,(Key "q", exitGame')
-          ,(Key "s", GameAuto $ modify (\w -> w { statusOn = not $ statusOn w }) >> run (enterGrid Nothing False p))
-          ,(Key "o", GameAuto $ modify (\w -> w { guideOn  = not $ guideOn  w }) >> run (enterGrid Nothing False p))
+          ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (enterGrid Nothing False p))
+          ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (enterGrid Nothing False p))
           ]
   where
     goStraight p f = GameAuto $ do
         lab <- mazeAt $ z p
-        case f lab p of Nothing -> run $ ouch p
-                        Just p' -> do 
-                          ps <- party <$> world
-                          forM_ ps $ \p -> do
-                            c <- characterOf p
-                            updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
-                          sortPartyAuto
-                          -- TODO!:if all character dead, move to gameover.
-                          run $ enterMaybeEncount p'
+        case f lab p of
+          Nothing -> run $ ouch p
+          Just p' -> do 
+            ps <- party <$> world
+            forM_ ps $ \p -> do
+              c <- characterOf p
+              updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
+            sortPartyAuto
+            -- TODO!:if all character dead, move to gameover.
+            run $ enterMaybeEncount p'
 
 -- =======================================================================
 
-encountEnemy :: EnemyID -> GameMachine
-encountEnemy id = startBattle id (escapeEvent, escapeEvent)
+encountEnemy :: EnemyID -> Bool -> GameMachine
+encountEnemy id isRB = startBattle id isRB (with [updateRoomVisit] escapeEvent
+                                           ,with [when isRB backfoward] escapeEvent)
+
+updateRoomVisit :: GameState ()
+updateRoomVisit = do
+    c  <- coordOf <$> currentPosition
+    rd <- asks roomDefine
+    let cas = fromMaybe [c] $ find (elem c) rd
+    modify $ \w -> w { roomBattled = nub $ cas ++ roomBattled w }
 
 -- =======================================================================
 
@@ -124,6 +150,10 @@ escapeEvent :: GameMachine
 escapeEvent = GameAuto $ do
     p <- currentPosition
     run $ enterGrid Nothing False p
+
+backfoward :: GameState ()
+backfoward = sortPartyAuto >> ((movePlace . InMaze) . moveBack =<< currentPosition)
+
 
 -- =======================================================================
 
