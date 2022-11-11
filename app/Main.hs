@@ -361,7 +361,7 @@ main = do
                | otherwise            = mempty
     let picOf = maybe mempty pic
 
-    putStrLn =<< runGame (testRender picOf scenario) cmd scenario (inCastle, w)
+    putStrLn =<< runGame (testRender picOf scenario) cmd scenario w inCastle
 
 
 -- ==========================================================================

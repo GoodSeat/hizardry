@@ -60,6 +60,9 @@ data Scenario = Scenario {
 -- | State used in game.
 type GameState o = ExceptT String (StateT World (Reader Scenario)) o
 
+runGameState :: Scenario -> World -> GameState a -> (Either String a, World)
+runGameState s w g = runReader (runStateT (runExceptT g) w) s
+
 -- | Automaton used in Game.
 newtype GameAuto i o = GameAuto { run :: GameState (o, i -> GameAuto i o) }
 
@@ -72,38 +75,40 @@ instance Functor (GameAuto i) where
 type GameMachine = GameAuto Input Event
 
 -- ==========================================================================
+--
 
-runGame :: (Event -> World -> IO a)  -- ^ renderer of game.
+runGame :: (Event -> World -> IO a) -- ^ renderer of game.
         -> (InputType -> IO Input)   -- ^ input command.
         -> Scenario                  -- ^ game scenario.
-        -> (GameMachine, World)      -- ^ target GameMachine, and current environment.
+        -> World                     -- ^ current environment.
+        -> GameMachine               -- ^ target GameMachine.
         -> IO String
-runGame render cmd scenario (game, w) = do
-    let (res, w') = runReader (runStateT (runExceptT $ run game) w) scenario
-    case res of
-      Left msg        -> return msg
-      Right (e, next) -> if e == Exit then return "thank you for playing."
-                         else do
-                           render e w'
-                           let itype = case e of
-                                 SpellCommand _          -> SequenceKey
-                                 ShowStatus _ _ i        -> i
-                                 MessageTime n _ _       -> WaitClock n 
-                                 Time n _                -> WaitClock n
-                                 Engine.GameAuto.Ask _ _ -> SequenceKey
-                                 _                       -> SingleKey
-                           i <- cmd itype
-                           runGame render cmd scenario (next i, w')
+runGame render cmd s w g = do
+    let (e, w', itype, next') = stepGame s w g
+    if e == Exit then return "thank you for playing."
+    else do
+      render e w'
+      i <- cmd itype
+      runGame render cmd s w' (next' i)
 
--- TODO!: playIO of gloss is
--- playIO  :: Display
---         -> Color
---         -> Int
---         -> world
---         -> (world -> IO Picture)
---         -> (Event -> world -> IO world)
---         -> (Float -> world -> IO world)
---         -> IO ()
+
+stepGame :: Scenario
+         -> World
+         -> GameMachine
+         -> (Event, World, InputType, Input -> GameMachine)
+stepGame s w g = 
+    let (res, w') = runGameState s w $ run g
+    in case res of
+      Left msg         -> let end = GameAuto $ return (Exit, const g)
+                          in (Message msg, w', SingleKey, const end)
+      Right (e, next') -> let itype = case e of
+                                       SpellCommand _          -> SequenceKey
+                                       ShowStatus _ _ i'       -> i'
+                                       MessageTime n _ _       -> WaitClock n 
+                                       Time n _                -> WaitClock n
+                                       Engine.GameAuto.Ask _ _ -> SequenceKey
+                                       _                       -> SingleKey
+                          in (e, w', itype, next')
 
 -- ==========================================================================
 
