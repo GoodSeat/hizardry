@@ -1,6 +1,7 @@
 module Data.Characters
 where
 
+import Prelude hiding (exp)
 import Data.List (nub)
 import Data.Primitive
 import qualified Data.Map as Map
@@ -171,6 +172,12 @@ healMp c = c { mp = maxmp c }
 
 useGold :: Int -> Character -> Character
 useGold p c = c { gold = gold c - p }
+
+getGold :: Int -> Character -> Character
+getGold p = useGold (-p)
+
+getExp :: Int -> Character -> Character
+getExp p c = c { exp = exp c + p }
 
 addDay :: Int -> Character -> Character
 addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age = age c + 1 }

@@ -40,6 +40,7 @@ data Condition = Condition {
     , gotExps      :: Int
     , dropGold     :: Int
     , dropItems    :: [Int]
+    , traps        :: [Enemy.Trap]
     , defaultOrder :: [CharacterID] -- ^ party order when battle started.
     , isRoomBattle :: Bool
     }
@@ -96,17 +97,13 @@ startBattle eid isRB (g1, g2) = GameAuto $ do
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
     let con = Condition {
-      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [], defaultOrder = ps, isRoomBattle = isRB
+      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [], traps = [], defaultOrder = ps, isRoomBattle = isRB
     }
     run $ events [MessageTime (-1000) "\nEncounter!\n" Nothing]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
-moveToBattle es = do
-    p <- place <$> world
-    case p of InMaze pos     -> movePlace $ InBattle pos es
-              InBattle pos _ -> movePlace $ InBattle pos es
-              _              -> err "invalid moveToBattle."
+moveToBattle es = movePlace =<< InBattle <$> currentPosition <*> pure es
 
 
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
@@ -201,20 +198,52 @@ updateCondition con = do
     ess   <- lastEnemies
     drops <- forM (concat ess) (\e -> do
         edef <- enemyOf $ Enemy.id e
-        if notElem Dead $ Enemy.statusErrors e then return (0, 0, [])
-        else (,,) <$> eval (Enemy.dropGold edef) <*> pure (Enemy.exp edef) <*> pure [])
-    let (g, exp, is) = foldl' (\(g1, e1, is1) (g2, e2, is2) -> (g1 + g2, e1 + e2, is1 ++ is2)) (0, 0, []) drops
-    return $ con { dropGold = dropGold con + g, gotExps = gotExps con + exp, dropItems = dropItems con ++ is }
+        if notElem Dead $ Enemy.statusErrors e then return (0, 0, [], [])
+        else (,,,) <$> eval (Enemy.dropGold edef) <*> pure (Enemy.exp edef) <*> drops edef <*> pure (Enemy.trapCandidate edef))
+    let (g, exp, is, ts) = foldl' (\(g1, e1, is1, ts1) (g2, e2, is2, ts2) -> (g1 + g2, e1 + e2, is1 ++ is2, ts1 ++ ts2)) (0, 0, [], []) drops
+    return $ con { dropGold = dropGold con + g, gotExps = gotExps con + exp, dropItems = dropItems con ++ is, traps = traps con ++ ts }
+  where
+    drops edef = concat <$> forM (Enemy.dropItem edef) (\(prob, f) -> do
+      dropped <- happens prob
+      itemID  <- eval f
+      return [itemID | dropped]
+      )
+      
 
 wonBattle :: Condition -> GameMachine
 wonBattle con = GameAuto $ do
     ps <- party <$> world
-    let e = gotExps con  `div` length ps
-        g = dropGold con `div` length ps
-        es = [Just (Message $ "Each survivor got " ++ show e ++ " E.P."), if g > 0 then Just (Message $ "Each survivor got " ++ show g ++ " G.P.") else Nothing]
-    forM_ ps $ flip updateCharacterWith (\c -> c { Chara.exp = Chara.exp c + e, Chara.gold = Chara.gold c + g })
-    run $ events (catMaybes es) (afterWin con)
+    let e  = gotExps con `div` length ps
+        ft = isRoomBattle con && dropGold con > 0 && not (null $ dropItems con)
+    forM_ ps $ flip updateCharacterWith (Chara.getExp e)
+    run $ events [Message $ "Each survivor got " ++ show e ++ " E.P."]
+                 (if ft then findTreasureChest con else getDrops con [])
 
+getDrops :: Condition -> [Int] -> GameMachine
+getDrops con is = GameAuto $ do
+    ps <- party <$> world
+    let g = dropGold con `div` length ps
+        es = [ if g > 0 then Just (Message $ "Each survivor got " ++ show g ++ " G.P.") else Nothing
+             --TODO: if not (null items) then ...
+             ]
+    forM_ ps $ flip updateCharacterWith (Chara.getGold g)
+    run $ events (catMaybes es) (afterWin con)
+  where
+    items = (\i -> ItemInf (ItemID i) False) <$> is
+
+findTreasureChest :: Condition -> GameMachine
+findTreasureChest con = GameAuto $ do
+    trap <- randomIn $ [Enemy.DropDirectly | null $ traps con] ++ traps con
+    movePlace =<< FindTreasureChest <$> currentPosition <*> pure trap <*> pure (dropGold con) <*> pure (dropItems con)
+    run $ actionForTreasureChest con
+
+actionForTreasureChest :: Condition -> GameMachine
+actionForTreasureChest con = selectWhen (BattleCommand "I)nspect\nD)isarm Trap\nO)pen\nL)eave")
+                             [( Key "l"
+                              , afterWin con
+                              , True
+                              )
+                             ]
 
 -- ==========================================================================
 startProgressBattle :: [(CharacterID, Action)]

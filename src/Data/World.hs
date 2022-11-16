@@ -38,9 +38,10 @@ data Place  = InCastle
             | TempleOfCant 
             | InEdgeOfTown
             | TrainingGrounds
-            | InMaze Position
-            | InBattle Position [[Enemy.Instance]]
-            | Camping Position
+            | InMaze            Position
+            | InBattle          Position [[Enemy.Instance]]
+            | FindTreasureChest Position Enemy.Trap Int [Int] -- ^ gold, item ids.
+            | Camping           Position
     deriving (Show, Eq)
 
 

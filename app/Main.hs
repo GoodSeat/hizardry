@@ -227,7 +227,7 @@ main = do
 
                     , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3") []]
 
-                    , Enemy.dropItem          = [(15, parse' "1d15+1")]
+                    , Enemy.dropItem          = [(50, parse' "1d15+1")]
                     , Enemy.dropGold          = parse' "2d10"
 
                     , Enemy.withBackProb      = 50
@@ -267,7 +267,7 @@ main = do
                                                 ,Enemy.Run
                                                 ]
 
-                    , Enemy.dropItem          = [(15, parse' "1d15+1")]
+                    , Enemy.dropItem          = [(50, parse' "1d15+1")]
                     , Enemy.dropGold          = parse' "2d10"
 
                     , Enemy.withBackProb      = 15
@@ -434,8 +434,12 @@ rendering picOf s mMsg cMsg i' picID w = do
     ps    = flip Map.lookup (allCharacters w) <$> party w
     ess   = case place w of InBattle _ ess' -> ess'
                             _               -> []
-    mMsg' = if (not . null) mMsg || null ess then mMsg
-            else unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
+    treas = case place w of FindTreasureChest _ _ _ _ -> True
+                            _                         -> False
+    mMsg' = if not (null mMsg) then mMsg
+            else if not (null ess) then unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
+            else if treas then "you found a treasure chest."
+            else mMsg
     sv    = case i' of Nothing -> mempty
                        Just  i -> statusView mMsg itemNameOf (ps !! (partyPosToNum i - 1))
     hideStatus = (not . null) ess && null cMsg
