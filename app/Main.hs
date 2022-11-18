@@ -427,6 +427,7 @@ rendering picOf s mMsg cMsg i' picID w = do
           <> (if guideWindow w then guide else mempty)
           <> sv
           <> enemyScene picOf s (place w)
+          <> (if treas then treasureChest else mempty)
           <> picOf picID
           <> frame
           <> sceneTrans w (scene (place w) s)
