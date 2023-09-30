@@ -307,7 +307,7 @@ main = do
                     , Spell.effect    = Spell.Damage (parse' "10d10")
                     , Spell.enableIn  = [Spell.InBattle]
                 })
- 
+
                 ,
                 (SpellID 111, Spell.Define {
                       Spell.name      = "dios"
@@ -435,12 +435,12 @@ rendering picOf s mMsg cMsg i' picID w = do
     ps    = flip Map.lookup (allCharacters w) <$> party w
     ess   = case place w of InBattle _ ess' -> ess'
                             _               -> []
-    treas = case place w of FindTreasureChest _ _ _ _ -> True
-                            _                         -> False
-    mMsg' = if not (null mMsg) then mMsg
-            else if not (null ess) then unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
-            else if treas then "you found a treasure chest."
-            else mMsg
+    treas = case place w of FindTreasureChest {} -> True
+                            _                    -> False
+    mMsg' | not (null mMsg) = mMsg
+          | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
+          | treas           = "you found a treasure chest."
+          | otherwise       = mMsg
     sv    = case i' of Nothing -> mempty
                        Just  i -> statusView mMsg itemNameOf (ps !! (partyPosToNum i - 1))
     hideStatus = (not . null) ess && null cMsg
