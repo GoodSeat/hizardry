@@ -12,6 +12,7 @@ import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
 import Engine.CharacterAction (inputSpell, selectItem, selectUseTarget)
+import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition))
 import Data.World
 import Data.Primitive
 import Data.Formula (parse')
@@ -234,16 +235,10 @@ getDrops con is = GameAuto $ do
 findTreasureChest :: Condition -> GameMachine
 findTreasureChest con = GameAuto $ do
     trap <- randomIn $ [Enemy.DropDirectly | null $ traps con] ++ traps con
-    movePlace =<< FindTreasureChest <$> currentPosition <*> pure trap <*> pure (dropGold con) <*> pure (dropItems con)
-    run $ actionForTreasureChest con
+    movePlace =<< FindTreasureChest <$> currentPosition
+    run $ actionForTreasureChest (TreasureCondition (afterWin con) (dropGold con) (dropItems con) trap) []
 
-actionForTreasureChest :: Condition -> GameMachine
-actionForTreasureChest con = selectWhen (BattleCommand "I)nspect\nD)isarm Trap\nO)pen\nL)eave")
-                             [( Key "l"
-                              , afterWin con
-                              , True
-                              )
-                             ]
+                             
 
 -- ==========================================================================
 startProgressBattle :: [(CharacterID, Action)]

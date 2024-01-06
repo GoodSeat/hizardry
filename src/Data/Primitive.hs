@@ -2,7 +2,7 @@ module Data.Primitive
 where
 
 import GHC.Stack (HasCallStack)
-import Data.List (delete)
+import Data.List (delete, find)
 
 -- ==========================================================================
 -- ID
@@ -163,6 +163,15 @@ addStatusError s o = setStatusErrors (s : statusErrorsOf o) o
 
 removeStatusError :: Object o => StatusError -> o -> o
 removeStatusError s o = setStatusErrors (delete s $ statusErrorsOf o) o
+
+addPoison :: Object o => Int -> o -> o
+addPoison d s = let ss = statusErrorsOf s in
+    case find isPoison ss of Just (Poison n) -> addStatusError (Poison $ n + d) . removeStatusError (Poison n) $ s
+                             _               -> addStatusError (Poison d) s
+  where
+    isPoison (Poison _) = True
+    isPoison _          = False
+        
 
 
 whenReturnCastle :: Object o => StatusError -> o -> o

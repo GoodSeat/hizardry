@@ -40,7 +40,7 @@ data Place  = InCastle
             | TrainingGrounds
             | InMaze            Position
             | InBattle          Position [[Enemy.Instance]]
-            | FindTreasureChest Position Enemy.Trap Int [Int] -- ^ gold, item ids.
+            | FindTreasureChest Position
             | Camping           Position
     deriving (Show, Eq)
 

@@ -4,10 +4,11 @@ where
 import Prelude hiding (exp)
 import Data.List (nub)
 import Data.Primitive
+import Data.Formula (Formula)
 import qualified Data.Map as Map
 import qualified Data.Spells as Spell
 
-data Character = Character { 
+data Character = Character {
       name         :: !String         -- ^ name of character.
     , age          :: !Int            -- ^ age
     , days         :: !Int            -- ^ past days after last birth.
@@ -24,7 +25,7 @@ data Character = Character {
     , marks        :: !Int            -- ^ count of defeated enemies.
     , rips         :: !Int            -- ^ count of dead.
     , statusErrors :: ![StatusError]  -- ^ status errors.
-    
+
     , items        :: ![ItemInf]       -- ^ items you have.
     , equips       :: ![ItemInf]       -- ^ items you equips.
 
@@ -35,11 +36,11 @@ data Character = Character {
 
 instance Object Character where
   nameOf          = name
-  hpOf            = hp          
-  maxhpOf         = maxhp       
-  paramOf         = param       
+  hpOf            = hp
+  maxhpOf         = maxhp
+  paramOf         = param
   acOf            = const 10 -- TODO:
-  lvOf            = lv          
+  lvOf            = lv
   statusErrorsOf  = statusErrors
 
   setHp           v c = let c' = c { hp = min (maxhpOf c) (max 0 v) } in if hp c' == 0 then addStatusError Dead c' else c'
@@ -64,7 +65,14 @@ data Job = Job {
       jobName              :: !String
     , enableAlignments     :: ![Alignment]
     , enableBattleCommands :: ![BattleCommand]
-} deriving (Show, Eq)
+    , inspectTrapAbility   :: !Formula -- ^ Probability of success of trap identification.
+    , disarmTrapAbility    :: !Formula -- ^ Probability of success of disarming trap.
+} --deriving (Show, Eq)
+instance Show Job where
+  show = jobName
+instance Eq Job where
+   j1 == j2 = jobName j1 == jobName j2
+
 
 
 data ItemPos = ItemA
@@ -155,7 +163,7 @@ data BattleCommand = Fight
 -- =================================================================================
 
 lvup :: Character -> (String, Character)
-lvup c = (txt, c { 
+lvup c = (txt, c {
       lv    = lv c + 1
     , maxhp = maxhp c + uphp
     , hp    = hp c + uphp

@@ -65,6 +65,8 @@ main = do
             , Character.Parry
             , Character.UseItem
             ]
+        , Character.inspectTrapAbility = parse' "agi"
+        , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
         }
         priest = Character.Job {
           Character.jobName              = "Priest"
@@ -76,6 +78,20 @@ main = do
             , Character.Parry
             , Character.UseItem
             ]
+        , Character.inspectTrapAbility = parse' "agi"
+        , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
+        }
+        thief = Character.Job {
+          Character.jobName              = "Thief"
+        , Character.enableAlignments     = [Character.E, Character.N]
+        , Character.enableBattleCommands = [
+              Character.Fight
+            , Character.Run
+            , Character.Parry
+            , Character.UseItem
+            ]
+        , Character.inspectTrapAbility = parse' "min(agi*6, 95)"
+        , Character.disarmTrapAbility  = parse' "(lv-7+50)*100/70"
         }
     let testChara1 = Character.Character {
           Character.name     = "FIG1"
@@ -122,6 +138,18 @@ main = do
         , Character.spells   = [SpellID 71, SpellID 111, SpellID 112]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
+        testChara4 = testChara1 {
+          Character.name     = "THI1"
+        , Character.hp       = 104
+        , Character.maxhp    = 108
+        , Character.lv       = 5
+        , Character.statusErrors = []
+
+        , Character.job      = thief
+        , Character.alignment= Character.N
+        , Character.spells   = []
+        , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
+        }
     gen <- getStdGen
     let w = World {
         randomGen       = gen
@@ -133,7 +161,7 @@ main = do
       , roomBattled     = []
       , visitHitory     = Map.fromList []
 
-      , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3]
+      , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4]
       , inMazeMember    = []
       , shopItems       = Map.fromList []
 
@@ -141,6 +169,7 @@ main = do
                               (CharacterID 1, testChara1)
                             , (CharacterID 2, testChara2)
                             , (CharacterID 3, testChara3)
+                            , (CharacterID 4, testChara4)
                             ]
       , sceneTrans      = id
       }

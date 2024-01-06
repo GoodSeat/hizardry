@@ -248,11 +248,25 @@ updateEnemy e f = do
 currentPosition :: GameState Position
 currentPosition = do
     plc <- place <$> world
-    case plc of InMaze p                  -> return p
-                InBattle p _              -> return p
-                FindTreasureChest p _ _ _ -> return p
-                Camping p                 -> return p
-                _                         -> err "failed on currentPosition."
+    case plc of InMaze p            -> return p
+                InBattle p _        -> return p
+                FindTreasureChest p -> return p
+                Camping p           -> return p
+                _                   -> err "failed on currentPosition."
+
+formulaMapS :: Object s => s -> Map String Int
+formulaMapS s = fromList [
+     ("ac"      , acOf s)
+    ,("lv"      , lvOf s)
+    ,("hp"      , hpOf s)
+    ,("maxhp"   , maxhpOf s)
+    ,("str"     , strength.paramOf $ s)
+    ,("iq"      , iq      .paramOf $ s)
+    ,("pie"     , piety   .paramOf $ s)
+    ,("vit"     , vitality.paramOf $ s)
+    ,("agi"     , agility .paramOf $ s)
+    ,("luc"     , luck    .paramOf $ s)
+    ]
 
 formulaMapSO :: Object s => Object o => s -> o -> Map String Int
 formulaMapSO s o = fromList [
