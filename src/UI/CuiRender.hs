@@ -149,13 +149,13 @@ statusViewPlaceHolder =
 
 
 scene :: Place -> Scenario -> Craphic
-scene (InMaze p)            = dunsion p
-scene (Camping p)           = dunsion p
-scene (InBattle p _)        = dunsion p
-scene (FindTreasureChest p) = dunsion p
-scene InCastle              = const $ translate (0, 2) city2
-scene InEdgeOfTown          = const $ translate (0, 2) edgeOfTown
-scene Gilgamesh'sTarvern    = const $ translate (0, 2) tarvern
+scene (InMaze p)              = dunsion p
+scene (Camping p)             = dunsion p
+scene (InBattle p _)          = dunsion p
+scene (FindTreasureChest p _) = dunsion p
+scene InCastle                = const $ translate (0, 2) city2
+scene InEdgeOfTown            = const $ translate (0, 2) edgeOfTown
+scene Gilgamesh'sTarvern      = const $ translate (0, 2) tarvern
 scene _ = const mempty
 
 dunsion :: Position -> Scenario -> Craphic

@@ -66,7 +66,7 @@ enterGrid e probEncount p = GameAuto $ do
                 Just (ei, isRB) -> run $ encountEnemy ei isRB
               
 
-checkRoomBattle ::  Coord -> GameState (Maybe (EnemyID, Bool))
+checkRoomBattle :: Coord -> GameState (Maybe (EnemyID, Bool))
 checkRoomBattle c = do
     isRB <- notElem c . roomBattled <$> world
     res  <- checkEncount c isRB

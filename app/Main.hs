@@ -292,7 +292,7 @@ main = do
                     , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
                                                 ,Enemy.Spelling (parse' "11")
                                                 ,Enemy.Spelling (parse' "21")
-                                                ,Enemy.Spelling (parse' "71")
+                                                --,Enemy.Spelling (parse' "71")
                                                 ,Enemy.Run
                                                 ]
 
@@ -303,7 +303,7 @@ main = do
                     , Enemy.backEnemyID       = parse' "2"
 
                     , Enemy.enableRun         = True
-                    , Enemy.trapCandidate     = [Enemy.NoTrap, Enemy.PoisonNeedle, Enemy.GasBomb, Enemy.CrossbowBolt, Enemy.ExplodingBox]
+                    , Enemy.trapCandidate     = [Enemy.Alarm, Enemy.Teleporter, Enemy.Stunner]
                 })
                 ]
             , spells         = Map.fromList [
@@ -465,7 +465,7 @@ rendering picOf s mMsg cMsg i' picID w = do
           <> (if guideWindow w then guide else mempty)
           <> sv
           <> enemyScene picOf s (place w)
-          <> (if treas then treasureChest else mempty)
+          <> treas
           <> picOf picID
           <> frame
           <> sceneTrans w (scene (place w) s)
@@ -473,11 +473,14 @@ rendering picOf s mMsg cMsg i' picID w = do
     ps    = flip Map.lookup (allCharacters w) <$> party w
     ess   = case place w of InBattle _ ess' -> ess'
                             _               -> []
-    treas = case place w of FindTreasureChest {} -> True
-                            _                    -> False
+    treas = case place w of FindTreasureChest _ False -> treasureChest
+                            FindTreasureChest _ True  -> treasure
+                            _                         -> mempty
+    onTreasure = case place w of FindTreasureChest {} -> True
+                                 _                    -> False
     mMsg' | not (null mMsg) = mMsg
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
-          | treas           = "you found a treasure chest."
+          | onTreasure      = "you found a treasure chest."
           | otherwise       = mMsg
     sv    = case i' of Nothing -> mempty
                        Just  i -> statusView mMsg itemNameOf (ps !! (partyPosToNum i - 1))

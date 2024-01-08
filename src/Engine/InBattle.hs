@@ -12,7 +12,7 @@ import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
 import Engine.CharacterAction (inputSpell, selectItem, selectUseTarget)
-import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition))
+import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), divideItems, getTreasures)
 import Data.World
 import Data.Primitive
 import Data.Formula (parse')
@@ -92,13 +92,21 @@ startBattle :: EnemyID                    -- ^ encounted enemy.
             -> Bool                       -- ^ is room battle or not. 
             -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
             -> GameMachine
-startBattle eid isRB (g1, g2) = GameAuto $ do
+startBattle eid isRB gms = startBattle' eid isRB gms 0 []
+
+startBattle' :: EnemyID                    -- ^ encounted enemy.
+             -> Bool                       -- ^ is room battle or not. 
+             -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
+             -> Int                        -- ^ pre gained gold.
+             -> [Int]                      -- ^ pre gained items.
+             -> GameMachine
+startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
     es <- decideEnemyInstance eid
     ps <- party <$> world
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
     let con = Condition {
-      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = 0, dropItems = [], traps = [], defaultOrder = ps, isRoomBattle = isRB
+      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
     }
     run $ events [MessageTime (-1000) "\nEncounter!\n" Nothing]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
@@ -208,36 +216,29 @@ updateCondition con = do
     drops edef = concat <$> forM (Enemy.dropItem edef) (\(prob, f) -> do
       dropped <- happens prob
       itemID  <- eval f
-      return [itemID | dropped]
+      return [itemID | dropped && isRoomBattle con]
       )
       
 
 wonBattle :: Condition -> GameMachine
 wonBattle con = GameAuto $ do
-    ps <- party <$> world
+    ps   <- party <$> world
+    msgs <- if not (isRoomBattle con) then divideItems (dropItems con) else pure []
     let e  = gotExps con `div` length ps
         ft = isRoomBattle con && (dropGold con > 0 || not (null $ dropItems con))
     forM_ ps $ flip updateCharacterWith (Chara.getExp e)
-    run $ events [Message $ "Each survivor got " ++ show e ++ " E.P."]
-                 (if ft then findTreasureChest con else getDrops con [])
-
-getDrops :: Condition -> [Int] -> GameMachine
-getDrops con is = GameAuto $ do
-    ps <- party <$> world
-    let g = dropGold con `div` length ps
-        es = [ if g > 0 then Just (Message $ "Each survivor got " ++ show g ++ " G.P.") else Nothing
-             --TODO: if not (null items) then ...
-             ]
-    forM_ ps $ flip updateCharacterWith (Chara.getGold g)
-    run $ events (catMaybes es) (afterWin con)
-  where
-    items = (\i -> ItemInf (ItemID i) False) <$> is
+    run $ events (Message ("Each survivor got " ++ show e ++ " E.P.") : (Message <$> msgs))
+                 (if ft then findTreasureChest con else findTreasures con)
 
 findTreasureChest :: Condition -> GameMachine
 findTreasureChest con = GameAuto $ do
     trap <- randomIn $ [Enemy.DropDirectly | null $ traps con] ++ traps con
-    movePlace =<< FindTreasureChest <$> currentPosition
-    run $ actionForTreasureChest (TreasureCondition (afterWin con) (dropGold con) (dropItems con) trap) []
+    movePlace =<< FindTreasureChest <$> currentPosition <*> pure False
+    let whenAlarm eid = startBattle' eid False (afterWin con, afterRun con) (dropGold con) (dropItems con)
+    run $ actionForTreasureChest (TreasureCondition (afterWin con) (dropGold con) (dropItems con) trap whenAlarm) []
+
+findTreasures :: Condition -> GameMachine
+findTreasures con = getTreasures $ TreasureCondition (afterWin con) (dropGold con) (dropItems con) undefined undefined
 
                              
 

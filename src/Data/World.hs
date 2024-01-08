@@ -40,7 +40,7 @@ data Place  = InCastle
             | TrainingGrounds
             | InMaze            Position
             | InBattle          Position [[Enemy.Instance]]
-            | FindTreasureChest Position
+            | FindTreasureChest Position Bool -- ^ chest is opend.
             | Camping           Position
     deriving (Show, Eq)
 
