@@ -119,28 +119,29 @@ selectBattleCommand i cmds con = GameAuto $ do
       let cid = p !! (i - 1)
       c <- characterOf cid
       let cs     = Chara.enableBattleCommands $ Chara.job c
+          cs'    = if i <= 3 then cs else [x | x <- cs, x /= Chara.Fight]
           next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
           cancel = selectBattleCommand i cmds con
       if isCantFight c then
         run $ next CantMove
       else 
-        run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs)
+        run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs')
                          [( Key "f"
                           , selectFightTarget next
-                          , Chara.Fight `elem` cs && i <= 3)
+                          , Chara.Fight `elem` cs')
                          ,( Key "p"
                           , next Parry
-                          , Chara.Parry `elem` cs)
+                          , Chara.Parry `elem` cs')
                          ,( Key "s"
                           , inputSpell c SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
-                          , Chara.Spell `elem` cs)
+                          , Chara.Spell `elem` cs')
                          ,( Key "u"
                           , selectItem BattleCommand identified
                               (selectUseTarget BattleCommand (\i l -> next $ UseItem i l)) c cancel
-                          , Chara.Spell `elem` cs)
+                          , Chara.Spell `elem` cs')
                          ,( Key "r"
                           , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
-                          , Chara.Run `elem` cs)
+                          , Chara.Run `elem` cs')
                          ,( Key " "
                           , events [None] (selectBattleCommand i cmds con)
                           , True)

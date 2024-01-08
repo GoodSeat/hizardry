@@ -172,6 +172,10 @@ addPoison d s = let ss = statusErrorsOf s in
     isPoison (Poison _) = True
     isPoison _          = False
         
+damageHp :: Object o => Int -> o -> o
+damageHp dmg s = setHp (hpOf s - dmg) s
+
+
 
 
 whenReturnCastle :: Object o => StatusError -> o -> o

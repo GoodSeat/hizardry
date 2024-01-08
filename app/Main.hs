@@ -256,7 +256,7 @@ main = do
 
                     , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3") []]
 
-                    , Enemy.dropItem          = [(50, parse' "1d15+1")]
+                    , Enemy.dropItem          = [(50, parse' "1d3")]
                     , Enemy.dropGold          = parse' "2d10"
 
                     , Enemy.withBackProb      = 50
@@ -296,7 +296,7 @@ main = do
                                                 ,Enemy.Run
                                                 ]
 
-                    , Enemy.dropItem          = [(50, parse' "1d15+1")]
+                    , Enemy.dropItem          = [(50, parse' "1d3")]
                     , Enemy.dropGold          = parse' "2d10"
 
                     , Enemy.withBackProb      = 15
@@ -384,6 +384,15 @@ main = do
                     , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
                     , Item.spEffect         = Nothing
                     , Item.attributes       = [Item.CantDrop, Item.Heal (-2) False]
+                })
+                ,
+                (ItemID 3, Item.Define {
+                      Item.name             = "WATER"
+                    , Item.nameUndetermined = "POTION?"
+                    , Item.itemType         = Item.Misc
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
                 })
                 ]
             }

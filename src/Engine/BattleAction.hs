@@ -34,7 +34,7 @@ fightOfCharacter id el next = GameAuto $ do
         edef   <- enemyOf $ Enemy.id e
         c      <- characterOf id
         (h, d) <- fightDamage el c e
-        let (e', _) = setHp (hpOf (e, edef) - d) (e, edef)
+        let (e', _) = damageHp d (e, edef)
         updateEnemy e $ const e'
         es <- fmap Message <$> fightMessage c e' (h, d)
         run $ events es next
@@ -92,7 +92,7 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     if hpOf c == 0 then run next
     else do
       (h, d) <- fightDamageE n e c dmg
-      let c' = setHp (hpOf c - d) c
+      let c' = damageHp d c
          -- TODO:lv drain, poison, critical ...etc
       es <- fmap Message <$> fightMessageE e c' (h, d)
       run $ events es (with [updateCharacter (ps !! idc) c'] next)
@@ -207,7 +207,7 @@ castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
       if Enemy.hp e <= 0 then return []
       else do
         d <- evalWith (formulaMapSO c (e, edef)) f
-        let (e', _) = setHp (hpOf (e, edef) - d) (e, edef) 
+        let (e', _) = damageHp d (e, edef)
         updateEnemy e $ const e'
         let msg = nameOf (e, edef) ++ " takes " ++ show d ++ "."
         return $ msg : [msg ++ "\n" ++ nameOf (e, edef) ++ " is killed." | Enemy.hp e' <= 0]
@@ -221,7 +221,7 @@ castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
       if hpOf c == 0 then return []
       else do
         d <- evalWith (formulaMapSO (e, edef) c) f
-        let c' = setHp (hpOf c - d) c
+        let c' = damageHp d c
         let msg = nameOf c ++ " takes " ++ show d ++ "."
         return $ (join $ updateCharacter <$> partyAt i <*> pure c', msg)
                : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
