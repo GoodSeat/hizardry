@@ -178,7 +178,7 @@ getTreasures con = GameAuto $ do
         msg1 = [Message ("Each survivor got " ++ show gp ++ "G.P.") | gp > 0]
     msg2 <- fmap Message <$> divideItems (dropItems con)
     movePlace =<< FindTreasureChest <$> currentPosition <*> pure True
-    run $ events (msg1 ++ msg2) (afterChest con)
+    run $ events (msg2 ++ msg1) (afterChest con)
 
 
 divideItems :: [Int] -> GameState [String]
@@ -193,7 +193,7 @@ divideItems (i:is) = do
         updateCharacter cid' (c' { Chara.items = itms ++ [ItemInf (ItemID i) False] })
         rest <- divideItems is
         idef <- itemByID (ItemID i)
-        return $ (Chara.name c' ++ " got " ++ Item.nameUndetermined idef) : rest
+        return $ (Chara.name c' ++ " got " ++ Item.nameUndetermined idef ++ ".") : rest
                 
 
 

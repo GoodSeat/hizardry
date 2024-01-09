@@ -97,10 +97,10 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
       es <- fmap Message <$> fightMessageE e c' (h, d)
       run $ events es (with [updateCharacter (ps !! idc) c'] next)
 
-fightDamageE :: Int                 -- ^ count of attack.
-             -> Enemy.Instance      -- ^ attacker enemy.
+fightDamageE :: Int             -- ^ count of attack.
+             -> Enemy.Instance  -- ^ attacker enemy.
              -> Chara.Character -- ^ target character.
-             -> Formula             -- ^ damage per hit.
+             -> Formula         -- ^ damage per hit.
              -> GameState (Int, Int)
 fightDamageE n e c dmg = do
     edef <- enemyOf $ Enemy.id e
