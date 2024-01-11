@@ -83,7 +83,7 @@ disarmTrap con afterNotDisarm = GameAuto $ do
           ,(Key "6", disarm' B6, np >= 6 && (not . isCantFight) (cs !! 5))
           ]
   where
-    disarm' p = GameAuto $ return (SpellCommand "Input trap.\n(Empty to cancel.)",
+    disarm' p = GameAuto $ return (Message "Input trap.\n(Empty to cancel.)",
                                    \(Key s) -> if null s then afterNotDisarm else tryDisarm con s p afterNotDisarm)
 
 tryDisarm :: TreasureCondition -> String -> PartyPos -> GameMachine -> GameMachine
