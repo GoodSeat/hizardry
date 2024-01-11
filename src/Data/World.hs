@@ -45,3 +45,22 @@ data Place  = InCastle
     deriving (Show, Eq)
 
 
+
+-- TODO!:explicit saving.
+--       belows contents are not save target.
+--         * sceneTrans (always restore as "id")
+--       and when classic mode, belows contents also not target.
+--         * party        (always [])
+--         * place        (always InCastle)
+--         * roomBattled  (always [])
+--
+--        NOTE:
+--         * when saving "randomGen", save rondom int.
+--         * when loading "randomGen", restore by "mkStdGen :: Int -> RandomGen")
+saveWorld :: World -> FilePath -> IO ()
+saveWorld = undefined
+
+
+loadWorld :: FilePath -> IO (Either String World)
+loadWorld = undefined
+

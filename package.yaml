@@ -24,6 +24,7 @@ dependencies:
 - mtl
 - arrows
 - random
+- directory
 - containers
 - ansi-terminal
 - parsec

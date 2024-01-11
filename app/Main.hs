@@ -2,9 +2,10 @@ module Main where
 
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
 import System.Console.ANSI (clearScreen)
+import System.Random
+import System.Directory
 import qualified Data.Map as Map
 import Data.Maybe (maybe, catMaybes, isJust, fromJust)
-import System.Random
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void)
@@ -150,7 +151,8 @@ main = do
         , Character.spells   = []
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
-    gen <- getStdGen
+    --gen <- getStdGen
+    let gen = mkStdGen 0 
     let w = World {
         randomGen       = gen
       , guideOn         = True
@@ -404,25 +406,43 @@ main = do
                | otherwise            = mempty
     let picOf = maybe mempty pic
 
-    putStrLn =<< runGame (testRender picOf scenario) cmd scenario w inCastle
+    existSaveData <- doesFileExist saveDataPath
+    
+    run <- if not existSaveData then return runGame
+           else do
+             ls <- lines <$> readFile saveDataPath
+             let is  = read <$> ls
+                 is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
+             return $ loadGame (reverse is')
+             
+    putStrLn =<< run (testRender picOf scenario) cmd scenario w inCastle
 
+    appendFile saveDataPath $ show Abort ++ "\n"
+
+
+saveDataPath = "save.txt"
 
 -- ==========================================================================
 
 getKey :: InputType -> IO Input
-getKey SingleKey = do
-    hSetBuffering stdin NoBuffering
-    x <- getChar
-    return $ Key [x]
-getKey SequenceKey = do
-    hSetBuffering stdin LineBuffering
-    Key <$> getLine
-getKey (WaitClock n)
-  | n > 0     = threadDelay (n * 1000) >> return Clock
-  | otherwise = do
-      x <- race (threadDelay $ n * (-1000)) waitKey
-      return $ case x of Left  _ -> Clock
-                         Right c -> Key [c]
+getKey itype = do
+    i <- getKey' itype
+    appendFile saveDataPath (show i ++ "\n")
+    return i
+  where
+    getKey' SingleKey = do
+        hSetBuffering stdin NoBuffering
+        x <- getChar
+        return $ Key [x]
+    getKey' SequenceKey = do
+        hSetBuffering stdin LineBuffering
+        Key <$> getLine
+    getKey' (WaitClock n)
+      | n > 0     = threadDelay (n * 1000) >> return Clock
+      | otherwise = do
+          x <- race (threadDelay $ n * (-1000)) waitKey
+          return $ case x of Left  _ -> Clock
+                             Right c -> Key [c]
 
 waitKey :: IO Char
 waitKey = do

@@ -19,7 +19,7 @@ import qualified Data.Items as Item
 data Input = Key String
            | Clock
            | Abort
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data InputType = SingleKey
                | SequenceKey
@@ -92,6 +92,19 @@ runGame render cmd s w g = do
       render e w'
       i <- cmd itype
       runGame render cmd s w' (next' i)
+
+
+loadGame :: [Input]
+         -> (Event -> World -> IO a) -- ^ renderer of game.
+         -> (InputType -> IO Input)   -- ^ input command.
+         -> Scenario                  -- ^ game scenario.
+         -> World                     -- ^ initial environment.
+         -> GameMachine               -- ^ initial GameMachine.
+         -> IO String
+loadGame [] render cmd s w g = runGame render cmd s w g
+loadGame (i:is) render cmd s w g = do
+    let (e, w', _, next') = stepGame s w g
+    loadGame is render cmd s w' (next' i)
 
 
 stepGame :: Scenario
