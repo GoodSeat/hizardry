@@ -149,18 +149,20 @@ selectBattleCommand i cmds con = GameAuto $ do
                   ,( Key "r"
                    , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
                    , Chara.Run `elem` cs')
-                  ,( Key " "
+                  ,( Key "\ESC"
                    , events [None] (selectBattleCommand i cmds con)
                    , True)
                   ]
-            toMsg cmd = case cmd of Chara.Fight   -> "F)ight\n"
+            toMsg cmd = case cmd of Chara.Fight   -> "F)ight*\n"
                                     Chara.Spell   -> "S)pell\n"
                                     Chara.Hide    -> "H)ide\n"
                                     Chara.Ambush  -> "A)mbush\n"
                                     Chara.Run     -> "R)un\n"
-                                    Chara.Parry   -> "P)arry\n"
+                                    Chara.Parry   -> if Chara.Fight `elem` cs' then "P)arry\n" else "P)arry*\n" 
                                     Chara.UseItem -> "U)se Item\n"
-        in run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
+            snd' (_, s, _) = s
+            cms' = (Key " ", snd' (head cms), True) : cms
+        in run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms'
 
 selectFightTarget :: (Action -> GameMachine) -> GameMachine
 selectFightTarget next = GameAuto $ do
@@ -176,8 +178,9 @@ selectFightTarget next = GameAuto $ do
 confirmBattle :: [(CharacterID, Action)]
               -> Condition
               -> GameMachine
-confirmBattle cmds con = select (BattleCommand "Are you OK?\n\nF)ight\nT)ake Back")
+confirmBattle cmds con = select (BattleCommand "Are you OK?\n\nF)ight*\nT)ake Back")
                                 [(Key "f", startProgressBattle cmds con)
+                                ,(Key " ", startProgressBattle cmds con)
                                 ,(Key "t", selectBattleCommand 1 [] con)
                                 ]
 

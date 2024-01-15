@@ -61,10 +61,10 @@ main = do
         , Character.enableAlignments     = [Character.G, Character.N, Character.E]
         , Character.enableBattleCommands = [
               Character.Fight
-            , Character.Spell
-            , Character.Run
             , Character.Parry
+            , Character.Spell
             , Character.UseItem
+            , Character.Run
             ]
         , Character.inspectTrapAbility = parse' "agi"
         , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
@@ -74,10 +74,10 @@ main = do
         , Character.enableAlignments     = [Character.G, Character.N]
         , Character.enableBattleCommands = [
               Character.Fight
-            , Character.Spell
-            , Character.Run
             , Character.Parry
+            , Character.Spell
             , Character.UseItem
+            , Character.Run
             ]
         , Character.inspectTrapAbility = parse' "agi"
         , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
@@ -87,9 +87,9 @@ main = do
         , Character.enableAlignments     = [Character.E, Character.N]
         , Character.enableBattleCommands = [
               Character.Fight
-            , Character.Run
             , Character.Parry
             , Character.UseItem
+            , Character.Run
             ]
         , Character.inspectTrapAbility = parse' "min(agi*6, 95)"
         , Character.disarmTrapAbility  = parse' "(lv-7+50)*100/70"
