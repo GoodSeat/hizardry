@@ -15,7 +15,8 @@ inCastle = GameAuto $ do
     notnull <- not . null . party <$> world
     run $ selectWhen msg [(Key "g", inGilgamesh'sTarvern, True)
                          ,(Key "a", inAdventure'sInn, notnull)
-                         ,(Key "e", inEdgeOfTown, True)]
+                         ,(Key "e", inEdgeOfTown, True)
+                         ]
   where
     msg = Message $ "G)ilgamesh's Tarvern\n"
                  ++ "A)dventure's Inn\n"
@@ -30,7 +31,8 @@ inGilgamesh'sTarvern = GameAuto $ do
     movePlace Gilgamesh'sTarvern
     np <- length . party <$> world
     run $ selectWhen msg
-            [(Key "l", inCastle, True)
+            [(Key "l",    inCastle, True)
+            ,(Key "\ESC", inCastle, True)
             ,(Key "1", inspectCharacter inGilgamesh'sTarvern False F1, np >= 1)
             ,(Key "2", inspectCharacter inGilgamesh'sTarvern False F2, np >= 2)
             ,(Key "3", inspectCharacter inGilgamesh'sTarvern False F3, np >= 3)
@@ -43,15 +45,16 @@ inGilgamesh'sTarvern = GameAuto $ do
                  ++ "R)emove\n"
                  ++ "#)Inspect\n"
                  ++ "D)ivvy Gold\n"
-                 ++ "L)eave\n"
+                 ++ "L)eave [ESC]\n"
 
 selectCharacterAddToParty :: GameMachine
 selectCharacterAddToParty = GameAuto $ do
     ids <- inTarvernMember <$> world
     cs  <- sequence $ characterOf <$> ids
-    let msg = "#)Add to Party    L)eave\n\n"
+    let msg = "#)Add to Party    L)eave [ESC]\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
-    let lst = [(Key "l", inGilgamesh'sTarvern, True)
+    let lst = [(Key "l"   , inGilgamesh'sTarvern, True)
+              ,(Key "\ESC", inGilgamesh'sTarvern, True)
               ,(Key "1", addParty (ids !! 0), length ids >= 1)
               ,(Key "2", addParty (ids !! 1), length ids >= 2)
               ,(Key "3", addParty (ids !! 2), length ids >= 3)
@@ -74,7 +77,8 @@ inAdventure'sInn = GameAuto $ do
     movePlace Adventure'sInn
     ids <- party <$> world
     run $ selectWhen msg
-            [(Key "l", inCastle, True) 
+            [(Key "l"   , inCastle, True) 
+            ,(Key "\ESC", inCastle, True) 
             ,(Key "1", selectStayPlan (ids !! 0), length ids >= 1)
             ,(Key "2", selectStayPlan (ids !! 1), length ids >= 2)
             ,(Key "3", selectStayPlan (ids !! 2), length ids >= 3)
@@ -84,7 +88,7 @@ inAdventure'sInn = GameAuto $ do
   where
     msg = Message $ "Who will stay?\n\n"
                  ++ "#)Select\n"
-                 ++ "L)eave\n"
+                 ++ "L)eave [ESC]\n"
 
 selectStayPlan :: CharacterID -> GameMachine
 selectStayPlan id = GameAuto $ do
@@ -99,8 +103,9 @@ selectStayPlan id = GameAuto $ do
                      ++ "D)Merchant Suites    200 GP/Week\n"
                      ++ "E)The Royal Suite    500 GP/Week\n\n"
                      ++ "P)ool Gold\n"
-                     ++ "L)eave\n"
-        lst = [(Key "l", inAdventure'sInn)
+                     ++ "L)eave [ESC]\n"
+        lst = [(Key "l"   , inAdventure'sInn)
+              ,(Key "\ESC", inAdventure'sInn)
               ,(Key "p", GameAuto $ poolGold id >> run (selectStayPlan id))
               ,(Key "a", sleep id  0   0 1)
               ,(Key "b", sleep id  1  10 7)
@@ -124,10 +129,9 @@ sleep id h g d = GameAuto $ do
                                        ++ " is napping. \n\n"
                                        ++ show (Character.name c) ++ " has "
                                        ++ show (Character.gold c) ++ " G.P.\n\n"
-                                       ++ "W)ake up"
+                                       ++ "W)ake up [ESC]"
                                         ) Nothing)
-                   [(Key "w", checkLvup id)
-                   ,(Clock  , next)]
+                   [(Key "w", checkLvup id), (Key "\ESC", checkLvup id), (Clock, next)]
   where
     next = GameAuto $ updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
                    >> run (sleep id h g $ if d == 1 then 0 else d)

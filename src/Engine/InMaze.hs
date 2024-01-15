@@ -135,8 +135,9 @@ openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p)
     np <- length . party <$> world
-    run $ selectWhen (Message "#)Inspect\nR)eorder Party\nL)eave Camp")
-          [(Key "l", enterWithoutEncount p, True)
+    run $ selectWhen (Message "#)Inspect\nR)eorder Party\nL)eave Camp [ESC]")
+          [(Key "l"   , enterWithoutEncount p, True)
+          ,(Key "\ESC", enterWithoutEncount p, True)
           ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
           ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
           ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)

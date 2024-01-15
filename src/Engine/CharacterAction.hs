@@ -33,6 +33,7 @@ inspectCharacter h canSpell i = GameAuto $ do
     let cancel = inspectCharacter h canSpell i
     run $ selectWhen (ShowStatus i msg SingleKey)
                      [(Key "l", h, True)
+                     ,(Key "\ESC", h, True)
                      ,(Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
                      ,(Key "u", selectItem sItem identified (selectUseTarget sCast (useItemInCamp i cancel)) c cancel, True)
                      ,(Key "d", selectDropItem dItem i c cancel, True)
@@ -46,10 +47,10 @@ inspectCharacter h canSpell i = GameAuto $ do
     msg = if canSpell then
             "U)se Item     D)rop Item    T)rade Item    E)qiup  \n" ++
             "R)ead Spell   S)pell        P)ool Money            \n" ++
-            "#)Inspect     L)eave                               "
+            "#)Inspect     L)eave [ESC]                         "
           else
-            "U)se Item     D)rop Item    T)rade Item    E)qiup  \n" ++
-            "R)ead Spell   P)ool Money   #)Inspect      L)eave  "
+            "U)se Item     D)rop Item    T)rade Item  E)qiup       \n" ++
+            "R)ead Spell   P)ool Money   #)Inspect    L)eave [ESC] "
     iCast = flip (ShowStatus i) SequenceKey
     sCast = flip (ShowStatus i) SingleKey
     sItem = const (sCast "Select item.  L)eave")
@@ -193,15 +194,16 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
           run (nextWith $ toDst 1)
         else
           run $ selectWhen (msgForSelecting $
-                  if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel"
-                             else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel")
+                  if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel [ESC]"
+                             else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel [ESC]")
                   [(Key "1", nextWith (toDst 1), mx > 0)
                   ,(Key "2", nextWith (toDst 2), mx > 1)
                   ,(Key "3", nextWith (toDst 3), mx > 2)
                   ,(Key "4", nextWith (toDst 4), mx > 3)
                   ,(Key "5", nextWith (toDst 5), mx > 4)
                   ,(Key "6", nextWith (toDst 6), mx > 5)
-                  ,(Key "c", cancel, True)]
+                  ,(Key "\ESC", cancel, True)
+                  ,(Key "c"   , cancel, True)]
 
 
 spellInCamp :: PartyPos -> GameMachine -> Spell.Name -> SpellTarget -> GameMachine
