@@ -13,7 +13,7 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
-import Engine.InEvent (doEvent)
+import Engine.InEvent (doEvent, setLightValueWith)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
@@ -105,8 +105,7 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
           Nothing -> run $ ouch p
           Just p' -> do 
             -- update milwa effect.
-            lv <- partyLight <$> world
-            when (lv > 0) (modify $ \w -> w { partyLight = lv - 1 })
+            setLightValueWith (\n -> n - 1)
             -- update party status.
             ps <- party <$> world
             forM_ ps $ \p -> do

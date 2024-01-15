@@ -7,11 +7,11 @@ import Data.List
 import Data.Function ((&))
 import Control.Monad
 import Control.Monad.Reader (asks)
-import Control.Monad.State (modify)
 
 import Engine.GameAuto
 import Engine.Utils
 import Engine.CharacterAction (castCureSpell)
+import Engine.InEvent (setLightValue)
 import Data.World
 import Data.Formula
 import Data.Primitive
@@ -172,7 +172,7 @@ spell' def = case Spell.effect def of
       _                    -> undefined
     Spell.AddLight n -> \(Left id) _ next -> GameAuto $ do 
         c  <- characterOf id
-        modify $ \w -> w { partyLight = n }
+        setLightValue n
         run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
 
 -- --------------------------------------------------------------------------------

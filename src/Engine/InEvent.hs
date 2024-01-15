@@ -2,7 +2,7 @@ module Engine.InEvent
 where
 
 import Control.Monad (when)
-import Control.Monad.State (modify, forM_)
+import Control.Monad.State (modify, gets, forM_)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
 import qualified Data.Map as Map
@@ -71,20 +71,29 @@ updownEffect p toUp = replicate c (upStep, Time 150 Nothing)
     c = 4 -- step count.
     upStep = modify (\w -> w { sceneTrans = sceneTrans w . translate (0, u * r) })
     upRest = modify (\w -> w { sceneTrans = translate (0, -u * c * r) })
-    
+
 
 -- | state machine when return to castle.
 returnToCastle :: GameState ()
 returnToCastle = do
     resetRoomBattle
+    setLightValue 0
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterOf p
-      updateCharacter p $ foldl (&) c (whenReturnCastle <$> statusErrorsOf c) 
+      updateCharacter p $ foldl (&) c (whenReturnCastle <$> statusErrorsOf c)
 
 -- todo: remove dead/stoned/staned characters etc.
 
 
 resetRoomBattle :: GameState ()
 resetRoomBattle = modify $ \w -> w { roomBattled = [] }
+
+setLightValue :: Int -> GameState ()
+setLightValue n = modify $ \w -> w { partyLight = n }
+
+setLightValueWith :: (Int -> Int) -> GameState ()
+setLightValueWith f = do
+    n <- gets (f . partyLight)
+    when (n >= 0) $ setLightValue n
 
