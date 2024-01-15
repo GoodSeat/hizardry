@@ -12,7 +12,7 @@ import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
 import Engine.CharacterAction (inputSpell, selectItem, selectUseTarget)
-import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), divideItems, getTreasures)
+import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), getTreasures)
 import Data.World
 import Data.Primitive
 import Data.Formula (parse')
@@ -133,35 +133,34 @@ selectBattleCommand i cmds con = GameAuto $ do
       if isCantFight c then
         run $ next CantMove
       else 
-        run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs')
-                         [( Key "f"
-                          , selectFightTarget next
-                          , Chara.Fight `elem` cs')
-                         ,( Key "p"
-                          , next Parry
-                          , Chara.Parry `elem` cs')
-                         ,( Key "s"
-                          , inputSpell c SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
-                          , Chara.Spell `elem` cs')
-                         ,( Key "u"
-                          , selectItem BattleCommand identified
-                              (selectUseTarget BattleCommand (\i l -> next $ UseItem i l)) c cancel
-                          , Chara.Spell `elem` cs')
-                         ,( Key "r"
-                          , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
-                          , Chara.Run `elem` cs')
-                         ,( Key " "
-                          , events [None] (selectBattleCommand i cmds con)
-                          , True)
-                          ]
-  where
-    toMsg cmd = case cmd of Chara.Fight   -> "F)ight\n"
-                            Chara.Spell   -> "S)pell\n"
-                            Chara.Hide    -> "H)ide\n"
-                            Chara.Ambush  -> "A)mbush\n"
-                            Chara.Run     -> "R)un\n"
-                            Chara.Parry   -> "P)arry\n"
-                            Chara.UseItem -> "U)se Item\n"
+        let cms = [( Key "f"
+                   , selectFightTarget next
+                   , Chara.Fight `elem` cs')
+                  ,( Key "p"
+                   , next Parry
+                   , Chara.Parry `elem` cs')
+                  ,( Key "s"
+                   , inputSpell c SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
+                   , Chara.Spell `elem` cs')
+                  ,( Key "u"
+                   , selectItem BattleCommand identified
+                       (selectUseTarget BattleCommand (\i l -> next $ UseItem i l)) c cancel
+                   , Chara.Spell `elem` cs')
+                  ,( Key "r"
+                   , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
+                   , Chara.Run `elem` cs')
+                  ,( Key " "
+                   , events [None] (selectBattleCommand i cmds con)
+                   , True)
+                  ]
+            toMsg cmd = case cmd of Chara.Fight   -> "F)ight\n"
+                                    Chara.Spell   -> "S)pell\n"
+                                    Chara.Hide    -> "H)ide\n"
+                                    Chara.Ambush  -> "A)mbush\n"
+                                    Chara.Run     -> "R)un\n"
+                                    Chara.Parry   -> "P)arry\n"
+                                    Chara.UseItem -> "U)se Item\n"
+        in run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
 
 selectFightTarget :: (Action -> GameMachine) -> GameMachine
 selectFightTarget next = GameAuto $ do
@@ -222,12 +221,11 @@ updateCondition con = do
 
 wonBattle :: Condition -> GameMachine
 wonBattle con = GameAuto $ do
-    ps   <- party <$> world
-    msgs <- if not (isRoomBattle con) then divideItems (dropItems con) else pure []
+    ps <- party <$> world
     let e  = gotExps con `div` length ps
         ft = isRoomBattle con && (dropGold con > 0 || not (null $ dropItems con))
     forM_ ps $ flip updateCharacterWith (Chara.getExp e)
-    run $ events (Message ("Each survivor got " ++ show e ++ " E.P.") : (Message <$> msgs))
+    run $ events [Message $ "Each survivor got " ++ show e ++ " E.P."]
                  (if ft then findTreasureChest con else findTreasures con)
 
 findTreasureChest :: Condition -> GameMachine
