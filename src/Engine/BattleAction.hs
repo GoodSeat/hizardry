@@ -7,6 +7,7 @@ import Data.List
 import Data.Function ((&))
 import Control.Monad
 import Control.Monad.Reader (asks)
+import Control.Monad.State (modify)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -169,6 +170,10 @@ spell' def = case Spell.effect def of
       Spell.AllySingle     -> castCureSpellSingle (Spell.name def) f ss
       Spell.AllyAll        -> castCureSpellAll    (Spell.name def) f ss
       _                    -> undefined
+    Spell.AddLight n -> \(Left id) _ next -> GameAuto $ do 
+        c  <- characterOf id
+        modify $ \w -> w { partyLight = n }
+        run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
 
 -- --------------------------------------------------------------------------------
 

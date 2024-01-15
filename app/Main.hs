@@ -41,7 +41,7 @@ import UI.CuiRender
 -- * other spells
 -- * other events
 
--- * scenario parser, save date parser.
+-- * scenario parser, save data parser.
 -- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int
 -- *   zip compression with secret keyword. using another exe? deflate?
 
@@ -136,7 +136,7 @@ main = do
 
         , Character.job      = priest
         , Character.alignment= Character.N
-        , Character.spells   = [SpellID 71, SpellID 111, SpellID 112]
+        , Character.spells   = [SpellID 71, SpellID 111, SpellID 112, SpellID 113]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
         testChara4 = testChara1 {
@@ -161,6 +161,8 @@ main = do
       , party           = []
       , place           = InCastle
       , roomBattled     = []
+      , partyLight      = 0
+
       , visitHitory     = Map.fromList []
 
       , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4]
@@ -351,6 +353,16 @@ main = do
                 })
                 ,
                 (SpellID 112, Spell.Define {
+                      Spell.name      = "milwa"
+                    , Spell.kind      = Spell.P
+                    , Spell.lv        = 1
+                    , Spell.attribute = Spell.None
+                    , Spell.target    = Spell.AllyAll
+                    , Spell.effect    = Spell.AddLight 30
+                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                })
+                ,
+                (SpellID 113, Spell.Define {
                       Spell.name      = "diosa"
                     , Spell.kind      = Spell.P
                     , Spell.lv        = 1
@@ -488,7 +500,7 @@ rendering picOf s mMsg cMsg i' picID w = do
           <> treas
           <> picOf picID
           <> frame
-          <> sceneTrans w (scene (place w) s)
+          <> sceneTrans w (scene (place w) onLight s)
   where
     ps    = flip Map.lookup (allCharacters w) <$> party w
     ess   = case place w of InBattle _ ess' -> ess'
@@ -515,6 +527,7 @@ rendering picOf s mMsg cMsg i' picID w = do
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
     itemNameOf id identified = let def = items s Map.! id in
         (if identified then Item.name else Item.nameUndetermined) def
+    onLight = partyLight w > 0
 
 enemyScene :: (Maybe PictureID -> Craphic) -> Scenario -> Place -> Craphic
 enemyScene picOf s (InBattle _ (es:_)) =

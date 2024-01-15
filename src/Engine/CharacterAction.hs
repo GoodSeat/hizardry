@@ -5,6 +5,7 @@ where
 import Prelude hiding (lookup)
 import Control.Monad (when, join, forM)
 import Control.Monad.Reader (asks)
+import Control.Monad.State (modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
 import Data.Function ((&))
 
@@ -240,7 +241,7 @@ spellInCampNoCost def src dst next = GameAuto $ do
                     _                -> []
         efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
         run $ with (fst <$> efs) (events [ShowStatus src "done" SingleKey] next)
-
+      Spell.AddLight n -> modify (\w -> w { partyLight = n }) >> run (events [ShowStatus src "done" SingleKey] next)
 
 castCureSpell :: Spell.Name -> Formula -> [StatusError]
               -> Either Chara.Character Enemy.Instance  -- ^ src

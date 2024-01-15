@@ -104,6 +104,10 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
         case f lab p of
           Nothing -> run $ ouch p
           Just p' -> do 
+            -- update milwa effect.
+            lv <- partyLight <$> world
+            when (lv > 0) (modify $ \w -> w { partyLight = lv - 1 })
+            -- update party status.
             ps <- party <$> world
             forM_ ps $ \p -> do
               c <- characterOf p

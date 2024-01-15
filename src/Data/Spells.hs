@@ -39,6 +39,7 @@ data Effect = Damage   Formula
             | Cure     Formula [StatusError]
             | ChangeAC Formula
             | Kill     Formula String -- ^ probability (0~100), message when kill(exp:"is dead").
+            | AddLight Int
             | Event    GameEventID
     deriving (Show)
 
