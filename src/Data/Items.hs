@@ -14,6 +14,10 @@ data Define = Define {
     , usingEffect      :: Maybe (Effect, (Int, WhenBroken)) -- ^ effect, probablity broken after using.
     , spEffect         :: Maybe (Effect, (Int, WhenBroken)) -- ^ effect, probablity broken after sp.
     , attributes       :: [Attribute]
+    , equipType        :: Maybe EquipObject
+    , valueInShop      :: Int
+    , enableToEquip    :: UserType
+    , enableToUse      :: UserType
 } deriving (Show, Eq)
 
 
@@ -27,15 +31,17 @@ data Effect =
     | Happens GameEventID
     deriving (Show, Eq)
 
-data EquipType =
-      Weapon
-    | Shield
-    | Helmet
-    | Armor
-    | Gantlett
-    | Accessories
+data EquipObject =
+      Weapon 
+    | Shield      Int -- ^ ac
+    | Helmet      Int -- ^ ac
+    | Armor       Int -- ^ ac
+    | Gantlett    Int -- ^ ac
+    | Accessories Int -- ^ ac
     deriving (Show, Eq)
 
+data UserType = All | Only [String] -- ^ job names
+    deriving (Show, Eq)
 
 data WhenBroken =
       Lost
@@ -48,9 +54,6 @@ data Attribute =
     | Heal Int Bool -- ^ heal or damege HP (it's value, only when equip)
     deriving (Show, Eq)
 
-class Equipable a where
-  canEquip :: a -> String -> Bool  -- ^ jobname
-  effectAC :: a -> Int
   
 
 

@@ -113,7 +113,12 @@ main = do
         , Character.rips     = 0
         , Character.statusErrors = []
 
-        , Character.items    = [ItemInf (ItemID 1) True, ItemInf (ItemID 1) False]
+        , Character.items    = [ItemInf (ItemID 1) True
+                               ,ItemInf (ItemID 1) False
+                               ,ItemInf (ItemID 11) True
+                               ,ItemInf (ItemID 12) True
+                               ,ItemInf (ItemID 13) True
+                               ]
         , Character.equips   = []
 
         , Character.spells   = [SpellID 11, SpellID 21]
@@ -380,6 +385,10 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
+                    , Item.equipType        = Nothing
+                    , Item.valueInShop      = 0
+                    , Item.enableToEquip    = Item.All
+                    , Item.enableToUse      = Item.All
                 })
                 ,
                 (ItemID 1, Item.Define {
@@ -389,6 +398,10 @@ main = do
                     , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
+                    , Item.equipType        = Nothing
+                    , Item.valueInShop      = 100
+                    , Item.enableToEquip    = Item.All
+                    , Item.enableToUse      = Item.All
                 })
                 ,
                 (ItemID 2, Item.Define {
@@ -398,6 +411,10 @@ main = do
                     , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
                     , Item.spEffect         = Nothing
                     , Item.attributes       = [Item.CantDrop, Item.Heal (-2) False]
+                    , Item.equipType        = Nothing
+                    , Item.valueInShop      = 200
+                    , Item.enableToEquip    = Item.All
+                    , Item.enableToUse      = Item.All
                 })
                 ,
                 (ItemID 3, Item.Define {
@@ -407,6 +424,49 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
+                    , Item.equipType        = Nothing
+                    , Item.valueInShop      = 500
+                    , Item.enableToEquip    = Item.All
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 11, Item.Define {
+                      Item.name             = "SWORD OF IRON"
+                    , Item.nameUndetermined = "SWORD?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just Item.Weapon
+                    , Item.valueInShop      = 500
+                    , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 12, Item.Define {
+                      Item.name             = "SHILD OF IRON"
+                    , Item.nameUndetermined = "SHILD?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.valueInShop      = 500
+                    , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 13, Item.Define {
+                      Item.name             = "HELMET OF IRON"
+                    , Item.nameUndetermined = "HELMET?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.valueInShop      = 300
+                    , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
+                    , Item.enableToUse      = Item.All
                 })
                 ]
             }

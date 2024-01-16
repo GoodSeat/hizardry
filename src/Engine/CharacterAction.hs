@@ -28,16 +28,20 @@ import qualified Data.Items as Item
 
 inspectCharacter :: GameMachine -> Bool -> PartyPos -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
-    c <- partyAt' i
+    cid <- partyAt i
+    c   <- partyAt' i
     cmdsInspect <- cmdNumParties $ bimap (inspectCharacter h canSpell) (const True)
     let cancel = inspectCharacter h canSpell i
-    run $ selectWhen (ShowStatus i msg SingleKey)
-                    $ (Key "l", h, True)
-                    : (Key "\ESC", h, True)
-                    : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
-                    : (Key "u", selectItem sItem identified (selectUseTarget sCast (useItemInCamp i cancel)) c cancel, True)
-                    : (Key "d", selectDropItem dItem i c cancel, True)
-                    : cmdsInspect
+    run $ selectWhenEsc (ShowStatus i msg SingleKey)
+                      $ (Key "l", h, True)
+                      : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
+                      : (Key "u", selectItem sItem identified (selectUseTarget sCast (useItemInCamp i cancel)) c cancel, True)
+                      : (Key "d", selectDropItem dItem i c cancel, True)
+-- TODO               : (Key "t", selectTradeItem dItem i c cancel, True)
+-- TODO               : (Key "e", equip dItem i c cancel, True)
+-- TODO               : (Key "r", readSpell dItem i c cancel, True)
+                      : (Key "p", GameAuto (poolGold cid >> run cancel), True)
+                      : cmdsInspect
   where
     msg = if canSpell then
             "U)se Item     D)rop Item    T)rade Item    E)qiup  \n" ++
@@ -101,8 +105,8 @@ selectItem msgForSelect isTarget next c cancel = GameAuto $ do
         its = Chara.items c
         cs  = filter (isTarget . snd) (zip (Chara.numToItemPos <$> [0..]) its)
         msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
-    return (msgForSelect $ "Select item.\nL)eave\n\n" ++ unlines msg,
-            \(Key s) -> if s == "l" then cancel
+    return (msgForSelect $ "Select item.\nL)eave [ESC]\n\n" ++ unlines msg,
+            \(Key s) -> if s == "l" || s == "\ESC" then cancel
                         else case Chara.itemPosByChar s of
                           Nothing -> selectItem msgForSelect isTarget next c cancel
                           Just i  -> if i `elem` (fst <$> cs) then next c i cancel
@@ -133,7 +137,7 @@ selectDropItem :: (String -> Event)
                -> GameMachine
                -> GameMachine
 selectDropItem msgForSelect src =
-    selectItem (const $ msgForSelect "Select drop item.\nL)eave") (const True) drop
+    selectItem (const $ msgForSelect "Select drop item.\nL)eave [ESC]") (const True) drop
   where
     drop :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     drop c i cancel = GameAuto $ do
@@ -188,11 +192,10 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
         if mx <= 1 then
           run (nextWith $ toDst 1)
         else
-          run $ selectWhen (msgForSelecting $
+          run $ selectWhenEsc (msgForSelecting $
                   if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel [ESC]"
                              else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel [ESC]")
-                  $ (Key "\ESC", cancel, True)
-                  : (Key "c"   , cancel, True)
+                  $ (Key "c", cancel, True)
                   : cmdNums mx (\i -> (nextWith (toDst i), True))
 
 

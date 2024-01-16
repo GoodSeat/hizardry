@@ -39,9 +39,8 @@ actionForTreasureChest con ps =
 inspectTreasureChest :: [PartyPos] -> TreasureCondition -> GameMachine
 inspectTreasureChest ps con = GameAuto $ do
     cmds <- cmdNumParties $ bimap inspect' (not . isCantFight)
-    run $ selectWhen (Message "#)Inspect\nL)eave [ESC]") $ (Key "l"   , actionForTreasureChest con ps, True)
-                                                         : (Key "\ESC", actionForTreasureChest con ps, True)
-                                                         : cmds
+    run $ selectWhenEsc (Message "#)Inspect\nL)eave [ESC]") $ (Key "l", actionForTreasureChest con ps, True)
+                                                            : cmds
   where
     inspect' p = if p `elem` ps then events [Message "Already inspected."] $ inspectTreasureChest ps con
                                 else inspectTreasureChestBy p ps con
@@ -65,9 +64,8 @@ inspectTreasureChestBy i ps con = GameAuto $ do
 disarmTrap :: TreasureCondition -> GameMachine -> GameMachine
 disarmTrap con afterNotDisarm = GameAuto $ do
     cmds <- cmdNumParties $ bimap disarm' (not . isCantFight)
-    run $ selectWhen (Message "#)Disarm\nL)eave [ESC]") $ (Key "l"   , afterNotDisarm, True)
-                                                        : (Key "\ESC", afterNotDisarm, True)
-                                                        : cmds
+    run $ selectWhenEsc (Message "#)Disarm\nL)eave [ESC]") $ (Key "l", afterNotDisarm, True)
+                                                           : cmds
   where
     disarm' p = GameAuto $ return (Ask "Input trap.\n(Empty to cancel.)" Nothing,
                                    \(Key s) -> if null s then afterNotDisarm else tryDisarm con s p afterNotDisarm)
@@ -87,9 +85,8 @@ tryDisarm con t i afterNotDisarm = GameAuto $ do
 openTreasureChest :: TreasureCondition -> GameMachine -> GameMachine
 openTreasureChest con afterNotOpen = GameAuto $ do
     cmds <- cmdNumParties $ bimap open' (not . isCantFight)
-    run $ selectWhen (Message "#)Open\nL)eave [ESC]") $ (Key "l"   , afterNotOpen, True)
-                                                      : (Key "\ESC", afterNotOpen, True)
-                                                      : cmds
+    run $ selectWhenEsc (Message "#)Open\nL)eave [ESC]") $ (Key "l", afterNotOpen, True)
+                                                         : cmds
   where
     open' p = tryDisarm con "" p (openTreasureChest con afterNotOpen)
 

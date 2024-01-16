@@ -161,28 +161,26 @@ selectBattleCommand i cmds con = GameAuto $ do
                                     Chara.Parry   -> if Chara.Fight `elem` cs' then "P)arry\n" else "P)arry*\n" 
                                     Chara.UseItem -> "U)se Item\n"
             snd' (_, s, _) = s
-            cms' = (Key " ", snd' (head cms), True) : cms
-        in run $ selectWhen (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms'
+        in run $ selectWhen1 (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
 
 selectFightTarget :: (Action -> GameMachine) -> GameMachine
 selectFightTarget next = GameAuto $ do
     ess <- lastEnemies
     if length ess == 1 then run $ next (Fight L1)
-    else run $ selectWhen (BattleCommand "Target group?")
-                          [(Key "1", next (Fight L1), not (null ess))
-                          ,(Key "2", next (Fight L2), length ess > 1)
-                          ,(Key "3", next (Fight L3), length ess > 2)
-                          ,(Key "4", next (Fight L4), length ess > 3)]
+    else run $ selectWhen1 (BattleCommand $ "Target group?\n(1*~" ++ show (length ess) ++ ")")
+                           [(Key "1", next (Fight L1), not (null ess))
+                           ,(Key "2", next (Fight L2), length ess > 1)
+                           ,(Key "3", next (Fight L3), length ess > 2)
+                           ,(Key "4", next (Fight L4), length ess > 3)]
 
 
 confirmBattle :: [(CharacterID, Action)]
               -> Condition
               -> GameMachine
-confirmBattle cmds con = select (BattleCommand "Are you OK?\n\nF)ight*\nT)ake Back")
-                                [(Key "f", startProgressBattle cmds con)
-                                ,(Key " ", startProgressBattle cmds con)
-                                ,(Key "t", selectBattleCommand 1 [] con)
-                                ]
+confirmBattle cmds con = select1 (BattleCommand "Are you OK?\n\nF)ight*\nT)ake Back")
+                                 [(Key "f", startProgressBattle cmds con)
+                                 ,(Key "t", selectBattleCommand 1 [] con)
+                                 ]
 
 -- ==========================================================================
 

@@ -135,6 +135,20 @@ events' []           next = next
 events' ((gs, e):es) next = GameAuto $ gs >> return (e, const $ events' es next)
 
 
+selectWhen1 :: Event -> [(Input, GameMachine, Bool)] -> GameMachine
+selectWhen1 = selectWhen' " "
+
+selectWhenEsc :: Event -> [(Input, GameMachine, Bool)] -> GameMachine
+selectWhenEsc = selectWhen' "\ESC"
+
+selectWhen' :: String -> Event -> [(Input, GameMachine, Bool)] -> GameMachine
+selectWhen' k e ns = selectWhen e ns'
+  where
+    fs ((_,g,True) :_)  = [(Key k, g, True)]
+    fs ((_,_,False):cs) = fs cs
+    fs []               = []
+    ns'                 = fs ns ++ ns
+
 selectWhen :: Event -> [(Input, GameMachine, Bool)] -> GameMachine
 selectWhen e ns = GameAuto $ return (e, select' ns)
   where
@@ -145,6 +159,12 @@ selectWhen e ns = GameAuto $ return (e, select' ns)
 
 select :: Event -> [(Input, GameMachine)] -> GameMachine
 select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns
+
+select1 :: Event -> [(Input, GameMachine)] -> GameMachine
+select1 e ns = selectWhen1 e $ map (\(i, g) -> (i, g, True)) ns
+
+selectEsc :: Event -> [(Input, GameMachine)] -> GameMachine
+selectEsc e ns = selectWhenEsc e $ map (\(i, g) -> (i, g, True)) ns
 
 -- ==========================================================================
 
