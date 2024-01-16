@@ -242,6 +242,34 @@ updateEnemy e f = do
 
 
 -- =================================================================================
+-- for make number commands.
+-- ---------------------------------------------------------------------------------
+
+cmdNums :: Int
+        -> (Int -> (GameMachine, Bool))
+        -> [(Input, GameMachine, Bool)]
+cmdNums n f = [(Key (show i), fst (f i), snd (f i)) | i <- [1..n]]
+
+
+cmdNumParties :: ((PartyPos, Chara.Character) -> (GameMachine, Bool))
+              -> GameState [(Input, GameMachine, Bool)]
+cmdNumParties f = do
+    np <- length . party <$> world
+    cs <- mapM characterOf . party =<< world
+    let f' x = f (toPartyPos x, cs !! (x - 1))
+    return [(Key (show i), fst (f' i), snd (f' i)) | i <- [1..np]]
+
+
+cmdNumPartiesID :: ((PartyPos, CharacterID) -> (GameMachine, Bool))
+                -> GameState [(Input, GameMachine, Bool)]
+cmdNumPartiesID f = do
+    np  <- length . party <$> world
+    ids <- party <$> world
+    let f' x = f (toPartyPos x, ids !! (x - 1))
+    return [(Key (show i), fst (f' i), snd (f' i)) | i <- [1..np]]
+
+
+-- =================================================================================
 -- Other.
 -- ---------------------------------------------------------------------------------
 

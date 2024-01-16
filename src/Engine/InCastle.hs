@@ -7,6 +7,7 @@ import Engine.InEdgeOfTown
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Primitive
+import Data.Bifunctor (bimap)
 import qualified Data.Characters as Character
 
 inCastle :: GameMachine
@@ -29,17 +30,12 @@ inCastle = GameAuto $ do
 inGilgamesh'sTarvern :: GameMachine
 inGilgamesh'sTarvern = GameAuto $ do
     movePlace Gilgamesh'sTarvern
-    np <- length . party <$> world
-    run $ selectWhen msg
-            [(Key "l",    inCastle, True)
-            ,(Key "\ESC", inCastle, True)
-            ,(Key "1", inspectCharacter inGilgamesh'sTarvern False F1, np >= 1)
-            ,(Key "2", inspectCharacter inGilgamesh'sTarvern False F2, np >= 2)
-            ,(Key "3", inspectCharacter inGilgamesh'sTarvern False F3, np >= 3)
-            ,(Key "4", inspectCharacter inGilgamesh'sTarvern False B4, np >= 4)
-            ,(Key "5", inspectCharacter inGilgamesh'sTarvern False B5, np >= 5)
-            ,(Key "6", inspectCharacter inGilgamesh'sTarvern False B6, np >= 6)
-            ,(Key "a", selectCharacterAddToParty, np < 6)]
+    np   <- length . party <$> world
+    cmds <- cmdNumParties $ bimap (inspectCharacter inGilgamesh'sTarvern False) (const True)
+    run $ selectWhen msg $ (Key "l",    inCastle, True)
+                         : (Key "\ESC", inCastle, True)
+                         : (Key "a", selectCharacterAddToParty, np < 6)
+                         : cmds
   where
     msg = Message $ "A)dd\n"
                  ++ "R)emove\n"
@@ -53,17 +49,9 @@ selectCharacterAddToParty = GameAuto $ do
     cs  <- sequence $ characterOf <$> ids
     let msg = "#)Add to Party    L)eave [ESC]\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
-    let lst = [(Key "l"   , inGilgamesh'sTarvern, True)
-              ,(Key "\ESC", inGilgamesh'sTarvern, True)
-              ,(Key "1", addParty (ids !! 0), length ids >= 1)
-              ,(Key "2", addParty (ids !! 1), length ids >= 2)
-              ,(Key "3", addParty (ids !! 2), length ids >= 3)
-              ,(Key "4", addParty (ids !! 3), length ids >= 4)
-              ,(Key "5", addParty (ids !! 4), length ids >= 5)
-              ,(Key "6", addParty (ids !! 5), length ids >= 6)
-              ,(Key "7", addParty (ids !! 6), length ids >= 7)
-              ,(Key "8", addParty (ids !! 7), length ids >= 8)
-              ,(Key "9", addParty (ids !! 8), length ids >= 9)]
+    let lst = (Key "l"   , inGilgamesh'sTarvern, True)
+            : (Key "\ESC", inGilgamesh'sTarvern, True)
+            : cmdNums (length ids) (\i -> (addParty (ids !! (i - 1)), True))
     if null ids then run inGilgamesh'sTarvern
                 else run $ selectWhen (Message msg) lst
   where
@@ -75,16 +63,10 @@ selectCharacterAddToParty = GameAuto $ do
 inAdventure'sInn :: GameMachine
 inAdventure'sInn = GameAuto $ do
     movePlace Adventure'sInn
-    ids <- party <$> world
-    run $ selectWhen msg
-            [(Key "l"   , inCastle, True) 
-            ,(Key "\ESC", inCastle, True) 
-            ,(Key "1", selectStayPlan (ids !! 0), length ids >= 1)
-            ,(Key "2", selectStayPlan (ids !! 1), length ids >= 2)
-            ,(Key "3", selectStayPlan (ids !! 2), length ids >= 3)
-            ,(Key "4", selectStayPlan (ids !! 3), length ids >= 4)
-            ,(Key "5", selectStayPlan (ids !! 4), length ids >= 5)
-            ,(Key "6", selectStayPlan (ids !! 5), length ids >= 6)]
+    cmds <- cmdNumPartiesID $ \(_, i) -> (selectStayPlan i, True)
+    run $ selectWhen msg $ (Key "l"   , inCastle, True) 
+                         : (Key "\ESC", inCastle, True) 
+                         : cmds
   where
     msg = Message $ "Who will stay?\n\n"
                  ++ "#)Select\n"
@@ -115,9 +97,9 @@ selectStayPlan id = GameAuto $ do
     run $ select msg lst
 
 sleep :: CharacterID
-      -> Int         -- heal hp per week.
-      -> Int         -- charge per week.
-      -> Int         -- pass days per week.
+      -> Int         -- ^ heal hp per week.
+      -> Int         -- ^ charge per week.
+      -> Int         -- ^ pass days per week.
       -> GameMachine
 sleep id h g d = GameAuto $ do
     c <- characterOf id 

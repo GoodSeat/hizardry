@@ -14,6 +14,7 @@ import qualified Data.Map as Map
 import Data.Formula (parse')
 import Data.List (find)
 import Data.Char (toLower)
+import Data.Bifunctor (bimap)
 
 
 data TreasureCondition = TreasureCondition {
@@ -27,28 +28,20 @@ data TreasureCondition = TreasureCondition {
 actionForTreasureChest :: TreasureCondition
                        -> [PartyPos]  -- ^ already inspect characters.
                        -> GameMachine
-actionForTreasureChest con ps = 
+actionForTreasureChest con ps =
     if trap con == Enemy.DropDirectly then getTreasures con
     else selectWhen (BattleCommand "I)nspect\nD)isarm Trap\nO)pen\nL)eave")
-                             [( Key "l", afterChest con                                       , True)
-                             ,( Key "i", inspectTreasureChest ps con                          , True)
-                             ,( Key "d", disarmTrap con (actionForTreasureChest con ps)       , True)
-                             ,( Key "o", openTreasureChest con (actionForTreasureChest con ps), True)
-                             ]
+                    [ (Key "l", afterChest con                                       , True)
+                    , (Key "i", inspectTreasureChest ps con                          , True)
+                    , (Key "d", disarmTrap con (actionForTreasureChest con ps)       , True)
+                    , (Key "o", openTreasureChest con (actionForTreasureChest con ps), True)]
 
 inspectTreasureChest :: [PartyPos] -> TreasureCondition -> GameMachine
 inspectTreasureChest ps con = GameAuto $ do
-    np <- length . party <$> world
-    cs <- mapM characterOf . party =<< world
-    run $ selectWhen (Message "#)Inspect\nL)eave")
-          [(Key "l", actionForTreasureChest con ps, True)
-          ,(Key "1", inspect' F1, np >= 1 && (not . isCantFight) (cs !! 0))
-          ,(Key "2", inspect' F2, np >= 2 && (not . isCantFight) (cs !! 1))
-          ,(Key "3", inspect' F3, np >= 3 && (not . isCantFight) (cs !! 2))
-          ,(Key "4", inspect' B4, np >= 4 && (not . isCantFight) (cs !! 3))
-          ,(Key "5", inspect' B5, np >= 5 && (not . isCantFight) (cs !! 4))
-          ,(Key "6", inspect' B6, np >= 6 && (not . isCantFight) (cs !! 5))
-          ]
+    cmds <- cmdNumParties $ bimap inspect' (not . isCantFight)
+    run $ selectWhen (Message "#)Inspect\nL)eave [ESC]") $ (Key "l"   , actionForTreasureChest con ps, True)
+                                                         : (Key "\ESC", actionForTreasureChest con ps, True)
+                                                         : cmds
   where
     inspect' p = if p `elem` ps then events [Message "Already inspected."] $ inspectTreasureChest ps con
                                 else inspectTreasureChestBy p ps con
@@ -71,17 +64,10 @@ inspectTreasureChestBy i ps con = GameAuto $ do
 
 disarmTrap :: TreasureCondition -> GameMachine -> GameMachine
 disarmTrap con afterNotDisarm = GameAuto $ do
-    np <- length . party <$> world
-    cs <- mapM characterOf . party =<< world
-    run $ selectWhen (Message "#)Disarm\nL)eave")
-          [(Key "l", afterNotDisarm, True)
-          ,(Key "1", disarm' F1, np >= 1 && (not . isCantFight) (cs !! 0))
-          ,(Key "2", disarm' F2, np >= 2 && (not . isCantFight) (cs !! 1))
-          ,(Key "3", disarm' F3, np >= 3 && (not . isCantFight) (cs !! 2))
-          ,(Key "4", disarm' B4, np >= 4 && (not . isCantFight) (cs !! 3))
-          ,(Key "5", disarm' B5, np >= 5 && (not . isCantFight) (cs !! 4))
-          ,(Key "6", disarm' B6, np >= 6 && (not . isCantFight) (cs !! 5))
-          ]
+    cmds <- cmdNumParties $ bimap disarm' (not . isCantFight)
+    run $ selectWhen (Message "#)Disarm\nL)eave [ESC]") $ (Key "l"   , afterNotDisarm, True)
+                                                        : (Key "\ESC", afterNotDisarm, True)
+                                                        : cmds
   where
     disarm' p = GameAuto $ return (Ask "Input trap.\n(Empty to cancel.)" Nothing,
                                    \(Key s) -> if null s then afterNotDisarm else tryDisarm con s p afterNotDisarm)
@@ -100,17 +86,10 @@ tryDisarm con t i afterNotDisarm = GameAuto $ do
 
 openTreasureChest :: TreasureCondition -> GameMachine -> GameMachine
 openTreasureChest con afterNotOpen = GameAuto $ do
-    np <- length . party <$> world
-    cs <- mapM characterOf . party =<< world
-    run $ selectWhen (Message "#)Open\nL)eave")
-          [(Key "l", afterNotOpen, True)
-          ,(Key "1", open' F1, np >= 1 && (not . isCantFight) (cs !! 0))
-          ,(Key "2", open' F2, np >= 2 && (not . isCantFight) (cs !! 1))
-          ,(Key "3", open' F3, np >= 3 && (not . isCantFight) (cs !! 2))
-          ,(Key "4", open' B4, np >= 4 && (not . isCantFight) (cs !! 3))
-          ,(Key "5", open' B5, np >= 5 && (not . isCantFight) (cs !! 4))
-          ,(Key "6", open' B6, np >= 6 && (not . isCantFight) (cs !! 5))
-          ]
+    cmds <- cmdNumParties $ bimap open' (not . isCantFight)
+    run $ selectWhen (Message "#)Open\nL)eave [ESC]") $ (Key "l"   , afterNotOpen, True)
+                                                      : (Key "\ESC", afterNotOpen, True)
+                                                      : cmds
   where
     open' p = tryDisarm con "" p (openTreasureChest con afterNotOpen)
 
@@ -138,13 +117,13 @@ effectTrap i Enemy.GasBomb = do
       when hit $ updateCharacterWith i (addPoison 1)
     return ("Ooops!! Gas Bomb!!", Nothing)
 effectTrap i Enemy.CrossbowBolt = do
-    floor <- Maze.z <$> currentPosition 
+    floor <- Maze.z <$> currentPosition
     dmg <- eval (parse' $ show floor ++ "d8")
     updateCharacterWith i (damageHp dmg)
     return ("Ooops!! Crossbow Bolt!!", Nothing)
 effectTrap i Enemy.ExplodingBox = do
     ps    <- party <$> world
-    floor <- Maze.z <$> currentPosition 
+    floor <- Maze.z <$> currentPosition
     forM_ ps $ \i -> do
       hit <- happens 75
       flg <- happens 66
@@ -194,7 +173,7 @@ divideItems (i:is) = do
         rest <- divideItems is
         idef <- itemByID (ItemID i)
         return $ (Chara.name c' ++ " got " ++ Item.nameUndetermined idef ++ ".") : rest
-                
+
 
 
 
