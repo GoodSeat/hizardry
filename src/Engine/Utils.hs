@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module Engine.Utils
 where
 
@@ -140,31 +141,32 @@ poolGold id = do
     let gp = sum $ Chara.gold <$> cs
     forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Chara.gold = if id' == id then gp else 0 }
 
+divvyGold :: GameState ()
+divvyGold = do
+    ids <- party <$> world
+    cs  <- mapM characterOf ids
+    let ga = sum $ Chara.gold <$> cs
+        n  = length cs
+        gp = ga `div` n
+        su = ga - gp * n
+        gs = fmap (gp+) (replicate su 1 ++ repeat 0)
+    forM_ (zip ids gs) $ \(id', g) -> updateCharacterWith id' $ \c -> c { Chara.gold = g }
+
+
 knowSpell :: CharacterID -> SpellID -> GameState Bool
-knowSpell cid sid = do
-    c <- characterOf cid
-    return $ Chara.knowSpell sid c
+knowSpell cid sid = Chara.knowSpell sid <$> characterOf cid 
 
 knowSpell' :: Chara.Character -> Spell.Define -> GameState Bool
-knowSpell' c def = do
-    sdb  <- asks spells
-    return $ Chara.knowSpell' sdb def c
+knowSpell' c def = asks (Chara.knowSpell' . spells) <*> pure def <*> pure c
 
 canSpell :: CharacterID -> SpellID -> GameState Bool
-canSpell cid sid = do
-    c   <- characterOf cid
-    sdb <- asks spells
-    return $ Chara.canSpell sdb sid c
+canSpell cid sid = asks (Chara.canSpell . spells) <*> pure sid <*> characterOf cid
 
 canSpell' :: Chara.Character -> Spell.Define -> GameState Bool
-canSpell' c def = do
-    sdb <- asks spells
-    return $ Chara.canSpell' sdb def c
+canSpell' c def = asks (Chara.canSpell' . spells) <*> pure def <*> pure c
 
 costSpell' :: Chara.Character -> Spell.Define -> GameState Chara.Character
-costSpell' c def = do
-    sdb <- asks spells
-    return $ Chara.costSpell' sdb def c
+costSpell' c def = asks (Chara.costSpell' . spells) <*> pure def <*> pure c
 
 
 sortPartyAuto :: GameState ()
@@ -189,9 +191,7 @@ lastEnemies = do
               _              -> return []
 
 enemyOf :: EnemyID -> GameState Enemy.Define
-enemyOf eid = do
-    es <- asks enemies
-    return $ es ! eid
+enemyOf eid = asks ((!) . enemies) <*> pure eid
 
 currentEnemyByNo :: Int -- ^ target enemy noID.
                  -> GameState (Maybe Enemy.Instance)
@@ -246,23 +246,43 @@ updateEnemy e f = do
 -- ---------------------------------------------------------------------------------
 
 cmdNums :: Int
-        -> (Int -> (GameMachine, Bool))
-        -> [(Input, GameMachine, Bool)]
-cmdNums n f = [(Key (show i), fst (f i), snd (f i)) | i <- [1..n]]
+        -> (Int -> GameMachine)
+        -> [(Input, GameMachine)]
+--cmdNums n f = [(Key (show i), f i) | i <- [1..n]]
+cmdNums n f = rmv <$> cmdNumsWhen n ((,True).f)
+  where rmv (a,b,_) = (a,b)
 
 
-cmdNumParties :: ((PartyPos, Chara.Character) -> (GameMachine, Bool))
-              -> GameState [(Input, GameMachine, Bool)]
-cmdNumParties f = do
+cmdNumParties :: ((PartyPos, Chara.Character) -> GameMachine)
+              -> GameState [(Input, GameMachine)]
+cmdNumParties f = fmap rmv <$> cmdNumPartiesWhen ((,True).f)
+  where rmv (a,b,_) = (a,b)
+
+
+cmdNumPartiesID :: ((PartyPos, CharacterID) -> GameMachine)
+                    -> GameState [(Input, GameMachine)]
+cmdNumPartiesID f = fmap rmv <$> cmdNumPartiesIDWhen ((,True).f)
+  where rmv (a,b,_) = (a,b)
+
+
+cmdNumsWhen :: Int
+            -> (Int -> (GameMachine, Bool))
+            -> [(Input, GameMachine, Bool)]
+cmdNumsWhen n f = [(Key (show i), fst (f i), snd (f i)) | i <- [1..n]]
+
+
+cmdNumPartiesWhen :: ((PartyPos, Chara.Character) -> (GameMachine, Bool))
+                  -> GameState [(Input, GameMachine, Bool)]
+cmdNumPartiesWhen f = do
     np <- length . party <$> world
     cs <- mapM characterOf . party =<< world
     let f' x = f (toPartyPos x, cs !! (x - 1))
     return [(Key (show i), fst (f' i), snd (f' i)) | i <- [1..np]]
 
 
-cmdNumPartiesID :: ((PartyPos, CharacterID) -> (GameMachine, Bool))
-                -> GameState [(Input, GameMachine, Bool)]
-cmdNumPartiesID f = do
+cmdNumPartiesIDWhen :: ((PartyPos, CharacterID) -> (GameMachine, Bool))
+                    -> GameState [(Input, GameMachine, Bool)]
+cmdNumPartiesIDWhen f = do
     np  <- length . party <$> world
     ids <- party <$> world
     let f' x = f (toPartyPos x, ids !! (x - 1))

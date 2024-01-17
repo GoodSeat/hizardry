@@ -30,7 +30,7 @@ inspectCharacter :: GameMachine -> Bool -> PartyPos -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
     cid <- partyAt i
     c   <- partyAt' i
-    cmdsInspect <- cmdNumParties $ bimap (inspectCharacter h canSpell) (const True)
+    cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter h canSpell) (const True)
     let cancel = inspectCharacter h canSpell i
     run $ selectWhenEsc (ShowStatus i msg SingleKey)
                       $ (Key "l", h, True)
@@ -48,8 +48,8 @@ inspectCharacter h canSpell i = GameAuto $ do
             "R)ead Spell   S)pell        P)ool Money            \n" ++
             "#)Inspect     L)eave [ESC]                         "
           else
-            "U)se Item     D)rop Item    T)rade Item  E)qiup       \n" ++
-            "R)ead Spell   P)ool Money   #)Inspect    L)eave [ESC] "
+            "U)se Item     D)rop Item    T)rade Item   E)qiup      \n" ++
+            "R)ead Spell   P)ool Money   #)Inspect     L)eave [ESC]"
     iCast = flip (ShowStatus i) SequenceKey
     sCast = flip (ShowStatus i) SingleKey
     sItem = const (sCast "Select item.  L)eave")
@@ -192,11 +192,11 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
         if mx <= 1 then
           run (nextWith $ toDst 1)
         else
-          run $ selectWhenEsc (msgForSelecting $
+          run $ selectEsc (msgForSelecting $
                   if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel [ESC]"
                              else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel [ESC]")
-                  $ (Key "c", cancel, True)
-                  : cmdNums mx (\i -> (nextWith (toDst i), True))
+                  $ (Key "c", cancel)
+                  : cmdNums mx (nextWith.toDst)
 
 
 spellInCamp :: PartyPos -> GameMachine -> Spell.Name -> SpellTarget -> GameMachine

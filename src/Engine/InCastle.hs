@@ -30,12 +30,13 @@ inCastle = GameAuto $ do
 inGilgamesh'sTarvern :: GameMachine
 inGilgamesh'sTarvern = GameAuto $ do
     movePlace Gilgamesh'sTarvern
-    np   <- length . party <$> world
-    cmds <- cmdNumParties $ bimap (inspectCharacter inGilgamesh'sTarvern False) (const True)
-    run $ selectWhen msg $ (Key "l",    inCastle, True)
-                         : (Key "\ESC", inCastle, True)
-                         : (Key "a", selectCharacterAddToParty, np < 6)
-                         : cmds
+    np <- length . party <$> world
+    cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter inGilgamesh'sTarvern False) (const True)
+    run $ selectWhenEsc msg $ (Key "l", inCastle, True)
+                            : (Key "a", selectCharacterAddToParty, np < 6)
+-- TODO                     : (Key "r", selectCharacterRemoveFromParty, np > 0)
+                            : (Key "d", GameAuto $ divvyGold >> run inGilgamesh'sTarvern, np > 0)
+                            : cmdsInspect
   where
     msg = Message $ "A)dd\n"
                  ++ "R)emove\n"
@@ -49,11 +50,10 @@ selectCharacterAddToParty = GameAuto $ do
     cs  <- sequence $ characterOf <$> ids
     let msg = "#)Add to Party    L)eave [ESC]\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
-    let lst = (Key "l"   , inGilgamesh'sTarvern, True)
-            : (Key "\ESC", inGilgamesh'sTarvern, True)
-            : cmdNums (length ids) (\i -> (addParty (ids !! (i - 1)), True))
+    let lst = (Key "l", inGilgamesh'sTarvern)
+            : cmdNums (length ids) (\i -> addParty (ids !! (i - 1)))
     if null ids then run inGilgamesh'sTarvern
-                else run $ selectWhen (Message msg) lst
+                else run $ selectEsc (Message msg) lst
   where
     addParty id = GameAuto $ toParty id >> run selectCharacterAddToParty
     toShow (n, c) = show n ++ ") " ++ Character.name c
@@ -63,10 +63,8 @@ selectCharacterAddToParty = GameAuto $ do
 inAdventure'sInn :: GameMachine
 inAdventure'sInn = GameAuto $ do
     movePlace Adventure'sInn
-    cmds <- cmdNumPartiesID $ \(_, i) -> (selectStayPlan i, True)
-    run $ selectWhen msg $ (Key "l"   , inCastle, True) 
-                         : (Key "\ESC", inCastle, True) 
-                         : cmds
+    cmds <- cmdNumPartiesID $ \(_, i) -> selectStayPlan i
+    run $ selectEsc msg $ (Key "l"   , inCastle) : cmds
   where
     msg = Message $ "Who will stay?\n\n"
                  ++ "#)Select\n"
@@ -86,15 +84,14 @@ selectStayPlan id = GameAuto $ do
                      ++ "E)The Royal Suite    500 GP/Week\n\n"
                      ++ "P)ool Gold\n"
                      ++ "L)eave [ESC]\n"
-        lst = [(Key "l"   , inAdventure'sInn)
-              ,(Key "\ESC", inAdventure'sInn)
+        lst = [(Key "l", inAdventure'sInn)
               ,(Key "p", GameAuto $ poolGold id >> run (selectStayPlan id))
               ,(Key "a", sleep id  0   0 1)
               ,(Key "b", sleep id  1  10 7)
               ,(Key "c", sleep id  3  50 7)
               ,(Key "d", sleep id  7 200 7)
               ,(Key "e", sleep id 10 500 7)]
-    run $ select msg lst
+    run $ selectEsc msg lst
 
 sleep :: CharacterID
       -> Int         -- ^ heal hp per week.
@@ -107,13 +104,13 @@ sleep id h g d = GameAuto $ do
       run $ events [Message "not money."] $ selectStayPlan id
     else do
       updateCharacterWith id Character.healMp
-      run $ select (MessageTime (-1000) ( Character.name c
+      run $ selectEsc (MessageTime (-1000) ( Character.name c
                                        ++ " is napping. \n\n"
                                        ++ show (Character.name c) ++ " has "
                                        ++ show (Character.gold c) ++ " G.P.\n\n"
                                        ++ "W)ake up [ESC]"
                                         ) Nothing)
-                   [(Key "w", checkLvup id), (Key "\ESC", checkLvup id), (Clock, next)]
+                      [(Key "w", checkLvup id), (Clock, next)]
   where
     next = GameAuto $ updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
                    >> run (sleep id h g $ if d == 1 then 0 else d)
