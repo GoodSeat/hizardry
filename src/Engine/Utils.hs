@@ -116,11 +116,10 @@ partyAt' pos = characterOf =<< partyAt pos
 toParty :: CharacterID -> GameState ()
 toParty id = do
     w <- world
-    let w' = w { party           = party w ++ [id]
-               , inTarvernMember = filter (/= id) $ inTarvernMember w
-               , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
-               }
-    put w'
+    put $ w { party           = party w ++ [id]
+            , inTarvernMember = filter (/= id) $ inTarvernMember w
+            , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
+            }
 
 updateCharacter :: CharacterID -> Chara.Character -> GameState ()
 updateCharacter id c = do

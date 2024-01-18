@@ -1,6 +1,8 @@
 module Engine.InCastle
 where
 
+import Control.Monad.State (put)
+
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InEdgeOfTown
@@ -8,6 +10,7 @@ import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Primitive
 import Data.Bifunctor (bimap)
+import Data.List (sort)
 import qualified Data.Characters as Character
 
 inCastle :: GameMachine
@@ -34,7 +37,7 @@ inGilgamesh'sTarvern = GameAuto $ do
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter inGilgamesh'sTarvern False) (const True)
     run $ selectWhenEsc msg $ (Key "l", inCastle, True)
                             : (Key "a", selectCharacterAddToParty, np < 6)
--- TODO                     : (Key "r", selectCharacterRemoveFromParty, np > 0)
+                            : (Key "r", selectCharacterRemoveFromParty, np > 0)
                             : (Key "d", GameAuto $ divvyGold >> run inGilgamesh'sTarvern, np > 0)
                             : cmdsInspect
   where
@@ -57,6 +60,21 @@ selectCharacterAddToParty = GameAuto $ do
   where
     addParty id = GameAuto $ toParty id >> run selectCharacterAddToParty
     toShow (n, c) = show n ++ ") " ++ Character.name c
+
+selectCharacterRemoveFromParty :: GameMachine
+selectCharacterRemoveFromParty = GameAuto $ do
+    cs <- party <$> world
+    if null cs then run inGilgamesh'sTarvern
+    else do
+      cmds <- cmdNumPartiesID $ \(_, cid) -> removeParty cid
+      run $ selectEsc (Message "#)Remove from Party    L)eave [ESC]") $
+                      (Key "l", inGilgamesh'sTarvern) : cmds
+  where
+    removeParty cid = GameAuto $ do
+      w <- world
+      put $ w { party           = filter (/= cid) (party w)
+              , inTarvernMember = sort $ cid : inTarvernMember w }
+      run selectCharacterRemoveFromParty
 
 -- =======================================================================
 
