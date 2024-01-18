@@ -116,8 +116,8 @@ main = do
         , Character.items    = [ItemInf (ItemID 1) True
                                ,ItemInf (ItemID 1) False
                                ,ItemInf (ItemID 11) True
-                               ,ItemInf (ItemID 12) True
-                               ,ItemInf (ItemID 13) True
+                               ,ItemInf (ItemID 12) False
+                               ,ItemInf (ItemID 13) False
                                ]
         , Character.equips   = []
 

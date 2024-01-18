@@ -231,6 +231,9 @@ cantSpellStatus = [ Silence
 -- --------------------------------------------------------------------------
 
 rightTxt :: Show a => Int -> a -> String
-rightTxt n a = let t1 = show a in reverse . take n $ reverse t1 ++ repeat ' '
+rightTxt n = rightString n . show
+
+rightString :: Int -> String -> String
+rightString n t1 = reverse . take n $ reverse t1 ++ repeat ' '
 
 
