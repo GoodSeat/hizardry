@@ -225,3 +225,12 @@ cantSpellStatus = [ Silence
                   , Ash
                   , Lost]
 
+
+-- ==========================================================================
+-- functions
+-- --------------------------------------------------------------------------
+
+rightTxt :: Show a => Int -> a -> String
+rightTxt n a = let t1 = show a in reverse . take n $ reverse t1 ++ repeat ' '
+
+

@@ -121,12 +121,19 @@ toParty id = do
             , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
             }
 
+deleteCharacter :: CharacterID -> GameState ()
+deleteCharacter id = do
+    w <- world
+    put $ w { party           = filter (/= id) $ party w
+            , inTarvernMember = filter (/= id) $ inTarvernMember w
+            , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
+            }
+
+
 updateCharacter :: CharacterID -> Chara.Character -> GameState ()
 updateCharacter id c = do
     w  <- world
-    let db = allCharacters w
-        w' = w { allCharacters = insert id c db }
-    put w'
+    put $ w { allCharacters = insert id c (allCharacters w) }
 
 updateCharacterWith :: CharacterID -> (Chara.Character -> Chara.Character) -> GameState ()
 updateCharacterWith id f = do

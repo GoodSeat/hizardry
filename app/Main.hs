@@ -172,8 +172,11 @@ main = do
 
       , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4]
       , inMazeMember    = []
-      , shopItems       = Map.fromList []
-
+      , shopItems       = Map.fromList [ (ItemID 1, 10), (ItemID 2, 2), (ItemID 3, 2)
+                                       , (ItemID 11, 3), (ItemID 12, 3), (ItemID 13, 3)
+                                       , (ItemID 14, 3), (ItemID 15, 3), (ItemID 16, 3)
+                                       , (ItemID 17, 3)
+                                       ]
       , allCharacters   = Map.fromList [
                               (CharacterID 1, testChara1)
                             , (CharacterID 2, testChara2)
@@ -468,6 +471,58 @@ main = do
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
                     , Item.enableToUse      = Item.All
                 })
+                ,
+                (ItemID 14, Item.Define {
+                      Item.name             = "HELMET OF IRON"
+                    , Item.nameUndetermined = "HELMET?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.valueInShop      = 300
+                    , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 15, Item.Define {
+                      Item.name             = "HELMET OF IRON"
+                    , Item.nameUndetermined = "HELMET?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.valueInShop      = 300
+                    , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 16, Item.Define {
+                      Item.name             = "HELMET OF IRON"
+                    , Item.nameUndetermined = "HELMET?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.valueInShop      = 300
+                    , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 17, Item.Define {
+                      Item.name             = "HELMET OF IRON"
+                    , Item.nameUndetermined = "HELMET?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.valueInShop      = 300
+                    , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
+                    , Item.enableToUse      = Item.All
+                })
                 ]
             }
 
@@ -526,18 +581,18 @@ waitKey = do
 -- ==========================================================================
 
 testRender :: (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
-testRender picOf s (Ask m picID)           w = testRender picOf s (MessagePic m picID)   w
-testRender picOf s (MessageTime _ m picID) w = testRender picOf s (MessagePic m picID)   w
-testRender picOf s (Message m)             w = testRender picOf s (MessagePic m Nothing) w
-testRender picOf s (SpellCommand m)        w = testRender picOf s (BattleCommand m)      w
-testRender picOf s None                    w = testRender picOf s (Time 0 Nothing)       w
+testRender picOf s (Ask m picID)           = testRender picOf s (MessagePic m picID)  
+testRender picOf s (MessageTime _ m picID) = testRender picOf s (MessagePic m picID)  
+testRender picOf s (Message m)             = testRender picOf s (MessagePic m Nothing)
+testRender picOf s (SpellCommand m)        = testRender picOf s (BattleCommand m)     
+testRender picOf s None                    = testRender picOf s (Time 0 Nothing)      
 
-testRender picOf s (MessagePic m picID)    w = rendering  picOf s m  "" Nothing  picID   w
-testRender picOf s (BattleCommand m)       w = rendering  picOf s "" m  Nothing  Nothing w
-testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" Nothing  picID   w
-testRender picOf s (ShowStatus i m _)      w = rendering  picOf s m  "" (Just i) Nothing w
+testRender picOf s (MessagePic m picID)    = rendering  picOf s m  "" Nothing  picID  
+testRender picOf s (BattleCommand m)       = rendering  picOf s "" m  Nothing  Nothing
+testRender picOf s (Time _ picID)          = rendering  picOf s "" "" Nothing  picID  
+testRender picOf s (ShowStatus i m _)      = rendering  picOf s m  "" (Just i) Nothing
 
-testRender _ _ Exit _ = undefined
+testRender _ _ Exit = undefined
 
 -- --------------------------------------------------------------------------
 
