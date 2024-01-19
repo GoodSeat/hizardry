@@ -664,12 +664,13 @@ enemyScene _ _ _ = mempty
 
 
 statusWindow :: World -> Bool
-statusWindow w = let inMaze = case place w of InMaze _ -> True
-                                              _        -> False
-    in (statusOn w && not inBattle) || not inMaze || inBattle
+statusWindow w = (statusOn w && inMaze) || showStatusAlways
   where
-    inBattle = case place w of InBattle _ _ -> True
-                               _            -> False
+    inMaze = case place w of InMaze _ -> True
+                             _        -> False
+    showStatusAlways = case place w of InMaze _        -> False
+                                       TrainingGrounds -> False
+                                       _               -> True
 
 guideWindow :: World -> Bool
 guideWindow w = let inMaze = case place w of InMaze _ -> True

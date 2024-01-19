@@ -1,6 +1,9 @@
 module Engine.InEdgeOfTown
 where
 
+import Control.Monad.State (modify)
+import Data.List (sort)
+
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InMaze
@@ -34,7 +37,20 @@ enteringMaze = GameAuto $ movePlace EnteringMaze >> run (events [msg] $ openCamp
 -- =======================================================================
 
 inTrainingGrounds :: GameMachine
-inTrainingGrounds = undefined
+inTrainingGrounds = GameAuto $ do
+    movePlace TrainingGrounds
+    modify $ \w -> w { party = [], inTarvernMember = sort (inTarvernMember w ++ party w) }
+    run $ selectEsc msg [(Key "l", inEdgeOfTown)
+                        ,(Key "c", inTrainingGrounds)
+                        ,(Key "q", exitGame)]
+  where
+    msg = Message $ "C)reate Character\n"
+                 ++ "S)how List of Characters\n"
+                 ++ "D)elete Character\n"
+                 ++ "N)ame Change of Character\n"
+                 ++ "J)ob Change of Character\n"
+                 ++ "R)eorder List\n"
+                 ++ "L)eave [ESC]\n"
 
 -- =======================================================================
 
