@@ -168,6 +168,7 @@ scene (InBattle p _)          onLight = dunsion p onLight False
 scene (FindTreasureChest p _) onLight = dunsion p onLight False
 scene InCastle                _       = const $ translate (0, 2) city2
 scene InEdgeOfTown            _       = const $ translate (0, 2) edgeOfTown
+scene EnteringMaze            onLight = scene InEdgeOfTown onLight
 scene Gilgamesh'sTarvern      _       = const $ translate (0, 2) tarvern
 scene _                       _       = const mempty
 
@@ -254,6 +255,14 @@ guide = fromTexts '*'
   ["*********+-------------------------------------------------------+********"  --  1
   ,"*********|   C)AMP  S)TATUS  I)NSPECT  Q)UIT  O)FF   A-W-D   K   |********"  --  2
   ,"*********+-------------------------------------------------------+********"] --  3
+
+location :: String -> Craphic
+location l = text (16 + (43 - length l ) `div` 2, 4) l <> fromTexts '*'
+  ["**************************************************************************"  --  1
+  ,"**************************************************************************"  --  2
+  ,"***************+-------------------------------------------+**************"  --  3
+  ,"***************|                                           |**************"  --  4
+  ,"***************+-------------------------------------------+**************"] --  5
 
 revC = windowW `div` 2 + 1
 -- ========================================================================

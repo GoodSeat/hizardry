@@ -606,7 +606,8 @@ rendering :: (Maybe PictureID -> Craphic)
           -> IO()
 rendering picOf s mMsg cMsg i' picID w = do
     clearScreen
-    render $ (if null mMsg' || isJust i' then mempty else msgBox mMsg')
+    render $ (if null locationText then mempty else location locationText)
+          <> (if null mMsg' || isJust i' then mempty else (msgTrans . msgBox) mMsg')
           <> (if null cMsg then mempty else cmdBox cMsg )
           <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
@@ -643,6 +644,15 @@ rendering picOf s mMsg cMsg i' picID w = do
     itemNameOf id identified = let def = items s Map.! id in
         (if identified then Item.name else Item.nameUndetermined) def
     onLight = partyLight w > 0
+    locationText = case place w of InCastle            -> "Castle" 
+                                   Gilgamesh'sTarvern  -> "Gilgamesh's Tarvern"
+                                   Adventure'sInn      -> "Adventure's Inn"
+                                   Boltac'sTradingPost -> "Boltac's Trading Post"
+                                   TempleOfCant        -> "Temple of Cant"
+                                   InEdgeOfTown        -> "Edge of Town"
+                                   TrainingGrounds     -> "Training Grounds"
+                                   _ -> []
+    msgTrans = if null locationText then id else translate (0, 1)
 
 enemyScene :: (Maybe PictureID -> Craphic) -> Scenario -> Place -> Craphic
 enemyScene picOf s (InBattle _ (es:_)) =

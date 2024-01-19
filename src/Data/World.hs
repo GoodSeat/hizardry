@@ -40,6 +40,7 @@ data Place  = InCastle
             | TempleOfCant 
             | InEdgeOfTown
             | TrainingGrounds
+            | EnteringMaze
             | InMaze            Position
             | InBattle          Position [[Enemy.Instance]]
             | FindTreasureChest Position Bool -- ^ chest is opend.
