@@ -80,7 +80,7 @@ returnToCastle = do
     setLightValue 0
     ps <- party <$> world
     forM_ ps $ \p -> do
-      c <- characterOf p
+      c <- characterByID p
       updateCharacter p $ foldl (&) c (whenReturnCastle <$> statusErrorsOf c)
 
 -- todo: remove dead/stoned/staned characters etc.

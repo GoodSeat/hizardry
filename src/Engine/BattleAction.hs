@@ -32,8 +32,8 @@ fightOfCharacter id el next = GameAuto $ do
     case e1 of
       Nothing -> run next
       Just e  -> do
-        edef   <- enemyOf $ Enemy.id e
-        c      <- characterOf id
+        edef   <- enemyDefineByID $ Enemy.id e
+        c      <- characterByID id
         (h, d) <- fightDamage el c e
         let (e', _) = damageHp d (e, edef)
         updateEnemy e $ const e'
@@ -42,7 +42,7 @@ fightOfCharacter id el next = GameAuto $ do
 
 fightDamage :: EnemyLine -> Chara.Character -> Enemy.Instance -> GameState (Int, Int)
 fightDamage el c e = do
-    edef <- enemyOf $ Enemy.id e
+    edef <- enemyDefineByID $ Enemy.id e
     let tryCountF = parse' "lv/5 + 1" -- TODO:
         jobBonusF = parse' "lv/3 + 2" -- TODO:
         damageF   = parse' "2d2"      -- TODO:from wepon.
@@ -86,10 +86,10 @@ fightOfEnemy :: Enemy.Instance       -- ^ attacker enemy.
              -> GameMachine          -- ^ next game auto.
              -> GameMachine          -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
-    edef <- enemyOf $ Enemy.id e
+    edef <- enemyDefineByID $ Enemy.id e
     ps   <- party <$> world
     idc  <- flip mod (length ps) <$> eval tgt
-    c    <- characterOf (ps !! idc)
+    c    <- characterByID (ps !! idc)
     if hpOf c == 0 then run next
     else do
       (h, d) <- fightDamageE n e c dmg
@@ -104,7 +104,7 @@ fightDamageE :: Int             -- ^ count of attack.
              -> Formula         -- ^ damage per hit.
              -> GameState (Int, Int)
 fightDamageE n e c dmg = do
-    edef <- enemyOf $ Enemy.id e
+    edef <- enemyDefineByID $ Enemy.id e
     let p  = -2 -- TODO!:parry bonus of c.
         a  = 19 + p - acOf c - lvOf (e, edef)
         b  = a - acOf (e, edef)
@@ -149,7 +149,7 @@ spell s src dst next = GameAuto $ do
       Just def ->
         if Spell.InBattle `elem` Spell.enableIn def then case src of
           Left idc -> do
-            c    <- characterOf idc
+            c    <- characterByID idc
             know <- knowSpell' c def
             can  <- canSpell'  c def
             if      not know then run $ spellUnknown s src dst next
@@ -171,7 +171,7 @@ spell' def = case Spell.effect def of
       Spell.AllyAll        -> castCureSpellAll    (Spell.name def) f ss
       _                    -> undefined
     Spell.AddLight n -> \(Left id) _ next -> GameAuto $ do 
-        c  <- characterOf id
+        c  <- characterByID id
         setLightValue n
         run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
 
@@ -206,9 +206,9 @@ castDamageSpell :: Spell.Name -> Formula
                 -> Either CharacterID Enemy.Instance  -- ^ src
                 -> GameMachine -> GameMachine
 castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
-    c  <- characterOf id
+    c  <- characterByID id
     ts <- forM es $ \e -> do
-      edef <- enemyOf $ Enemy.id e
+      edef <- enemyDefineByID $ Enemy.id e
       if Enemy.hp e <= 0 then return []
       else do
         d <- evalWith (formulaMapSO c (e, edef)) f
@@ -220,15 +220,15 @@ castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
     run $ events (toMsg <$> "" : concat ts) next
 
 castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
-    edef <- enemyOf $ Enemy.id e
+    edef <- enemyDefineByID $ Enemy.id e
     ts   <- forM is $ \i -> do
-      c <- partyAt' i
+      c <- characterInPartyAt i
       if hpOf c == 0 then return []
       else do
         d <- evalWith (formulaMapSO (e, edef) c) f
         let c' = damageHp d c
         let msg = nameOf c ++ " takes " ++ show d ++ "."
-        return $ (join $ updateCharacter <$> partyAt i <*> pure c', msg)
+        return $ (join $ updateCharacter <$> characterIDInPartyAt i <*> pure c', msg)
                : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
     if null ts then run next
     else do
@@ -254,7 +254,7 @@ castCureSpellInBattle :: Spell.Name -> Formula -> [StatusError]
               -> Either [PartyPos] [Enemy.Instance]
               -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
 castCureSpellInBattle n f ss dst (Left cid) next = GameAuto $ do
-    wiz <- characterOf cid
+    wiz <- characterByID cid
     ts  <- castCureSpell n f ss (Left wiz) dst
     let toMsg t = Message $ (nameOf wiz ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
@@ -270,8 +270,8 @@ spellNoMP = spellNoEffect "no more MP."
 
 spellNoEffect :: String -> Spell.Name -> SpellEffect
 spellNoEffect msg n src _ next = GameAuto $ do
-    name <- case src of Left id -> Chara.name <$> characterOf id
-                        Right e -> Enemy.name <$> enemyOf (Enemy.id e)
+    name <- case src of Left id -> Chara.name <$> characterByID id
+                        Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
     let ts      = ["", msg]
         toMsg t = Message $ (name ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
@@ -291,7 +291,7 @@ aliveEnemyLineHead el = do
 
 -- ================================================================================
 enemyNameOf :: Enemy.Instance -> GameState String
-enemyNameOf e = nameOf <$> enemyOf (Enemy.id e)
+enemyNameOf e = nameOf <$> enemyDefineByID (Enemy.id e)
   where
     nameOf = if Enemy.determined e then Enemy.name else Enemy.nameUndetermined
 

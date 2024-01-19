@@ -47,7 +47,7 @@ inspectTreasureChest ps con = GameAuto $ do
 
 inspectTreasureChestBy :: PartyPos -> [PartyPos] -> TreasureCondition -> GameMachine
 inspectTreasureChestBy i ps con = GameAuto $ do
-    c <- partyAt' i
+    c <- characterInPartyAt i
     successed  <- happens =<< evalWith (formulaMapS c) (Chara.inspectTrapAbility $ Chara.job c)
     invokeTrap <- happens =<< evalWith (formulaMapS c) (parse' "100*(19-agi)/20")
     trap'      <- randomIn [Enemy.NoTrap .. Enemy.Alarm]
@@ -72,7 +72,7 @@ disarmTrap con afterNotDisarm = GameAuto $ do
 
 tryDisarm :: TreasureCondition -> String -> PartyPos -> GameMachine -> GameMachine
 tryDisarm con t i afterNotDisarm = GameAuto $ do
-    c <- partyAt' i
+    c <- characterInPartyAt i
     let matchTrap = (toLower <$> show (trap con)) == (toLower <$> show t)
     sucessDisarming <- happens =<< evalWith (formulaMapS c) (Chara.disarmTrapAbility $ Chara.job c)
     invokeTrap      <- happens =<< evalWith (formulaMapS c) (parse' "100*(20-agi)/20")
@@ -93,7 +93,7 @@ openTreasureChest con afterNotOpen = GameAuto $ do
 
 invokingTrap :: TreasureCondition -> PartyPos -> GameMachine
 invokingTrap con i = GameAuto $ do
-    cid         <- partyAt i
+    cid         <- characterIDInPartyAt i
     (msg, eid') <- effectTrap cid $ trap con
     sortPartyAuto
     case eid' of
@@ -109,7 +109,7 @@ effectTrap i Enemy.PoisonNeedle = do
 effectTrap i Enemy.GasBomb = do
     ps <- party <$> world
     forM_ ps $ \i -> do
-      c   <- characterOf i
+      c   <- characterByID i
       hit <- happens =<< evalWith (formulaMapS c) (parse' "100*(20-luc)/20")
       when hit $ updateCharacterWith i (addPoison 1)
     return ("Ooops!! Gas Bomb!!", Nothing)
@@ -161,7 +161,7 @@ divideItems :: [Int] -> GameState [String]
 divideItems [] = return []
 divideItems (i:is) = do
     ids <- party <$> world
-    ps  <- forM ids (\cid -> (,) cid <$> characterOf cid)
+    ps  <- forM ids (\cid -> (,) cid <$> characterByID cid)
     case find (\(cid, c) -> length (Chara.items c) < 10) ps of
       Nothing         -> return []
       Just (cid', c') -> do

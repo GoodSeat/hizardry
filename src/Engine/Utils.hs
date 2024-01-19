@@ -101,20 +101,20 @@ itemByID id = asks $ flip (!) id . items
 -- for Characters.
 -- ---------------------------------------------------------------------------------
 
-characterOf :: CharacterID -> GameState Chara.Character
-characterOf id = do
+characterByID :: CharacterID -> GameState Chara.Character
+characterByID id = do
     db <- allCharacters <$> world
     return $ db ! id
 
-partyAt :: PartyPos -> GameState CharacterID
-partyAt pos = (!! (partyPosToNum pos - 1)) . party <$> world
+characterIDInPartyAt :: PartyPos -> GameState CharacterID
+characterIDInPartyAt pos = (!! (partyPosToNum pos - 1)) . party <$> world
 
-partyAt' :: PartyPos -> GameState Chara.Character
-partyAt' pos = characterOf =<< partyAt pos
+characterInPartyAt :: PartyPos -> GameState Chara.Character
+characterInPartyAt pos = characterByID =<< characterIDInPartyAt pos
 
 
-toParty :: CharacterID -> GameState ()
-toParty id = do
+addCharacterToParty :: CharacterID -> GameState ()
+addCharacterToParty id = do
     w <- world
     put $ w { party           = party w ++ [id]
             , inTarvernMember = filter (/= id) $ inTarvernMember w
@@ -140,17 +140,17 @@ updateCharacterWith id f = do
     db <- allCharacters <$> world
     updateCharacter id (f $ db ! id)
 
-poolGold :: CharacterID -> GameState ()
-poolGold id = do
+poolGoldTo :: CharacterID -> GameState ()
+poolGoldTo id = do
     ids <- party <$> world
-    cs  <- mapM characterOf ids
+    cs  <- mapM characterByID ids
     let gp = sum $ Chara.gold <$> cs
     forM_ ids $ \id' -> updateCharacterWith id' $ \c -> c { Chara.gold = if id' == id then gp else 0 }
 
 divvyGold :: GameState ()
 divvyGold = do
     ids <- party <$> world
-    cs  <- mapM characterOf ids
+    cs  <- mapM characterByID ids
     let ga = sum $ Chara.gold <$> cs
         n  = length cs
         gp = ga `div` n
@@ -160,13 +160,13 @@ divvyGold = do
 
 
 knowSpell :: CharacterID -> SpellID -> GameState Bool
-knowSpell cid sid = Chara.knowSpell sid <$> characterOf cid 
+knowSpell cid sid = Chara.knowSpell sid <$> characterByID cid 
 
 knowSpell' :: Chara.Character -> Spell.Define -> GameState Bool
 knowSpell' c def = asks (Chara.knowSpell' . spells) <*> pure def <*> pure c
 
 canSpell :: CharacterID -> SpellID -> GameState Bool
-canSpell cid sid = asks (Chara.canSpell . spells) <*> pure sid <*> characterOf cid
+canSpell cid sid = asks (Chara.canSpell . spells) <*> pure sid <*> characterByID cid
 
 canSpell' :: Chara.Character -> Spell.Define -> GameState Bool
 canSpell' c def = asks (Chara.canSpell' . spells) <*> pure def <*> pure c
@@ -181,7 +181,7 @@ sortPartyAuto = sortPartyAutoWith . party =<< world
 sortPartyAutoWith :: [CharacterID] -> GameState ()
 sortPartyAutoWith psOrg = do
     w   <- world
-    ps' <- zip psOrg <$> mapM characterOf psOrg
+    ps' <- zip psOrg <$> mapM characterByID psOrg
     let p2s = filter (isCantFight . snd) ps'
         p1s = filter (`notElem` p2s) ps'
     put $ w { party = fst <$> (p1s ++ p2s) }
@@ -190,14 +190,17 @@ sortPartyAutoWith psOrg = do
 -- for Enemies.
 -- ---------------------------------------------------------------------------------
 
+enemyDefineByID :: EnemyID -> GameState Enemy.Define
+enemyDefineByID eid = asks ((!) . enemies) <*> pure eid
+
+------------------------------------------------------------------------------------
+-- for Enemy Instance
+
 lastEnemies :: GameState [[Enemy.Instance]]
 lastEnemies = do
     p <- place <$> world
     case p of InBattle _ ess -> return ess
               _              -> return []
-
-enemyOf :: EnemyID -> GameState Enemy.Define
-enemyOf eid = asks ((!) . enemies) <*> pure eid
 
 currentEnemyByNo :: Int -- ^ target enemy noID.
                  -> GameState (Maybe Enemy.Instance)
@@ -281,7 +284,7 @@ cmdNumPartiesWhen :: ((PartyPos, Chara.Character) -> (GameMachine, Bool))
                   -> GameState [(Input, GameMachine, Bool)]
 cmdNumPartiesWhen f = do
     np <- length . party <$> world
-    cs <- mapM characterOf . party =<< world
+    cs <- mapM characterByID . party =<< world
     let f' x = f (toPartyPos x, cs !! (x - 1))
     return [(Key (show i), fst (f' i), snd (f' i)) | i <- [1..np]]
 

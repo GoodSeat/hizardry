@@ -28,8 +28,8 @@ import qualified Data.Items as Item
 
 inspectCharacter :: GameMachine -> Bool -> PartyPos -> GameMachine
 inspectCharacter h canSpell i = GameAuto $ do
-    cid <- partyAt i
-    c   <- partyAt' i
+    cid <- characterIDInPartyAt i
+    c   <- characterInPartyAt i
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter h canSpell) (const True)
     let cancel = inspectCharacter h canSpell i
     run $ selectWhenEsc (ShowStatus i msg SingleKey)
@@ -40,7 +40,7 @@ inspectCharacter h canSpell i = GameAuto $ do
 -- TODO               : (Key "t", selectTradeItem dItem i c cancel, True)
 -- TODO               : (Key "e", equip dItem i c cancel, True)
 -- TODO               : (Key "r", readSpell dItem i c cancel, True)
-                      : (Key "p", GameAuto (poolGold cid >> run cancel), True)
+                      : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
                       : cmdsInspect
   where
     msg = if canSpell then
@@ -48,7 +48,7 @@ inspectCharacter h canSpell i = GameAuto $ do
             "R)ead Spell   S)pell        P)ool Money            \n" ++
             "#)Inspect     L)eave [ESC]                         "
           else
-            "U)se Item     D)rop Item    T)rade Item   E)qiup      \n" ++
+            "U)se Item     D)rop Item    T)rade Item   E)qiup       \n" ++
             "R)ead Spell   P)ool Money   #)Inspect     L)eave [ESC]"
     iCast = flip (ShowStatus i) SequenceKey
     sCast = flip (ShowStatus i) SingleKey
@@ -61,7 +61,7 @@ inspectCharacter h canSpell i = GameAuto $ do
 
 useItemInCamp :: PartyPos -> GameMachine -> Chara.ItemPos -> SpellTarget -> GameMachine
 useItemInCamp src next i (Left dst) = GameAuto $ do
-    c   <- partyAt' src
+    c   <- characterInPartyAt src
     def <- itemByID $ Chara.itemAt c i
     case Item.usingEffect def of
       Nothing                     -> run $ events [ShowStatus src "no happens." SingleKey] next
@@ -85,8 +85,8 @@ breakItem :: (Int, Item.WhenBroken) -> PartyPos -> Chara.ItemPos -> GameState ()
 breakItem (prob, to) src i = do
     broken <- happens prob
     when broken $ do
-      idc <- partyAt  src
-      p   <- partyAt' src
+      idc <- characterIDInPartyAt  src
+      p   <- characterInPartyAt src
       let is = Chara.items p
           ix = Chara.itemPosToNum i
           is' = case to of Item.Lost        -> take ix is ++ drop (ix + 1) is
@@ -212,7 +212,7 @@ spellInCamp src next s (Right dst) = error "can't target enemy in spellInCamp"
 
 spellInCamp' :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCamp' def src dst next = GameAuto $ do
-    c    <- partyAt' src
+    c    <- characterInPartyAt src
     know <- knowSpell' c def
     can  <- canSpell'  c def
     if      not know then
@@ -220,13 +220,13 @@ spellInCamp' def src dst next = GameAuto $ do
     else if not can  then
       run $ events [ShowStatus src "no more MP." SingleKey] next
     else do
-      join $ updateCharacter <$> partyAt src <*> costSpell' c def
+      join $ updateCharacter <$> characterIDInPartyAt src <*> costSpell' c def
       run $ spellInCampNoCost def src dst next
 
 spellInCampNoCost :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCampNoCost def src dst next = GameAuto $ do
     pn  <- length . party <$> world
-    c   <- partyAt' src
+    c   <- characterInPartyAt src
     case Spell.effect def of
       Spell.Damage _  -> undefined
       Spell.Cure f ss -> do
@@ -245,7 +245,7 @@ castCureSpell :: Spell.Name -> Formula -> [StatusError]
 castCureSpell n f ss (Left src) (Left is) = do
     ps  <- party <$> world
     ts  <- forM is $ \i -> do
-      dst <- partyAt' i
+      dst <- characterInPartyAt i
       let ssc = statusErrorsOf dst
       if hpOf dst == 0 && all (`notElem` ssc) ss then return []
       else do
@@ -255,7 +255,7 @@ castCureSpell n f ss (Left src) (Left is) = do
                     nameOf dst ++ " heal " ++ show (hpOf dst' - hpOf dst) ++ "."
                   else
                     nameOf dst ++ " cured."
-        return [(join $ updateCharacter <$> partyAt i <*> pure dst', msg)]
+        return [(join $ updateCharacter <$> characterIDInPartyAt i <*> pure dst', msg)]
     return $ concat ts
 castCureSpell _ _ _ _ _ = undefined
 

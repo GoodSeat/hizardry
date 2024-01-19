@@ -52,7 +52,7 @@ decideEnemyInstance e = decideEnemyInstance' 1 e >>= tryDetermineEnemies
   where
     decideEnemyInstance' :: Int -> EnemyID -> GameState [[Enemy.Instance]]
     decideEnemyInstance' l eid = if l > 4 then return [] else do
-        def <- enemyOf eid
+        def <- enemyDefineByID eid
         n   <- eval $ Enemy.numOfOccurrences def
         withBack <- happens $ Enemy.withBackProb def
         bl  <- if withBack then decideEnemyInstance' (l + 1) . EnemyID =<< eval (Enemy.backEnemyID def)
@@ -67,7 +67,7 @@ createEnemyInstances :: Int     -- ^ num of create instaces.
                      -> GameState [Enemy.Instance]
 createEnemyInstances 0 _ _ _              = return []
 createEnemyInstances n l eid dropItem = do
-    def <- enemyOf eid
+    def <- enemyDefineByID eid
     es  <- createEnemyInstances (n - 1) l eid False
     mhp <- eval $ Enemy.hpFormula def
     let e = Enemy.Instance {
@@ -125,7 +125,7 @@ selectBattleCommand i cmds con = GameAuto $ do
       run $ confirmBattle cmds con
     else do
       let cid = p !! (i - 1)
-      c <- characterOf cid
+      c <- characterByID cid
       let cs     = Chara.enableBattleCommands $ Chara.job c
           cs'    = if i <= 3 then cs else [x | x <- cs, x /= Chara.Fight]
           next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
@@ -189,7 +189,7 @@ nextTurn con = GameAuto $ do
     ps <- party <$> world
     rs <- replicateM (length ps) (randomNext 0 100)
     forM_ (zip ps rs) $ \(p, r) -> do
-      c <- characterOf p
+      c <- characterByID p
       updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c)
     sortPartyAutoWith (defaultOrder con)
     -- TODO!:if all character dead, move to gameover.
@@ -207,7 +207,7 @@ updateCondition :: Condition -> GameState Condition
 updateCondition con = do
     ess   <- lastEnemies
     drops <- forM (concat ess) (\e -> do
-        edef <- enemyOf $ Enemy.id e
+        edef <- enemyDefineByID $ Enemy.id e
         if notElem Dead $ Enemy.statusErrors e then return (0, 0, [], [])
         else (,,,) <$> eval (Enemy.dropGold edef) <*> pure (Enemy.exp edef) <*> drops edef <*> pure (Enemy.trapCandidate edef))
     let (g, exp, is, ts) = foldl' (\(g1, e1, is1, ts1) (g2, e2, is2, ts2) -> (g1 + g2, e1 + e2, is1 ++ is2, ts1 ++ ts2)) (0, 0, [], []) drops
@@ -255,7 +255,7 @@ nextProgressBattle as con = foldr act (nextTurn con) as
 
 act :: BattleAction -> GameMachine -> GameMachine
 act (ByParties id a) next = GameAuto $ do
-    cantFight <- isCantFight <$> characterOf id
+    cantFight <- isCantFight <$> characterByID id
     if cantFight then run next
     else case a of
         Fight l     -> run $ fightOfCharacter id l next
@@ -270,7 +270,7 @@ act (ByEnemies l e a) next = GameAuto $ do
     case e_ of
       Nothing -> run next
       Just e' -> do
-        edef <- enemyOf $ Enemy.id e'
+        edef <- enemyDefineByID $ Enemy.id e'
         if isCantFight (e', edef) then run next
         else case a of
           Enemy.Fight n d t effs -> run $ fightOfEnemy e' n d t effs next
@@ -301,14 +301,14 @@ determineActions cmds = do
   where
     toPair :: (CharacterID, Action) -> GameState (Int, BattleAction)
     toPair (id, act) = do
-        agi <- agility . Chara.param <$> characterOf id
+        agi <- agility . Chara.param <$> characterByID id
         key <- agiBonus agi
         return (key, ByParties id act)
 
 
 toEnemyAction :: (Int, Enemy.Instance) -> GameState (Int, BattleAction)
 toEnemyAction (l, ei) = do
-    def <- enemyOf $ Enemy.id ei
+    def <- enemyDefineByID $ Enemy.id ei
     key <- agiBonus $ agility . Enemy.param $ def
     act <- randomIn $ Enemy.actions def
     return (key, ByEnemies l ei act)

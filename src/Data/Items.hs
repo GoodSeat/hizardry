@@ -54,11 +54,43 @@ data Attribute =
     | Heal Int Bool -- ^ heal or damege HP (it's value, only when equip)
     deriving (Show, Eq)
 
-  
-
-
         
 
 -- | data base of items.
 type DB = Map.Map ItemID Define
+
+-- =================================================================================
+-- functions.
+-- ---------------------------------------------------------------------------------
+
+isWeapon :: Define -> Bool
+isWeapon def = case equipType def of
+                 Just Weapon -> True
+                 _           -> False
+
+isShield :: Define -> Bool
+isShield def = case equipType def of
+                 Just (Shield _) -> True
+                 _               -> False
+
+isHelmet :: Define -> Bool
+isHelmet def = case equipType def of
+                 Just (Helmet _) -> True
+                 _               -> False
+
+isArmor :: Define -> Bool
+isArmor def = case equipType def of
+                Just (Armor _) -> True
+                _              -> False
+
+isGantlett :: Define -> Bool
+isGantlett def = case equipType def of
+                   Just (Gantlett _) -> True
+                   _                 -> False
+
+isAccessory :: Define -> Bool
+isAccessory def = case equipType def of
+                    Just (Accessories _) -> True
+                    _                    -> False
+
 

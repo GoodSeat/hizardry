@@ -55,7 +55,7 @@ inGilgamesh'sTarvern = GameAuto $ do
 selectCharacterAddToParty :: GameMachine
 selectCharacterAddToParty = GameAuto $ do
     ids <- inTarvernMember <$> world
-    cs  <- sequence $ characterOf <$> ids
+    cs  <- sequence $ characterByID <$> ids
     let msg = "#)Add to Party    L)eave [ESC]\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
     let lst = (Key "l", inGilgamesh'sTarvern)
@@ -63,7 +63,7 @@ selectCharacterAddToParty = GameAuto $ do
     if null ids then run inGilgamesh'sTarvern
                 else run $ selectEsc (Message msg) lst
   where
-    addParty id = GameAuto $ toParty id >> run selectCharacterAddToParty
+    addParty id = GameAuto $ addCharacterToParty id >> run selectCharacterAddToParty
     toShow (n, c) = show n ++ ") " ++ Character.name c
 
 selectCharacterRemoveFromParty :: GameMachine
@@ -95,7 +95,7 @@ inAdventure'sInn = GameAuto $ do
 
 selectStayPlan :: CharacterID -> GameMachine
 selectStayPlan id = GameAuto $ do
-    c <- characterOf id
+    c <- characterByID id
     let nam = Character.name c
         gp  = Character.gold c
         msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
@@ -108,7 +108,7 @@ selectStayPlan id = GameAuto $ do
                      ++ "P)ool Gold\n"
                      ++ "L)eave [ESC]\n"
         lst = [(Key "l", inAdventure'sInn)
-              ,(Key "p", GameAuto $ poolGold id >> run (selectStayPlan id))
+              ,(Key "p", GameAuto $ poolGoldTo id >> run (selectStayPlan id))
               ,(Key "a", sleep id  0   0 1)
               ,(Key "b", sleep id  1  10 7)
               ,(Key "c", sleep id  3  50 7)
@@ -122,7 +122,7 @@ sleep :: CharacterID
       -> Int         -- ^ pass days per week.
       -> GameMachine
 sleep id h g d = GameAuto $ do
-    c <- characterOf id 
+    c <- characterByID id 
     if Character.gold c < g then
       run $ events [Message "not money."] $ selectStayPlan id
     else do
@@ -140,7 +140,7 @@ sleep id h g d = GameAuto $ do
 
 checkLvup :: CharacterID -> GameMachine
 checkLvup id = GameAuto $ do
-    c <- characterOf id
+    c <- characterByID id
     let nextLvExp = neps !! (Character.lv c - 1)
         nextLvMsg = "You need " ++ show (nextLvExp - Character.exp c) ++ 
                     " more E.P.\nto make the next level."
@@ -152,7 +152,7 @@ checkLvup id = GameAuto $ do
 
 doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do
-    (txt, c') <- Character.lvup <$> characterOf id
+    (txt, c') <- Character.lvup <$> characterByID id
     updateCharacter id c' >> run (events [Message txt] $ selectStayPlan id)
 
 -- =======================================================================
@@ -169,7 +169,7 @@ inBoltac'sTradingPost = GameAuto $ do
 
 selectShopAction :: CharacterID -> GameMachine
 selectShopAction id = GameAuto $ do
-    c <- characterOf id
+    c <- characterByID id
     let nam = Character.name c
         gp  = Character.gold c
         msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
@@ -180,7 +180,7 @@ selectShopAction id = GameAuto $ do
                      ++ "P)ool Gold\n"
                      ++ "L)eave [ESC]\n"
         lst = [(Key "l", inBoltac'sTradingPost)
-              ,(Key "p", GameAuto $ poolGold id >> run (selectShopAction id))
+              ,(Key "p", GameAuto $ poolGoldTo id >> run (selectShopAction id))
               ,(Key "b", buyItem id 0)
               ,(Key "s", sellItem id)
               ,(Key "i", determineItem id)
@@ -204,7 +204,7 @@ buyItem cid page = GameAuto $ do
     else if null lstItem' then run $ buyItem cid 0 
     else do
       mxPage <- lastPage
-      gp     <- Character.gold <$> characterOf cid
+      gp     <- Character.gold <$> characterByID cid
       defs   <- mapM itemByID lstItem'
       let items = zipWith (++) (take 43 . (++ repeat ' ') . Item.name <$> defs)
                                (rightTxt 10 . Item.valueInShop <$> defs)
@@ -223,8 +223,8 @@ buy :: CharacterID -> GameMachine -> (String -> Event) -> ItemID -> GameMachine
 buy cid next toMsg idItem = GameAuto $ do
     w  <- world
     v  <- Item.valueInShop <$> itemByID idItem
-    is <- Character.items <$> characterOf cid
-    g  <- Character.gold  <$> characterOf cid
+    is <- Character.items <$> characterByID cid
+    g  <- Character.gold  <$> characterByID cid
     if length is >= 10 then run $ events [toMsg "you can't have any more item.\n\n"] next
     else if v > g then run $ events [toMsg "you are poor.\n\n"] next
     else do
@@ -246,10 +246,10 @@ sellItem = sellItem' False
 
 sellItem' :: Bool -> CharacterID -> GameMachine
 sellItem' greet cid = GameAuto $ do
-    is <- Character.items <$> characterOf cid
+    is <- Character.items <$> characterByID cid
     if not greet && null is then run $ selectShopAction cid
     else do
-      gp <- Character.gold <$> characterOf cid
+      gp <- Character.gold <$> characterByID cid
       ns <- mapM sellName is
       vs <- mapM sellValue is
       let items = zipWith (++) (take 43 . (++ repeat ' ') <$> ns) (rightTxt 10 <$> vs)
@@ -275,7 +275,7 @@ sellValue (ItemInf id True) = flip div 2 . Item.valueInShop <$> itemByID id
 
 sell :: CharacterID -> Character.ItemPos -> GameState ()
 sell cid pos = do
-    c <- characterOf cid
+    c <- characterByID cid
     let idItem = Character.itemAt c pos
         is = Character.items c
         gp = Character.gold c
@@ -299,8 +299,8 @@ determineItem = determineItem' []
 
 determineItem' :: String -> CharacterID -> GameMachine
 determineItem' greet cid = GameAuto $ do
-    is <- Character.items <$> characterOf cid
-    gp <- Character.gold <$> characterOf cid
+    is <- Character.items <$> characterByID cid
+    gp <- Character.gold <$> characterByID cid
     ns <- mapM sellName is
     vs <- mapM determineValueTxt is
     let items = zipWith (++) (take 43 . (++ repeat ' ') <$> ns) (rightString 10 <$> vs)
@@ -329,7 +329,7 @@ determineValue (ItemInf i b) = sellValue (ItemInf i $ not b)
 
 determine :: CharacterID -> Character.ItemPos -> GameMachine
 determine cid pos = GameAuto $ do
-    c <- characterOf cid
+    c <- characterByID cid
     let is   = Character.items c
         gp   = Character.gold c
         n    = Character.itemPosToNum pos

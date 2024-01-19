@@ -109,7 +109,7 @@ moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
             -- update party status.
             ps <- party <$> world
             forM_ ps $ \p -> do
-              c <- characterOf p
+              c <- characterByID p
               updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
             sortPartyAuto
             -- TODO!:if all character dead, move to gameover.
