@@ -94,8 +94,49 @@ main = do
         , Character.inspectTrapAbility = parse' "min(agi*6, 95)"
         , Character.disarmTrapAbility  = parse' "(lv-7+50)*100/70"
         }
+    let human = Character.Kind {
+            Character.kindName = "Human"
+          , Character.initialParam = Parameter {
+              strength = 8
+            , iq       = 8
+            , piety    = 8
+            , vitality = 8
+            , agility  = 8
+            , luck     = 8
+          }
+          , Character.maxParam = Parameter {
+              strength = 18
+            , iq       = 18
+            , piety    = 18
+            , vitality = 18
+            , agility  = 18
+            , luck     = 18
+          }
+        }
+        elf = Character.Kind {
+            Character.kindName = "Elf"
+          , Character.initialParam = Parameter {
+              strength =  7
+            , iq       = 10
+            , piety    = 10
+            , vitality =  6
+            , agility  =  9
+            , luck     =  6
+          }
+          , Character.maxParam = Parameter {
+              strength = 17
+            , iq       = 20
+            , piety    = 20
+            , vitality = 16
+            , agility  = 19
+            , luck     = 16
+          }
+        }
+
+
     let testChara1 = Character.Character {
           Character.name     = "FIG1"
+        , Character.kind     = human
         , Character.age      = 18
         , Character.days     = 0
 
@@ -134,6 +175,7 @@ main = do
         }
         testChara3 = testChara1 {
           Character.name     = "PRI1"
+        , Character.kind     = elf
         , Character.hp       = 34
         , Character.maxhp    = 48
         , Character.lv       = 5
@@ -190,6 +232,7 @@ main = do
         scenario = Scenario {
               scenarioOption = option
             , scenarioHome   = inCastle
+            , kinds          = [human, elf]
             , mazes          = [testMaze, testMaze2]
             , encountMap     = Map.fromList [
                   ((1, 1, 0), (10, [EnemyID 1, EnemyID 2]))

@@ -9,6 +9,7 @@ import qualified Data.Map as Map
 import Data.Primitive
 import Data.World
 import Data.Maze
+import Data.Characters
 import qualified Data.GameEvent as GameEvent
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
@@ -46,6 +47,7 @@ data Option = Option String
 data Scenario = Scenario {
       scenarioOption :: !Option
     , scenarioHome   :: !GameMachine
+    , kinds          :: ![Kind]
     , mazes          :: ![Maze]
     , encountMap     ::  Map.Map Coord (Int, [EnemyID])
     , roomBattleMap  ::  Map.Map Coord (Int, [EnemyID])

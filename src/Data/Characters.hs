@@ -10,6 +10,7 @@ import qualified Data.Spells as Spell
 
 data Character = Character {
       name         :: !String         -- ^ name of character.
+    , kind         :: !Kind           -- ^ kind.
     , age          :: !Int            -- ^ age
     , days         :: !Int            -- ^ past days after last birth.
     , lv           :: !Int            -- ^ level.
@@ -52,6 +53,12 @@ instance Object Character where
      else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] c'
      else                                         c'
 
+
+data Kind = Kind {
+      kindName     :: !String
+    , initialParam :: !Parameter
+    , maxParam     :: !Parameter
+} deriving (Show, Eq)
 
 
 -- | data base of character.

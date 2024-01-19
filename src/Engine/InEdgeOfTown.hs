@@ -2,6 +2,7 @@ module Engine.InEdgeOfTown
 where
 
 import Control.Monad.State (modify)
+import Control.Monad.Reader (asks)
 import Data.List (sort)
 
 import Engine.GameAuto
@@ -41,7 +42,7 @@ inTrainingGrounds = GameAuto $ do
     movePlace TrainingGrounds
     modify $ \w -> w { party = [], inTarvernMember = sort (inTarvernMember w ++ party w) }
     run $ selectEsc msg [(Key "l", inEdgeOfTown)
-                        ,(Key "c", inTrainingGrounds)
+                        ,(Key "c", createNewCharacter)
                         ,(Key "q", exitGame)]
   where
     msg = Message $ "C)reate Character\n"
@@ -51,6 +52,61 @@ inTrainingGrounds = GameAuto $ do
                  ++ "J)ob Change of Character\n"
                  ++ "R)eorder List\n"
                  ++ "L)eave [ESC]\n"
+
+createNewCharacter :: GameMachine
+createNewCharacter = GameAuto $
+    return (Ask "Input name of character. \n(Empty to cancel.)" Nothing,
+           \(Key s) -> if null s then inTrainingGrounds else GameAuto $ do
+              isOK <- not <$> existSameName s
+              run $ if isOK then selectKind s
+                    else events [Message $ s ++ " is already exist."] createNewCharacter)
+  where
+    existSameName :: String -> GameState Bool
+    existSameName name = do
+      w <- world
+      let cids = inTarvernMember w ++ (fst <$> inMazeMember w)
+      ns <- map Character.name <$> mapM characterByID cids
+      return $ name `elem` ns
+
+selectKind :: String -> GameMachine
+selectKind name = GameAuto $ do
+    ks <- asks kinds
+    let ts  = zipWith (++) ((++ ")") . show <$> [1..]) (Character.kindName <$> ks)
+        cs  = zip (Key <$> (show <$> [1..])) (selectAlignment name <$> ks)
+        msg = Message $ showCharacter name Nothing Nothing Nothing
+                     ++ "\n=========================================================\n"
+                     ++ "Select kind.(ESC to cancel)\n\n"
+                     ++ unlines ts
+    run $ select msg ((Key "\ESC", inTrainingGrounds) : cs)
+
+selectAlignment :: String -> Character.Kind -> GameMachine
+selectAlignment name k = select msg $ (Key "\ESC", inTrainingGrounds)
+                                    : (Key "g", determineParameter name k Character.G)
+                                    : (Key "n", determineParameter name k Character.N)
+                                    : (Key "e", determineParameter name k Character.E) : []
+  where
+    msg = Message $ showCharacter name (Just k) Nothing Nothing
+                 ++ "\n=========================================================\n"
+                 ++ "Select alignment. (ESC to cancel)\n\n"
+                 ++ "G)ood\n"
+                 ++ "N)eutral\n"
+                 ++ "E)vil"
+
+determineParameter :: String -> Character.Kind -> Character.Alignment -> GameMachine
+determineParameter name k a = events [msg] inTrainingGrounds
+  where
+    msg = Message $ showCharacter name (Just k) (Just a) Nothing
+                 ++ "\n=========================================================\n"
+                 ++ "TODO: not implemented."
+
+showCharacter :: String -> Maybe Character.Kind -> Maybe Character.Alignment -> Maybe Character.Job -> String
+showCharacter name k' a' j' = "\n    " ++ name ++ replicate (40 - length name) ' ' ++ kt ++ at ++ jt ++ "\n"
+  where kt = case k' of Nothing -> "??"
+                        Just k  -> take 2 (Character.kindName k)
+        at = case a' of Nothing -> "??"
+                        Just a  -> "-" ++ show a
+        jt = case j' of Nothing -> "????"
+                        Just j  -> "-" ++ take 3 (Character.jobName j)
 
 -- =======================================================================
 
