@@ -71,6 +71,15 @@ data Parameter = Parameter {
     , luck     :: !Int -- ^ luck
 } deriving (Show, Eq)
 
+emptyParam :: Parameter
+emptyParam = Parameter { strength = 0
+                       , iq       = 0
+                       , piety    = 0
+                       , vitality = 0
+                       , agility  = 0
+                       , luck     = 0
+                       }
+
 -- ==========================================================================
 
 -- | position in party.

@@ -58,6 +58,7 @@ data Kind = Kind {
       kindName     :: !String
     , initialParam :: !Parameter
     , maxParam     :: !Parameter
+    , initialBonus :: !Formula
 } deriving (Show, Eq)
 
 

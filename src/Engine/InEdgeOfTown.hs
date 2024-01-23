@@ -10,6 +10,7 @@ import Engine.Utils
 import Engine.InMaze
 import Data.World
 import Data.Maze
+import Data.Primitive
 import qualified Data.Characters as Character
 
 inEdgeOfTown :: GameMachine
@@ -80,10 +81,10 @@ selectKind name = GameAuto $ do
     run $ select msg ((Key "\ESC", inTrainingGrounds) : cs)
 
 selectAlignment :: String -> Character.Kind -> GameMachine
-selectAlignment name k = select msg $ (Key "\ESC", inTrainingGrounds)
-                                    : (Key "g", determineParameter name k Character.G)
-                                    : (Key "n", determineParameter name k Character.N)
-                                    : (Key "e", determineParameter name k Character.E) : []
+selectAlignment name k = select msg [(Key "\ESC", inTrainingGrounds)
+                                    ,(Key "g", determineParameter name k Character.G)
+                                    ,(Key "n", determineParameter name k Character.N)
+                                    ,(Key "e", determineParameter name k Character.E)]
   where
     msg = Message $ showCharacter name (Just k) Nothing Nothing
                  ++ "\n=========================================================\n"
@@ -93,7 +94,55 @@ selectAlignment name k = select msg $ (Key "\ESC", inTrainingGrounds)
                  ++ "E)vil"
 
 determineParameter :: String -> Character.Kind -> Character.Alignment -> GameMachine
-determineParameter name k a = events [msg] inTrainingGrounds
+determineParameter name k a = GameAuto $ do
+    bns <- eval $ Character.initialBonus k
+    run $ determineParameter' bns emptyParam name k a
+
+determineParameter' :: Int -> Parameter -> String -> Character.Kind -> Character.Alignment -> GameMachine
+determineParameter' bns aps name k a = GameAuto $ do
+    let ibns = bns + strength aps + iq aps + piety aps + vitality aps + agility aps + luck aps
+        msg  = Message $ showCharacter name (Just k) (Just a) Nothing
+                      ++ "\n=========================================================\n"
+                      ++ "Select add parameter from bonus. R)eset\n\n"
+                      ++ "  S)trength :" ++ rightTxt 4 (strength ips + strength aps) ++ "\n"
+                      ++ "  I)Q       :" ++ rightTxt 4 (iq       ips + iq       aps) ++ "\n"
+                      ++ "  P)iety    :" ++ rightTxt 4 (piety    ips + piety    aps) ++ "\n"
+                      ++ "  V)itality :" ++ rightTxt 4 (vitality ips + vitality aps) ++ "\n"
+                      ++ "  A)gility  :" ++ rightTxt 4 (agility  ips + agility  aps) ++ "\n"
+                      ++ "  L)uck     :" ++ rightTxt 4 (luck     ips + luck     aps) ++ "\n"
+                      ++ "---------------------------------------------------------\n"
+                      ++ "      Bonus :" ++ rightTxt 4 bns ++ " ([ESC] to change bonus)\n"
+    run $ select msg [(Key "\ESC", determineParameter name k a)
+                     ,(Key "r"   , determineParameter' ibns emptyParam name k a)
+                     ,(Key "s"   , addParameter strength (\p -> p { strength = strength p + 1 }) )
+                     ,(Key "i"   , addParameter iq       (\p -> p { iq       = iq       p + 1 }) )
+                     ,(Key "p"   , addParameter piety    (\p -> p { piety    = piety    p + 1 }) )
+                     ,(Key "v"   , addParameter vitality (\p -> p { vitality = vitality p + 1 }) )
+                     ,(Key "a"   , addParameter agility  (\p -> p { agility  = agility  p + 1 }) )
+                     ,(Key "l"   , addParameter luck     (\p -> p { luck     = luck     p + 1 }) )
+                     ]
+  where
+    ips = Character.initialParam k
+    mps = Character.maxParam     k
+    sumParameter :: Parameter -> Parameter -> Parameter
+    sumParameter p1 p2 = Parameter {
+          strength = strength p1 + strength p2
+        , iq       = iq       p1 + iq       p2
+        , piety    = piety    p1 + piety    p2
+        , vitality = vitality p1 + vitality p2
+        , agility  = agility  p1 + agility  p2
+        , luck     = luck     p1 + luck     p2
+    }
+    addParameter :: (Parameter -> Int) -> (Parameter -> Parameter) -> GameMachine
+    addParameter paramOf addParam1 = GameAuto $ do
+        let bns' = bns - 1
+            aps' = addParam1 aps
+        run $ if      paramOf aps' + paramOf ips > paramOf mps  then determineParameter' bns aps name k a
+              else if bns' <= 0 || sumParameter aps' ips == mps then selectJob aps' name k a
+              else                                                   determineParameter' bns' aps' name k a
+
+selectJob :: Parameter -> String -> Character.Kind -> Character.Alignment -> GameMachine
+selectJob aps name k a = events [msg] inTrainingGrounds
   where
     msg = Message $ showCharacter name (Just k) (Just a) Nothing
                  ++ "\n=========================================================\n"

@@ -94,7 +94,8 @@ main = do
         , Character.inspectTrapAbility = parse' "min(agi*6, 95)"
         , Character.disarmTrapAbility  = parse' "(lv-7+50)*100/70"
         }
-    let human = Character.Kind {
+    let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
+        human = Character.Kind {
             Character.kindName = "Human"
           , Character.initialParam = Parameter {
               strength = 8
@@ -112,6 +113,7 @@ main = do
             , agility  = 18
             , luck     = 18
           }
+          , Character.initialBonus = bonus
         }
         elf = Character.Kind {
             Character.kindName = "Elf"
@@ -131,6 +133,7 @@ main = do
             , agility  = 19
             , luck     = 16
           }
+          , Character.initialBonus = bonus
         }
 
 

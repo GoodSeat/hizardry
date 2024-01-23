@@ -36,6 +36,7 @@ parse' s = case Data.Formula.parse s of Right f -> f
 
 -- | type of operator.
 data Operator = Addition | Subtraction | Production | Division
+  deriving Eq
 
 instance Show Operator where
     show Addition    = "+"
@@ -50,6 +51,7 @@ data Formula = Value Int
              | Dice Int Int
              | MinOf Formula Formula
              | MaxOf Formula Formula
+  deriving Eq
 
 instance Show Formula where
     show (Value n)       = show n
@@ -93,10 +95,10 @@ dice :: GenParser Char st Formula
 dice = Dice <$> natural <*> (char 'd' >> natural)
 
 minOf :: GenParser Char st Formula
-minOf = MinOf <$> (string "min(" *> expr) <*> (char ',' *> expr)
+minOf = MinOf <$> (string "min(" *> expr) <*> (char ',' *> expr) <* token (char ')')
 
 maxOf :: GenParser Char st Formula
-maxOf = MaxOf <$> (string "max(" *> expr) <*> (char ',' *> expr)
+maxOf = MaxOf <$> (string "max(" *> expr) <*> (char ',' *> expr) <* token (char ')')
 
 -- ================================================================================
 
