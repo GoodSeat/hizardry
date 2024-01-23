@@ -246,7 +246,7 @@ isEnableJob a param j = a `elem` Character.enableAlignments j
 showListOfCharacters :: Int -> GameMachine
 showListOfCharacters (-1) = GameAuto $ do
     mxPage <- lastPage
-    run $ showListOfCharacters (mxPage - 1)
+    run $ showListOfCharacters mxPage
 showListOfCharacters page = GameAuto $ do
     mxPage <- lastPage
     cids <- take sizePage . drop (page * sizePage) . sortOn fst . Map.toList . allCharacters <$> world 

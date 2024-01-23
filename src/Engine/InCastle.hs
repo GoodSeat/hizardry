@@ -54,16 +54,17 @@ inGilgamesh'sTarvern = GameAuto $ do
 
 selectCharacterAddToParty :: GameMachine
 selectCharacterAddToParty = GameAuto $ do
+    np  <- length . party <$> world
     ids <- inTarvernMember <$> world
-    cs  <- sequence $ characterByID <$> ids
+    cs  <- mapM characterByID ids
     let msg = "#)Add to Party    L)eave [ESC]\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
     let lst = (Key "l", inGilgamesh'sTarvern)
             : cmdNums (length ids) (\i -> addParty (ids !! (i - 1)))
-    if null ids then run inGilgamesh'sTarvern
-                else run $ selectEsc (Message msg) lst
+    run $ if np >= 6 || null ids then inGilgamesh'sTarvern
+                                 else selectEsc (Message msg) lst
   where
-    addParty id = GameAuto $ addCharacterToParty id >> run selectCharacterAddToParty
+    addParty id = with [addCharacterToParty id] selectCharacterAddToParty
     toShow (n, c) = show n ++ ") " ++ Character.name c
 
 selectCharacterRemoveFromParty :: GameMachine

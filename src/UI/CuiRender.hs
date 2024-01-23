@@ -2670,51 +2670,6 @@ downNotice 3 (-2) = fromTexts '_'
 
 downNotice _ _ = mempty
 
-{-
-frontWall 0 0 = fromTexts '*'
-  ["        \                                                                  "  -- 1
-  ,"         \                                                                 "  -- 2
-  ,"          \                                                                "  -- 3 
-  ,"           \                                                               "  -- 4 
-  ,"            \                                                              "  -- 5 
-  ,"             \                                                             "  -- 6 
-  ,"             |\                                                ____________"  -- 7 
-  ,"             | \                                            / |            "  -- 8 
-  ,"             |  \                                          /  |            "  -- 9 
-  ,"             |   \                                        /   |            "  -- 10 
-  ,"~-_          |    \                                      /    |            "  -- 11 
-  ,"   ~-_       |     \                                    /     |            "  -- 12 
-  ,"      ~-_    |      \                                  /      |            "  -- 13 
-  ,"         ~-_ |       \                                /       |            "  -- 14 
-  ,"           | |        \                              /        |            "  -- 15 
-  ,"           | |        |\                             |        |            "  -- 16 
-  ,"           | | |-_    | \                            |        |            "  -- 17 
-  ,"           | | |  ~-  |  \                           |        |            "  -- 18 
-  ,"           | | |    | |   \                          |        |            "  -- 19 
-  ,"           | | |    | |    \                     ____|        |            "  -- 20 
-  ,"           | | |    | ||-_ |\                  /|    |        |            "  -- 21 
-  ,"           | | |    | ||  || \                / |    |        |            "  -- 22 
-  ,"           | | |    | ||  ||  \              /  |    |        |            "  -- 23 
-  ,"           | | |    | ||  ||-_|\            /|  |    |        |            "  -- 24 
-  ,"           | | |    | ||  ||||| \          / |  |    |        |            "  -- 25 
-  ,"           | | |    | ||  ||||||||        |  |  |    |        |            "  -- 26 
-  ,"           | | |    | ||  |||||_-          -_|  |    |        |            "  -- 27 
-  ,"           | | |    | ||  |||_~              ~_ |    |        |            "  -- 28 
-  ,"           | | |    | ||  |-~                  ~-____|        |            "  -- 29 
-  ,"           | | |    | || -~                          |        |            "  -- 30 
-  ,"           | | |    | |-~                            |        |            "  -- 31 
-  ,"           | | |    |-~                              ~-       |            "  -- 32 
-  ,"           | | |   -~                                  ~-     |            "  -- 33 
-  ,"           | | | -~                                      ~-   |            "  -- 34 
-  ,"           | | -~                                          ~- |            "  -- 35 
-  ,"           | -~                                              ~-____________"  -- 36 
-  ,"           -~                                                              "  -- 37 
-  ,"         -~                                                                "  -- 38 
-  ,"       -~                                                                  "  -- 39 
-  ,"     -~                                                                    "] -- 40 
---  123456789012345678901234567890123456789012345678901234567890123456789012345
---           1         2         3         4         5         6         7
--}
 
 darkNotice :: Bool -> Int -> Int -> Craphic
 darkNotice False 0 0 = Craphic $ const $ Draw '*'
@@ -3916,26 +3871,26 @@ treasure = fromTexts ' '
   ,"                                                                           "   --   19
   ,"                                                                           "   --   20
   ,"                                                                           "   --   21
-  ,"                                         .JMN...                           "   --   22
-  ,"                                        ..MMMMMMNn,                        "   --   23
-  ,"                                     .MMMMMMMMMHUd#                        "   --   24
-  ,"                 `  `  `  `  `  `    .NM#MMMMMB#XyR  `  `  `               "   --   25
-  ,"                            (Wk..  ` .MM@MMMMMNkM#H,                       "   --   26
-  ,"                             (HHW&+ggmMMHMMMMMMM#dkr                       "   --   27
-  ,"                `         ..JJMMNMMNMMMNNMMMMMMMQgKX:                      "   --   28
-  ,"                  `...+HNQMMNN#SyWMMMMMMMMMMM##BHMMHMHG,  `                "   --   29
-  ,"                   qgHMMMMMNNMHMMMNMMNMNHMMNmQe    ?M@Wm-                  "   --   30
-  ,"                  7TNMMMMMMMMMNWHHMMMMMMMMMMMNNmNk:w?SdMN,                 "   --   31
-  ,"              7HY^ 7'= dNKoJMMBVMMMNMMMNNMNMMNKYWMMMMHMMM'4Nm              "   --   32
-  ,"                    `  .-M@NMMNHgNNNMMMNMMMMNMNMWNNgTHNx~.MMH              "   --   33
-  ,"                    dMNMMNWN#5MMMHWHMMNMNNMMNMMNMMMNMMmJ, ....             "   --   34
-  ,"                     ?TMMMgg,qMNMMNMMMMMMMMMNMMkHNM#WQNm: (WH%             "   --   35
-  ,"                `         ''! jNgMMMNMMMmMMNMMMMMHN#B77?                   "   --   36
-  ,"                             ....gMMMMMMN8HHMMMMM=                         "   --   37
-  ,"                            JMMMMMMMMMMHMMMHMMM                            "   --   38
-  ,"                             _TMM=?MMMNQ}`     gMN+                        "   --   39
-  ,"                                   (WM#'`      7''`                        "   --   40
-  ,"                                                                           "]  --   41
+  ,"                                                                           "   --   22
+  ,"                                         .JMN...                           "   --   23
+  ,"                                        ..MMMMMMNn,                        "   --   24
+  ,"                                     .MMMMMMMMMHUd#                        "   --   25
+  ,"                 `  `  `  `  `  `    .NM#MMMMMB#XyR  `  `  `               "   --   26
+  ,"                            (Wk..  ` .MM@MMMMMNkM#H,                       "   --   27
+  ,"                             (HHW&+ggmMMHMMMMMMM#dkr                       "   --   28
+  ,"                `         ..JJMMNMMNMMMNNMMMMMMMQgKX:                      "   --   29
+  ,"                  `...+HNQMMNN#SyWMMMMMMMMMMM##BHMMHMHG,  `                "   --   30
+  ,"                   qgHMMMMMNNMHMMMNMMNMNHMMNmQe    ?M@Wm-                  "   --   31
+  ,"                  7TNMMMMMMMMMNWHHMMMMMMMMMMMNNmNk:w?SdMN,                 "   --   32
+  ,"              7HY^ 7'= dNKoJMMBVMMMNMMMNNMNMMNKYWMMMMHMMM'4Nm              "   --   33
+  ,"                    `  .-M@NMMNHgNNNMMMNMMMMNMNMWNNgTHNx~.MMH              "   --   34
+  ,"                    dMNMMNWN#5MMMHWHMMNMNNMMNMMNMMMNMMmJ, ....             "   --   35
+  ,"                     ?TMMMgg,qMNMMNMMMMMMMMMNMMkHNM#WQNm: (WH%             "   --   36
+  ,"                `         ''! jNgMMMNMMMmMMNMMMMMHN#B77?                   "   --   37
+  ,"                             ....gMMMMMMN8HHMMMMM=                         "   --   38
+  ,"                            JMMMMMMMMMMHMMMHMMM                            "   --   39
+  ,"                             _TMM=?MMMNQ}`     gMN+                        "   --   40
+  ,"                                   (WM#'`      7''`                        "]  --   41
 --  123456789012345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6         7
 

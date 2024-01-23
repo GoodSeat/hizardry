@@ -133,7 +133,11 @@ selectBattleCommand i cmds con = GameAuto $ do
       if isCantFight c then
         run $ next CantMove
       else 
-        let cms = [( Key "f"
+        let inspect = selectEsc (ShowStatus cid "R)ead Spell   L)eave [ESC]" SingleKey)
+                                [(Key "l", selectBattleCommand i cmds con)
+-- TODO                         ,(Key "r", readSpell cid inspect)
+                                ]
+            cms = [( Key "f"
                    , selectFightTarget next
                    , Chara.Fight `elem` cs')
                   ,( Key "p"
@@ -149,6 +153,8 @@ selectBattleCommand i cmds con = GameAuto $ do
                   ,( Key "r"
                    , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
                    , Chara.Run `elem` cs')
+                  ,( Key "\16128", inspect, True) -- code of "?" ?
+                  ,( Key "?", inspect, True)
                   ,( Key "\ESC"
                    , events [None] (selectBattleCommand i cmds con)
                    , True)
@@ -166,12 +172,9 @@ selectBattleCommand i cmds con = GameAuto $ do
 selectFightTarget :: (Action -> GameMachine) -> GameMachine
 selectFightTarget next = GameAuto $ do
     ess <- lastEnemies
-    if length ess == 1 then run $ next (Fight L1)
-    else run $ selectWhen1 (BattleCommand $ "Target group?\n(1*~" ++ show (length ess) ++ ")")
-                           [(Key "1", next (Fight L1), not (null ess))
-                           ,(Key "2", next (Fight L2), length ess > 1)
-                           ,(Key "3", next (Fight L3), length ess > 2)
-                           ,(Key "4", next (Fight L4), length ess > 3)]
+    let cmds = cmdNums (length ess) $ next . Fight . toEnemyLine
+    run $ if length ess == 1 then next (Fight L1)
+          else select1 (BattleCommand $ "Target group?\n(1*~" ++ show (length ess) ++ ")") cmds
 
 
 confirmBattle :: [(CharacterID, Action)]

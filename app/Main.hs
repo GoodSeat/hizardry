@@ -5,7 +5,7 @@ import System.Console.ANSI (clearScreen)
 import System.Random
 import System.Directory
 import qualified Data.Map as Map
-import Data.Maybe (maybe, catMaybes, isJust, fromJust)
+import Data.Maybe (maybe, catMaybes, isJust, isNothing, fromJust)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void)
@@ -704,7 +704,7 @@ rendering picOf s mMsg cMsg cid' picID w = do
           | otherwise       = mMsg
     sv    = case cid' of Nothing  -> mempty
                          Just cid -> statusView mMsg itemNameOf (cs Map.! cid)
-    hideStatus = (not . null) ess && null cMsg
+    hideStatus = (not . null) ess && null cMsg && isNothing cid'
     txtEnemy (l, es) = let
          e          = head es
          edef       = enemies s Map.! Enemy.id e
@@ -716,7 +716,8 @@ rendering picOf s mMsg cMsg cid' picID w = do
     itemNameOf id identified = let def = items s Map.! id in
         (if identified then Item.name else Item.nameUndetermined) def
     onLight = partyLight w > 0
-    locationText = case place w of InCastle            -> "Castle" 
+    locationText = if isJust cid' then "" else
+                   case place w of InCastle            -> "Castle" 
                                    Gilgamesh'sTarvern  -> "Gilgamesh's Tarvern"
                                    Adventure'sInn      -> "Adventure's Inn"
                                    Boltac'sTradingPost -> "Boltac's Trading Post"
