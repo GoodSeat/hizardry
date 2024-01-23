@@ -68,6 +68,14 @@ main = do
             ]
         , Character.inspectTrapAbility = parse' "agi"
         , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
+        , Character.needParameter = Parameter {
+              strength = 11
+            , iq       = 0
+            , piety    = 0
+            , vitality = 0
+            , agility  = 0
+            , luck     = 0
+           }
         }
         priest = Character.Job {
           Character.jobName              = "Priest"
@@ -81,6 +89,14 @@ main = do
             ]
         , Character.inspectTrapAbility = parse' "agi"
         , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
+        , Character.needParameter = Parameter {
+              strength = 0
+            , iq       = 0
+            , piety    = 11
+            , vitality = 0
+            , agility  = 0
+            , luck     = 0
+           }
         }
         thief = Character.Job {
           Character.jobName              = "Thief"
@@ -93,6 +109,14 @@ main = do
             ]
         , Character.inspectTrapAbility = parse' "min(agi*6, 95)"
         , Character.disarmTrapAbility  = parse' "(lv-7+50)*100/70"
+        , Character.needParameter = Parameter {
+              strength = 0
+            , iq       = 0
+            , piety    = 0
+            , vitality = 0
+            , agility  = 11
+            , luck     = 0
+           }
         }
     let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
         human = Character.Kind {
@@ -236,6 +260,7 @@ main = do
               scenarioOption = option
             , scenarioHome   = inCastle
             , kinds          = [human, elf]
+            , jobs           = [fighter, priest, thief]
             , mazes          = [testMaze, testMaze2]
             , encountMap     = Map.fromList [
                   ((1, 1, 0), (10, [EnemyID 1, EnemyID 2]))

@@ -75,6 +75,7 @@ data Job = Job {
     , enableBattleCommands :: ![BattleCommand]
     , inspectTrapAbility   :: !Formula -- ^ Probability of success of trap identification.
     , disarmTrapAbility    :: !Formula -- ^ Probability of success of disarming trap.
+    , needParameter        :: !Parameter
 } --deriving (Show, Eq)
 instance Show Job where
   show = jobName

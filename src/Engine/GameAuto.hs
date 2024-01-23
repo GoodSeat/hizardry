@@ -48,6 +48,7 @@ data Scenario = Scenario {
       scenarioOption :: !Option
     , scenarioHome   :: !GameMachine
     , kinds          :: ![Kind]
+    , jobs           :: ![Job]
     , mazes          :: ![Maze]
     , encountMap     ::  Map.Map Coord (Int, [EnemyID])
     , roomBattleMap  ::  Map.Map Coord (Int, [EnemyID])
