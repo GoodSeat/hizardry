@@ -32,7 +32,11 @@ inspectCharacter h canSpell i = GameAuto $ do
     c   <- characterInPartyAt i
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter h canSpell) (const True)
     let cancel = inspectCharacter h canSpell i
-    run $ selectWhenEsc (ShowStatus i msg SingleKey)
+        iCast  = flip (ShowStatus cid) SequenceKey
+        sCast  = flip (ShowStatus cid) SingleKey
+        sItem  = const (sCast "Select item.  L)eave")
+        dItem  = sCast
+    run $ selectWhenEsc (ShowStatus cid msg SingleKey)
                       $ (Key "l", h, True)
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
                       : (Key "u", selectItem sItem identified (selectUseTarget sCast (useItemInCamp i cancel)) c cancel, True)
@@ -50,10 +54,6 @@ inspectCharacter h canSpell i = GameAuto $ do
           else
             "U)se Item     D)rop Item    T)rade Item   E)qiup       \n" ++
             "R)ead Spell   P)ool Money   #)Inspect     L)eave [ESC]"
-    iCast = flip (ShowStatus i) SequenceKey
-    sCast = flip (ShowStatus i) SingleKey
-    sItem = const (sCast "Select item.  L)eave")
-    dItem = sCast
 
 -- =================================================================================
 -- for item.
@@ -61,17 +61,18 @@ inspectCharacter h canSpell i = GameAuto $ do
 
 useItemInCamp :: PartyPos -> GameMachine -> Chara.ItemPos -> SpellTarget -> GameMachine
 useItemInCamp src next i (Left dst) = GameAuto $ do
+    cid <- characterIDInPartyAt src
     c   <- characterInPartyAt src
     def <- itemByID $ Chara.itemAt c i
     case Item.usingEffect def of
-      Nothing                     -> run $ events [ShowStatus src "no happens." SingleKey] next
+      Nothing                     -> run $ events [ShowStatus cid "no happens." SingleKey] next
       Just (Item.EqSpell ids, bp) -> do
          sdef' <- spellByID ids
          case sdef' of
            Just sdef -> if Spell.InCamp `elem` Spell.enableIn sdef then
                           run $ spellInCampNoCost sdef src dst (with [breakItem bp src i] next)
                         else
-                          run $ events [ShowStatus src "can't use it here." SingleKey] next
+                          run $ events [ShowStatus cid "can't use it here." SingleKey] next
            Nothing   -> error "invalid spellId in useItemInCamp"
       Just (Item.Happens eid, bp) -> do
          let next' = with [breakItem bp src i] next
@@ -201,24 +202,26 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
 
 spellInCamp :: PartyPos -> GameMachine -> Spell.Name -> SpellTarget -> GameMachine
 spellInCamp src next s (Left dst) = GameAuto $ do
+    cid <- characterIDInPartyAt src
     spellDef <- spellByName s
     case spellDef of
         Just def -> if Spell.InCamp `elem` Spell.enableIn def then
                       run $ spellInCamp' def src dst next
                     else
-                      run $ events [ShowStatus src "can't cast it hear." SingleKey] next
-        Nothing  -> run $ events [ShowStatus src "what?" SingleKey] next
+                      run $ events [ShowStatus cid "can't cast it hear." SingleKey] next
+        Nothing  -> run $ events [ShowStatus cid "what?" SingleKey] next
 spellInCamp src next s (Right dst) = error "can't target enemy in spellInCamp"
 
 spellInCamp' :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCamp' def src dst next = GameAuto $ do
+    cid  <- characterIDInPartyAt src
     c    <- characterInPartyAt src
     know <- knowSpell' c def
     can  <- canSpell'  c def
     if      not know then
-      run $ events [ShowStatus src "you can't casting it." SingleKey] next
+      run $ events [ShowStatus cid "you can't casting it." SingleKey] next
     else if not can  then
-      run $ events [ShowStatus src "no more MP." SingleKey] next
+      run $ events [ShowStatus cid "no more MP." SingleKey] next
     else do
       join $ updateCharacter <$> characterIDInPartyAt src <*> costSpell' c def
       run $ spellInCampNoCost def src dst next
@@ -226,6 +229,7 @@ spellInCamp' def src dst next = GameAuto $ do
 spellInCampNoCost :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCampNoCost def src dst next = GameAuto $ do
     pn  <- length . party <$> world
+    cid <- characterIDInPartyAt src
     c   <- characterInPartyAt src
     case Spell.effect def of
       Spell.Damage _  -> undefined
@@ -235,8 +239,8 @@ spellInCampNoCost def src dst next = GameAuto $ do
                     Spell.AllyAll    -> toPartyPos <$> [1..pn]
                     _                -> []
         efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
-        run $ with (fst <$> efs) (events [ShowStatus src "done" SingleKey] next)
-      Spell.AddLight n -> setLightValue n >> run (events [ShowStatus src "done" SingleKey] next)
+        run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+      Spell.AddLight n -> setLightValue n >> run (events [ShowStatus cid "done" SingleKey] next)
 
 castCureSpell :: Spell.Name -> Formula -> [StatusError]
               -> Either Chara.Character Enemy.Instance  -- ^ src

@@ -57,9 +57,8 @@ status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> text (54, windowH - 7 + n) (show $ hp c)
                         <> text (61, windowH - 7 + n) (show $ maxhp c)
 
-statusView :: String -> (ItemID -> Bool -> Item.Name)  -> Maybe Character -> Craphic
-statusView _ _ Nothing  = undefined
-statusView msg itemNameOf (Just c) =
+statusView :: String -> (ItemID -> Bool -> Item.Name)  -> Character -> Craphic
+statusView msg itemNameOf c =
     foldl1 (<>) (fmap toText (zip [1..] ls)) <>
     rect (8, 24) (61, 7) (Draw ' ') <>
     ( translate (5, 4) $

@@ -661,7 +661,7 @@ testRender picOf s None                    = testRender picOf s (Time 0 Nothing)
 testRender picOf s (MessagePic m picID)    = rendering  picOf s m  "" Nothing  picID  
 testRender picOf s (BattleCommand m)       = rendering  picOf s "" m  Nothing  Nothing
 testRender picOf s (Time _ picID)          = rendering  picOf s "" "" Nothing  picID  
-testRender picOf s (ShowStatus i m _)      = rendering  picOf s m  "" (Just i) Nothing
+testRender picOf s (ShowStatus cid m _)    = rendering  picOf s m  "" (Just cid) Nothing
 
 testRender _ _ Exit = undefined
 
@@ -671,14 +671,14 @@ rendering :: (Maybe PictureID -> Craphic)
           -> Scenario
           -> String -- ^ message on MessageBox
           -> String -- ^ message on CommandBox
-          -> Maybe PartyPos -- ^ inspection view target.
+          -> Maybe CharacterID -- ^ inspection view target.
           -> Maybe PictureID
           -> World
           -> IO()
-rendering picOf s mMsg cMsg i' picID w = do
+rendering picOf s mMsg cMsg cid' picID w = do
     clearScreen
     render $ (if null locationText then mempty else location locationText)
-          <> (if null mMsg' || isJust i' then mempty else (msgTrans . msgBox) mMsg')
+          <> (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
           <> (if null cMsg then mempty else cmdBox cMsg )
           <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
@@ -690,6 +690,7 @@ rendering picOf s mMsg cMsg i' picID w = do
           <> sceneTrans w (scene (place w) onLight s)
   where
     ps    = flip Map.lookup (allCharacters w) <$> party w
+    cs    = allCharacters w
     ess   = case place w of InBattle _ ess' -> ess'
                             _               -> []
     treas = case place w of FindTreasureChest _ False -> treasureChest
@@ -701,8 +702,8 @@ rendering picOf s mMsg cMsg i' picID w = do
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
           | onTreasure      = "you found a treasure chest."
           | otherwise       = mMsg
-    sv    = case i' of Nothing -> mempty
-                       Just  i -> statusView mMsg itemNameOf (ps !! (partyPosToNum i - 1))
+    sv    = case cid' of Nothing  -> mempty
+                         Just cid -> statusView mMsg itemNameOf (cs Map.! cid)
     hideStatus = (not . null) ess && null cMsg
     txtEnemy (l, es) = let
          e          = head es

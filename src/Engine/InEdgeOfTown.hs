@@ -43,6 +43,7 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                          , modify $ \w -> w { party = [], inTarvernMember = sort (inTarvernMember w ++ party w) }]
                   $ selectEsc msg [(Key "l", inEdgeOfTown)
                                   ,(Key "c", createNewCharacter)
+                                  ,(Key "s", showListOfCharacters 0)
                                   ,(Key "q", exitGame)]
   where
     msg = Message $ "C)reate Character\n"
@@ -254,17 +255,21 @@ showListOfCharacters page = GameAuto $ do
     else do
       let cst = zipWith (++) ((++")") . show <$> [1..]) (Character.name . snd <$> cids)
           msg = Message $ "N)ext list  P)revious list  #)Inspect  L)eave [Esc]"
-                      ++ "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
+                      ++ "\n\n-------------------------(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")--------------------------\n\n"
                       ++ unlines cst
-          cmds = cmdNums (length cids) (\i -> inspectCharacter $ (fst <$> cids) !! (i-1))
+          cmds = cmdNums (length cids) (\i -> inspectCharacter (showListOfCharacters page) $ (fst <$> cids) !! (i-1))
       run $ selectEsc msg $ (Key "l", inTrainingGrounds)
                           : (Key "n", showListOfCharacters (page+1))
                           : (Key "p", showListOfCharacters (page-1))
                           : cmds
 
-inspectCharacter :: CharacterID -> GameMachine
-inspectCharacter cid = undefined
-
+inspectCharacter :: GameMachine -> CharacterID -> GameMachine
+inspectCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
+                                   [(Key "l", h)
+-- TODO                            ,(Key "r", readSpell cid)
+                                   ]
+  where
+    msg = "R)ead Spell   L)eave [ESC]"
 
 sizePage :: Int
 sizePage = 9
