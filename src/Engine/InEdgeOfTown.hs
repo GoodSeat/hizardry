@@ -1,9 +1,8 @@
-module Engine.InEdgeOfTown
-where
+module Engine.InEdgeOfTown (inEdgeOfTown) where
 
 import Control.Monad.State (modify, put)
 import Control.Monad.Reader (asks)
-import Data.List (sort)
+import Data.List (sort, sortOn)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -243,6 +242,35 @@ isEnableJob a param j = a `elem` Character.enableAlignments j
 
 -- -----------------------------------------------------------------------
 
+showListOfCharacters :: Int -> GameMachine
+showListOfCharacters (-1) = GameAuto $ do
+    mxPage <- lastPage
+    run $ showListOfCharacters (mxPage - 1)
+showListOfCharacters page = GameAuto $ do
+    mxPage <- lastPage
+    cids <- take sizePage . drop (page * sizePage) . sortOn fst . Map.toList . allCharacters <$> world 
+    if page > mxPage then run $ showListOfCharacters 0
+    else if null cids then run inTrainingGrounds
+    else do
+      let cst = zipWith (++) ((++")") . show <$> [1..]) (Character.name . snd <$> cids)
+          msg = Message $ "N)ext list  P)revious list  #)Inspect  L)eave [Esc]"
+                      ++ "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
+                      ++ unlines cst
+          cmds = cmdNums (length cids) (\i -> inspectCharacter $ (fst <$> cids) !! (i-1))
+      run $ selectEsc msg $ (Key "l", inTrainingGrounds)
+                          : (Key "n", showListOfCharacters (page+1))
+                          : (Key "p", showListOfCharacters (page-1))
+                          : cmds
+
+inspectCharacter :: CharacterID -> GameMachine
+inspectCharacter cid = undefined
+
+
+sizePage :: Int
+sizePage = 9
+
+lastPage :: GameState Int
+lastPage = flip div sizePage . flip (-) 1 . length . Map.toList . allCharacters <$> world
 
 -- =======================================================================
 
