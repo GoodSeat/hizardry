@@ -687,19 +687,23 @@ rendering picOf s mMsg cMsg cid' picID w = do
           <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
           <> sv
+          <> frame
           <> enemyScene picOf s (place w)
           <> treas
           <> picOf picID
-          <> frame
           <> sceneTrans w (scene (place w) onLight s)
   where
     ps    = flip Map.lookup (allCharacters w) <$> party w
     cs    = allCharacters w
     ess   = case place w of InBattle _ ess' -> ess'
                             _               -> []
+    inBat = case place w of InBattle _ _ -> True
+                            _            -> False
     treas = case place w of FindTreasureChest _ False -> treasureChest
                             FindTreasureChest _ True  -> treasure
                             _                         -> mempty
+    treasOpend = case place w of FindTreasureChest _ True  -> True
+                                 _                         -> False
     onTreasure = case place w of FindTreasureChest {} -> True
                                  _                    -> False
     mMsg' | not (null mMsg) = mMsg
@@ -708,7 +712,9 @@ rendering picOf s mMsg cMsg cid' picID w = do
           | otherwise       = mMsg
     sv    = case cid' of Nothing  -> mempty
                          Just cid -> statusView mMsg itemNameOf (cs Map.! cid)
-    hideStatus = (not . null) ess && null cMsg && isNothing cid'
+    hideStatus = ((not . null) ess && null cMsg && isNothing cid')
+              || (onTreasure && (not . null) cMsg || treasOpend)
+              || (inBat && null ess)
     txtEnemy (l, es) = let
          e          = head es
          edef       = enemies s Map.! Enemy.id e
@@ -736,7 +742,7 @@ enemyScene picOf s (InBattle _ (es:_)) =
     let e    = head es
         edef = enemies s Map.! Enemy.id e
     in if Enemy.determined e then picOf (Just $ Enemy.pic edef)
-                             else picOf (Just $ Enemy.picUndetermined edef)
+                             else changeSGR 'B' $ picOf (Just $ Enemy.picUndetermined edef)
 enemyScene _ _ _ = mempty
 
 

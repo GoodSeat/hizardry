@@ -73,7 +73,7 @@ disarmTrap con afterNotDisarm = GameAuto $ do
 tryDisarm :: TreasureCondition -> String -> PartyPos -> GameMachine -> GameMachine
 tryDisarm con t i afterNotDisarm = GameAuto $ do
     c <- characterInPartyAt i
-    let matchTrap = (toLower <$> show (trap con)) == (toLower <$> show t)
+    let matchTrap = (toLower <$> show (trap con)) == (toLower <$> t)
     sucessDisarming <- happens =<< evalWith (formulaMapS c) (Chara.disarmTrapAbility $ Chara.job c)
     invokeTrap      <- happens =<< evalWith (formulaMapS c) (parse' "100*(20-agi)/20")
     run $ if      not matchTrap   then invokingTrap con i

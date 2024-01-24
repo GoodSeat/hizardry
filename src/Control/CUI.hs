@@ -86,6 +86,16 @@ toSGR c | c == 'B' = Just [SetColor Foreground Vivid Black]
         | c == 'm' = Just [SetColor Foreground Dull Magenta]
         | c == 'c' = Just [SetColor Foreground Dull Cyan]
         | c == 'w' = Just [SetColor Foreground Dull White]
+
+        | c == '0' = Just [SetColor Background Dull Black]
+        | c == '1' = Just [SetColor Background Dull Red]
+        | c == '2' = Just [SetColor Background Dull Green]
+        | c == '3' = Just [SetColor Background Dull Yellow]
+        | c == '4' = Just [SetColor Background Dull Blue]
+        | c == '5' = Just [SetColor Background Dull Magenta]
+        | c == '6' = Just [SetColor Background Dull Cyan]
+        | c == '7' = Just [SetColor Background Dull White]
+
         | otherwise = Nothing
 
 
