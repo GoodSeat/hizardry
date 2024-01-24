@@ -1,7 +1,7 @@
 module Main where
 
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
-import System.Console.ANSI (clearScreen)
+import System.Console.ANSI (clearScreen, hideCursor, showCursor)
 import System.Random
 import System.Directory
 import qualified Data.Map as Map
@@ -613,6 +613,7 @@ main = do
                  is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
              return $ loadGame (reverse is')
              
+    clearScreen
     putStrLn =<< run (testRender picOf scenario) cmd scenario w inCastle
 
     appendFile saveDataPath $ show Abort ++ "\n"
@@ -634,7 +635,8 @@ getKey itype = do
         return $ Key [x]
     getKey' SequenceKey = do
         hSetBuffering stdin LineBuffering
-        Key <$> getLine
+        showCursor
+        (Key <$> getLine) <* (clearScreen >> hideCursor)
     getKey' (WaitClock n)
       | n > 0     = threadDelay (n * 1000) >> return Clock
       | otherwise = do
@@ -676,7 +678,6 @@ rendering :: (Maybe PictureID -> Craphic)
           -> World
           -> IO()
 rendering picOf s mMsg cMsg cid' picID w = do
-    clearScreen
     render $ (if null locationText then mempty else location locationText)
           <> (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
           <> (if null cMsg then mempty else cmdBox cMsg )

@@ -1,6 +1,7 @@
 module Control.CUI
 where
 
+import System.Console.ANSI (setCursorPosition, hideCursor)
 import Control.Monad
 import Data.Char
 
@@ -30,7 +31,7 @@ instance Monoid Craphic where
 -- ========================================================================
 -- | draw Graphic at console.
 draw :: Size -> Craphic -> IO()
-draw (w,h) v = forM_ [1..h] $ \r -> drawRow r [1..w] v
+draw (w,h) v = hideCursor >> setCursorPosition 0 0 >> forM_ [1..h] (\r -> drawRow r [1..w] v)
   where
     drawRow :: Int -> [Int] -> Craphic -> IO()
     drawRow _ [] _ = putStrLn ""
@@ -41,7 +42,7 @@ draw (w,h) v = forM_ [1..h] $ \r -> drawRow r [1..w] v
 
 text :: Point -> String -> Craphic
 text (c, r) txt = Craphic $ \(c', r') -> if r' /= r then Blank
-                                                    else dotAt (const False) txt (c' - c) 
+                                                    else dotAt (const False) txt (c' - c)
 
 -- | draw rectangle.
 rect :: Point    -- ^ base position of rectangle.
@@ -125,4 +126,4 @@ isHalfChar c = n <= 0xdf -- cp932
   where n = ord c
 
 -- ========================================================================
-                                                   
+
