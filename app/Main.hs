@@ -1,7 +1,7 @@
 module Main where
 
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
-import System.Console.ANSI (clearScreen, hideCursor, showCursor)
+import System.Console.ANSI (clearScreen, clearLine, hideCursor, showCursor, setCursorPosition, cursorUp)
 import System.Random
 import System.Directory
 import qualified Data.Map as Map
@@ -614,7 +614,9 @@ main = do
              return $ loadGame (reverse is')
              
     clearScreen
+    hideCursor
     putStrLn =<< run (testRender picOf scenario) cmd scenario w inCastle
+    showCursor
 
     appendFile saveDataPath $ show Abort ++ "\n"
 
@@ -636,7 +638,7 @@ getKey itype = do
     getKey' SequenceKey = do
         hSetBuffering stdin LineBuffering
         showCursor
-        (Key <$> getLine) <* (clearScreen >> hideCursor)
+        (Key <$> getLine) <* (cursorUp 1 >> clearLine >> hideCursor)
     getKey' (WaitClock n)
       | n > 0     = threadDelay (n * 1000) >> return Clock
       | otherwise = do
@@ -678,6 +680,7 @@ rendering :: (Maybe PictureID -> Craphic)
           -> World
           -> IO()
 rendering picOf s mMsg cMsg cid' picID w = do
+    setCursorPosition 0 0
     render $ (if null locationText then mempty else location locationText)
           <> (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
           <> (if null cMsg then mempty else cmdBox cMsg )

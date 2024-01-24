@@ -1,7 +1,6 @@
 module Control.CUI
 where
 
-import System.Console.ANSI (setCursorPosition, hideCursor)
 import Control.Monad
 import Data.Char
 
@@ -31,7 +30,7 @@ instance Monoid Craphic where
 -- ========================================================================
 -- | draw Graphic at console.
 draw :: Size -> Craphic -> IO()
-draw (w,h) v = hideCursor >> setCursorPosition 0 0 >> forM_ [1..h] (\r -> drawRow r [1..w] v)
+draw (w,h) v = forM_ [1..h] $ \r -> drawRow r [1..w] v
   where
     drawRow :: Int -> [Int] -> Craphic -> IO()
     drawRow _ [] _ = putStrLn ""
