@@ -3,6 +3,8 @@ where
 
 import Control.Monad
 import Data.Char
+import Data.Maybe (fromMaybe)
+import System.Console.ANSI
 
 
 -- | (1,1) means top-left position.
@@ -11,11 +13,15 @@ type Point = (Int, Int)
 -- | (width, height) of graphic.
 type Size  = (Int, Int)
 
-data Dot = Blank | Draw Char deriving (Eq)
+data Dot = Blank
+         | Draw Char
+         | DrawSGR Char [SGR]
+  deriving (Eq)
 
 instance Show Dot where
     show Blank = " "
     show (Draw c) = [c]
+    show (DrawSGR c _) = [c]
 
 -- | Graphic on console.
 newtype Craphic = Craphic { at :: Point -> Dot }
@@ -35,7 +41,10 @@ draw (w,h) v = forM_ [1..h] $ \r -> drawRow r [1..w] v
     drawRow :: Int -> [Int] -> Craphic -> IO()
     drawRow _ [] _ = putStrLn ""
     drawRow r (c:cs) v = do
-        putStr $ show $ at v (c, r)
+        let dot = at v (c, r)
+        case dot of DrawSGR _ sgrs -> setSGR sgrs
+                    _              -> setSGR [Reset]
+        putStr $ show dot
         drawRow r cs v
 
 
@@ -60,17 +69,54 @@ rect (c, r) (w, h) fill = Craphic $ \(c', r') ->
     else                          Blank
 
 
+toSGR :: Char -> Maybe [SGR]
+toSGR c | c == 'B' = Just [SetColor Foreground Vivid Black]
+        | c == 'R' = Just [SetColor Foreground Vivid Red]
+        | c == 'G' = Just [SetColor Foreground Vivid Green]
+        | c == 'Y' = Just [SetColor Foreground Vivid Yellow]
+        | c == 'L' = Just [SetColor Foreground Vivid Blue]
+        | c == 'M' = Just [SetColor Foreground Vivid Magenta]
+        | c == 'C' = Just [SetColor Foreground Vivid Cyan]
+        | c == 'W' = Just [SetColor Foreground Vivid White]
+        | c == 'b' = Just [SetColor Foreground Dull Black]
+        | c == 'r' = Just [SetColor Foreground Dull Red]
+        | c == 'g' = Just [SetColor Foreground Dull Green]
+        | c == 'y' = Just [SetColor Foreground Dull Yellow]
+        | c == 'l' = Just [SetColor Foreground Dull Blue]
+        | c == 'm' = Just [SetColor Foreground Dull Magenta]
+        | c == 'c' = Just [SetColor Foreground Dull Cyan]
+        | c == 'w' = Just [SetColor Foreground Dull White]
+        | otherwise = Nothing
+
+
 -- | initialize Craphic from text lines.
 fromTexts :: Char     -- ^ character that treat as blank.
           -> [String] -- ^ target text lines.
           -> Craphic  -- ^ created graphic
-fromTexts blank s = Craphic $ \(c, r) -> at (lineOf r) c
+fromTexts blank s = fromTextsSGR blank s []
+
+fromTextsA :: Char     -- ^ character that treat as blank.
+           -> Char     -- ^ character to specify SGR.
+           -> [String] -- ^ target text lines.
+           -> Craphic  -- ^ created graphic
+fromTextsA blank sgr s = fromTextsSGR blank s $ replicate (length s) (replicate (maximum $ length <$> s) sgr)
+
+-- | initialize Craphic from text lines.
+fromTextsSGR :: Char     -- ^ character that treat as blank.
+             -> [String] -- ^ target text lines.
+             -> [String] -- ^ sgr specify
+             -> Craphic  -- ^ created graphic
+fromTextsSGR blank s cs = Craphic $ \(c, r) -> at (lineOf s r) (lineOf cs r) c
   where
-    lineOf r = if length s < r || r < 1 then [] else s !! (r - 1)
-    at [] _                 = Blank
-    at (t:cs) c | c < 1     = Blank
-                | c == 1    = if t == blank then Blank else Draw t
-                | otherwise = at cs (c - len [t])
+    lineOf tl r = if length tl < r || r < 1 then [] else tl !! (r - 1)
+    at [] _ _                    = Blank
+    at (t:cs) sgrs c | c < 1     = Blank
+                     | c == 1    = if t == blank then Blank
+                                   else if null sgrs then Draw t
+                                   else case toSGR (head sgrs) of
+                                     Just ss -> DrawSGR t ss
+                                     Nothing -> Draw t
+                     | otherwise = at cs (if null sgrs then [] else tail sgrs) (c - len [t])
 
 -- | Dot from text at specified index.
 dotAt :: (Char -> Bool) -- ^ judge method that chara is blank.
@@ -113,6 +159,22 @@ reverseV c = filterWith $ reverseVP c
 replace :: Dot -> Dot -> Filter
 replace d1 d2 v = Craphic $ \(x, y) -> let o = at v (x, y) in
                                        if o == d1 then d2 else o
+
+changeSGR :: Char -> Filter
+changeSGR sgrs v = Craphic $ \(x, y) -> let o = at v (x, y) in
+    case o of Draw c      -> DrawSGR c s
+              DrawSGR c _ -> DrawSGR c s
+              Blank       -> Blank
+  where
+    s = fromMaybe [Reset] (toSGR sgrs)
+
+addSGR :: Char -> Filter
+addSGR sgrs v = Craphic $ \(x, y) -> let o = at v (x, y) in
+    case o of Draw c       -> DrawSGR c s
+              DrawSGR c s' -> DrawSGR c s'
+              Blank        -> Blank
+  where
+    s = fromMaybe [Reset] (toSGR sgrs)
 
 -- ========================================================================
 -- | length of string.(count non-half character as 2)
