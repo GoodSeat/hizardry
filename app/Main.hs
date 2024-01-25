@@ -253,6 +253,7 @@ main = do
                             , (CharacterID 4, testChara4)
                             ]
       , sceneTrans      = id
+      , eventFlags      = repeat 0
       }
     let cmd = getKey
         option = Option "Q)uit Game (for Debug!)"

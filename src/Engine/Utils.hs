@@ -349,4 +349,8 @@ formulaMapSO s o = fromList [
     ,("o.luc"   , luck    .paramOf $ o)
     ]
 
+addEvFlagToFormulaMap :: Map String Int -> GameState (Map String Int)
+addEvFlagToFormulaMap m = do
+  efs <- eventFlags <$> world
+  return $ foldl (\acc i -> Data.Map.insert ("evf." ++ show i) (efs !! i) acc) m [0..99]
 

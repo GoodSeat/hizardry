@@ -41,11 +41,12 @@ doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
         let p' = p { x = x', y = y', z = z' }
         when (z' /= z p) resetRoomBattle
         run $ events' (updownEffect p' False) next
+
     -- interactive
     doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] next
-    doEvent' (Ev.Ask msg picID ways) next = select (Ask msg picID) ss
-      where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
     doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
+      where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
+    doEvent' (Ev.Ask msg picID ways) next = select (Ask msg picID) ss
       where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
     -- in battle
 

@@ -25,6 +25,7 @@ parse' s = case Data.Formula.parse s of Right f -> f
 -- ================================================================================
 --
 {- 
+ - cmpr    ::= expr = cmpr | expr < cmpr | expr <= cmpr | expr > cmpr | expr >= cpmr | expr
  - expr    ::= term + expr | term - expr | term
  - term    ::= factor * term | factor / term | factor
  - factor  ::= (expr) | value
@@ -35,14 +36,29 @@ parse' s = case Data.Formula.parse s of Right f -> f
  -}
 
 -- | type of operator.
-data Operator = Addition | Subtraction | Production | Division
+data Operator = Equal
+              | LesserThan
+              | LesserOrEqual
+              | GreaterThan
+              | GreaterOrEqual
+              | Addition
+              | Subtraction
+              | Production
+              | Division
+              | Surplus
   deriving Eq
 
 instance Show Operator where
-    show Addition    = "+"
-    show Subtraction = "-"
-    show Production  = "*"
-    show Division    = "/"
+    show Equal          = "="
+    show LesserThan     = "<"
+    show LesserOrEqual  = "<="
+    show GreaterThan    = ">"
+    show GreaterOrEqual = ">="
+    show Addition       = "+"
+    show Subtraction    = "-"
+    show Production     = "*"
+    show Division       = "/"
+    show Surplus        = "%"
 
 -- | formula expression.
 data Formula = Value Int
@@ -61,6 +77,14 @@ instance Show Formula where
     show (MinOf n m)     = "min(" ++ show n ++ "," ++ show m ++ ")"
     show (MaxOf n m)     = "max(" ++ show n ++ "," ++ show m ++ ")"
 
+cmpr :: GenParser Char st Formula
+cmpr =  try (Operate Equal          <$> token expr <*> (char '=' >> token cmpr))
+    <|> try (Operate LesserThan     <$> token expr <*> (char '<' >> token cmpr))
+    <|> try (Operate LesserOrEqual  <$> token expr <*> (string "<=" >> token cmpr))
+    <|> try (Operate GreaterThan    <$> token expr <*> (char '>' >> token cmpr))
+    <|> try (Operate GreaterOrEqual <$> token expr <*> (string ">=" >> token cmpr))
+    <|> token expr
+
 expr :: GenParser Char st Formula
 expr =  try (Operate Addition    <$> token term <*> (char '+' >> token expr))
     <|> try (Operate Subtraction <$> token term <*> (char '-' >> token expr))
@@ -69,6 +93,7 @@ expr =  try (Operate Addition    <$> token term <*> (char '+' >> token expr))
 term :: GenParser Char st Formula
 term =  try (Operate Production <$> token factor <*> (char '*' >> token term))
     <|> try (Operate Division   <$> token factor <*> (char '/' >> token term))
+    <|> try (Operate Surplus    <$> token factor <*> (char '%' >> token term))
     <|> token factor
 
 factor :: GenParser Char st Formula
@@ -107,10 +132,16 @@ evalFormula m f = State.runState (runExceptT $ eval' m f)
 
 eval' :: Map.Map String Int -> Formula -> ExceptT String (State.State StdGen) Int
 eval' _ (Value n) = return n
-eval' m (Operate Addition    n1 n2) = (+) <$> eval' m n1 <*> eval' m n2
-eval' m (Operate Subtraction n1 n2) = (-) <$> eval' m n1 <*> eval' m n2
-eval' m (Operate Production  n1 n2) = (*) <$> eval' m n1 <*> eval' m n2
-eval' m (Operate Division    n1 n2) = div <$> eval' m n1 <*> eval' m n2
+eval' m (Operate Equal          n1 n2) = fmap boolToInt $ (==) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate LesserThan     n1 n2) = fmap boolToInt $ (< ) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate LesserOrEqual  n1 n2) = fmap boolToInt $ (<=) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate GreaterThan    n1 n2) = fmap boolToInt $ (> ) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate GreaterOrEqual n1 n2) = fmap boolToInt $ (>=) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate Addition       n1 n2) = (+) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate Subtraction    n1 n2) = (-) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate Production     n1 n2) = (*) <$> eval' m n1 <*> eval' m n2
+eval' m (Operate Division       n1 n2) = div <$> eval' m n1 <*> eval' m n2
+eval' m (Operate Surplus        n1 n2) = mod <$> eval' m n1 <*> eval' m n2
 eval' m (Variable name) = case Map.lookup name m of Nothing -> throwError $ "not defined value of " ++ name
                                                     Just v  -> return v
 eval' _ (Dice 0   _) = return 0
@@ -122,3 +153,5 @@ eval' m (Dice n1 n2) = do
 
 eval' m (MinOf n1 n2) = min <$> eval' m n1 <*> eval' m n2
 eval' m (MaxOf n1 n2) = max <$> eval' m n1 <*> eval' m n2
+
+boolToInt b = if b then 1 else 0

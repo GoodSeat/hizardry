@@ -31,6 +31,7 @@ data World = World {
     , allCharacters   :: !Character.DB
 
     , sceneTrans      :: Filter
+    , eventFlags      :: [Int] -- ^ global flag for event.
 } -- deriving (Show)
 
 data Place  = InCastle

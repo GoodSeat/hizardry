@@ -31,6 +31,7 @@ data Define =
             | ChangeHP      TargetType Formula
             | ChangeMP      TargetType Bool [Int] Formula -- target kind, Lv, heal point
             | LearningSpell TargetType Formula
+            | ChangeEventFlag Int Formula -- change index, post changed value
 
             -- others
             | Reference GameEventID
@@ -81,7 +82,6 @@ data Condition = PartyHasItem        ItemID
                | Otherwise
 
 data TargetType = Leader | All deriving (Show, Read, Eq)
-
 
 
 formulaMapParty :: [Character.Character] -> Map.Map String Int
