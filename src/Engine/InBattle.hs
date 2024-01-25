@@ -105,6 +105,9 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
     ps <- party <$> world
     -- TODO:maybe enemies (or parties) ambush.
     -- TODO:maybe friendly enemy.
+    -- A friendly group of ****.
+    -- They hail you in welcome!
+    --   A)ttack!  L)eave in Peace
     let con = Condition {
       afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
     }

@@ -4,7 +4,7 @@ where
 import Data.List
 
 -- | direction of view.
-data Direction = N | S | E | W deriving (Show, Eq)
+data Direction = N | S | E | W deriving (Read, Show, Eq, Ord)
 
 -- | position in maze.
 data Position = Position {
@@ -12,7 +12,7 @@ data Position = Position {
     , x         :: Int
     , y         :: Int
     , z         :: Int
-    } deriving (Show, Eq)
+    } deriving (Read, Show, Eq, Ord)
 
 -- | coordinate in maze.
 type Coord = (Int, Int, Int)

@@ -1,6 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module Engine.InMaze
-where
+module Engine.InMaze (openCamp) where
 
 import Control.Monad (when)
 import Control.Monad.State (modify, forM_, guard)
@@ -36,11 +35,24 @@ enterMaybeEncount p = GameAuto $ do
   ev <- eventOn p
   run $ enterGrid ev True p
 
+enterMaybeEncount' :: Position -> GameMachine
+enterMaybeEncount' p = GameAuto $ do
+  ev <- eventOn' p
+  run $ enterGrid ev True p
+
 eventOn :: Position -> GameState (Maybe Ev.Define)
 eventOn p = do
   evMap <- asks eventMap
   evDB  <- asks mazeEvents
   case Map.lookup (x p, y p, z p) evMap of
+    Nothing  -> eventOn' p
+    Just eid -> return $ Map.lookup eid evDB
+
+eventOn' :: Position -> GameState (Maybe Ev.Define)
+eventOn' p = do
+  evMap <- asks eventMapDir
+  evDB  <- asks mazeEvents
+  case Map.lookup p evMap of
     Nothing  -> return Nothing
     Just eid -> return $ Map.lookup eid evDB
 
@@ -89,14 +101,14 @@ ouch :: Position -> GameMachine
 ouch p = select (Message "Ouch !!") $ moves p
 
 moves :: Position -> [(Input, GameMachine)]
-moves p = [(Key "a", enterGrid Nothing True $ turnLeft p)
-          ,(Key "d", enterGrid Nothing True $ turnRight p)
+moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
+          ,(Key "d", enterMaybeEncount' $ turnRight p)
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
           ,(Key "q", exitGame')
-          ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (enterGrid Nothing False p))
-          ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (enterGrid Nothing False p))
+          ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
+          ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
           ]
   where
     goStraight p f = GameAuto $ do
@@ -135,7 +147,7 @@ openCamp p = GameAuto $ do
     movePlace (Camping p)
     np <- length . party <$> world
     run $ selectWhenEsc (Message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
-          [(Key "l"   , enterWithoutEncount p, True)
+          [(Key "l", enterWithoutEncount p, True)
           ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
           ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
           ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)

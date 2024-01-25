@@ -54,6 +54,7 @@ data Scenario = Scenario {
     , roomBattleMap  ::  Map.Map Coord (Int, [EnemyID])
     , roomDefine     :: [[Coord]]
     , eventMap       ::  Map.Map Coord GameEventID
+    , eventMapDir    ::  Map.Map Position GameEventID
     , mazeEvents     :: !GameEvent.DB
     , enemies        :: !Enemy.DB
     , spells         :: !Spell.DB

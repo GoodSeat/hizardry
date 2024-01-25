@@ -313,6 +313,8 @@ main = do
                 , ((2, 4, 1), GameEventID 020401)
                 , ((1, 1, 1), GameEventID 010101)
                 ]
+            , eventMapDir = Map.fromList [
+                ]
             , enemies        = Map.fromList [
                 (EnemyID 1, Enemy.Define {
                       Enemy.name              = "slime"
