@@ -16,11 +16,11 @@ main = do
     print $ Data.Formula.parse "(5+2)*2+3d2"
 
 parse :: String -> Either ParseError Formula
-parse = Text.ParserCombinators.Parsec.parse expr ""
+parse = Text.ParserCombinators.Parsec.parse cmpr ""
 
 parse' :: String -> Formula
 parse' s = case Data.Formula.parse s of Right f -> f
-                                        Left  _ -> undefined
+                                        Left msg -> error $ show msg
 
 -- ================================================================================
 --
@@ -97,7 +97,7 @@ term =  try (Operate Production <$> token factor <*> (char '*' >> token term))
     <|> token factor
 
 factor :: GenParser Char st Formula
-factor =  (char '(' *> token expr <* char ')')
+factor =  (char '(' *> token cmpr <* char ')')
       <|> try dice
       <|> try (Value <$> integer)
       <|> try minOf
@@ -114,7 +114,7 @@ integer :: GenParser Char st Int
 integer = (char '-' >> (*(-1)) <$> natural) <|> natural
 
 variable :: GenParser Char st Formula
-variable = Variable <$> many1 (noneOf " +-*/")
+variable = Variable <$> many1 (noneOf " +-*/%=<>()")
 
 dice :: GenParser Char st Formula
 dice = Dice <$> natural <*> (char 'd' >> natural)
