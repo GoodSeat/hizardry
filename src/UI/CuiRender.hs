@@ -183,6 +183,14 @@ scene EnteringMaze            onLight = scene InEdgeOfTown onLight
 scene Gilgamesh'sTarvern      _       = const $ translate (0, 2) tarvern
 scene _                       _       = const mempty
 
+
+mapView :: Place
+        -> Scenario
+        -> Craphic
+mapView place scenario = case place of (InMaze p) -> let m = mazes scenario !! z p in
+                                                     fromTexts '*' $ showMaze (4, 5) p m
+                                       _          -> mempty
+
 dunsion :: Position
         -> Bool -- ^ light effect.
         -> Bool -- ^ show message(for darkzone/in stone) or not.
