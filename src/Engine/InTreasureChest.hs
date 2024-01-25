@@ -30,7 +30,7 @@ actionForTreasureChest :: TreasureCondition
                        -> GameMachine
 actionForTreasureChest con ps =
     if trap con == Enemy.DropDirectly then getTreasures con
-    else selectEsc (BattleCommand "I)nspect\nD)isarm Trap\nO)pen\nL)eave [Esc]")
+    else selectEsc (BattleCommand "^I)nspect\n^D)isarm Trap\n^O)pen\n^L)eave [Esc]")
                    [ (Key "l", afterChest con                                       )
                    , (Key "i", inspectTreasureChest ps con                          )
                    , (Key "d", disarmTrap con (actionForTreasureChest con ps)       )
@@ -39,8 +39,8 @@ actionForTreasureChest con ps =
 inspectTreasureChest :: [PartyPos] -> TreasureCondition -> GameMachine
 inspectTreasureChest ps con = GameAuto $ do
     cmds <- cmdNumPartiesWhen $ bimap inspect' (not . isCantFight)
-    run $ selectWhenEsc (Message "#)Inspect\nL)eave [ESC]") $ (Key "l", actionForTreasureChest con ps, True)
-                                                            : cmds
+    run $ selectWhenEsc (Message "^#)Inspect\n^L)eave `[`E`S`C`]") $ (Key "l", actionForTreasureChest con ps, True)
+                                                                   : cmds
   where
     inspect' p = if p `elem` ps then events [Message "Already inspected."] $ inspectTreasureChest ps con
                                 else inspectTreasureChestBy p ps con
@@ -64,8 +64,8 @@ inspectTreasureChestBy i ps con = GameAuto $ do
 disarmTrap :: TreasureCondition -> GameMachine -> GameMachine
 disarmTrap con afterNotDisarm = GameAuto $ do
     cmds <- cmdNumPartiesWhen $ bimap disarm' (not . isCantFight)
-    run $ selectWhenEsc (Message "#)Disarm\nL)eave [ESC]") $ (Key "l", afterNotDisarm, True)
-                                                           : cmds
+    run $ selectWhenEsc (Message "^#)Disarm\n^L)eave `[`E`S`C`]") $ (Key "l", afterNotDisarm, True)
+                                                                  : cmds
   where
     disarm' p = GameAuto $ return (Ask "Input trap.\n(Empty to cancel.)" Nothing,
                                    \(Key s) -> if null s then afterNotDisarm else tryDisarm con s p afterNotDisarm)
@@ -85,8 +85,8 @@ tryDisarm con t i afterNotDisarm = GameAuto $ do
 openTreasureChest :: TreasureCondition -> GameMachine -> GameMachine
 openTreasureChest con afterNotOpen = GameAuto $ do
     cmds <- cmdNumPartiesWhen $ bimap open' (not . isCantFight)
-    run $ selectWhenEsc (Message "#)Open\nL)eave [ESC]") $ (Key "l", afterNotOpen, True)
-                                                         : cmds
+    run $ selectWhenEsc (Message "^#)Open\n^L)eave `[`E`S`C`]") $ (Key "l", afterNotOpen, True)
+                                                                : cmds
   where
     open' p = tryDisarm con "" p (openTreasureChest con afterNotOpen)
 

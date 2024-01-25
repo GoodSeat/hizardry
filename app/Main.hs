@@ -237,7 +237,7 @@ main = do
       , roomBattled     = []
       , partyLight      = 0
 
-      , visitHitory     = Map.fromList []
+      , visitHitory     = Map.empty
 
       , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4]
       , inMazeMember    = []
@@ -276,11 +276,11 @@ main = do
             , roomDefine = []
             , mazeEvents = Map.fromList [
                   (GameEventID 010100, Ev.Events [
-                     Ev.Select "there is climbing stairs.\n...climbing?\n\n(Y/N)" Nothing [
+                     Ev.Select "there is climbing stairs.\n...climbing?\n\n(^Y/^N)" Nothing [
                        ("y", Ev.ReturnCastle), ("n", Ev.Escape)]
                    ])
                 , (GameEventID 020400, Ev.Events [
-                     Ev.Select "there is ladder to go down.\n...go down?\n\n(Y/N)" Nothing [
+                     Ev.Select "there is ladder to go down.\n...go down?\n\n(^Y/^N)" Nothing [
                        ("y", Ev.Events [
                            Ev.StairsToLower (2, 4, 1)
                          , Ev.End
@@ -289,7 +289,7 @@ main = do
                      ]
                    ])
                 , (GameEventID 020401, Ev.Events [
-                     Ev.Select "there is ladder to go up.\n...go up?\n\n(Y/N)" Nothing [
+                     Ev.Select "there is ladder to go up.\n...go up?\n\n(^Y/^N)" Nothing [
                        ("y", Ev.Events [
                            Ev.StairsToUpper (2, 4, 0)
                          , Ev.End

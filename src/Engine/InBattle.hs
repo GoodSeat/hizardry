@@ -133,7 +133,7 @@ selectBattleCommand i cmds con = GameAuto $ do
       if isCantFight c then
         run $ next CantMove
       else 
-        let inspect = selectEsc (ShowStatus cid "R)ead Spell   L)eave [ESC]" SingleKey)
+        let inspect = selectEsc (ShowStatus cid "^R)ead Spell   ^L)eave `[`E`S`C`]" SingleKey)
                                 [(Key "l", selectBattleCommand i cmds con)
 -- TODO                         ,(Key "r", readSpell cid inspect)
                                 ]
@@ -159,13 +159,13 @@ selectBattleCommand i cmds con = GameAuto $ do
                    , events [None] (selectBattleCommand i cmds con)
                    , True)
                   ]
-            toMsg cmd = case cmd of Chara.Fight   -> "F)ight*\n"
-                                    Chara.Spell   -> "S)pell\n"
-                                    Chara.Hide    -> "H)ide\n"
-                                    Chara.Ambush  -> "A)mbush\n"
-                                    Chara.Run     -> "R)un\n"
-                                    Chara.Parry   -> if Chara.Fight `elem` cs' then "P)arry\n" else "P)arry*\n" 
-                                    Chara.UseItem -> "U)se Item\n"
+            toMsg cmd = case cmd of Chara.Fight   -> "^F)ight`*\n"
+                                    Chara.Spell   -> "^S)pell\n"
+                                    Chara.Hide    -> "^H)ide\n"
+                                    Chara.Ambush  -> "^A)mbush\n"
+                                    Chara.Run     -> "^R)un\n"
+                                    Chara.Parry   -> if Chara.Fight `elem` cs' then "^P)arry\n" else "^P)arry`*\n" 
+                                    Chara.UseItem -> "^U)se Item\n"
             snd' (_, s, _) = s
         in run $ selectWhen1 (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
 
@@ -174,13 +174,13 @@ selectFightTarget next = GameAuto $ do
     ess <- lastEnemies
     let cmds = cmdNums (length ess) $ next . Fight . toEnemyLine
     run $ if length ess == 1 then next (Fight L1)
-          else select1 (BattleCommand $ "Target group?\n(1*~" ++ show (length ess) ++ ")") cmds
+          else select1 (BattleCommand $ "Target group?\n(^1`*~^" ++ show (length ess) ++ ")") cmds
 
 
 confirmBattle :: [(CharacterID, Action)]
               -> Condition
               -> GameMachine
-confirmBattle cmds con = select1 (BattleCommand "Are you OK?\n\nF)ight*\nT)ake Back")
+confirmBattle cmds con = select1 (BattleCommand "Are you OK?\n\n^F)ight`*\n^T)ake Back")
                                  [(Key "f", startProgressBattle cmds con)
                                  ,(Key "t", selectBattleCommand 1 [] con)
                                  ]

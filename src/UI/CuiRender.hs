@@ -40,12 +40,13 @@ cmdBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
 
 
 toTextMessage :: String -> String
-toTextMessage = filter (/= '^')
+toTextMessage = filter (/= '^') . filter (/= '`')
 
 toTextSGR :: String -> String
-toTextSGR = reverse . foldl (\acc t -> if      t == '^' || t == '\n' || t == '\r' then t : acc
-                                       else if not (null acc) && head acc == '^'  then 'W' : tail acc
-                                       else                                            '_' : acc) []
+toTextSGR = reverse . foldl (\acc t -> if      t == '^' || t == '`'              then t : acc
+                                       else if not (null acc) && head acc == '^' then 'W' : tail acc
+                                       else if not (null acc) && head acc == '`' then 'B' : tail acc
+                                       else                                           '_' : acc) []
 
 
 
@@ -261,10 +262,14 @@ frame = fromTexts '*'
   ," +-----------------------------------------------------------------------+ "  --  39
   ,"                                                                           "] --  40
 guide :: Craphic
-guide = fromTexts '*'
+guide = fromTextsSGR '*'
   ["*********+-------------------------------------------------------+********"  --  1
   ,"*********|   C)AMP  S)TATUS  I)NSPECT  Q)UIT  O)FF   A-W-D   K   |********"  --  2
   ,"*********+-------------------------------------------------------+********"] --  3
+--------------------------------------------------------------------------------
+  ["                                                                          "  --  1
+  ,"             W      W        W         W      W      W W W   W            "  --  2
+  ,"                                                                          "] --  3
 
 location :: String -> Craphic
 location l = text (16 + (43 - length l ) `div` 2, 4) l <> fromTexts '*'

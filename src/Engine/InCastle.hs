@@ -46,18 +46,18 @@ inGilgamesh'sTarvern = GameAuto $ do
                             : (Key "d", GameAuto $ divvyGold >> run inGilgamesh'sTarvern, np > 0)
                             : cmdsInspect
   where
-    msg = Message $ "A)dd\n"
-                 ++ "R)emove\n"
-                 ++ "#)Inspect\n"
-                 ++ "D)ivvy Gold\n"
-                 ++ "L)eave [ESC]\n"
+    msg = Message $ "^A)dd\n"
+                 ++ "^R)emove\n"
+                 ++ "^#)Inspect\n"
+                 ++ "^D)ivvy Gold\n"
+                 ++ "^L)eave `[`E`S`C`]\n"
 
 selectCharacterAddToParty :: GameMachine
 selectCharacterAddToParty = GameAuto $ do
     np  <- length . party <$> world
     ids <- inTarvernMember <$> world
     cs  <- mapM characterByID ids
-    let msg = "#)Add to Party    L)eave [ESC]\n\n"
+    let msg = "^#)Add to Party    ^L)eave `[`E`S`C`]\n\n"
             ++ unlines (toShow <$> zip [1..] cs)
     let lst = (Key "l", inGilgamesh'sTarvern)
             : cmdNums (length ids) (\i -> addParty (ids !! (i - 1)))
@@ -73,7 +73,7 @@ selectCharacterRemoveFromParty = GameAuto $ do
     if null cs then run inGilgamesh'sTarvern
     else do
       cmds <- cmdNumPartiesID $ \(_, cid) -> removeParty cid
-      run $ selectEsc (Message "#)Remove from Party    L)eave [ESC]") $
+      run $ selectEsc (Message "^#)Remove from Party    ^L)eave `[`E`S`C`]") $
                       (Key "l", inGilgamesh'sTarvern) : cmds
   where
     removeParty cid = GameAuto $ do
@@ -91,8 +91,8 @@ inAdventure'sInn = GameAuto $ do
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
     msg = Message $ "Who will stay?\n\n"
-                 ++ "#)Select\n"
-                 ++ "L)eave [ESC]\n"
+                 ++ "^#)Select\n"
+                 ++ "^L)eave `[`E`S`C`]\n"
 
 selectStayPlan :: CharacterID -> GameMachine
 selectStayPlan id = GameAuto $ do
@@ -101,13 +101,13 @@ selectStayPlan id = GameAuto $ do
         gp  = Character.gold c
         msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
                      ++ "We have:\n"
-                     ++ "A)The Stables        (FREE)\n"
-                     ++ "B)A Cot               10 G.P/Week\n"
-                     ++ "C)Economy Rooms       50 G.P/Week\n"
-                     ++ "D)Merchant Suites    200 G.P/Week\n"
-                     ++ "E)The Royal Suite    500 G.P/Week\n\n"
-                     ++ "P)ool Gold\n"
-                     ++ "L)eave [ESC]\n"
+                     ++ "^A)The Stables        (FREE)\n"
+                     ++ "^B)A Cot               10 G.P/Week\n"
+                     ++ "^C)Economy Rooms       50 G.P/Week\n"
+                     ++ "^D)Merchant Suites    200 G.P/Week\n"
+                     ++ "^E)The Royal Suite    500 G.P/Week\n\n"
+                     ++ "^P)ool Gold\n"
+                     ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inAdventure'sInn)
               ,(Key "p", GameAuto $ poolGoldTo id >> run (selectStayPlan id))
               ,(Key "a", sleep id  0   0 1)
@@ -132,7 +132,7 @@ sleep id h g d = GameAuto $ do
                                        ++ " is napping. \n\n"
                                        ++ show (Character.name c) ++ " has "
                                        ++ show (Character.gold c) ++ " G.P.\n\n"
-                                       ++ "W)ake up [ESC]"
+                                       ++ "^W)ake up `[`E`S`C`]"
                                         ) Nothing)
                       [(Key "w", checkLvup id), (Clock, next)]
   where
@@ -165,8 +165,8 @@ inBoltac'sTradingPost = GameAuto $ do
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
     msg = Message $ "Who will enter?\n\n"
-                 ++ "#)Select\n"
-                 ++ "L)eave [ESC]\n"
+                 ++ "^#)Select\n"
+                 ++ "^L)eave `[`E`S`C`]\n"
 
 selectShopAction :: CharacterID -> GameMachine
 selectShopAction id = GameAuto $ do
@@ -175,11 +175,11 @@ selectShopAction id = GameAuto $ do
         gp  = Character.gold c
         msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
                      ++ "We have:\n"
-                     ++ "B)uy\n"
-                     ++ "S)ell\n"
-                     ++ "I)dentify Items\n"
-                     ++ "P)ool Gold\n"
-                     ++ "L)eave [ESC]\n"
+                     ++ "^B)uy\n"
+                     ++ "^S)ell\n"
+                     ++ "^I)dentify Items\n"
+                     ++ "^P)ool Gold\n"
+                     ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inBoltac'sTradingPost)
               ,(Key "p", GameAuto $ poolGoldTo id >> run (selectShopAction id))
               ,(Key "b", buyItem id 0)
@@ -214,7 +214,7 @@ buyItem cid page = GameAuto $ do
           cmds = cmdNums (length lstItem')
                $ buy cid (buyItem cid page) (flip (MessageTime (-1500)) Nothing . (++lst)) . (lstItem' !!) . flip (-) 1
           msg  = Message $ "Select item to buy. You have " ++ show gp ++ " G.P.\n\n"
-                        ++ "N)ext list  P)revious list  L)eave [Esc]" ++ lst
+                        ++ "^N)ext list  ^P)revious list  ^L)eave [Esc]" ++ lst
       run $ selectEsc msg $ (Key "l", selectShopAction cid)
                           : (Key "n", buyItem cid (page + 1))
                           : (Key "p", buyItem cid (page - 1))
@@ -260,7 +260,7 @@ sellItem' greet cid = GameAuto $ do
       if greet then run $ events [MessageTime (-1500) ("Thank you so much.\n\n\n" ++ lst) Nothing] $ sellItem cid
       else
         return (Message $ "Select item to sell. You have " ++ show gp ++ " G.P.\n\n"
-                            ++ "L)eave [Esc]\n" ++ lst,
+                            ++ "^L)eave [Esc]\n" ++ lst,
                 \(Key s) -> if s == "l" || s == "\ESC" then selectShopAction cid
                             else case Character.itemPosByChar s of
                               Nothing -> sellItem cid
@@ -307,11 +307,11 @@ determineItem' greet cid = GameAuto $ do
     let items = zipWith (++) (take 43 . (++ repeat ' ') <$> ns) (rightString 10 <$> vs)
         ps    = Character.numToItemPos <$> take (length items) [0..]
         lst   = "=========================================================\n\n"
-              ++ unlines (zipWith (++) ((++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
+              ++ unlines (zipWith (++) (("^"++) . (++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
         greet' = if null greet then "Select item to determine. You have " ++ show gp ++ " G.P." else greet
     if not (null greet) then run $ events [MessageTime (-1500) (greet' ++ "\n\n\n" ++ lst) Nothing] $ determineItem cid
     else
-      return (Message $ greet' ++ "\n\n" ++ "L)eave [Esc]\n" ++ lst,
+      return (Message $ greet' ++ "\n\n" ++ "^L)eave [Esc]\n" ++ lst,
               \(Key s) -> if s == "l" || s == "\ESC" then selectShopAction cid
                           else case Character.itemPosByChar s of
                             Nothing -> determineItem cid

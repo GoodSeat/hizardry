@@ -34,7 +34,7 @@ inspectCharacter h canSpell i = GameAuto $ do
     let cancel = inspectCharacter h canSpell i
         iCast  = flip (ShowStatus cid) SequenceKey
         sCast  = flip (ShowStatus cid) SingleKey
-        sItem  = const (sCast "Select item.  L)eave")
+        sItem  = const (sCast "Select item(^A~^J).  ^L)eave")
         dItem  = sCast
     run $ selectWhenEsc (ShowStatus cid msg SingleKey)
                       $ (Key "l", h, True)
@@ -50,10 +50,10 @@ inspectCharacter h canSpell i = GameAuto $ do
     msg = if canSpell then
             "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
             "^R)ead Spell   ^S)pell        ^P)ool Money            \n" ++
-            "^#)Inspect     ^L)eave [ESC]                         "
+            "^#)Inspect     ^L)eave `[`E`S`C`]                         "
           else
             "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup       \n" ++
-            "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave [ESC]"
+            "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave `[`E`S`C`]"
 
 -- =================================================================================
 -- for item.
@@ -106,7 +106,7 @@ selectItem msgForSelect isTarget next c cancel = GameAuto $ do
         its = Chara.items c
         cs  = filter (isTarget . snd) (zip (Chara.numToItemPos <$> [0..]) its)
         msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
-    return (msgForSelect $ "Select item.\nL)eave [ESC]\n\n" ++ unlines msg,
+    return (msgForSelect $ "Select item(^A~^J).\n^L)eave `[`E`S`C`]\n\n" ++ unlines msg,
             \(Key s) -> if s == "l" || s == "\ESC" then cancel
                         else case Chara.itemPosByChar s of
                           Nothing -> selectItem msgForSelect isTarget next c cancel
@@ -138,7 +138,7 @@ selectDropItem :: (String -> Event)
                -> GameMachine
                -> GameMachine
 selectDropItem msgForSelect src =
-    selectItem (const $ msgForSelect "Select drop item.\nL)eave [ESC]") (const True) drop
+    selectItem (const $ msgForSelect "Select drop item(^A~^J).\n^L)eave `[`E`S`C`]") (const True) drop
   where
     drop :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     drop c i cancel = GameAuto $ do
@@ -194,8 +194,8 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
           run (nextWith $ toDst 1)
         else
           run $ selectEsc (msgForSelecting $
-                  if toEnemy then "Target group? (1~"     ++ show mx ++ ")\n\nC)ancel [ESC]"
-                             else "Target character? (1~" ++ show mx ++ ")\n\nC)ancel [ESC]")
+                  if toEnemy then "Target group? (^1~^"     ++ show mx ++ ")\n\n^C)ancel `[`E`S`C`]"
+                             else "Target character? (^1~^" ++ show mx ++ ")\n\n^C)ancel `[`E`S`C`]")
                   $ (Key "c", cancel)
                   : cmdNums mx (nextWith.toDst)
 

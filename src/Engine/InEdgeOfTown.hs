@@ -23,10 +23,10 @@ inEdgeOfTown = GameAuto $ do
                          ,(Key "r", toCastle, True)
                          ,(Key "q", exitGame, True)]
   where
-    msg = Message $ "M)aze\n"
-                 ++ "T)raining Grounds\n"
-                 ++ "R)eturn to the Castle\n"
-                 ++ "Q)uit Game\n"
+    msg = Message $ "^M)aze\n"
+                 ++ "^T)raining Grounds\n"
+                 ++ "^R)eturn to the Castle\n"
+                 ++ "^Q)uit Game\n"
 
 -- =======================================================================
 
@@ -46,13 +46,13 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                                   ,(Key "s", showListOfCharacters 0)
                                   ,(Key "q", exitGame)]
   where
-    msg = Message $ "C)reate Character\n"
-                 ++ "S)how List of Characters\n"
-                 ++ "D)elete Character\n"
-                 ++ "N)ame Change of Character\n"
-                 ++ "J)ob Change of Character\n"
-                 ++ "R)eorder List\n"
-                 ++ "L)eave [ESC]\n"
+    msg = Message $ "^C)reate Character\n"
+                 ++ "^S)how List of Characters\n"
+                 ++ "^D)elete Character\n"
+                 ++ "^N)ame Change of Character\n"
+                 ++ "^J)ob Change of Character\n"
+                 ++ "^R)eorder List\n"
+                 ++ "^L)eave `[`E`S`C`]\n"
 
 -- -----------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ createNewCharacter = GameAuto $
 selectKind :: String -> GameMachine
 selectKind name = GameAuto $ do
     ks <- asks kinds
-    let ts  = zipWith (++) (("  "++) . (++")") . show <$> [1..]) (Character.kindName <$> ks)
+    let ts  = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.kindName <$> ks)
         cs  = zip (Key <$> (show <$> [1..])) (selectAlignment name <$> ks)
         msg = Message $ showCharacter name Nothing Nothing Nothing
                      ++ "\n=========================================================\n"
@@ -91,9 +91,9 @@ selectAlignment name k = select msg [(Key "\ESC", inTrainingGrounds)
     msg = Message $ showCharacter name (Just k) Nothing Nothing
                  ++ "\n=========================================================\n"
                  ++ ">Select alignment. (ESC to cancel)\n\n"
-                 ++ "  G)ood\n"
-                 ++ "  N)eutral\n"
-                 ++ "  E)vil"
+                 ++ "  ^G)ood\n"
+                 ++ "  ^N)eutral\n"
+                 ++ "  ^E)vil"
 
 determineParameter :: String -> Character.Kind -> Character.Alignment -> GameMachine
 determineParameter name k a = GameAuto $ do
@@ -107,15 +107,15 @@ determineParameter' bns aps name k a = GameAuto $ do
         jts  = ("  *)"++) . Character.jobName <$> js
         msg  = Message $ showCharacter name (Just k) (Just a) Nothing
                       ++ "\n=========================================================\n"
-                      ++ ">Select add parameter from bonus. R)eset\n\n"
-                      ++ "  S)trength :" ++ rightTxt 4 (strength param) ++ "\n"
-                      ++ "  I)Q       :" ++ rightTxt 4 (iq       param) ++ "\n"
-                      ++ "  P)iety    :" ++ rightTxt 4 (piety    param) ++ "\n"
-                      ++ "  V)itality :" ++ rightTxt 4 (vitality param) ++ "\n"
-                      ++ "  A)gility  :" ++ rightTxt 4 (agility  param) ++ "\n"
-                      ++ "  L)uck     :" ++ rightTxt 4 (luck     param) ++ "\n"
+                      ++ ">Select add parameter from bonus. ^R)eset\n\n"
+                      ++ "  ^S)trength :" ++ rightTxt 4 (strength param) ++ "\n"
+                      ++ "  ^I)Q       :" ++ rightTxt 4 (iq       param) ++ "\n"
+                      ++ "  ^P)iety    :" ++ rightTxt 4 (piety    param) ++ "\n"
+                      ++ "  ^V)itality :" ++ rightTxt 4 (vitality param) ++ "\n"
+                      ++ "  ^A)gility  :" ++ rightTxt 4 (agility  param) ++ "\n"
+                      ++ "  ^L)uck     :" ++ rightTxt 4 (luck     param) ++ "\n"
                       ++ "---------------------------------------------------------\n"
-                      ++ "      Bonus :" ++ rightTxt 4 bns ++ " ([ESC] to change bonus)\n\n"
+                      ++ "      Bonus :" ++ rightTxt 4 bns ++ " (`[`E`S`C`] to change bonus)\n\n"
                       ++ unlines jts
     run $ select msg [(Key "\ESC", determineParameter name k a)
                      ,(Key "r"   , determineParameter' ibns emptyParam name k a)
@@ -143,12 +143,12 @@ selectJob aps name k a = GameAuto $ do
     js <- asks (filter (isEnableJob a param) . jobs)
     if null js then run $ determineParameter' 0 aps name k a
     else do
-      let jts = zipWith (++) (("  "++) . (++")") . show <$> [1..]) (Character.jobName <$> js)
+      let jts = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.jobName <$> js)
           msg = Message $ showCharacter name (Just k) (Just a) Nothing
                        ++ "\n=========================================================\n"
                        ++ "\n\n" ++ showParameter param
                        ++ "---------------------------------------------------------\n"
-                       ++ ">Select job. R)eset\n\n"
+                       ++ ">Select job. ^R)eset\n\n"
                        ++ unlines jts
           cmds = cmdNums (length js) $ \i -> makeCharacter param name k a (js !! (i-1))
       run $ select msg $ (Key "r", determineParameter' (totalParameter aps) emptyParam name k a) : cmds
@@ -164,7 +164,7 @@ makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainin
                  ++ "\n=========================================================\n"
                  ++ "\n\n" ++ showParameter param
                  ++ "---------------------------------------------------------\n"
-                 ++ "\n               R)egister  or  C)ancel \n\n"
+                 ++ "\n               ^R)egister  or  ^C)ancel \n\n"
     register :: GameState ()
     register = do
       let c = Character.Character {
@@ -253,8 +253,8 @@ showListOfCharacters page = GameAuto $ do
     if page > mxPage then run $ showListOfCharacters 0
     else if null cids then run inTrainingGrounds
     else do
-      let cst = zipWith (++) ((++")") . show <$> [1..]) (Character.name . snd <$> cids)
-          msg = Message $ "N)ext list  P)revious list  #)Inspect  L)eave [Esc]"
+      let cst = zipWith (++) (("^"++) .(++")") . show <$> [1..]) (Character.name . snd <$> cids)
+          msg = Message $ "^N)ext list  ^P)revious list  ^#)Inspect  ^L)eave [Esc]"
                       ++ "\n\n-------------------------(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")--------------------------\n\n"
                       ++ unlines cst
           cmds = cmdNums (length cids) (\i -> inspectCharacter (showListOfCharacters page) $ (fst <$> cids) !! (i-1))
@@ -269,7 +269,7 @@ inspectCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
 -- TODO                            ,(Key "r", readSpell cid)
                                    ]
   where
-    msg = "R)ead Spell   L)eave [ESC]"
+    msg = "^R)ead Spell   ^L)eave `[`E`S`C`]"
 
 sizePage :: Int
 sizePage = 9
