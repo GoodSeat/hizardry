@@ -16,12 +16,14 @@ type Size  = (Int, Int)
 data Dot = Blank
          | Draw Char
          | DrawSGR Char [SGR]
+         | NoDraw -- ^ post non-half character 
   deriving (Eq)
 
 instance Show Dot where
-    show Blank = " "
-    show (Draw c) = [c]
+    show Blank         = " "
+    show (Draw c)      = [c]
     show (DrawSGR c _) = [c]
+    show NoDraw        = ""
 
 -- | Graphic on console.
 newtype Craphic = Craphic { at :: Point -> Dot }
@@ -56,9 +58,9 @@ textSGR :: Point -> String -> String -> Craphic
 textSGR (c, r) txt ss = Craphic $ \(c', r') ->
     if r' /= r then Blank
     else let d = dotAt (const False) txt (c' - c) in
-      case d of Blank       -> d
-                Draw t      -> draw c' t
+      case d of Draw t      -> draw c' t
                 DrawSGR t _ -> draw c' t
+                _           -> d
   where
     draw c' t = let sgr = if length ss <= c' - c - 1 then Nothing else toSGR (ss !! (c' - c - 1))
                 in case sgr of Nothing -> Draw t
@@ -133,24 +135,26 @@ fromTextsSGR :: Char     -- ^ character that treat as blank.
 fromTextsSGR blank s cs = Craphic $ \(c, r) -> at (lineOf s r) (lineOf cs r) c
   where
     lineOf tl r = if length tl < r || r < 1 then [] else tl !! (r - 1)
-    at [] _ _                    = Blank
-    at (t:cs) sgrs c | c < 1     = Blank
-                     | c == 1    = if t == blank then Blank
-                                   else if null sgrs then Draw t
-                                   else case toSGR (head sgrs) of
-                                     Just ss -> DrawSGR t ss
-                                     Nothing -> Draw t
-                     | otherwise = at cs (if null sgrs then [] else tail sgrs) (c - len [t])
+    at txt sgrs c = case dotAt (==blank) txt c of
+                      Blank  -> Blank
+                      NoDraw -> NoDraw
+                      Draw t -> case dotAt (==blank) sgrs c of
+                                  Draw s -> case toSGR s of Just ss -> DrawSGR t ss
+                                                            Nothing -> Draw t
+                                  _      -> Draw t
+                      _      -> undefined
 
 -- | Dot from text at specified index.
 dotAt :: (Char -> Bool) -- ^ judge method that chara is blank.
       -> String         -- ^ text of base.
       -> Int            -- ^ target index.
       -> Dot            -- ^ picked Dot.
-dotAt isBlank [] _                 = Blank
-dotAt isBlank (t:cs) c | c < 1     = Blank
-                       | c == 1    = if isBlank t then Blank else Draw t
-                       | otherwise = dotAt isBlank cs (c - len [t])
+dotAt isBlank [] _                              = Blank
+dotAt isBlank (t:cs) c | c < 1                  = Blank
+                       | c == 1                 = if isBlank t then Blank else Draw t
+                       | c == 2 && len [t] == 2 = NoDraw
+                       | otherwise              = dotAt isBlank cs (c - len [t])
+                    -- | otherwise              = dotAt isBlank cs (c - 1)
 
 
 -- ========================================================================
@@ -189,6 +193,7 @@ changeSGR sgrs v = Craphic $ \(x, y) -> let o = at v (x, y) in
     case o of Draw c      -> DrawSGR c s
               DrawSGR c _ -> DrawSGR c s
               Blank       -> Blank
+              NoDraw      -> NoDraw
   where
     s = fromMaybe [Reset] (toSGR sgrs)
 
@@ -197,6 +202,7 @@ addSGR sgrs v = Craphic $ \(x, y) -> let o = at v (x, y) in
     case o of Draw c       -> DrawSGR c s
               DrawSGR c s' -> DrawSGR c s'
               Blank        -> Blank
+              NoDraw       -> NoDraw
   where
     s = fromMaybe [Reset] (toSGR sgrs)
 

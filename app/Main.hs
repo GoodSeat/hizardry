@@ -731,7 +731,7 @@ rendering picOf s mMsg cMsg cid' picID w = do
     onLight = partyLight w > 0
     locationText = if isJust cid' then "" else
                    case place w of InCastle            -> "Castle" 
-                                   Gilgamesh'sTarvern  -> "Gilgamesh's Tarvern"
+                                   Gilgamesh'sTarvern  -> "ギルガメッシュの酒場" --"Gilgamesh's Tarvern"
                                    Adventure'sInn      -> "Adventure's Inn"
                                    Boltac'sTradingPost -> "Boltac's Trading Post"
                                    TempleOfCant        -> "Temple of Cant"

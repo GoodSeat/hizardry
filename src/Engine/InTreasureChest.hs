@@ -30,7 +30,7 @@ actionForTreasureChest :: TreasureCondition
                        -> GameMachine
 actionForTreasureChest con ps =
     if trap con == Enemy.DropDirectly then getTreasures con
-    else selectEsc (BattleCommand "^I)nspect\n^D)isarm Trap\n^O)pen\n^L)eave [Esc]")
+    else selectEsc (BattleCommand "^I)nspect\n^D)isarm Trap\n^O)pen\n^L)eave `[`E`s`c`]")
                    [ (Key "l", afterChest con                                       )
                    , (Key "i", inspectTreasureChest ps con                          )
                    , (Key "d", disarmTrap con (actionForTreasureChest con ps)       )

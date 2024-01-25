@@ -74,7 +74,7 @@ statusView msg itemNameOf c =
     foldl1 (<>) (fmap toText (zip [1..] ls)) <>
     rect (8, 24) (61, 7) (Draw ' ') <>
     ( translate (5, 4) $
-      fromTexts ' ' $ replaceText "[Name]" (name c) (Left 30)
+      fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
                     . replaceText "[STR]"   (show $ strength st)     (Right 3)
                     . replaceText "[IQ]"    (show $ iq st)           (Right 3)
@@ -128,17 +128,17 @@ replaceText src dst align ls = replaceLine src dst align <$> ls
 replaceLine :: String -> String -> Either Int Int -> String -> String
 replaceLine src dst align = rep src' dst''
   where
-    dst'  = case align of Left  i -> fill (i - length dst) dst False
-                          Right i -> fill (i - length dst) dst True
-    n'    = max (length src) (length dst')
-    dst'' = take n' $ dst' ++ repeat ' '
-    src'  = take n' $ src  ++ repeat ' '
+    dst'  = case align of Left  i -> fill (i - len dst) dst False
+                          Right i -> fill (i - len dst) dst True
+    n'    = max (len src) (len dst')
+    dst'' = fill (n' - len dst') dst' False
+    src'  = fill (n' - len src ) src  False
     fill 0 s _ = s
     fill n s toL = if toL then ' ' : fill (n - 1) s toL else fill (n - 1) s toL ++ " "
 
-rep :: Eq a => [a] -> [a] -> [a] -> [a]
+rep :: String -> String -> String -> String
 rep _   _  [] = []
-rep src dst s = if src `isPrefixOf` s then dst ++ rep src dst (drop (length src) s) else head s : rep src dst (tail s)
+rep src dst s = if src `isPrefixOf` s then dst ++ rep src dst (drop (len src) s) else head s : rep src dst (tail s)
 
 
 statusViewPlaceHolder =
@@ -272,7 +272,7 @@ guide = fromTextsSGR '*'
   ,"                                                                          "] --  3
 
 location :: String -> Craphic
-location l = text (16 + (43 - length l ) `div` 2, 4) l <> fromTexts '*'
+location l = text (16 + (43 - len l ) `div` 2, 4) l <> fromTexts '*'
   ["**************************************************************************"  --  1
   ,"**************************************************************************"  --  2
   ,"***************+-------------------------------------------+**************"  --  3
