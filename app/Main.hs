@@ -306,6 +306,66 @@ main = do
                      , ("", Ev.Message "who?" (Just $ PictureID 1001))
                      ]
                    ])
+
+                -- dance event on (1, 5, 0)
+                --         WNWSE->NE
+                --    step:123456 78
+                -- reset flags
+                , (GameEventID 01050100, Ev.Events [
+                     Ev.ChangeEventFlag 1 (parse' "0")
+                   , Ev.ChangeEventFlag 2 (parse' "0")
+                   ])
+                -- dance stap1, 3
+                , (GameEventID 01050101, Ev.Switch [
+                     ( Ev.FormulaCheckParty (parse' "(evf.1=2)*100")
+                     , Ev.ChangeEventFlag 1 (parse' "3")
+                     ),
+                     ( Ev.Otherwise
+                     , Ev.ChangeEventFlag 1 (parse' "1")
+                     )
+                  ])
+                -- dance stap2
+                , (GameEventID 01050102, Ev.Switch [
+                     ( Ev.FormulaCheckParty (parse' "(evf.1=1)*100")
+                     , Ev.ChangeEventFlag 1 (parse' "2")
+                     ),
+                     ( Ev.Otherwise, Ev.Reference (GameEventID 01050100))
+                   ])
+                -- dance stap4
+                , (GameEventID 01050103, Ev.Switch [
+                     ( Ev.FormulaCheckParty (parse' "(evf.1=3)*100")
+                     , Ev.ChangeEventFlag 1 (parse' "4")
+                     ),
+                     ( Ev.Otherwise, Ev.Reference (GameEventID 01050100))
+                   ])
+                -- dance stap5
+                , (GameEventID 01050104, Ev.Switch [
+                     ( Ev.FormulaCheckParty (parse' "(evf.1=4)*100")
+                     , Ev.ChangeEventFlag 1 (parse' "5")
+                     ),
+                     ( Ev.Otherwise, Ev.Reference (GameEventID 01050100))
+                   ])
+                -- dance stap6,8
+                , (GameEventID 01050105, Ev.Switch [
+                     ( Ev.FormulaCheckParty (parse' "(evf.1=5)*100")
+                     , Ev.ChangeEventFlag 1 (parse' "6")
+                     ),
+                     ( Ev.FormulaCheckParty (parse' "(evf.1=7)*100")
+                     , Ev.Events [
+                         Ev.Message "Your dance is NICE!!!" (Just $ PictureID 1002)
+                       , Ev.Reference (GameEventID 01050100)
+                     ]
+                     ),
+                     ( Ev.Otherwise, Ev.Reference (GameEventID 01050100))
+                   ])
+                -- dance stap7
+                , (GameEventID 01050106, Ev.Switch [
+                     ( Ev.FormulaCheckParty (parse' "(evf.1=6)*100")
+                     , Ev.ChangeEventFlag 1 (parse' "7")
+                     ),
+                     ( Ev.Otherwise, Ev.Reference (GameEventID 01050100))
+                   ])
+
                 ]
             , eventMap = Map.fromList [
                   ((1, 1, 0), GameEventID 010100)
@@ -314,6 +374,12 @@ main = do
                 , ((1, 1, 1), GameEventID 010101)
                 ]
             , eventMapDir = Map.fromList [
+                  (Position W 1 5 0, GameEventID 01050101)
+                , (Position N 1 5 0, GameEventID 01050102)
+                , (Position S 1 5 0, GameEventID 01050103)
+                , (Position E 1 5 0, GameEventID 01050104)
+                , (Position E 2 5 0, GameEventID 01050105)
+                , (Position N 2 5 0, GameEventID 01050106)
                 ]
             , enemies        = Map.fromList [
                 (EnemyID 1, Enemy.Define {
@@ -689,6 +755,7 @@ rendering picOf s mMsg cMsg cid' picID w = do
           <> (if null cMsg then mempty else cmdBox cMsg )
           <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
+--        <> location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
           <> sv
           <> frame
           <> enemyScene picOf s (place w)

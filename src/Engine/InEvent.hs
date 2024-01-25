@@ -51,6 +51,21 @@ doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
     -- in battle
 
     -- happens
+    doEvent' (Ev.Switch []) next = next
+    doEvent' (Ev.Switch (c:cs)) next = GameAuto $ do
+      match <- matchCondition (fst c)
+      run $ if match then doEvent' (snd c) next
+                     else doEvent' (Ev.Switch cs) next
+
+    doEvent' (Ev.ChangeEventFlag idx f) next = GameAuto $ do
+      efs <- eventFlags <$> world
+      ps  <- party <$> world
+      os  <- mapM characterByID ps
+      map <- addEvFlagToFormulaMap $ Ev.formulaMapParty os
+      n   <- evalWith map f
+      modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
+      run next
+
 
     -- others
     doEvent' (Ev.Reference eid) next = GameAuto $ do
@@ -61,6 +76,22 @@ doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
     doEvent' Ev.Escape _ = whenEscape
     doEvent' (Ev.Events [])        next = next
     doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next
+
+
+matchCondition :: Ev.Condition -> GameState Bool
+matchCondition (Ev.FormulaCheckParty f) = do
+    ps  <- party <$> world
+    os  <- mapM characterByID ps
+    map <- addEvFlagToFormulaMap $ Ev.formulaMapParty os
+    n   <- evalWith map f
+    happens n
+matchCondition (Ev.FormulaCheckLeader f) = do
+    c   <- characterByID . head . party =<< world
+    map <- addEvFlagToFormulaMap $ formulaMapS c
+    n   <- evalWith map f
+    happens n
+matchCondition Ev.Otherwise = return True
+
 
 updownEffect :: Position -> Bool -> [(GameState (), Event)]
 updownEffect p toUp = replicate c (upStep, Time 150 Nothing)
