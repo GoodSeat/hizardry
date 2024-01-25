@@ -27,11 +27,11 @@ inCastle = GameAuto $ do
                          ,(Key "e", inEdgeOfTown, True)
                          ]
   where
-    msg = Message $ "G)ilgamesh's Tarvern\n"
-                 ++ "A)dventure's Inn\n"
-                 ++ "B)oltac's Trading Post\n"
-                 ++ "T)emple of Cant\n"
-                 ++ "E)dge of Town\n"
+    msg = Message $ "^G)ilgamesh's Tarvern\n"
+                 ++ "^A)dventure's Inn\n"
+                 ++ "^B)oltac's Trading Post\n"
+                 ++ "^T)emple of Cant\n"
+                 ++ "^E)dge of Town\n"
 
 -- =======================================================================
 

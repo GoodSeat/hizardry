@@ -48,12 +48,12 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : cmdsInspect
   where
     msg = if canSpell then
-            "U)se Item     D)rop Item    T)rade Item    E)qiup  \n" ++
-            "R)ead Spell   S)pell        P)ool Money            \n" ++
-            "#)Inspect     L)eave [ESC]                         "
+            "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
+            "^R)ead Spell   ^S)pell        ^P)ool Money            \n" ++
+            "^#)Inspect     ^L)eave [ESC]                         "
           else
-            "U)se Item     D)rop Item    T)rade Item   E)qiup       \n" ++
-            "R)ead Spell   P)ool Money   #)Inspect     L)eave [ESC]"
+            "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup       \n" ++
+            "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave [ESC]"
 
 -- =================================================================================
 -- for item.

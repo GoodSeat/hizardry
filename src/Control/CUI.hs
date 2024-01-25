@@ -52,6 +52,20 @@ text :: Point -> String -> Craphic
 text (c, r) txt = Craphic $ \(c', r') -> if r' /= r then Blank
                                                     else dotAt (const False) txt (c' - c)
 
+textSGR :: Point -> String -> String -> Craphic
+textSGR (c, r) txt ss = Craphic $ \(c', r') ->
+    if r' /= r then Blank
+    else let d = dotAt (const False) txt (c' - c) in
+      case d of Blank       -> d
+                Draw t      -> draw c' t
+                DrawSGR t _ -> draw c' t
+  where
+    draw c' t = let sgr = if length ss <= c' - c - 1 then Nothing else toSGR (ss !! (c' - c - 1))
+                in case sgr of Nothing -> Draw t
+                               Just sg -> DrawSGR t sg
+
+
+
 -- | draw rectangle.
 rect :: Point    -- ^ base position of rectangle.
      -> Size     -- ^ size of rectangle.
@@ -87,7 +101,7 @@ toSGR c | c == 'B' = Just [SetColor Foreground Vivid Black]
         | c == 'c' = Just [SetColor Foreground Dull Cyan]
         | c == 'w' = Just [SetColor Foreground Dull White]
 
-        | c == '0' = Just [SetColor Background Dull Black]
+        | c == '0' = Just [SetColor Background Vivid Black]
         | c == '1' = Just [SetColor Background Dull Red]
         | c == '2' = Just [SetColor Background Dull Green]
         | c == '3' = Just [SetColor Background Dull Yellow]

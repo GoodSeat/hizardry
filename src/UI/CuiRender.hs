@@ -29,14 +29,25 @@ msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
         <> rect (8, 5) (61, length ls + 2) (Draw ' ')
   where
     ls = lines m
-    toText (n, t) = text (9, 5 + n) t
+    toText (n, t) = textSGR (9, 5 + n) (toTextMessage t) (toTextSGR t)
 
 cmdBox :: String -> Craphic
 cmdBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
         <> rect (45, 15) (26, 10) (Draw ' ')
   where
     ls = lines m
-    toText (n, t) = text (46, 15 + n) t
+    toText (n, t) = textSGR (46, 15 + n) (toTextMessage t) (toTextSGR t)
+
+
+toTextMessage :: String -> String
+toTextMessage = filter (/= '^')
+
+toTextSGR :: String -> String
+toTextSGR = reverse . foldl (\acc t -> if      t == '^' || t == '\n' || t == '\r' then t : acc
+                                       else if not (null acc) && head acc == '^'  then 'W' : tail acc
+                                       else                                            '_' : acc) []
+
+
 
 partyStatus :: String -> Craphic
 partyStatus m = foldl1 (<>) (fmap toText (zip [1..] ls))
@@ -106,7 +117,7 @@ statusView msg itemNameOf c =
   where
     st = paramOf c
     ls = lines msg
-    toText (n, t) = text (11, 25 + n) t
+    toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     items' = ((\(ItemInf id identified) -> itemNameOf id identified) <$> Character.items c) ++ repeat ""
 
 
