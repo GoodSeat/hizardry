@@ -210,7 +210,7 @@ main = do
 
         , Character.job      = priest
         , Character.alignment= Character.N
-        , Character.spells   = [SpellID 71, SpellID 111, SpellID 112, SpellID 113]
+        , Character.spells   = [SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 121]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
         testChara4 = testChara1 {
@@ -236,6 +236,7 @@ main = do
       , place           = InCastle
       , roomBattled     = []
       , partyLight      = 0
+      , partyLight'     = 0
 
       , visitHitory     = Map.empty
 
@@ -506,7 +507,7 @@ main = do
                     , Spell.lv        = 1
                     , Spell.attribute = Spell.None
                     , Spell.target    = Spell.AllyAll
-                    , Spell.effect    = Spell.AddLight 30
+                    , Spell.effect    = Spell.AddLight 30 False
                     , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
                 })
                 ,
@@ -517,6 +518,16 @@ main = do
                     , Spell.attribute = Spell.None
                     , Spell.target    = Spell.AllyAll
                     , Spell.effect    = Spell.Cure (parse' "1d8") []
+                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                })
+                ,
+                (SpellID 121, Spell.Define {
+                      Spell.name      = "smilwa"
+                    , Spell.kind      = Spell.P
+                    , Spell.lv        = 2
+                    , Spell.attribute = Spell.None
+                    , Spell.target    = Spell.AllyAll
+                    , Spell.effect    = Spell.AddLight 30 True
                     , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
                 })
                 ]
@@ -762,7 +773,7 @@ rendering picOf s mMsg cMsg cid' picID w = do
           <> enemyScene picOf s (place w)
           <> treas
           <> picOf picID
-          <> sceneTrans w (scene (place w) onLight s)
+          <> sceneTrans w (scene (place w) onLight superLight s)
   where
     ps    = flip Map.lookup (allCharacters w) <$> party w
     cs    = allCharacters w
@@ -796,7 +807,8 @@ rendering picOf s mMsg cMsg cid' picID w = do
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
     itemNameOf id identified = let def = items s Map.! id in
         (if identified then Item.name else Item.nameUndetermined) def
-    onLight = partyLight w > 0
+    onLight    = partyLight w > 0
+    superLight = partyLight' w > 0
     locationText = if isJust cid' then "" else
                    case place w of InCastle            -> "Castle" 
                                    Gilgamesh'sTarvern  -> "ギルガメッシュの酒場" --"Gilgamesh's Tarvern"

@@ -109,7 +109,8 @@ updownEffect p toUp = replicate c (upStep, Time 150 Nothing)
 returnToCastle :: GameState ()
 returnToCastle = do
     resetRoomBattle
-    setLightValue 0
+    setLightValue True  0
+    setLightValue False 0
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterByID p
@@ -121,11 +122,12 @@ returnToCastle = do
 resetRoomBattle :: GameState ()
 resetRoomBattle = modify $ \w -> w { roomBattled = [] }
 
-setLightValue :: Int -> GameState ()
-setLightValue n = modify $ \w -> w { partyLight = n }
+setLightValue :: Bool -> Int -> GameState ()
+setLightValue super n = modify $ \w -> if super then w { partyLight' = n }
+                                                else w { partyLight = n }
 
-setLightValueWith :: (Int -> Int) -> GameState ()
-setLightValueWith f = do
-    n <- gets (f . partyLight)
-    when (n >= 0) $ setLightValue n
+setLightValueWith :: Bool -> (Int -> Int) -> GameState ()
+setLightValueWith super f = do
+    n <- gets (f . if super then partyLight' else partyLight)
+    when (n >= 0) $ setLightValue super n
 

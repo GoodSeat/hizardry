@@ -240,7 +240,7 @@ spellInCampNoCost def src dst next = GameAuto $ do
                     _                -> []
         efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
         run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
-      Spell.AddLight n -> setLightValue n >> run (events [ShowStatus cid "done" SingleKey] next)
+      Spell.AddLight n s -> setLightValue s n >> run (events [ShowStatus cid "done" SingleKey] next)
 
 castCureSpell :: Spell.Name -> Formula -> [StatusError]
               -> Either Chara.Character Enemy.Instance  -- ^ src

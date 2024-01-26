@@ -325,7 +325,6 @@ makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask
                        ,[w'] ++ v ++ [e]
                        ,[sw] ++ s ++ [se]]
       where
-        --isVisited c = Map.lookup c mvt == Just True
         f0  = isVisited (x, y, z)
         fW  = isVisited (x - 1, y, z) || (x <= 1 && f0)
         fE  = isVisited (x + 1, y, z) || (x >= w && f0)

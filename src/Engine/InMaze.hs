@@ -119,7 +119,8 @@ moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
           Nothing -> run $ ouch p
           Just p' -> do 
             -- update milwa effect.
-            setLightValueWith (\n -> n - 1)
+            setLightValueWith True  (\n -> n - 1)
+            setLightValueWith False (\n -> n - 1)
             -- update party status.
             ps <- party <$> world
             forM_ ps $ \p -> do

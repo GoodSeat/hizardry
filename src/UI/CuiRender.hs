@@ -169,20 +169,21 @@ statusViewPlaceHolder =
 
 scene :: Place
       -> Bool       -- ^ light effect.
+      -> Bool       -- ^ super light effect.
       -> Scenario
       -> Craphic
-scene (InMaze p)              onLight = dunsion p onLight True
-scene (Camping p)             onLight = do
-          msg <- const $ if onLight then partyStatus "    Light" else mempty
-          d   <- dunsion p onLight False
+scene (InMaze p)              onLight superLight = dunsion p onLight superLight True
+scene (Camping p)             onLight superLight = do
+          msg <- const $ if onLight || superLight then partyStatus "    Light" else mempty
+          d   <- dunsion p onLight superLight False
           return $ msg <> d
-scene (InBattle p _)          onLight = dunsion p onLight False
-scene (FindTreasureChest p _) onLight = dunsion p onLight False
-scene InCastle                _       = const $ translate (0, 2) city2
-scene InEdgeOfTown            _       = const $ translate (0, 2) edgeOfTown
-scene EnteringMaze            onLight = scene InEdgeOfTown onLight
-scene Gilgamesh'sTarvern      _       = const $ translate (0, 2) tarvern
-scene _                       _       = const mempty
+scene (InBattle p _)          onLight superLight = dunsion p onLight superLight False
+scene (FindTreasureChest p _) onLight superLight = dunsion p onLight superLight False
+scene InCastle                _       _          = const $ translate (0, 2) city2
+scene InEdgeOfTown            _       _          = const $ translate (0, 2) edgeOfTown
+scene EnteringMaze            onLight superLight = scene InEdgeOfTown onLight superLight
+scene Gilgamesh'sTarvern      _       _          = const $ translate (0, 2) tarvern
+scene _                       _       _          = const mempty
 
 
 -- mini map view.
@@ -204,9 +205,7 @@ mapView place mvt scenario = case place of
     _          -> mempty
 
 noVisitArea :: Map.Map Coord Bool -> Size -> Int -> Craphic
-noVisitArea mvt size z = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' ' ' z size
-  where
-    isVisited c = Map.lookup c mvt == Just True
+noVisitArea mvt = noVisitAreaR mvt Data.Maze.N
 
 
 
@@ -248,15 +247,16 @@ noVisitAreaR mvt newN size z = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' '
 
 dunsion :: Position
         -> Bool -- ^ light effect.
+        -> Bool -- ^ super light effect.
         -> Bool -- ^ show message(for darkzone/in stone) or not.
         -> Scenario
         -> Craphic
-dunsion p onLight msg scenario = addSGR 'B' $ foldl1 mappend $
+dunsion p onLight superLight msg scenario = addSGR 'B' $ foldl1 mappend $
     (front <$> [(d, s) | d <-ds, s <- ss]) ++ (dark' <$> [(last ds + 1, s) | s <- ss])
   where
     (_, m) = mazes scenario !! z p
-    ds = if onLight then [0..3] else [0..1]
-    ss = if onLight then [0,1,-1,2,-2,3,-3] else [0,1,-1]
+    ds = if onLight || superLight then [0..3] else [0..1]
+    ss = if onLight || superLight then [0,1,-1,2,-2,3,-3] else [0,1,-1]
     nots0 = noticesInView m p 0 0
     stn0  = if Stone `elem` nots0 then inStone msg else mempty
     front (d, s) = stn0 <> sw <> drk <> fw <> upn <> dwn
@@ -274,7 +274,7 @@ dunsion p onLight msg scenario = addSGR 'B' $ foldl1 mappend $
         nots = noticesInView m p d s
         upn = if Up   `elem` nots then upNotice   d s else mempty
         dwn = if Down `elem` nots then downNotice d s else mempty
-        drk = if Dark `elem` nots then darkNotice msg d s else mempty
+        drk = if Dark `elem` nots && not superLight then darkNotice msg d s else mempty
     dark' (d, s) = drk
       where
         nots = noticesInView m p d s

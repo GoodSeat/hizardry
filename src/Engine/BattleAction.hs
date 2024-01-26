@@ -170,9 +170,9 @@ spell' def = case Spell.effect def of
       Spell.AllySingle     -> castCureSpellSingle (Spell.name def) f ss
       Spell.AllyAll        -> castCureSpellAll    (Spell.name def) f ss
       _                    -> undefined
-    Spell.AddLight n -> \(Left id) _ next -> GameAuto $ do 
+    Spell.AddLight n s -> \(Left id) _ next -> GameAuto $ do 
         c  <- characterByID id
-        setLightValue n
+        setLightValue s n
         run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
 
 -- --------------------------------------------------------------------------------
