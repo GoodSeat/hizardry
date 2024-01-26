@@ -9,6 +9,7 @@ import Data.Primitive
 import Data.Characters as Character
 import Data.World
 import Data.Maze
+import qualified Data.Map as Map
 import qualified Data.Enemies as Enemy
 import qualified Data.Items as Item
 
@@ -186,20 +187,25 @@ scene _                       _       = const mempty
 
 -- mini map view.
 mapView :: Place
+        -> Map.Map Coord Bool
         -> Scenario
         -> Craphic
-mapView place scenario = case place of
+mapView place mvt scenario = case place of
     (InMaze p) ->
       let ((w, h), m) = mazes scenario !! z p;
            vw = 5 * 3 + 1;
            vh = 5 * 2 + 1;
            size = (w, h);
-      in text (2, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ")") <>
+      in text (1, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ")") <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
                             translate (vw `div` 2 - x p * 3 + 1, vh `div` 2 - (h - y p) * 2 - 1))
-                           (fromTextsA '*' 'c' (showMaze size p m))
+                           (noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
                           <> rect (0, 0) (vw + 2, vh + 2) (Draw ' '))
     _          -> mempty
+
+noVisitArea :: Map.Map Coord Bool -> Size -> Int -> Craphic
+noVisitArea mvt size z = fromTextsA ' ' '6' $ makeMazeMask mvt '?' ' ' z size
+
 
 -- mini map view always draw as seen direction upside.
 mapViewN :: Place
@@ -220,7 +226,7 @@ mapViewN place scenario = case place of
            size  = (w,  h );
            size' = (w', h');
            p'    = rotatePosition d size p
-      in text (2, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")") <>
+      in text (1, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")") <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
                             translate (vw `div` 2 - x p' * 3 + 1, vh `div` 2 - (h' - y p') * 2 - 1))
                            (fromTextsA '*' 'c' (showMaze size' p' $ rotate d size m))

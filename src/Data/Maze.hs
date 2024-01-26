@@ -2,6 +2,8 @@ module Data.Maze
 where
 
 import Data.List
+import Data.Maybe (isJust)
+import qualified Data.Map as Map
 
 -- | direction of view.
 data Direction = N | S | E | W deriving (Read, Show, Eq, Ord)
@@ -303,112 +305,155 @@ walkForward mz p = if visiblityAt mz p 0 0 F == Passage then Just $ moveForward 
 
 -- ==========================================================================
 
+makeMazeMask :: Map.Map Coord Bool -> Char -> Char -> Int -> (Int, Int) -> [String]
+makeMazeMask mvt mask blank z (_, 0) = []
+makeMazeMask mvt mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask mvt mask blank z (w, h - 1)
+  where
+    makeMazeMaskRow :: Int -> Int -> [String]
+    makeMazeMaskRow 1 w = [makeMazeMaskCol 1 1 w
+                          ,makeMazeMaskCol 2 1 w
+                          ,makeMazeMaskCol 3 1 w]
+    makeMazeMaskRow y w = [makeMazeMaskCol 1 y w
+                          ,makeMazeMaskCol 2 y w]
+        
+    makeMazeMaskCol :: Int -> Int -> Int -> String
+    makeMazeMaskCol n y 1 = makeMask' (1, y) !! (n - 1)
+    makeMazeMaskCol n y x = makeMazeMaskCol n y (x - 1) ++ tail (makeMask' (x, y) !! (n - 1))
+    
+    makeMask' :: (Int, Int) -> [String]
+    makeMask' (x, y) = [[nw] ++ n ++ [ne]
+                       ,[w'] ++ v ++ [e]
+                       ,[sw] ++ s ++ [se]]
+      where
+        isVisited c = Map.lookup c mvt == Just True
+        f0  = isVisited (x, y, z)
+        fW  = isVisited (x - 1, y, z) || (x <= 1 && f0)
+        fE  = isVisited (x + 1, y, z) || (x >= w && f0)
+        fN  = isVisited (x, y + 1, z) || (y >= h && f0)
+        fS  = isVisited (x, y - 1, z) || (y <= 1 && f0)
+        fNW = isVisited (x - 1, y + 1, z)
+        fNE = isVisited (x + 1, y + 1, z)
+        fSE = isVisited (x + 1, y - 1, z)
+        fSW = isVisited (x - 1, y - 1, z)
+        v  = if not f0                                then [mask, mask] else [blank, blank]
+        nw = if not f0 && not fN && not fW && not fNW then mask         else blank
+        n  = if not f0 && not fN                      then [mask, mask] else [blank, blank]
+        ne = if not f0 && not fN && not fE && not fNE then mask         else blank
+        e  = if not f0 && not fE                      then mask         else blank
+        se = if not f0 && not fE && not fS && not fSE then mask         else blank
+        s  = if not f0 && not fS                      then [mask, mask] else [blank, blank]
+        sw = if not f0 && not fW && not fS && not fSW then mask         else blank
+        w' = if not f0 && not fW                      then mask         else blank
+
+
+
 showMaze :: (Int, Int) -> Position -> Maze -> [String]
 showMaze (_, 0) p _ = []
 showMaze (w, h) p m = showMazeRow h w p m ++ showMaze (w, h - 1) p m
 
-showMazeRow :: Int -> Int -> Position -> Maze -> [String]
-showMazeRow 1 w p m = [showMazeCol 1 1 w p m
-                      ,showMazeCol 2 1 w p m
-                      ,showMazeCol 3 1 w p m]
-showMazeRow y w p m = [showMazeCol 1 y w p m
-                      ,showMazeCol 2 y w p m]
-
-showMazeCol :: Int -> Int -> Int -> Position -> Maze -> String
-showMazeCol n y 1 p m = showMaze' (1, y) p m !! (n - 1)
-showMazeCol n y x p m = showMazeCol n y (x - 1) p m ++ tail (showMaze' (x, y) p m !! (n - 1))
-
-
-showMaze' :: (Int, Int) -> Position -> Maze -> [String]
-showMaze' (x, y) p m = [[nw] ++ n ++ [ne]
-                       ,[w]  ++ v ++ [e]
-                       ,[sw] ++ s ++ [se]]
   where
-    (x', y', _) = coordOf p
-    v  = if x' == x && y' == y then "@" ++ sm (direction p)
-                               else "  "
-    sm d | d == N    = "^"
-         | d == E    = ">"
-         | d == S    = "v"
-         | d == W    = "<"
-         | otherwise = show d
-    g0 = m (x, y)
-    gW = m (x - 1, y)
-    gE = m (x + 1, y)
-    gN = m (x, y + 1)
-    gS = m (x, y - 1)
-    gNW = m (x - 1, y + 1)
-    gNE = m (x + 1, y + 1)
-    gSE = m (x + 1, y - 1)
-    gSW = m (x - 1, y - 1)
-    dN = faceOf g0 N == Door || faceOf g0 N == SecretDoor ||
-         faceOf gN S == Door || faceOf gN S == SecretDoor
-    wN = not dN && (faceOf g0 N == Wall || faceOf gN S == Wall)
-
-    dS = faceOf g0 S == Door || faceOf g0 S == SecretDoor ||
-         faceOf gS N == Door || faceOf gS N == SecretDoor
-    wS = not dS && (faceOf g0 S == Wall || faceOf gS N == Wall)
-
-    dE = faceOf g0 E == Door || faceOf g0 E == SecretDoor ||
-         faceOf gE W == Door || faceOf gE W == SecretDoor
-    wE = not dE && (faceOf g0 E == Wall || faceOf gE W == Wall)
-
-    dW = faceOf g0 W == Door || faceOf g0 W == SecretDoor ||
-         faceOf gW E == Door || faceOf gW E == SecretDoor
-    wW = not dW && (faceOf g0 W == Wall || faceOf gW E == Wall)
-
-    fWN = faceOf gW N /= Passage || faceOf gNW S /= Passage
-    fNW = faceOf gN W /= Passage || faceOf gNW E /= Passage
-    nw | (dN || wN) && (dW || wW) = '+'
-       | fNW && fWN               = '+'
-       | (dN || wN) && fWN        = '-'
-       | (dN || wN) && fNW        = '+'
-       | (dW || wW) && fNW        = '|'
-       | (dW || wW) && fWN        = '+'
-       | otherwise                = ' '
-    n  | wN        = "--"
-       | dN        = "#-"
-       | otherwise = "  "
-
-    fNE = faceOf gN E /= Passage || faceOf gNE W /= Passage
-    fEN = faceOf gE N /= Passage || faceOf gNE S /= Passage
-    ne | (dN || wN) && (dE || wE) = '+'
-       | fNE && fEN               = '+'
-       | (dN || wN) && fEN        = '-'
-       | (dN || wN) && fNE        = '+'
-       | (dE || wE) && fNE        = '|'
-       | (dE || wE) && fEN        = '+'
-       | otherwise                = ' '
-    e  | wE        = '|'
-       | dE        = '#'
-       | otherwise = ' '
-
-    fES = faceOf gE S /= Passage || faceOf gSE N /= Passage
-    fSE = faceOf gS E /= Passage || faceOf gSE W /= Passage
-    se | (dS || wS) && (dE || wE) = '+'
-       | fSE && fES               = '+'
-       | (dS || wS) && fES        = '-'
-       | (dS || wS) && fSE        = '+'
-       | (dE || wE) && fSE        = '|'
-       | (dE || wE) && fES        = '+'
-       | otherwise                = ' '
-    s  | wS        = "--"
-       | dS        = "#-"
-       | otherwise = "  "
-
-    fSW = faceOf gS W /= Passage || faceOf gSW E /= Passage
-    fWS = faceOf gW S /= Passage || faceOf gSW N /= Passage
-    sw | (dS || wS) && (dW || wW) = '+'
-       | fSW && fWS               = '+'
-       | (dS || wS) && fWS        = '-'
-       | (dS || wS) && fSW        = '+'
-       | (dW || wW) && fSW        = '|'
-       | (dW || wW) && fWS        = '+'
-       | otherwise                = ' '
-    w  | wW        = '|'
-       | dW        = '#'
-       | otherwise = ' '
-
+    showMazeRow :: Int -> Int -> Position -> Maze -> [String]
+    showMazeRow 1 w p m = [showMazeCol 1 1 w p m
+                          ,showMazeCol 2 1 w p m
+                          ,showMazeCol 3 1 w p m]
+    showMazeRow y w p m = [showMazeCol 1 y w p m
+                          ,showMazeCol 2 y w p m]
+    
+    showMazeCol :: Int -> Int -> Int -> Position -> Maze -> String
+    showMazeCol n y 1 p m = showMaze' (1, y) p m !! (n - 1)
+    showMazeCol n y x p m = showMazeCol n y (x - 1) p m ++ tail (showMaze' (x, y) p m !! (n - 1))
+    
+    
+    showMaze' :: (Int, Int) -> Position -> Maze -> [String]
+    showMaze' (x, y) p m = [[nw] ++ n ++ [ne]
+                           ,[w]  ++ v ++ [e]
+                           ,[sw] ++ s ++ [se]]
+      where
+        (x', y', _) = coordOf p
+        v  = if x' == x && y' == y then "@" ++ sm (direction p)
+                                   else "  "
+        sm d | d == N    = "^"
+             | d == E    = ">"
+             | d == S    = "v"
+             | d == W    = "<"
+             | otherwise = show d
+        g0 = m (x, y)
+        gW = m (x - 1, y)
+        gE = m (x + 1, y)
+        gN = m (x, y + 1)
+        gS = m (x, y - 1)
+        gNW = m (x - 1, y + 1)
+        gNE = m (x + 1, y + 1)
+        gSE = m (x + 1, y - 1)
+        gSW = m (x - 1, y - 1)
+        dN = faceOf g0 N == Door || faceOf g0 N == SecretDoor ||
+             faceOf gN S == Door || faceOf gN S == SecretDoor
+        wN = not dN && (faceOf g0 N == Wall || faceOf gN S == Wall)
+    
+        dS = faceOf g0 S == Door || faceOf g0 S == SecretDoor ||
+             faceOf gS N == Door || faceOf gS N == SecretDoor
+        wS = not dS && (faceOf g0 S == Wall || faceOf gS N == Wall)
+    
+        dE = faceOf g0 E == Door || faceOf g0 E == SecretDoor ||
+             faceOf gE W == Door || faceOf gE W == SecretDoor
+        wE = not dE && (faceOf g0 E == Wall || faceOf gE W == Wall)
+    
+        dW = faceOf g0 W == Door || faceOf g0 W == SecretDoor ||
+             faceOf gW E == Door || faceOf gW E == SecretDoor
+        wW = not dW && (faceOf g0 W == Wall || faceOf gW E == Wall)
+    
+        fWN = faceOf gW N /= Passage || faceOf gNW S /= Passage
+        fNW = faceOf gN W /= Passage || faceOf gNW E /= Passage
+        nw | (dN || wN) && (dW || wW) = '+'
+           | fNW && fWN               = '+'
+           | (dN || wN) && fWN        = '-'
+           | (dN || wN) && fNW        = '+'
+           | (dW || wW) && fNW        = '|'
+           | (dW || wW) && fWN        = '+'
+           | otherwise                = ' '
+        n  | wN        = "--"
+           | dN        = "#-"
+           | otherwise = "  "
+    
+        fNE = faceOf gN E /= Passage || faceOf gNE W /= Passage
+        fEN = faceOf gE N /= Passage || faceOf gNE S /= Passage
+        ne | (dN || wN) && (dE || wE) = '+'
+           | fNE && fEN               = '+'
+           | (dN || wN) && fEN        = '-'
+           | (dN || wN) && fNE        = '+'
+           | (dE || wE) && fNE        = '|'
+           | (dE || wE) && fEN        = '+'
+           | otherwise                = ' '
+        e  | wE        = '|'
+           | dE        = '#'
+           | otherwise = ' '
+    
+        fES = faceOf gE S /= Passage || faceOf gSE N /= Passage
+        fSE = faceOf gS E /= Passage || faceOf gSE W /= Passage
+        se | (dS || wS) && (dE || wE) = '+'
+           | fSE && fES               = '+'
+           | (dS || wS) && fES        = '-'
+           | (dS || wS) && fSE        = '+'
+           | (dE || wE) && fSE        = '|'
+           | (dE || wE) && fES        = '+'
+           | otherwise                = ' '
+        s  | wS        = "--"
+           | dS        = "#-"
+           | otherwise = "  "
+    
+        fSW = faceOf gS W /= Passage || faceOf gSW E /= Passage
+        fWS = faceOf gW S /= Passage || faceOf gSW N /= Passage
+        sw | (dS || wS) && (dW || wW) = '+'
+           | fSW && fWS               = '+'
+           | (dS || wS) && fWS        = '-'
+           | (dS || wS) && fSW        = '+'
+           | (dW || wW) && fSW        = '|'
+           | (dW || wW) && fWS        = '+'
+           | otherwise                = ' '
+        w  | wW        = '|'
+           | dW        = '#'
+           | otherwise = ' '
+    
 
 
 

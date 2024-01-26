@@ -132,9 +132,10 @@ effectTrap i Enemy.Stunner = do
     updateCharacterWith i (addStatusError Paralysis)
     return ("Ooops!! Stunner!!", Nothing)
 effectTrap i Enemy.Teleporter = do
-    p  <- currentPosition
-    x' <- randomIn [1..20]
-    y' <- randomIn [1..20] -- TODO!:size is fixed when teleporter.
+    p     <- currentPosition
+    (w,h) <- mazeSizeAt $ Maze.z p
+    x'    <- randomIn [1..w]
+    y'    <- randomIn [1..h]
     movePlace $ FindTreasureChest (p { Maze.x = x', Maze.y = y' }) False
     return ("Ooops!! Teleporter!!", Nothing)
 effectTrap i Enemy.Alarm = do

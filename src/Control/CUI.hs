@@ -44,7 +44,7 @@ draw (w,h) v = forM_ [1..h] $ \r -> drawRow r [1..w] v
     drawRow _ [] _ = putStrLn ""
     drawRow r (c:cs) v = do
         let dot = at v (c, r)
-        case dot of DrawSGR _ sgrs -> setSGR sgrs
+        case dot of DrawSGR _ sgrs -> setSGR (Reset:sgrs)
                     _              -> setSGR [Reset]
         putStr $ show dot
         drawRow r cs v
@@ -109,7 +109,7 @@ toSGR c | c == 'B' = Just [SetColor Foreground Vivid Black]
         | c == '3' = Just [SetColor Background Dull Yellow]
         | c == '4' = Just [SetColor Background Dull Blue]
         | c == '5' = Just [SetColor Background Dull Magenta]
-        | c == '6' = Just [SetColor Background Dull Cyan]
+        | c == '6' = Just [SetColor Background Dull Cyan, SetColor Foreground Dull Cyan]
         | c == '7' = Just [SetColor Background Dull White]
 
         | otherwise = Nothing

@@ -109,6 +109,8 @@ moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
           ,(Key "q", exitGame')
           ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
+          ,(Key " "   , select None $ moves p)
+          ,(Key "\ESC", select None $ moves p)
           ]
   where
     goStraight p f = GameAuto $ do

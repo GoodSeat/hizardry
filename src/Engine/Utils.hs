@@ -79,6 +79,9 @@ randomIn as = do
 mazeAt :: Int -> GameState Maze
 mazeAt z = asks $ snd . (!!z) . mazes
 
+mazeSizeAt :: Int -> GameState (Int, Int)
+mazeSizeAt z = asks $ fst . (!!z) . mazes
+
 movePlace :: Place -> GameState ()
 movePlace p = modify $ \w -> w { place = p }
 
