@@ -39,6 +39,58 @@ faceOf (Grid (n, e, s, w) _) W = w
 -- | maze (group of grid).
 type Maze = (Int, Int) -> Grid
 
+rotate :: Direction -> (Int, Int) -> Maze -> Maze
+rotate N _ m = m
+rotate newN (w, h) m = \(x, y) ->
+    let w' = (case newN of Data.Maze.E -> h
+                           Data.Maze.W -> h
+                           _           -> w);
+        h' = (case newN of Data.Maze.E -> w
+                           Data.Maze.W -> w
+                           _           -> h);
+        Position _ x' y' _ = rotatePositionRev newN (w', h') (Position N x y 0)
+    in rotateGrid newN $ m (x', y')
+  where
+    rotatePositionRev newN (w, h) p
+      | newN == E = let d' = case direction p of N -> W
+                                                 E -> N
+                                                 S -> E
+                                                 W -> S
+                    in  Position d' (y p) (w - x p + 1) (z p)
+      | newN == W = let d' = case direction p of N -> E
+                                                 E -> S
+                                                 S -> W
+                                                 W -> N
+                    in Position d' (h - y p + 1) (x p) (z p)
+      | otherwise = rotatePosition newN (w, h) p
+
+rotatePosition :: Direction -> (Int, Int) -> Position -> Position
+rotatePosition N _ p = p
+rotatePosition newN (w, h) p
+  | newN == S = let d' = case direction p of N -> S
+                                             E -> W
+                                             W -> E
+                                             S -> N
+                in Position d' (w - x p + 1) (h - y p + 1) (z p)
+  | newN == E = let d' = case direction p of N -> W
+                                             E -> N
+                                             S -> E
+                                             W -> S
+                in Position d' (h - y p + 1) (x p) (z p)
+  | newN == W = let d' = case direction p of N -> E
+                                             E -> S
+                                             S -> W
+                                             W -> N
+                in  Position d' (y p) (w - x p + 1) (z p)
+  | otherwise = undefined
+
+rotateGrid :: Direction -> Grid -> Grid
+rotateGrid newN (Grid (fN, fE, fS, fW) ns)
+  | newN == S = Grid (fS, fW, fN, fE) ns
+  | newN == E = Grid (fE, fS, fW, fN) ns
+  | newN == W = Grid (fW, fN, fE, fS) ns
+  | otherwise = undefined
+
 -- ==========================================================================
 
 -- | parse maze from text lines.
@@ -273,8 +325,13 @@ showMaze' (x, y) p m = [[nw] ++ n ++ [ne]
                        ,[sw] ++ s ++ [se]]
   where
     (x', y', _) = coordOf p
-    v  = if x' == x && y' == y then "@" ++ show (direction p)
+    v  = if x' == x && y' == y then "@" ++ sm (direction p)
                                else "  "
+    sm d | d == N    = "^"
+         | d == E    = ">"
+         | d == S    = "v"
+         | d == W    = "<"
+         | otherwise = show d
     g0 = m (x, y)
     gW = m (x - 1, y)
     gE = m (x + 1, y)

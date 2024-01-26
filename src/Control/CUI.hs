@@ -188,6 +188,12 @@ replace :: Dot -> Dot -> Filter
 replace d1 d2 v = Craphic $ \(x, y) -> let o = at v (x, y) in
                                        if o == d1 then d2 else o
 
+trim :: Point -> Size -> Craphic -> Craphic
+trim (x, y) (w, h) c = Craphic $ \(x', y') -> 
+    if x' < x || x + w <= x' || y' < y || y + h <= y' then Blank
+                                                      else at c (x', y')
+
+
 changeSGR :: Char -> Filter
 changeSGR sgrs v = Craphic $ \(x, y) -> let o = at v (x, y) in
     case o of Draw c      -> DrawSGR c s

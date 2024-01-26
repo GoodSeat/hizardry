@@ -184,12 +184,48 @@ scene Gilgamesh'sTarvern      _       = const $ translate (0, 2) tarvern
 scene _                       _       = const mempty
 
 
+-- mini map view.
 mapView :: Place
         -> Scenario
         -> Craphic
-mapView place scenario = case place of (InMaze p) -> let m = mazes scenario !! z p in
-                                                     fromTexts '*' $ showMaze (4, 5) p m
-                                       _          -> mempty
+mapView place scenario = case place of
+    (InMaze p) ->
+      let ((w, h), m) = mazes scenario !! z p;
+           vw = 5 * 3 + 1;
+           vh = 5 * 2 + 1;
+           size = (w, h);
+      in text (2, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ")") <>
+         translate (1, 1) ((trim (1, 1) (vw, vh) .
+                            translate (vw `div` 2 - x p * 3 + 1, vh `div` 2 - (h - y p) * 2 - 1))
+                           (fromTextsA '*' 'c' (showMaze size p m))
+                          <> rect (0, 0) (vw + 2, vh + 2) (Draw ' '))
+    _          -> mempty
+
+-- mini map view always draw as seen direction upside.
+mapViewN :: Place
+         -> Scenario
+         -> Craphic
+mapViewN place scenario = case place of
+    (InMaze p) ->
+      let ((w, h), m) = mazes scenario !! z p;
+           vw = 5 * 3 + 1;
+           vh = 5 * 2 + 1;
+           d  = direction p;
+           w' = (case d of Data.Maze.E -> h
+                           Data.Maze.W -> h
+                           _           -> w);
+           h' = (case d of Data.Maze.E -> w
+                           Data.Maze.W -> w
+                           _           -> h);
+           size  = (w,  h );
+           size' = (w', h');
+           p'    = rotatePosition d size p
+      in text (2, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")") <>
+         translate (1, 1) ((trim (1, 1) (vw, vh) .
+                            translate (vw `div` 2 - x p' * 3 + 1, vh `div` 2 - (h' - y p') * 2 - 1))
+                           (fromTextsA '*' 'c' (showMaze size' p' $ rotate d size m))
+                          <> rect (0, 0) (vw + 2, vh + 2) (Draw ' '))
+    _          -> mempty
 
 dunsion :: Position
         -> Bool -- ^ light effect.
@@ -199,9 +235,9 @@ dunsion :: Position
 dunsion p onLight msg scenario = addSGR 'B' $ foldl1 mappend $
     (front <$> [(d, s) | d <-ds, s <- ss]) ++ (dark' <$> [(last ds + 1, s) | s <- ss])
   where
+    (_, m) = mazes scenario !! z p
     ds = if onLight then [0..3] else [0..1]
     ss = if onLight then [0,1,-1,2,-2,3,-3] else [0,1,-1]
-    m = mazes scenario !! z p
     nots0 = noticesInView m p 0 0
     stn0  = if Stone `elem` nots0 then inStone msg else mempty
     front (d, s) = stn0 <> sw <> drk <> fw <> upn <> dwn

@@ -262,7 +262,7 @@ main = do
             , scenarioHome   = inCastle
             , kinds          = [human, elf]
             , jobs           = [fighter, priest, thief]
-            , mazes          = [testMaze, testMaze2]
+            , mazes          = [((4, 5), testMaze), ((6, 5), testMaze2)]
             , encountMap     = Map.fromList [
                   ((1, 1, 0), (10, [EnemyID 1, EnemyID 2]))
                 , ((1, 2, 0), (10, [EnemyID 1, EnemyID 2]))
@@ -754,8 +754,8 @@ rendering picOf s mMsg cMsg cid' picID w = do
           <> (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
           <> (if null cMsg then mempty else cmdBox cMsg )
           <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
-          <> (if guideWindow w then mapView (place w) s else mempty) -- MEMO:forDebug
           <> (if guideWindow w then guide else mempty)
+          <> (if null cMsg && null mMsg && isNothing picID then mapViewN (place w) s else mempty) -- MEMO:forDebug
 --        <> location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
           <> sv
           <> frame
