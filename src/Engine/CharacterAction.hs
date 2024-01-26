@@ -242,16 +242,16 @@ spellInCampNoCost def src dst next = GameAuto $ do
         run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
       Spell.AddLight n s -> setLightValue s n >> run (events [ShowStatus cid "done" SingleKey] next)
       Spell.CheckLocation t -> do
-        p          <- currentPosition
-        ((w,h), m) <- asks ((!! z p) . mazes)
-        let msg = "you are at (" ++ show p ++ "."
+        p              <- currentPosition
+        (fn, (w,h), m) <- asks ((!! z p) . mazes)
+        let msg = "you are at " ++ fn ++ "(" ++ show (x p) ++ ", " ++ show (y p) ++ ": " ++ show (direction p) ++ ")."
         run $ case t of
           Spell.OnlyCoord -> events [ ShowStatus cid msg SingleKey
                                     , ShowStatus cid "done" SingleKey] next
           Spell.ViewMap   -> showMap msg (0, 0) $ events [ShowStatus cid "done" SingleKey] next
 
 showMap :: String -> (Int, Int) -> GameMachine -> GameMachine
-showMap msg (x,y) next = selectEsc (ShowMap (msg ++ "\n^A-^S-^W-^D  ^L)eave `[E`S`C`]") (x,y))
+showMap msg (x,y) next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]") (x,y))
                                    [(Key "l", next)
                                    ,(Key "a", showMap msg (x+1,y) next)
                                    ,(Key "s", showMap msg (x,y-1) next)

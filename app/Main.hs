@@ -263,7 +263,8 @@ main = do
             , scenarioHome   = inCastle
             , kinds          = [human, elf]
             , jobs           = [fighter, priest, thief]
-            , mazes          = [((4, 5), testMaze), ((6, 5), testMaze2)]
+            , mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
+            --, mazes          = [("B1F", (4, 5), testMaze), ("B2F", (6, 5), testMaze2)]
             , encountMap     = Map.fromList [
                   ((1, 1, 0), (10, [EnemyID 1, EnemyID 2]))
                 , ((1, 2, 0), (10, [EnemyID 1, EnemyID 2]))

@@ -9,6 +9,7 @@ import Data.Primitive
 import Data.Characters as Character
 import Data.World
 import Data.Maze
+import Data.Maybe (fromJust)
 import qualified Data.Map as Map
 import qualified Data.Enemies as Enemy
 import qualified Data.Items as Item
@@ -197,17 +198,32 @@ mapViewAll msg place (dx, dy) mvt scenario = case place of
     _            -> mempty
   where
     mapViewAll' p = 
-      let ((w, h), m) = mazes scenario !! z p;
-           vw = 15 * 3 + 1;
-           vh = 15 * 2 + 1;
-           size = (w, h);
-      in translate (0, -4) (msgBox msg) <>
-         frame <>
-         translate (1 + dx, 3 + dy)
-           ((trim (1, 1) (vw, vh) .
-             translate (vw `div` 2 - x p * 3 + 1, vh `div` 2 - (h - y p) * 2 - 1))
-            (noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
-           <> rect (0, 0) (vw + 2, vh + 2) (Draw ' '))
+         translate (0, -4) (msgBox msg) <> frame <>
+         (translate (1 + dx, 3 + dy) .
+          translate (windowW `div` 2 - pcx * 3 + 1, windowH `div` 2 - (h - pcy) * 2 - 2))
+         (coord <> noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
+      where
+        (fn,(w, h), m) = mazes scenario !! z p
+        size = (w, h)
+        pcx  = if w <= 20 then w `div` 2 else x p
+        pcy  = if h <= 16 then h `div` 2 else y p
+        coord = Craphic $ \(sx, sy) ->
+          let cx = sx `div` 3;
+              cy = ((h + 1) * 2 - sy) `div` 2  in
+          if      sy == h * 2 + 2 && cx >=   1 && sx `mod` 3 == 0 && cx <= w then
+            DrawSGR (head $ show cx) (fromJust $ toSGR 'c')
+          else if sy == h * 2 + 3 && cx >=  10 && sx `mod` 3 == 0 && cx <= w then
+            DrawSGR (head $ show $ cx `mod` 10) (fromJust $ toSGR 'c')
+          else if sy == h * 2 + 4 && cx >= 100 && sx `mod` 3 == 0 && cx <= w then
+            DrawSGR (head $ show $ cx `mod` 100) (fromJust $ toSGR 'c')
+          else if sx ==   0  && cy >=   1 && sy `mod` 2 == 0 && cy <= h then
+            DrawSGR (head $ show $ cy `mod`   10) (fromJust $ toSGR 'c')
+          else if sx == (-1) && cy >=  10 && sy `mod` 2 == 0 && cy <= h then
+            DrawSGR (head $ show $ cy `mod`  100) (fromJust $ toSGR 'c')
+          else if sx == (-2) && cy >= 100 && sy `mod` 2 == 0 && cy <= h then
+            DrawSGR (head $ show $ cy `mod` 1000) (fromJust $ toSGR 'c')
+          else
+            Blank
 
 
 -- mini map view.
@@ -217,11 +233,11 @@ mapView :: Place
         -> Craphic
 mapView place mvt scenario = case place of
     (InMaze p) ->
-      let ((w, h), m) = mazes scenario !! z p;
+      let (fn,(w, h), m) = mazes scenario !! z p;
            vw = 5 * 3 + 1;
            vh = 5 * 2 + 1;
            size = (w, h);
-      in text (1, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ")") <>
+      in text (3, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ")") <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
                             translate (vw `div` 2 - x p * 3 + 1, vh `div` 2 - (h - y p) * 2 - 1))
                            (noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
@@ -240,7 +256,7 @@ mapViewN :: Place
          -> Craphic
 mapViewN place mvt scenario = case place of
     (InMaze p) ->
-      let ((w, h), m) = mazes scenario !! z p;
+      let (fn,(w, h), m) = mazes scenario !! z p;
            vw = 5 * 3 + 1;
            vh = 5 * 2 + 1;
            d  = direction p;
@@ -253,7 +269,7 @@ mapViewN place mvt scenario = case place of
            size  = (w,  h );
            size' = (w', h');
            p'    = rotatePosition d size p
-      in text (1, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")") <>
+      in text (3, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")") <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
                             translate (vw `div` 2 - x p' * 3 + 1, vh `div` 2 - (h' - y p') * 2 - 1))
                            (noVisitAreaR mvt d size' (z p') <> fromTextsA '*' 'c' (showMaze size' p' $ rotate d size m))
@@ -279,7 +295,7 @@ dunsion :: Position
 dunsion p onLight superLight msg scenario = addSGR 'B' $ foldl1 mappend $
     (front <$> [(d, s) | d <-ds, s <- ss]) ++ (dark' <$> [(last ds + 1, s) | s <- ss])
   where
-    (_, m) = mazes scenario !! z p
+    (_, _, m) = mazes scenario !! z p
     ds = if onLight || superLight then [0..3] else [0..1]
     ss = if onLight || superLight then [0,1,-1,2,-2,3,-3] else [0,1,-1]
     nots0 = noticesInView m p 0 0

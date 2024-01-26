@@ -50,7 +50,7 @@ data Scenario = Scenario {
     , scenarioHome   :: !GameMachine
     , kinds          :: ![Kind]
     , jobs           :: ![Job]
-    , mazes          :: ![((Int, Int), Maze)]
+    , mazes          :: ![(String, (Int, Int), Maze)]
     , encountMap     ::  Map.Map Coord (Int, [EnemyID])
     , roomBattleMap  ::  Map.Map Coord (Int, [EnemyID])
     , roomDefine     :: [[Coord]]
