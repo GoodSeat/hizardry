@@ -204,14 +204,18 @@ mapView place mvt scenario = case place of
     _          -> mempty
 
 noVisitArea :: Map.Map Coord Bool -> Size -> Int -> Craphic
-noVisitArea mvt size z = fromTextsA ' ' '6' $ makeMazeMask mvt '?' ' ' z size
+noVisitArea mvt size z = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' ' ' z size
+  where
+    isVisited c = Map.lookup c mvt == Just True
+
 
 
 -- mini map view always draw as seen direction upside.
 mapViewN :: Place
+         -> Map.Map Coord Bool
          -> Scenario
          -> Craphic
-mapViewN place scenario = case place of
+mapViewN place mvt scenario = case place of
     (InMaze p) ->
       let ((w, h), m) = mazes scenario !! z p;
            vw = 5 * 3 + 1;
@@ -229,9 +233,18 @@ mapViewN place scenario = case place of
       in text (1, 1) ("(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")") <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
                             translate (vw `div` 2 - x p' * 3 + 1, vh `div` 2 - (h' - y p') * 2 - 1))
-                           (fromTextsA '*' 'c' (showMaze size' p' $ rotate d size m))
+                           (noVisitAreaR mvt d size' (z p') <> fromTextsA '*' 'c' (showMaze size' p' $ rotate d size m))
                           <> rect (0, 0) (vw + 2, vh + 2) (Draw ' '))
     _          -> mempty
+
+
+noVisitAreaR :: Map.Map Coord Bool -> Direction -> Size -> Int -> Craphic
+noVisitAreaR mvt newN size z = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' ' ' z size
+  where
+    isVisited (x, y, z) = let p = Position newN x y z
+                              p'= rotatePositionRev newN size p
+                          in Map.lookup (coordOf p') mvt == Just True
+
 
 dunsion :: Position
         -> Bool -- ^ light effect.

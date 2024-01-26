@@ -52,19 +52,19 @@ rotate newN (w, h) m = \(x, y) ->
                            _           -> h);
         Position _ x' y' _ = rotatePositionRev newN (w', h') (Position N x y 0)
     in rotateGrid newN $ m (x', y')
-  where
-    rotatePositionRev newN (w, h) p
-      | newN == E = let d' = case direction p of N -> W
-                                                 E -> N
-                                                 S -> E
-                                                 W -> S
-                    in  Position d' (y p) (w - x p + 1) (z p)
-      | newN == W = let d' = case direction p of N -> E
-                                                 E -> S
-                                                 S -> W
-                                                 W -> N
-                    in Position d' (h - y p + 1) (x p) (z p)
-      | otherwise = rotatePosition newN (w, h) p
+
+rotatePositionRev newN (w, h) p
+  | newN == E = let d' = case direction p of N -> W
+                                             E -> N
+                                             S -> E
+                                             W -> S
+                in  Position d' (y p) (w - x p + 1) (z p)
+  | newN == W = let d' = case direction p of N -> E
+                                             E -> S
+                                             S -> W
+                                             W -> N
+                in Position d' (h - y p + 1) (x p) (z p)
+  | otherwise = rotatePosition newN (w, h) p
 
 rotatePosition :: Direction -> (Int, Int) -> Position -> Position
 rotatePosition N _ p = p
@@ -305,9 +305,9 @@ walkForward mz p = if visiblityAt mz p 0 0 F == Passage then Just $ moveForward 
 
 -- ==========================================================================
 
-makeMazeMask :: Map.Map Coord Bool -> Char -> Char -> Int -> (Int, Int) -> [String]
-makeMazeMask mvt mask blank z (_, 0) = []
-makeMazeMask mvt mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask mvt mask blank z (w, h - 1)
+makeMazeMask :: (Coord -> Bool) -> Char -> Char -> Int -> (Int, Int) -> [String]
+makeMazeMask isVisited mask blank z (_, 0) = []
+makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask isVisited mask blank z (w, h - 1)
   where
     makeMazeMaskRow :: Int -> Int -> [String]
     makeMazeMaskRow 1 w = [makeMazeMaskCol 1 1 w
@@ -325,7 +325,7 @@ makeMazeMask mvt mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask mvt m
                        ,[w'] ++ v ++ [e]
                        ,[sw] ++ s ++ [se]]
       where
-        isVisited c = Map.lookup c mvt == Just True
+        --isVisited c = Map.lookup c mvt == Just True
         f0  = isVisited (x, y, z)
         fW  = isVisited (x - 1, y, z) || (x <= 1 && f0)
         fE  = isVisited (x + 1, y, z) || (x >= w && f0)

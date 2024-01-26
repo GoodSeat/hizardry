@@ -755,7 +755,7 @@ rendering picOf s mMsg cMsg cid' picID w = do
           <> (if null cMsg then mempty else cmdBox cMsg )
           <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
           <> (if guideWindow w then guide else mempty)
-          <> (if null cMsg && null mMsg && isNothing picID then mapView (place w) (visitHitory w) s else mempty) -- MEMO:forDebug
+          <> (if null cMsg && null mMsg && isNothing picID then mapViewN (place w) (visitHitory w) s else mempty) -- MEMO:forDebug
 --        <> location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
           <> sv
           <> frame
