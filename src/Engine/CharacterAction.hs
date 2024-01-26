@@ -92,7 +92,7 @@ breakItem (prob, to) src i = do
           ix = Chara.itemPosToNum i
           is' = case to of Item.Lost        -> take ix is ++ drop (ix + 1) is
                            Item.ChangeTo i' -> take ix is ++ [i'] ++ drop (ix + 1) is
-      updateCharacter idc (p { Chara.items = is' }) 
+      updateCharacter idc (p { Chara.items = is' })
 
 selectItem :: (String -> Event)
            -> (ItemInf -> Bool)
@@ -118,7 +118,7 @@ selectUseTarget :: (String -> Event)
                 -> (Chara.ItemPos -> SpellTarget -> GameMachine)
                 -> Chara.Character
                 -> Chara.ItemPos
-                -> GameMachine 
+                -> GameMachine
                 -> GameMachine
 selectUseTarget msgForTargeting next c i cancel = GameAuto $ do
     let id = Chara.itemAt c i
@@ -241,6 +241,24 @@ spellInCampNoCost def src dst next = GameAuto $ do
         efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
         run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
       Spell.AddLight n s -> setLightValue s n >> run (events [ShowStatus cid "done" SingleKey] next)
+      Spell.CheckLocation t -> do
+        p          <- currentPosition
+        ((w,h), m) <- asks ((!! z p) . mazes)
+        let msg = "you are at (" ++ show p ++ "."
+        run $ case t of
+          Spell.OnlyCoord -> events [ ShowStatus cid msg SingleKey
+                                    , ShowStatus cid "done" SingleKey] next
+          Spell.ViewMap   -> showMap msg (0, 0) $ events [ShowStatus cid "done" SingleKey] next
+
+showMap :: String -> (Int, Int) -> GameMachine -> GameMachine
+showMap msg (x,y) next = selectEsc (ShowMap (msg ++ "\n^A-^S-^W-^D  ^L)eave `[E`S`C`]") (x,y))
+                                   [(Key "l", next)
+                                   ,(Key "a", showMap msg (x+1,y) next)
+                                   ,(Key "s", showMap msg (x,y-1) next)
+                                   ,(Key "d", showMap msg (x-1,y) next)
+                                   ,(Key "w", showMap msg (x,y+1) next)
+                                   ]
+
 
 castCureSpell :: Spell.Name -> Formula -> [StatusError]
               -> Either Chara.Character Enemy.Instance  -- ^ src

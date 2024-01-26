@@ -190,8 +190,8 @@ main = do
         , Character.equips   = []
 
         , Character.spells   = [SpellID 11, SpellID 21]
-        , Character.mp       = (replicate 7 2, replicate 7 2)
-        , Character.maxmp    = (replicate 7 2, replicate 7 2)
+        , Character.mp       = (replicate 7 7, replicate 7 7)
+        , Character.maxmp    = (replicate 7 7, replicate 7 7)
         }
         testChara2 = testChara1 {
           Character.name     = "FIG2"
@@ -210,7 +210,7 @@ main = do
 
         , Character.job      = priest
         , Character.alignment= Character.N
-        , Character.spells   = [SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 121]
+        , Character.spells   = [SpellID 12, SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 121]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
         testChara4 = testChara1 {
@@ -468,6 +468,17 @@ main = do
                     , Spell.target    = Spell.OpponentSingle
                     , Spell.effect    = Spell.Damage (parse' "1d6")
                     , Spell.enableIn  = [Spell.InBattle]
+                })
+                ,
+                (SpellID 12, Spell.Define {
+                      Spell.name      = "dumapic"
+                    , Spell.kind      = Spell.M
+                    , Spell.lv        = 1
+                    , Spell.attribute = Spell.None
+                    , Spell.target    = Spell.AllyAll
+                    --, Spell.effect    = Spell.CheckLocation Spell.OnlyCoord
+                    , Spell.effect    = Spell.CheckLocation Spell.ViewMap
+                    , Spell.enableIn  = [Spell.InCamp]
                 })
                 ,
                 (SpellID 21, Spell.Define {
@@ -736,18 +747,20 @@ waitKey = do
 -- ==========================================================================
 
 testRender :: (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
-testRender picOf s (Ask m picID)           = testRender picOf s (MessagePic m picID)  
-testRender picOf s (MessageTime _ m picID) = testRender picOf s (MessagePic m picID)  
-testRender picOf s (Message m)             = testRender picOf s (MessagePic m Nothing)
-testRender picOf s (SpellCommand m)        = testRender picOf s (BattleCommand m)     
-testRender picOf s None                    = testRender picOf s (Time 0 Nothing)      
+testRender picOf s (Ask m picID)           w = testRender picOf s (MessagePic m picID) w
+testRender picOf s (MessageTime _ m picID) w = testRender picOf s (MessagePic m picID) w
+testRender picOf s (Message m)             w = testRender picOf s (MessagePic m Nothing) w
+testRender picOf s (SpellCommand m)        w = testRender picOf s (BattleCommand m) w
+testRender picOf s None                    w = testRender picOf s (Time 0 Nothing) w
 
-testRender picOf s (MessagePic m picID)    = rendering  picOf s m  "" Nothing  picID  
-testRender picOf s (BattleCommand m)       = rendering  picOf s "" m  Nothing  Nothing
-testRender picOf s (Time _ picID)          = rendering  picOf s "" "" Nothing  picID  
-testRender picOf s (ShowStatus cid m _)    = rendering  picOf s m  "" (Just cid) Nothing
+testRender picOf s (MessagePic m picID)    w = rendering  picOf s m  "" Nothing  picID w
+testRender picOf s (BattleCommand m)       w = rendering  picOf s "" m  Nothing  Nothing w
+testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" Nothing  picID w
+testRender picOf s (ShowStatus cid m _)    w = rendering  picOf s m  "" (Just cid) Nothing w
 
-testRender _ _ Exit = undefined
+testRender _ s (ShowMap m trans) w = setCursorPosition 0 0 >> render (mapViewAll m (place w) trans (visitHitory w) s)
+
+testRender _ _ Exit w = undefined
 
 -- --------------------------------------------------------------------------
 

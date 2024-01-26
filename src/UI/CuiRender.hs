@@ -186,6 +186,30 @@ scene Gilgamesh'sTarvern      _       _          = const $ translate (0, 2) tarv
 scene _                       _       _          = const mempty
 
 
+-- ========================================================================
+
+-- mapView
+mapViewAll :: String -> Place -> (Int, Int) -> Map.Map Coord Bool -> Scenario -> Craphic
+mapViewAll msg place (dx, dy) mvt scenario = case place of
+    InMaze   p   -> mapViewAll' p
+    Camping  p   -> mapViewAll' p
+    InBattle p _ -> mapViewAll' p
+    _            -> mempty
+  where
+    mapViewAll' p = 
+      let ((w, h), m) = mazes scenario !! z p;
+           vw = 15 * 3 + 1;
+           vh = 15 * 2 + 1;
+           size = (w, h);
+      in translate (0, -4) (msgBox msg) <>
+         frame <>
+         translate (1 + dx, 3 + dy)
+           ((trim (1, 1) (vw, vh) .
+             translate (vw `div` 2 - x p * 3 + 1, vh `div` 2 - (h - y p) * 2 - 1))
+            (noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
+           <> rect (0, 0) (vw + 2, vh + 2) (Draw ' '))
+
+
 -- mini map view.
 mapView :: Place
         -> Map.Map Coord Bool
@@ -244,6 +268,7 @@ noVisitAreaR mvt newN size z = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' '
                               p'= rotatePositionRev newN size p
                           in Map.lookup (coordOf p') mvt == Just True
 
+-- ========================================================================
 
 dunsion :: Position
         -> Bool -- ^ light effect.

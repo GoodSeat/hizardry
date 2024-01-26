@@ -39,6 +39,7 @@ data Event = None
            | BattleCommand String
            | SpellCommand  String
            | ShowStatus    CharacterID String InputType -- ^ target position in party, manu message, next input type.
+           | ShowMap       String (Int, Int)            -- ^ message, translete
     deriving (Show, Eq)
 
 data Option = Option String

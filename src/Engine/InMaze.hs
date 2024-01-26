@@ -12,7 +12,7 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
-import Engine.InEvent (doEvent, setLightValueWith)
+import Engine.InEvent (doEvent, setLightValueWith, setLightValue)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
@@ -68,6 +68,7 @@ enterGrid e probEncount p = GameAuto $ do
     -- TODO!:all character lost if they are in stone.
     lab <- mazeAt $ z p
     let c = coordOf p
+    when (Dark `elem` noticesInView lab p 0 0) $ setLightValue False 0
     encount <- if probEncount then
                  if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
                  else fmap (,False) <$> checkEncount c False

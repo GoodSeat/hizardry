@@ -35,13 +35,13 @@ data CastPlace = InCamp
 
 -- type SpellEffect = 
 -- 
-data Effect = Damage       Formula
-            | Cure         Formula [StatusError]
-            | ChangeAC     Formula
-            | Kill         Formula String -- ^ probability (0~100), message when kill(exp:"is dead").
-            | AddLight     Int Bool -- ^ time, super light or not.
-            | KnowLocation KnowLocationType
-            | Event        GameEventID
+data Effect = Damage        Formula
+            | Cure          Formula [StatusError]
+            | ChangeAC      Formula
+            | Kill          Formula String -- ^ probability (0~100), message when kill(exp:"is dead").
+            | AddLight      Int Bool -- ^ time, super light or not.
+            | CheckLocation CheckLocationType
+            | Event         GameEventID
     deriving (Show)
 
 data TargetType = OpponentSingle
@@ -54,7 +54,7 @@ data TargetType = OpponentSingle
 
 type DB = Map.Map SpellID Define
 
-data KnowLocationType = OnlyCoord | ViewMap deriving (Show, Eq, Read)
+data CheckLocationType = OnlyCoord | ViewMap deriving (Show, Eq, Read)
 
 
 -- | find ID of spell from spell's name.
