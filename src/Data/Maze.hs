@@ -369,12 +369,12 @@ showMaze (w, h) p m = showMazeRow h w p m ++ showMaze (w, h - 1) p m
                            ,[sw] ++ s ++ [se]]
       where
         (x', y', _) = coordOf p
-        v  = if x' == x && y' == y then "@" ++ sm (direction p)
+        v  = if x' == x && y' == y then sm (direction p)
                                    else "  "
-        sm d | d == N    = "^"
-             | d == E    = ">"
-             | d == S    = "v"
-             | d == W    = "<"
+        sm d | d == N    = "@^"
+             | d == E    = "@>"
+             | d == S    = "@v"
+             | d == W    = "<@"
              | otherwise = show d
         g0 = m (x, y)
         gW = m (x - 1, y)

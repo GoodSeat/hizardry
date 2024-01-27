@@ -775,42 +775,42 @@ rendering :: (Maybe PictureID -> Craphic)
           -> IO()
 rendering picOf s mMsg cMsg cid' picID w = do
     setCursorPosition 0 0
-    render $ (if null locationText then mempty else location locationText)
+    render $ (if null locationText         then mempty else location locationText)
           <> (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
-          <> (if null cMsg then mempty else cmdBox cMsg )
-          <> (if statusWindow w && not hideStatus then status (catMaybes ps) else mempty)
-          <> (if guideWindow w then guide else mempty)
+          <> (if null cMsg                 then mempty else cmdBox cMsg )
+          <> (if visibleStatusWindow w && not hideStatus then status (catMaybes ps) else mempty)
+          <> (if visibleGuideWindow w then guide else mempty)
           <> (if null cMsg && null mMsg && isNothing picID then mapViewN (place w) (visitHitory w) s else mempty) -- MEMO:forDebug
 --        <> location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
-          <> sv
+          <> statusScene
           <> frame
           <> enemyScene picOf s (place w)
-          <> treas
+          <> treasureScene
           <> picOf picID
-          <> sceneTrans w (scene (place w) onLight superLight s)
+          <> sceneTrans w (scene (place w) (partyLight w > 0) (partyLight' w > 0) s)
   where
     ps    = flip Map.lookup (allCharacters w) <$> party w
     cs    = allCharacters w
     ess   = case place w of InBattle _ ess' -> ess'
                             _               -> []
-    inBat = case place w of InBattle _ _ -> True
-                            _            -> False
-    treas = case place w of FindTreasureChest _ False -> treasureChest
-                            FindTreasureChest _ True  -> treasure
-                            _                         -> mempty
-    treasOpend = case place w of FindTreasureChest _ True  -> True
-                                 _                         -> False
-    onTreasure = case place w of FindTreasureChest {} -> True
-                                 _                    -> False
+    isInBattle   = case place w of InBattle _ _ -> True
+                                   _            -> False
+    isChestOpend = case place w of FindTreasureChest _ True  -> True
+                                   _                         -> False
+    isOnTreasure = case place w of FindTreasureChest {} -> True
+                                   _                    -> False
+    treasureScene = case place w of FindTreasureChest _ False -> treasureChest
+                                    FindTreasureChest _ True  -> treasure
+                                    _                         -> mempty
+    statusScene   = case cid' of Nothing  -> mempty
+                                 Just cid -> statusView mMsg itemNameOf (cs Map.! cid)
     mMsg' | not (null mMsg) = mMsg
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
-          | onTreasure      = "you found a treasure chest."
+          | isOnTreasure    = "you found a treasure chest."
           | otherwise       = mMsg
-    sv    = case cid' of Nothing  -> mempty
-                         Just cid -> statusView mMsg itemNameOf (cs Map.! cid)
     hideStatus = ((not . null) ess && null cMsg && isNothing cid')
-              || (onTreasure && (not . null) cMsg || treasOpend)
-              || (inBat && null ess)
+              || (isOnTreasure && (not . null) cMsg || isChestOpend)
+              || (isInBattle && null ess)
     txtEnemy (l, es) = let
          e          = head es
          edef       = enemies s Map.! Enemy.id e
@@ -821,8 +821,6 @@ rendering picOf s mMsg cMsg cid' picID w = do
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
     itemNameOf id identified = let def = items s Map.! id in
         (if identified then Item.name else Item.nameUndetermined) def
-    onLight    = partyLight w > 0
-    superLight = partyLight' w > 0
     locationText = if isJust cid' then "" else
                    case place w of InCastle            -> "Castle" 
                                    Gilgamesh'sTarvern  -> "ギルガメッシュの酒場" --"Gilgamesh's Tarvern"
@@ -843,8 +841,8 @@ enemyScene picOf s (InBattle _ (es:_)) =
 enemyScene _ _ _ = mempty
 
 
-statusWindow :: World -> Bool
-statusWindow w = (statusOn w && inMaze) || showStatusAlways
+visibleStatusWindow :: World -> Bool
+visibleStatusWindow w = (statusOn w && inMaze) || showStatusAlways
   where
     inMaze = case place w of InMaze _ -> True
                              _        -> False
@@ -852,9 +850,9 @@ statusWindow w = (statusOn w && inMaze) || showStatusAlways
                                        TrainingGrounds -> False
                                        _               -> True
 
-guideWindow :: World -> Bool
-guideWindow w = let inMaze = case place w of InMaze _ -> True
-                                             _        -> False
+visibleGuideWindow :: World -> Bool
+visibleGuideWindow w = let inMaze = case place w of InMaze _ -> True
+                                                    _        -> False
     in guideOn w && inMaze
 
 -- ==========================================================================

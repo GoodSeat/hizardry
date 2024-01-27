@@ -99,7 +99,7 @@ checkEncount c checkRoomBattle = do
 
 
 ouch :: Position -> GameMachine
-ouch p = select (Message "Ouch !!") $ moves p
+ouch p = select (MessageTime (-500) "Ouch !!" Nothing) $ moves p
 
 moves :: Position -> [(Input, GameMachine)]
 moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
@@ -112,6 +112,7 @@ moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
           ,(Key " "   , select None $ moves p)
           ,(Key "\ESC", select None $ moves p)
+          ,(Clock     , select None $ moves p)
           ]
   where
     goStraight p f = GameAuto $ do
