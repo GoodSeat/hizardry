@@ -31,7 +31,7 @@ import qualified Data.Items as Item
 world :: GameState World
 world = get
 
-option :: GameState Option
+option :: GameState ScenarioOption
 option = asks scenarioOption
 
 home :: GameState GameMachine

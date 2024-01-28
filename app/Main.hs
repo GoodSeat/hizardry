@@ -231,6 +231,10 @@ main = do
         randomGen       = gen
       , guideOn         = True
       , statusOn        = True
+      , option          = WorldOption {
+          effectDumapic = Spell.ViewMap
+        , minimapType   = Normal
+        }
 
       , party           = []
       , place           = InCastle
@@ -257,7 +261,10 @@ main = do
       , eventFlags      = repeat 0
       }
     let cmd = getKey
-        option = Option "Q)uit Game (for Debug!)"
+        option = ScenarioOption {
+          enableEffectDumapic = [Spell.OnlyCoord, Spell.ViewMap]
+        , enableMinimapType   = [Disable, Normal, AlwaysN]
+        }
         scenario = Scenario {
               scenarioOption = option
             , scenarioHome   = inCastle
@@ -759,7 +766,7 @@ testRender picOf s (BattleCommand m)       w = rendering  picOf s "" m  Nothing 
 testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" Nothing  picID w
 testRender picOf s (ShowStatus cid m _)    w = rendering  picOf s m  "" (Just cid) Nothing w
 
-testRender _ s (ShowMap m trans) w = setCursorPosition 0 0 >> render (mapViewAll m (place w) trans (visitHitory w) s)
+testRender _ s (ShowMap m trans) w = setCursorPosition 0 0 >> render (mapView m (place w) trans (visitHitory w) s)
 
 testRender _ _ Exit w = undefined
 
@@ -775,20 +782,21 @@ rendering :: (Maybe PictureID -> Craphic)
           -> IO()
 rendering picOf s mMsg cMsg cid' picID w = do
     setCursorPosition 0 0
-    render $ (if null locationText         then mempty else location locationText)
-          <> (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
-          <> (if null cMsg                 then mempty else cmdBox cMsg )
-          <> (if visibleStatusWindow w && not hideStatus then status (catMaybes ps) else mempty)
-          <> (if visibleGuideWindow w then guide else mempty)
-          <> (if null cMsg && null mMsg && isNothing picID then mapViewN (place w) (visitHitory w) s else mempty) -- MEMO:forDebug
---        <> location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
-          <> statusScene
-          <> frame
-          <> enemyScene picOf s (place w)
-          <> treasureScene
-          <> picOf picID
-          <> sceneTrans w (scene (place w) (partyLight w > 0) (partyLight' w > 0) s)
+    render $ t1 (if null locationText         then mempty else location locationText)
+          <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
+          <> t1 (if null cMsg                 then mempty else cmdBox cMsg )
+          <> t1 (if visibleStatusWindow w && not hideStatus then status (catMaybes ps) else mempty)
+          <> t1 (if visibleGuideWindow w then guide else mempty)
+          <>    (if null cMsg && null mMsg && isNothing picID then minimapScreen else mempty)
+--        <> t1 location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
+          <> t1 statusScene
+          <> t1 frame
+          <> t1 (enemyScene picOf s (place w))
+          <> t1 treasureScene
+          <> t1 (picOf picID)
+          <> t1 (sceneTrans w (scene (place w) (partyLight w > 0) (partyLight' w > 0) s))
   where
+    t1    = translate (1, 1)
     ps    = flip Map.lookup (allCharacters w) <$> party w
     cs    = allCharacters w
     ess   = case place w of InBattle _ ess' -> ess'
@@ -832,6 +840,12 @@ rendering picOf s mMsg cMsg cid' picID w = do
                                    _ -> []
     msgTrans = if null locationText then id else translate (0, 1)
 
+    minimapScreen = case minimapType (option w) of
+                      Disable -> mempty
+                      Normal  -> miniMapView  (place w) (visitHitory w) (6, 6) True s
+                      AlwaysN -> miniMapViewN (place w) (visitHitory w) (6, 6) True s
+                            
+
 enemyScene :: (Maybe PictureID -> Craphic) -> Scenario -> Place -> Craphic
 enemyScene picOf s (InBattle _ (es:_)) =
     let e    = head es
@@ -854,5 +868,7 @@ visibleGuideWindow :: World -> Bool
 visibleGuideWindow w = let inMaze = case place w of InMaze _ -> True
                                                     _        -> False
     in guideOn w && inMaze
+
+
 
 -- ==========================================================================

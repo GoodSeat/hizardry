@@ -42,20 +42,24 @@ data Event = None
            | ShowMap       String (Int, Int)            -- ^ message, translete
     deriving (Show, Eq)
 
-data Option = Option String
+data ScenarioOption = ScenarioOption {
+      enableEffectDumapic :: [Spell.CheckLocationType]
+    , enableMinimapType   :: [MiniMapType]
+    }
+      
 
 -- | scenario immutable data.
 data Scenario = Scenario {
-      scenarioOption :: !Option
+      scenarioOption :: !ScenarioOption
     , scenarioHome   :: !GameMachine
     , kinds          :: ![Kind]
     , jobs           :: ![Job]
     , mazes          :: ![(String, (Int, Int), Maze)]
-    , encountMap     ::  Map.Map Coord (Int, [EnemyID])
-    , roomBattleMap  ::  Map.Map Coord (Int, [EnemyID])
-    , roomDefine     :: [[Coord]]
-    , eventMap       ::  Map.Map Coord GameEventID
-    , eventMapDir    ::  Map.Map Position GameEventID
+    , encountMap     :: !(Map.Map Coord (Int, [EnemyID]))
+    , roomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
+    , roomDefine     :: ![[Coord]]
+    , eventMap       :: !(Map.Map Coord GameEventID)
+    , eventMapDir    :: !(Map.Map Position GameEventID)
     , mazeEvents     :: !GameEvent.DB
     , enemies        :: !Enemy.DB
     , spells         :: !Spell.DB

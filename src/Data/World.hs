@@ -5,9 +5,10 @@ import System.Random
 import qualified Data.Map as Map
 
 import Data.Primitive
+import Data.Maze
 import qualified Data.Characters as Character
 import qualified Data.Enemies as Enemy
-import Data.Maze
+import qualified Data.Spells as Spell
 
 import Control.CUI (Filter)
 
@@ -16,6 +17,7 @@ data World = World {
       randomGen       :: StdGen
     , guideOn         :: !Bool   -- ^ visible guidw window in maze.
     , statusOn        :: !Bool   -- ^ visible status window in maze.
+    , option          :: !WorldOption
 
     , party           :: ![CharacterID]
     , place           :: !Place   -- ^ current party position.
@@ -49,6 +51,12 @@ data Place  = InCastle
             | Camping           Position
     deriving (Show, Eq)
 
+data MiniMapType = Disable | Normal | AlwaysN deriving (Show, Eq, Read)
+      
+data WorldOption = WorldOption {
+      effectDumapic :: !Spell.CheckLocationType
+    , minimapType   :: !MiniMapType
+    }
 
 
 -- TODO!:explicit saving(only in Edge of Town, or Castle. Auto?).
