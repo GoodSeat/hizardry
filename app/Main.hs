@@ -231,7 +231,7 @@ main = do
         randomGen       = gen
       , guideOn         = True
       , statusOn        = True
-      , option          = WorldOption {
+      , worldOption     = WorldOption {
           effectDumapic = Spell.ViewMap
         , minimapType   = Normal
         }
@@ -840,7 +840,7 @@ rendering picOf s mMsg cMsg cid' picID w = do
                                    _ -> []
     msgTrans = if null locationText then id else translate (0, 1)
 
-    minimapScreen = case minimapType (option w) of
+    minimapScreen = case minimapType (worldOption w) of
                       Disable -> mempty
                       Normal  -> miniMapView  (place w) (visitHitory w) (6, 6) True s
                       AlwaysN -> miniMapViewN (place w) (visitHitory w) (6, 6) True s

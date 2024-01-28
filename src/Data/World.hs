@@ -17,7 +17,7 @@ data World = World {
       randomGen       :: StdGen
     , guideOn         :: !Bool   -- ^ visible guidw window in maze.
     , statusOn        :: !Bool   -- ^ visible status window in maze.
-    , option          :: !WorldOption
+    , worldOption     :: !WorldOption
 
     , party           :: ![CharacterID]
     , place           :: !Place   -- ^ current party position.

@@ -110,6 +110,7 @@ moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
           ,(Key "q", exitGame')
           ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
+          ,(Key "m", with [nextMiniMap] (select None $ moves p))
           ,(Key " "   , select None $ moves p)
           ,(Key "\ESC", select None $ moves p)
           ,(Clock     , select None $ moves p)
@@ -131,6 +132,21 @@ moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
             sortPartyAuto
             -- TODO!:if all character dead, move to gameover.
             run $ enterMaybeEncount p'
+
+
+nextMiniMap :: GameState ()
+nextMiniMap = do
+    o  <- minimapType . worldOption <$> world
+    os <- enableMinimapType <$> option
+    let nm = if length os <= 1 then o
+                               else next o os os
+    modify (\w -> w { worldOption = (worldOption w) { minimapType = nm } })
+  where
+    next a org []  = head org
+    next a org [n] = head org
+    next a org (n:ns) | n == a = head ns
+                      | n /= a = next a org ns
+
 
 -- =======================================================================
 
