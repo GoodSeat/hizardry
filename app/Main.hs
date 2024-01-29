@@ -271,7 +271,7 @@ main = do
             , kinds          = [human, elf]
             , jobs           = [fighter, priest, thief]
             --, mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
-            , mazes          = [("B1F", (4, 5), testMaze), ("B2F", (6, 5), testMaze2)]
+            , mazes          = [("B1F", (4, 5), testMaze), ("B2F", (26, 25), testMaze2)]
             , encountMap     = Map.fromList [
                   ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
                 , ((0, 1, 0), (10, [EnemyID 1, EnemyID 2]))

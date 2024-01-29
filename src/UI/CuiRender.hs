@@ -208,19 +208,19 @@ mapView msg place (dx, dy) mvt scenario = case place of
         pcx  = if w <= 20 then w `div` 2 else x p
         pcy  = if h <= 16 then h `div` 2 else y p
         coord = Craphic $ \(sx, sy) ->
-          let cx = sx `div` 3;
-              cy = ((h + 1) * 2 - sy) `div` 2  in
-          if      sy == h * 2 + 2 && cx >=   1 && sx `mod` 3 == 0 && cx <= w then
+          let cx = (sx - 3) `div` 3;
+              cy = (h * 2 - sy) `div` 2  in
+          if      sy == h * 2 + 2 && cx >=   0 && sx `mod` 3 == 0 && cx < w then
             DrawSGR (head $ show cx) (fromJust $ toSGR 'c')
-          else if sy == h * 2 + 3 && cx >=  10 && sx `mod` 3 == 0 && cx <= w then
+          else if sy == h * 2 + 3 && cx >=  10 && sx `mod` 3 == 0 && cx < w then
             DrawSGR (head $ show $ cx `mod` 10) (fromJust $ toSGR 'c')
-          else if sy == h * 2 + 4 && cx >= 100 && sx `mod` 3 == 0 && cx <= w then
+          else if sy == h * 2 + 4 && cx >= 100 && sx `mod` 3 == 0 && cx < w then
             DrawSGR (head $ show $ cx `mod` 100) (fromJust $ toSGR 'c')
-          else if sx ==   0  && cy >=   1 && sy `mod` 2 == 0 && cy <= h then
+          else if sx ==   0  && cy >=   0 && sy `mod` 2 == 0 && cy < h then
             DrawSGR (head $ show $ cy `mod`   10) (fromJust $ toSGR 'c')
-          else if sx == (-1) && cy >=  10 && sy `mod` 2 == 0 && cy <= h then
+          else if sx == (-1) && cy >=  10 && sy `mod` 2 == 0 && cy < h then
             DrawSGR (head $ show $ cy `mod`  100) (fromJust $ toSGR 'c')
-          else if sx == (-2) && cy >= 100 && sy `mod` 2 == 0 && cy <= h then
+          else if sx == (-2) && cy >= 100 && sy `mod` 2 == 0 && cy < h then
             DrawSGR (head $ show $ cy `mod` 1000) (fromJust $ toSGR 'c')
           else
             Blank
