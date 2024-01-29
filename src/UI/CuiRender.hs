@@ -200,7 +200,7 @@ mapView msg place (dx, dy) mvt scenario = case place of
     mapView' p = 
          translate (0, -4) (msgBox msg) <> frame <>
          (translate (1 + dx, 3 + dy) .
-          translate (windowW `div` 2 - pcx * 3 - 2, windowH `div` 2 - (h - pcy) * 2 - 2))
+          translate (windowW `div` 2 - pcx * 3 - 2, windowH `div` 2 - (h - pcy) * 2 + 1))
          (coord <> noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
       where
         (fn,(w, h), m) = mazes scenario !! z p
