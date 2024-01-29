@@ -78,7 +78,7 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
          let next' = with [breakItem bp src i] next
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
-                       Just edef -> run $ doEvent edef next' next'
+                       Just edef -> run $ doEvent edef (const next') (const next')
 useItemInCamp _ _ _ _ = error "invalid useItemInCamp"
 
 

@@ -291,19 +291,13 @@ main = do
                    ])
                 , (GameEventID 020400, Ev.Events [
                      Ev.Select "there is ladder to go down.\n...go down?\n\n(^Y/^N)" Nothing [
-                       ("y", Ev.Events [
-                           Ev.StairsToLower (1, 3, 1)
-                         , Ev.End
-                         ])
+                       ("y", Ev.StairsToLower (1, 3, 1) <> Ev.End)
                      , ("n", Ev.Escape)
                      ]
                    ])
                 , (GameEventID 020401, Ev.Events [
                      Ev.Select "there is ladder to go up.\n...go up?\n\n(^Y/^N)" Nothing [
-                       ("y", Ev.Events [
-                           Ev.StairsToUpper (1, 3, 0)
-                         , Ev.End
-                         ])
+                       ("y", Ev.StairsToUpper (1, 3, 0) <> Ev.End)
                      , ("n", Ev.Escape)
                      ]
                    ])
@@ -756,15 +750,16 @@ waitKey = do
 
 testRender :: (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
 testRender picOf s (Ask m picID)           w = testRender picOf s (MessagePic m picID) w
-testRender picOf s (MessageTime _ m picID) w = testRender picOf s (MessagePic m picID) w
+testRender picOf s (MessageTime t m picID) w = if t < 0 && length (lines m) <= 1 then rendering picOf s "" m "" Nothing picID w
+                                                                                 else testRender picOf s (MessagePic m picID) w
 testRender picOf s (Message m)             w = testRender picOf s (MessagePic m Nothing) w
 testRender picOf s (SpellCommand m)        w = testRender picOf s (BattleCommand m) w
 testRender picOf s None                    w = testRender picOf s (Time 0 Nothing) w
 
-testRender picOf s (MessagePic m picID)    w = rendering  picOf s m  "" Nothing  picID w
-testRender picOf s (BattleCommand m)       w = rendering  picOf s "" m  Nothing  Nothing w
-testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" Nothing  picID w
-testRender picOf s (ShowStatus cid m _)    w = rendering  picOf s m  "" (Just cid) Nothing w
+testRender picOf s (MessagePic m picID)    w = rendering  picOf s m "" ""  Nothing  picID w
+testRender picOf s (BattleCommand m)       w = rendering  picOf s "" "" m  Nothing  Nothing w
+testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" "" Nothing  picID w
+testRender picOf s (ShowStatus cid m _)    w = rendering  picOf s m "" ""  (Just cid) Nothing w
 
 testRender _ s (ShowMap m trans) w = setCursorPosition 0 0 >> render (mapView m (place w) trans (visitHitory w) s)
 
@@ -775,15 +770,17 @@ testRender _ _ Exit w = undefined
 rendering :: (Maybe PictureID -> Craphic)
           -> Scenario
           -> String -- ^ message on MessageBox
+          -> String -- ^ message on FlashMessageBox
           -> String -- ^ message on CommandBox
           -> Maybe CharacterID -- ^ inspection view target.
           -> Maybe PictureID
           -> World
           -> IO()
-rendering picOf s mMsg cMsg cid' picID w = do
+rendering picOf s mMsg fMsg cMsg cid' picID w = do
     setCursorPosition 0 0
     render $ t1 (if null locationText         then mempty else location locationText)
           <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
+          <> t1 (if null fMsg                 then mempty else flashMsgBox fMsg)
           <> t1 (if null cMsg                 then mempty else cmdBox cMsg )
           <> t1 (if visibleStatusWindow w && not hideStatus then status (catMaybes ps) else mempty)
           <> t1 (if visibleGuideWindow w then guide else mempty)

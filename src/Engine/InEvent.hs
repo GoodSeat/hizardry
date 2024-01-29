@@ -18,43 +18,46 @@ import Control.CUI (translate)
 
 -- =======================================================================
 
-doEvent :: Ev.Define -> GameMachine -> GameMachine -> GameMachine
-doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
+doEvent :: Ev.Define -> (Bool -> GameMachine) -> (Bool -> GameMachine) -> GameMachine
+doEvent = doEventInner True
+
+doEventInner :: Bool -> Ev.Define -> (Bool -> GameMachine) -> (Bool -> GameMachine) -> GameMachine
+doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
   where
-    doEvent' :: Ev.Define -> GameMachine -> GameMachine
+    doEvent' :: Ev.Define -> (Bool -> GameMachine) -> GameMachine
     -- moving
-    doEvent' Ev.ReturnCastle next = GameAuto $ do
+    doEvent' Ev.ReturnCastle _ = GameAuto $ do
         toCastle <- home
         returnToCastle >> run toCastle
     doEvent' (Ev.MoveTo (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
         when (z' /= z p) resetRoomBattle
-        movePlace (InMaze p') >> run next
+        movePlace (InMaze p') >> run (next isHidden)
     doEvent' (Ev.StairsToUpper (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
         when (z' /= z p) resetRoomBattle
-        run $ events' (updownEffect p' True) next
+        run $ events' (updownEffect p' True) (next False)
     doEvent' (Ev.StairsToLower (x', y', z')) next = GameAuto $ do
         p <- currentPosition
         let p' = p { x = x', y = y', z = z' }
         when (z' /= z p) resetRoomBattle
-        run $ events' (updownEffect p' False) next
+        run $ events' (updownEffect p' False) (next False)
 
     -- interactive
-    doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] next
+    doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] (next False)
     doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
-      where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
+      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
     doEvent' (Ev.Ask msg picID ways) next = select (Ask msg picID) ss
-      where ss = (\(m, edef) -> (Key m, doEvent edef whenEscape whenEnd)) <$> ways
+      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
     -- in battle
 
     -- happens
-    doEvent' (Ev.Switch []) next = next
+    doEvent' (Ev.Switch []) next = next isHidden
     doEvent' (Ev.Switch (c:cs)) next = GameAuto $ do
       match <- matchCondition (fst c)
-      run $ if match then doEvent' (snd c) next
+      run $ if match then doEvent' (snd c)        next
                      else doEvent' (Ev.Switch cs) next
 
     doEvent' (Ev.ChangeEventFlag idx f) next = GameAuto $ do
@@ -64,18 +67,18 @@ doEvent edef whenEscape whenEnd = doEvent' edef $ doEvent' Ev.Escape undefined
       map <- addEvFlagToFormulaMap $ Ev.formulaMapParty os
       n   <- evalWith map f
       modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
-      run next
+      run $ next isHidden
 
 
     -- others
     doEvent' (Ev.Reference eid) next = GameAuto $ do
       evDB  <- asks mazeEvents
-      case Map.lookup eid evDB of Nothing   -> run next
+      case Map.lookup eid evDB of Nothing   -> run $ next isHidden
                                   Just edef -> run $ doEvent' edef next
-    doEvent' Ev.End _    = whenEnd
-    doEvent' Ev.Escape _ = whenEscape
-    doEvent' (Ev.Events [])        next = next
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ doEvent' (Ev.Events es) next
+    doEvent' Ev.End    _ = whenEnd    isHidden
+    doEvent' Ev.Escape _ = whenEscape isHidden
+    doEvent' (Ev.Events [])        next = next isHidden
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' (Ev.Events es) whenEscape whenEnd
 
 
 matchCondition :: Ev.Condition -> GameState Bool

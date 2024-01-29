@@ -33,6 +33,16 @@ msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
     ls = lines m
     toText (n, t) = textSGR (9, 5 + n) (toTextMessage t) (toTextSGR t)
 
+flashMsgBox :: String -> Craphic
+flashMsgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
+             <> rect (x, y) (lg + 2, length ls + 2) (Draw ' ')
+  where
+    ls = lines m
+    lg = maximum $ length . toTextMessage <$> ls
+    x  = (windowW - lg) `div` 2 - 1
+    y  = 14
+    toText (n, t) = textSGR (x, y + n) (toTextMessage t) (toTextSGR t)
+
 cmdBox :: String -> Craphic
 cmdBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
         <> rect (45, 15) (26, 10) (Draw ' ')

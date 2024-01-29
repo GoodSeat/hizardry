@@ -25,20 +25,20 @@ exitGame' = GameAuto $ return (Exit, const exitGame')
 -- =======================================================================
 -- depends on Scenario.
 
-enterWithoutEncount :: Position -> GameMachine
-enterWithoutEncount p = GameAuto $ do
+enterWithoutEncount :: Event -> Position -> GameMachine
+enterWithoutEncount evMoved p = GameAuto $ do
   ev <- eventOn p
-  run $ enterGrid ev False p
+  run $ enterGrid ev False evMoved p
 
-enterMaybeEncount :: Position -> GameMachine
-enterMaybeEncount p = GameAuto $ do
+enterMaybeEncount :: Event -> Position -> GameMachine
+enterMaybeEncount evMoved p = GameAuto $ do
   ev <- eventOn p
-  run $ enterGrid ev True p
+  run $ enterGrid ev True evMoved p
 
-enterMaybeEncount' :: Position -> GameMachine
-enterMaybeEncount' p = GameAuto $ do
+enterMaybeEncount' :: Event -> Position -> GameMachine
+enterMaybeEncount' evMoved p = GameAuto $ do
   ev <- eventOn' p
-  run $ enterGrid ev True p
+  run $ enterGrid ev True evMoved p
 
 eventOn :: Position -> GameState (Maybe Ev.Define)
 eventOn p = do
@@ -60,9 +60,10 @@ eventOn' p = do
 
 enterGrid :: Maybe Ev.Define -- ^ happened event.
           -> Bool            -- ^ probably encount enemy.
+          -> Event           -- ^ event when moved.
           -> Position        -- ^ moved position.
           -> GameMachine
-enterGrid e probEncount p = GameAuto $ do
+enterGrid e probEncount evMoved p = GameAuto $ do
     movePlace $ InMaze p
     modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
     -- TODO!:all character lost if they are in stone.
@@ -73,9 +74,9 @@ enterGrid e probEncount p = GameAuto $ do
                  if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
                  else fmap (,False) <$> checkEncount c False
                else return Nothing
-    case e of Just edef -> run $ doEvent edef escapeEvent endEvent
+    case e of Just edef -> run $ doEvent edef (escapeEvent evMoved) (endEvent evMoved)
               Nothing   -> case encount of
-                Nothing         -> run $ with [updateRoomVisit] (select None $ moves p)
+                Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
                 Just (ei, isRB) -> run $ encountEnemy ei isRB
               
 
@@ -99,11 +100,14 @@ checkEncount c checkRoomBattle = do
 
 
 ouch :: Position -> GameMachine
-ouch p = select (MessageTime (-500) "Ouch !!" Nothing) $ moves p
+ouch p = select (MessageTime (-500) " Ouch !! " Nothing) $ moves p
+
+flashMoveView :: String -> Event
+flashMoveView s = MessageTime (-100) s Nothing
 
 moves :: Position -> [(Input, GameMachine)]
-moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
-          ,(Key "d", enterMaybeEncount' $ turnRight p)
+moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
+          ,(Key "d", enterMaybeEncount' (flashMoveView " -> ") $ turnRight p)
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
@@ -131,7 +135,7 @@ moves p = [(Key "a", enterMaybeEncount' $ turnLeft p)
               updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
             sortPartyAuto
             -- TODO!:if all character dead, move to gameover.
-            run $ enterMaybeEncount p'
+            run $ enterMaybeEncount (flashMoveView " 1  ") p'
 
 
 nextMiniMap :: GameState ()
@@ -151,8 +155,8 @@ nextMiniMap = do
 -- =======================================================================
 
 encountEnemy :: EnemyID -> Bool -> GameMachine
-encountEnemy id isRB = startBattle id isRB (with [updateRoomVisit] escapeEvent
-                                           ,with [when isRB backfoward] escapeEvent)
+encountEnemy id isRB = startBattle id isRB (with [updateRoomVisit] (escapeEvent None False)
+                                           ,with [when isRB backfoward] (escapeEvent None False))
 
 updateRoomVisit :: GameState ()
 updateRoomVisit = do
@@ -168,7 +172,7 @@ openCamp p = GameAuto $ do
     movePlace (Camping p)
     np <- length . party <$> world
     run $ selectWhenEsc (Message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
-          [(Key "l", enterWithoutEncount p, True)
+          [(Key "l", enterWithoutEncount None p, True)
           ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
           ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
           ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)
@@ -177,15 +181,17 @@ openCamp p = GameAuto $ do
           ,(Key "6", inspectCharacter (openCamp p) True B6, np >= 6)
           ]
 
-endEvent :: GameMachine
-endEvent = GameAuto $ do
+endEvent :: Event -> Bool -> GameMachine
+endEvent ev isHidden = GameAuto $ do
     p <- currentPosition
-    run $ enterWithoutEncount p
+    run $ if isHidden then enterWithoutEncount ev   p
+                      else enterWithoutEncount None p
 
-escapeEvent :: GameMachine
-escapeEvent = GameAuto $ do
+escapeEvent :: Event -> Bool -> GameMachine
+escapeEvent ev isHidden = GameAuto $ do
     p <- currentPosition
-    run $ enterGrid Nothing False p
+    run $ if isHidden then enterGrid Nothing False ev p
+                      else enterGrid Nothing False None p
 
 backfoward :: GameState ()
 backfoward = sortPartyAuto >> ((movePlace . InMaze) . moveBack =<< currentPosition)
