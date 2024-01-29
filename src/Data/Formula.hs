@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Data.Formula (
       Formula
     , Data.Formula.parse
@@ -7,6 +8,7 @@ module Data.Formula (
 
 import System.Random
 import Text.ParserCombinators.Parsec hiding (token)
+import Text.Parsec.Expr
 import qualified Data.Map as Map
 import Control.Applicative ((<*>), (<*), (*>))
 import qualified Control.Monad.State as State
@@ -14,6 +16,9 @@ import Control.Monad.Except
 
 main = do
     print $ Data.Formula.parse "(5+2)*2+3d2"
+    print $ Data.Formula.parse "(1-7+50)*100/70"
+    print $ Data.Formula.parse "min(1,3)"
+    print $ Data.Formula.parse "min(agi*6, 95)"
 
 parse :: String -> Either ParseError Formula
 parse = Text.ParserCombinators.Parsec.parse cmpr ""
@@ -36,19 +41,19 @@ parse' s = case Data.Formula.parse s of Right f -> f
  -}
 
 -- | type of operator.
-data Operator = Equal
-              | LesserThan
-              | LesserOrEqual
-              | GreaterThan
-              | GreaterOrEqual
-              | Addition
-              | Subtraction
-              | Production
-              | Division
-              | Surplus
+data OperatorKind = Equal
+                  | LesserThan
+                  | LesserOrEqual
+                  | GreaterThan
+                  | GreaterOrEqual
+                  | Addition
+                  | Subtraction
+                  | Production
+                  | Division
+                  | Surplus
   deriving Eq
 
-instance Show Operator where
+instance Show OperatorKind where
     show Equal          = "="
     show LesserThan     = "<"
     show LesserOrEqual  = "<="
@@ -62,7 +67,7 @@ instance Show Operator where
 
 -- | formula expression.
 data Formula = Value Int
-             | Operate Operator Formula Formula
+             | Operate OperatorKind Formula Formula
              | Variable String
              | Dice Int Int
              | MinOf Formula Formula
@@ -77,25 +82,18 @@ instance Show Formula where
     show (MinOf n m)     = "min(" ++ show n ++ "," ++ show m ++ ")"
     show (MaxOf n m)     = "max(" ++ show n ++ "," ++ show m ++ ")"
 
-cmpr :: GenParser Char st Formula
-cmpr =  try (Operate Equal          <$> token expr <*> (char '=' >> token cmpr))
-    <|> try (Operate LesserThan     <$> token expr <*> (char '<' >> token cmpr))
-    <|> try (Operate LesserOrEqual  <$> token expr <*> (string "<=" >> token cmpr))
-    <|> try (Operate GreaterThan    <$> token expr <*> (char '>' >> token cmpr))
-    <|> try (Operate GreaterOrEqual <$> token expr <*> (string ">=" >> token cmpr))
-    <|> token expr
-
-expr :: GenParser Char st Formula
-expr =  try (Operate Addition    <$> token term <*> (char '+' >> token expr))
-    <|> try (Operate Subtraction <$> token term <*> (char '-' >> token expr))
-    <|> token term
-
-term :: GenParser Char st Formula
-term =  try (Operate Production <$> token factor <*> (char '*' >> token term))
-    <|> try (Operate Division   <$> token factor <*> (char '/' >> token term))
-    <|> try (Operate Surplus    <$> token factor <*> (char '%' >> token term))
-    <|> token factor
-
+cmpr = buildExpressionParser table factor <?> "expression"
+  where
+    table = [
+             [binary "*" (Operate Production ) AssocLeft, binary "/"  (Operate Division      ) AssocLeft, binary "%" (Operate Surplus   ) AssocLeft]
+            ,[binary "+" (Operate Addition   ) AssocLeft, binary "-"  (Operate Subtraction   ) AssocLeft]
+            ,[binary "=" (Operate Equal      ) AssocLeft
+             ,binary "<" (Operate LesserThan ) AssocLeft, binary "<=" (Operate LesserOrEqual ) AssocLeft
+             ,binary ">" (Operate GreaterThan) AssocLeft, binary ">=" (Operate GreaterOrEqual) AssocLeft
+             ]
+            ]
+    binary mark fun = Infix (string mark >> return fun)
+   
 factor :: GenParser Char st Formula
 factor =  (char '(' *> token cmpr <* char ')')
       <|> try dice
@@ -120,10 +118,10 @@ dice :: GenParser Char st Formula
 dice = Dice <$> natural <*> (char 'd' >> natural)
 
 minOf :: GenParser Char st Formula
-minOf = MinOf <$> (string "min(" *> expr) <*> (char ',' *> expr) <* token (char ')')
+minOf = MinOf <$> (string "min(" *> token cmpr) <*> (char ',' *> token cmpr) <* token (char ')')
 
 maxOf :: GenParser Char st Formula
-maxOf = MaxOf <$> (string "max(" *> expr) <*> (char ',' *> expr) <* token (char ')')
+maxOf = MaxOf <$> (string "max(" *> token cmpr) <*> (char ',' *> token cmpr) <* token (char ')')
 
 -- ================================================================================
 
