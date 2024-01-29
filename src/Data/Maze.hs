@@ -58,12 +58,12 @@ rotatePositionRev newN (w, h) p
                                              E -> N
                                              S -> E
                                              W -> S
-                in  Position d' (y p) (w - x p + 1) (z p)
+                in  Position d' (y p) (w - x p - 1) (z p)
   | newN == W = let d' = case direction p of N -> E
                                              E -> S
                                              S -> W
                                              W -> N
-                in Position d' (h - y p + 1) (x p) (z p)
+                in Position d' (h - y p - 1) (x p) (z p)
   | otherwise = rotatePosition newN (w, h) p
 
 rotatePosition :: Direction -> (Int, Int) -> Position -> Position
@@ -73,17 +73,17 @@ rotatePosition newN (w, h) p
                                              E -> W
                                              W -> E
                                              S -> N
-                in Position d' (w - x p + 1) (h - y p + 1) (z p)
+                in Position d' (w - x p - 1) (h - y p - 1) (z p)
   | newN == E = let d' = case direction p of N -> W
                                              E -> N
                                              S -> E
                                              W -> S
-                in Position d' (h - y p + 1) (x p) (z p)
+                in Position d' (h - y p - 1) (x p) (z p)
   | newN == W = let d' = case direction p of N -> E
                                              E -> S
                                              S -> W
                                              W -> N
-                in  Position d' (y p) (w - x p + 1) (z p)
+                in  Position d' (y p) (w - x p - 1) (z p)
   | otherwise = undefined
 
 rotateGrid :: Direction -> Grid -> Grid
@@ -119,17 +119,17 @@ rotateGrid newN (Grid (fN, fE, fS, fW) ns)
  -  _ : floor face notice.
 
 0     -- -- -- --
-9 5  |     K  |[]|
+9 4  |     K  |[]|
 8        ^-    --
-7 4  |  |  >  |##|
+7 3  |  |  >  |##|
 6           ^^
-5 3  |  D     =##|
+5 2  |  D     =##|
 4     ++           
-3 2  |  |     |  |
+3 1  |  |     |  |
 2        v- vv    
-1 1  |~ <  *  |_ |
+1 0  |~ <  *  |_ |
 0     -- -- -- --
-      1  2  3  4
+      0  1  2  3
      0123456789012
 -}
 fromText :: [String]   -- ^ text lines to parse.
@@ -137,8 +137,8 @@ fromText :: [String]   -- ^ text lines to parse.
          -> Maze
 fromText ls (w, h) (x, y) = Grid (fn, fe, fs, fw) ntc
   where
-    x' = (x - 1) `mod` w + 1
-    y' = (y - 1) `mod` h + 1
+    x' = x `mod` w + 1
+    y' = y `mod` h + 1
     ts = blockText ls (x', y')
     fn = topWallFromText  N (ts !! 6, ts !! 7)
     fe = sideWallFromText E (ts !! 5)
@@ -307,17 +307,17 @@ walkForward mz p = if visiblityAt mz p 0 0 F == Passage then Just $ moveForward 
 
 makeMazeMask :: (Coord -> Bool) -> Char -> Char -> Int -> (Int, Int) -> [String]
 makeMazeMask isVisited mask blank z (_, 0) = []
-makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask isVisited mask blank z (w, h - 1)
+makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow (h - 1) w ++ makeMazeMask isVisited mask blank z (w, h - 1)
   where
     makeMazeMaskRow :: Int -> Int -> [String]
-    makeMazeMaskRow 1 w = [makeMazeMaskCol 1 1 w
-                          ,makeMazeMaskCol 2 1 w
-                          ,makeMazeMaskCol 3 1 w]
-    makeMazeMaskRow y w = [makeMazeMaskCol 1 y w
-                          ,makeMazeMaskCol 2 y w]
+    makeMazeMaskRow 0 w = [makeMazeMaskCol 1 0 (w - 1)
+                          ,makeMazeMaskCol 2 0 (w - 1)
+                          ,makeMazeMaskCol 3 0 (w - 1)]
+    makeMazeMaskRow y w = [makeMazeMaskCol 1 y (w - 1)
+                          ,makeMazeMaskCol 2 y (w - 1)]
         
     makeMazeMaskCol :: Int -> Int -> Int -> String
-    makeMazeMaskCol n y 1 = makeMask' (1, y) !! (n - 1)
+    makeMazeMaskCol n y 0 = makeMask' (0, y) !! (n - 1)
     makeMazeMaskCol n y x = makeMazeMaskCol n y (x - 1) ++ tail (makeMask' (x, y) !! (n - 1))
     
     makeMask' :: (Int, Int) -> [String]
@@ -326,10 +326,10 @@ makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask
                        ,[sw] ++ s ++ [se]]
       where
         f0  = isVisited (x, y, z)
-        fW  = isVisited (x - 1, y, z) || (x <= 1 && f0)
-        fE  = isVisited (x + 1, y, z) || (x >= w && f0)
-        fN  = isVisited (x, y + 1, z) || (y >= h && f0)
-        fS  = isVisited (x, y - 1, z) || (y <= 1 && f0)
+        fW  = isVisited (x - 1, y, z) || (x <= 0     && f0)
+        fE  = isVisited (x + 1, y, z) || (x >= w - 1 && f0)
+        fN  = isVisited (x, y + 1, z) || (y >= h - 1 && f0)
+        fS  = isVisited (x, y - 1, z) || (y <= 0     && f0)
         fNW = isVisited (x - 1, y + 1, z)
         fNE = isVisited (x + 1, y + 1, z)
         fSE = isVisited (x + 1, y - 1, z)
@@ -348,18 +348,18 @@ makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow h w ++ makeMazeMask
 
 showMaze :: (Int, Int) -> Position -> Maze -> [String]
 showMaze (_, 0) p _ = []
-showMaze (w, h) p m = showMazeRow h w p m ++ showMaze (w, h - 1) p m
+showMaze (w, h) p m = showMazeRow (h - 1) w p m ++ showMaze (w, h - 1) p m
 
   where
     showMazeRow :: Int -> Int -> Position -> Maze -> [String]
-    showMazeRow 1 w p m = [showMazeCol 1 1 w p m
-                          ,showMazeCol 2 1 w p m
-                          ,showMazeCol 3 1 w p m]
-    showMazeRow y w p m = [showMazeCol 1 y w p m
-                          ,showMazeCol 2 y w p m]
+    showMazeRow 0 w p m = [showMazeCol 1 0 (w - 1) p m
+                          ,showMazeCol 2 0 (w - 1) p m
+                          ,showMazeCol 3 0 (w - 1) p m]
+    showMazeRow y w p m = [showMazeCol 1 y (w - 1) p m
+                          ,showMazeCol 2 y (w - 1) p m]
     
     showMazeCol :: Int -> Int -> Int -> Position -> Maze -> String
-    showMazeCol n y 1 p m = showMaze' (1, y) p m !! (n - 1)
+    showMazeCol n y 0 p m = showMaze' (0, y) p m !! (n - 1)
     showMazeCol n y x p m = showMazeCol n y (x - 1) p m ++ tail (showMaze' (x, y) p m !! (n - 1))
     
     

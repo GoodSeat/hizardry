@@ -34,7 +34,7 @@ enteringMaze :: GameMachine
 enteringMaze = with [movePlace EnteringMaze] (events [msg] $ openCamp p)
   where
     msg = MessageTime (-1500) "\n\n  *** Entering Test Maze... *** \n\n\n" Nothing
-    p   = Position { direction = N, x = 1, y = 1, z = 0 }
+    p   = Position { direction = N, x = 0, y = 0, z = 0 }
 
 -- =======================================================================
 

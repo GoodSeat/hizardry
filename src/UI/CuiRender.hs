@@ -200,7 +200,7 @@ mapView msg place (dx, dy) mvt scenario = case place of
     mapView' p = 
          translate (0, -4) (msgBox msg) <> frame <>
          (translate (1 + dx, 3 + dy) .
-          translate (windowW `div` 2 - pcx * 3 + 1, windowH `div` 2 - (h - pcy) * 2 - 2))
+          translate (windowW `div` 2 - pcx * 3 - 2, windowH `div` 2 - (h - pcy) * 2 - 2))
          (coord <> noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
       where
         (fn,(w, h), m) = mazes scenario !! z p
@@ -242,9 +242,9 @@ miniMapView place mvt (viewW, viewH) isTransparent scenario = case place of
            filter    = if isTransparent then addSGR 'c' else id;
            rectBack  = if isTransparent then Blank      else Draw ' ';
            blankChar = if isTransparent then ' '        else '*'
-      in filter (text (3, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ")")) <>
+      in filter (text (1, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ")")) <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
-                            translate (vw `div` 2 - x p * 3 + 1, vh `div` 2 - (h - y p) * 2 - 1))
+                            translate (vw `div` 2 - x p * 3 - 2, vh `div` 2 - (h - y p) * 2 + 1))
                            (noVisitArea mvt size (z p) <> fromTextsA blankChar 'c' (showMaze size p m))
                           <> filter (rect (0, 0) (vw + 2, vh + 2) rectBack))
     _          -> mempty
@@ -279,9 +279,9 @@ miniMapViewN place mvt (viewW, viewH) isTransparent scenario = case place of
            filter    = if isTransparent then addSGR 'c' else id;
            rectBack  = if isTransparent then Blank      else Draw ' ';
            blankChar = if isTransparent then ' '        else '*'
-      in filter (text (3, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")")) <>
+      in filter (text (1, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")")) <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
-                            translate (vw `div` 2 - x p' * 3 + 1, vh `div` 2 - (h' - y p') * 2 - 1))
+                            translate (vw `div` 2 - x p' * 3 - 2, vh `div` 2 - (h' - y p') * 2 + 1))
                            (noVisitAreaR mvt d size' (z p') <> fromTextsA blankChar 'c' (showMaze size' p' $ rotate d size m))
                           <> filter (rect (0, 0) (vw + 2, vh + 2) Blank))
     _          -> mempty

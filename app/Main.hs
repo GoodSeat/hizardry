@@ -270,18 +270,18 @@ main = do
             , scenarioHome   = inCastle
             , kinds          = [human, elf]
             , jobs           = [fighter, priest, thief]
-            , mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
-            --, mazes          = [("B1F", (4, 5), testMaze), ("B2F", (6, 5), testMaze2)]
+            --, mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
+            , mazes          = [("B1F", (4, 5), testMaze), ("B2F", (6, 5), testMaze2)]
             , encountMap     = Map.fromList [
-                  ((1, 1, 0), (10, [EnemyID 1, EnemyID 2]))
+                  ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((0, 1, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((0, 2, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((0, 3, 0), (10, [EnemyID 1, EnemyID 2]))
+                , ((0, 4, 0), (10, [EnemyID 1, EnemyID 2]))
                 , ((1, 2, 0), (10, [EnemyID 1, EnemyID 2]))
-                , ((1, 3, 0), (10, [EnemyID 1, EnemyID 2]))
-                , ((1, 4, 0), (10, [EnemyID 1, EnemyID 2]))
-                , ((1, 5, 0), (10, [EnemyID 1, EnemyID 2]))
-                , ((2, 3, 0), (10, [EnemyID 1, EnemyID 2]))
                 ]
             , roomBattleMap  = Map.fromList [
-                  ((2, 3, 0), (75, [EnemyID 1, EnemyID 2]))
+                  ((1, 2, 0), (75, [EnemyID 1, EnemyID 2]))
                 ]
             , roomDefine = []
             , mazeEvents = Map.fromList [
@@ -292,7 +292,7 @@ main = do
                 , (GameEventID 020400, Ev.Events [
                      Ev.Select "there is ladder to go down.\n...go down?\n\n(^Y/^N)" Nothing [
                        ("y", Ev.Events [
-                           Ev.StairsToLower (2, 4, 1)
+                           Ev.StairsToLower (1, 3, 1)
                          , Ev.End
                          ])
                      , ("n", Ev.Escape)
@@ -301,7 +301,7 @@ main = do
                 , (GameEventID 020401, Ev.Events [
                      Ev.Select "there is ladder to go up.\n...go up?\n\n(^Y/^N)" Nothing [
                        ("y", Ev.Events [
-                           Ev.StairsToUpper (2, 4, 0)
+                           Ev.StairsToUpper (1, 3, 0)
                          , Ev.End
                          ])
                      , ("n", Ev.Escape)
@@ -377,18 +377,18 @@ main = do
 
                 ]
             , eventMap = Map.fromList [
-                  ((1, 1, 0), GameEventID 010100)
-                , ((2, 4, 0), GameEventID 020400)
-                , ((2, 4, 1), GameEventID 020401)
-                , ((1, 1, 1), GameEventID 010101)
+                  ((0, 0, 0), GameEventID 010100)
+                , ((1, 3, 0), GameEventID 020400)
+                , ((1, 3, 1), GameEventID 020401)
+                , ((0, 0, 1), GameEventID 010101)
                 ]
             , eventMapDir = Map.fromList [
-                  (Position W 1 5 0, GameEventID 01050101)
-                , (Position N 1 5 0, GameEventID 01050102)
-                , (Position S 1 5 0, GameEventID 01050103)
-                , (Position E 1 5 0, GameEventID 01050104)
-                , (Position E 2 5 0, GameEventID 01050105)
-                , (Position N 2 5 0, GameEventID 01050106)
+                  (Position W 0 4 0, GameEventID 01050101)
+                , (Position N 0 4 0, GameEventID 01050102)
+                , (Position S 0 4 0, GameEventID 01050103)
+                , (Position E 0 4 0, GameEventID 01050104)
+                , (Position E 1 4 0, GameEventID 01050105)
+                , (Position N 1 4 0, GameEventID 01050106)
                 ]
             , enemies        = Map.fromList [
                 (EnemyID 1, Enemy.Define {
