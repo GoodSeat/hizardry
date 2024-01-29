@@ -40,6 +40,11 @@ home = asks scenarioHome
 err :: String -> GameState a
 err = throwError
 
+msgDebug :: String -> GameState ()
+msgDebug t = do
+    w <- world
+    when (debugMode w) $ put w { debugMessage = t : debugMessage w }
+
 -- =================================================================================
 
 eval :: Formula -> GameState Int
@@ -50,6 +55,7 @@ evalWith m f = do
     w <- world
     let (res, g') = evalFormula m f $ randomGen w
     put w { randomGen = g' }
+    msgDebug $ "    " ++ show f ++ " = " ++ show res
     case res of Right i   -> return i
                 Left  msg -> err msg
 

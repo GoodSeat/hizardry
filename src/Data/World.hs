@@ -35,6 +35,9 @@ data World = World {
 
     , sceneTrans      :: Filter
     , eventFlags      :: [Int] -- ^ global flag for event.
+
+    , debugMode       :: !Bool
+    , debugMessage    :: ![String]
 } -- deriving (Show)
 
 data Place  = InCastle

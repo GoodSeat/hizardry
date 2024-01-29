@@ -114,13 +114,13 @@ effectTrap i Enemy.GasBomb = do
       when hit $ updateCharacterWith i (addPoison 1)
     return ("Ooops!! Gas Bomb!!", Nothing)
 effectTrap i Enemy.CrossbowBolt = do
-    floor <- Maze.z <$> currentPosition
+    floor <- (+1) . Maze.z <$> currentPosition
     dmg <- eval (parse' $ show floor ++ "d8")
     updateCharacterWith i (damageHp dmg)
     return ("Ooops!! Crossbow Bolt!!", Nothing)
 effectTrap i Enemy.ExplodingBox = do
     ps    <- party <$> world
-    floor <- Maze.z <$> currentPosition
+    floor <- (+1) . Maze.z <$> currentPosition
     forM_ ps $ \i -> do
       hit <- happens 75
       flg <- happens 66

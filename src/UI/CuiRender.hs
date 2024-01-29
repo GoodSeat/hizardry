@@ -18,13 +18,11 @@ import qualified Data.Items as Item
 windowW = 75
 windowH = 40
 
-render :: Craphic -> IO ()
-render = draw (windowW + 2, windowH + 2)
+debugWindowH = 10
 
---txts :: Craphic -> [String]
---txts c = do
---  l <- [1..windowH]
---  return $ concat [show $ at c (col, l) | col <- [1..windowW]]
+render :: Bool -> Craphic -> IO ()
+render showDebugWindow = if showDebugWindow then draw (windowW + 2, windowH + 2 + (debugWindowH + 3))
+                                            else draw (windowW + 2, windowH + 2)
 
 msgBox :: String -> Craphic
 msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
@@ -49,6 +47,16 @@ cmdBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
   where
     ls = lines m
     toText (n, t) = textSGR (46, 15 + n) (toTextMessage t) (toTextSGR t)
+
+debugWindow :: [String] -> Craphic
+debugWindow ls = if null ls then mempty else
+                 addSGR 'y' $ text (2, windowH + 3) "<< Debug Window >>"
+                           <> foldl (<>) mempty (fmap toText (zip [1..] $ take h ls))
+                           <> rect (1, windowH + 3) (windowW, h + 2) (Draw ' ')
+  where
+    h = debugWindowH
+    toText (n, t) = text (2, windowH + 3 + n) t
+
 
 
 toTextMessage :: String -> String
@@ -344,7 +352,7 @@ dunsion p onLight superLight msg scenario = addSGR 'B' $ foldl1 mappend $
 -- ========================================================================
 
 frame :: Craphic
-frame = fromTexts '*'
+frame = fromTexts '*' $
   ["                                                                             "  --   1
   ," +-----------------------------------------------------------------------+   "  --   2
   ," |***********************************************************************|   "  --   3
@@ -387,6 +395,9 @@ frame = fromTexts '*'
   ,"                                                                             "  --  40
   ,"                                                                             "  --  41
   ,"                                                                             "] --  42
+  ++
+  replicate 20 "                                                                             "
+
 guide :: Craphic
 guide = fromTextsSGR '*'
   ["*********+-------------------------------------------------------+********"  --  1

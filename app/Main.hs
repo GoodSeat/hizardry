@@ -259,6 +259,9 @@ main = do
                             ]
       , sceneTrans      = id
       , eventFlags      = repeat 0
+
+      , debugMode       = True -- MEMO:forDebug
+      , debugMessage    = []
       }
     let cmd = getKey
         option = ScenarioOption {
@@ -761,7 +764,7 @@ testRender picOf s (BattleCommand m)       w = rendering  picOf s "" "" m  Nothi
 testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" "" Nothing  picID w
 testRender picOf s (ShowStatus cid m _)    w = rendering  picOf s m "" ""  (Just cid) Nothing w
 
-testRender _ s (ShowMap m trans) w = setCursorPosition 0 0 >> render (mapView m (place w) trans (visitHitory w) s)
+testRender _ s (ShowMap m trans) w = setCursorPosition 0 0 >> render (debugMode w) (mapView m (place w) trans (visitHitory w) s)
 
 testRender _ _ Exit w = undefined
 
@@ -778,7 +781,8 @@ rendering :: (Maybe PictureID -> Craphic)
           -> IO()
 rendering picOf s mMsg fMsg cMsg cid' picID w = do
     setCursorPosition 0 0
-    render $ t1 (if null locationText         then mempty else location locationText)
+    render (debugMode w)
+           $ t1 (if null locationText         then mempty else location locationText)
           <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
           <> t1 (if null fMsg                 then mempty else flashMsgBox fMsg)
           <> t1 (if null cMsg                 then mempty else cmdBox cMsg )
@@ -787,6 +791,7 @@ rendering picOf s mMsg fMsg cMsg cid' picID w = do
           <>    (if null cMsg && null mMsg && isNothing picID then minimapScreen else mempty)
 --        <> t1 location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
           <> t1 statusScene
+          <> t1 (debugWindow $ debugMessage w) -- MEMO:forDebug
           <> t1 frame
           <> t1 (enemyScene picOf s (place w))
           <> t1 treasureScene
