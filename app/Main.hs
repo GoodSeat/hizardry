@@ -306,12 +306,84 @@ main = do
                    ])
                 , (GameEventID 010101, Ev.Events [
                      Ev.Ask "what's your name?" (Just $ PictureID 1001) [
-                       ("werdna", Ev.Events [
-                           Ev.Message "OH MY GOD!" (Just $ PictureID 1002)
-                         ])
+                       ("werdna", Ev.Message "OH MY GOD!" (Just $ PictureID 1002))
                      , ("", Ev.Message "who?" (Just $ PictureID 1001))
                      ]
                    ])
+
+                -- like NPC
+                , (GameEventID 010102, 
+                     Ev.Message "何者かが近づいてきた。" Nothing
+                  <> Ev.Message "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ PictureID 1002)
+                  <> Ev.Reference (GameEventID 010104)
+                   )
+                , (GameEventID 010104, 
+                     Ev.Select "Party's Option\n  ^T)alk  ^L)eave" (Just $ PictureID 1002)
+                     [("l", Ev.Message "さらばだ！！" (Just $ PictureID 1002))
+                     ,("t", Ev.Reference (GameEventID 010103))
+                     ]
+                   )
+                , (GameEventID 010103, Ev.Ask "何について話す？ (say \"bye\" to exit.)" (Just $ PictureID 1002)
+                     [ ("hello", Ev.Message "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ PictureID 1002)
+                              <> Ev.Reference (GameEventID 010103))
+                     , ("hi"   , Ev.Message "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ PictureID 1002)
+                              <> Ev.Reference (GameEventID 010103))
+                     , ("name" , Ev.Message "名前はまだない。" (Just $ PictureID 1002)
+                              <> Ev.Reference (GameEventID 010103))
+                     , ("haskell", Ev.Message "Haskellはこの世界を作っている言語だ。\nつまり神の言語だ!!" (Just $ PictureID 1002)
+                                <> Ev.Reference (GameEventID 010103))
+                     , ("god", Ev.Message "まぁよく分からず言っている。" (Just $ PictureID 1002)
+                            <> Ev.Reference (GameEventID 010103))
+                     , ("神", Ev.Message "まぁよく分からず言っている。" (Just $ PictureID 1002)
+                            <> Ev.Reference (GameEventID 010103))
+                     , ("fight", Ev.Message "私は平和主義者だ。\n戦いは好まない。" (Just $ PictureID 1002)
+                              <> Ev.Reference (GameEventID 010103))
+                     , ("dance"  , Ev.MessageTime "\nそれなら知っている.\n" (Just $ PictureID 1002) (-500)
+                                <> Ev.MessageTime "\nそれなら知っている..\n" (Just $ PictureID 1002) (-500)
+                                <> Ev.MessageTime "\nそれなら知っている...\n" (Just $ PictureID 1002) (-500)
+                                <> Ev.MessageTime "\nWNWSEENE\n\nだ。" (Just $ PictureID 1002) 500
+                                <> Ev.Message "これをある場所で踏むのだ。" (Just $ PictureID 1002)
+                                <> Ev.Reference (GameEventID 010103))
+                     , ("place" ,  Ev.Message "自分で探すのだ!" (Just $ PictureID 1002)
+                                <> Ev.Reference (GameEventID 010103))
+
+                     , ("goodbye", Ev.Message "またいつでも来ると良い!!" (Just $ PictureID 1002) <> Ev.Reference (GameEventID 010104))
+                     , ("bye"    , Ev.Message "またいつでも来ると良い!!" (Just $ PictureID 1002) <> Ev.Reference (GameEventID 010104))
+                     , ("castle" , Ev.Select "なんだ、城に帰りたいのか？\n(^Y/^N)" (Just $ PictureID 1002)
+                                   [("y",
+                                        Ev.MessageTime "\nちょっと待っとれ."   (Just $ PictureID 1002) (500)
+                                     <> Ev.MessageTime "\nちょっと待っとれ.."  (Just $ PictureID 1002) (500)
+                                     <> Ev.MessageTime "\nちょっと待っとれ..." (Just $ PictureID 1002) (500)
+                                     <> Ev.MessageTime "\nM" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMA" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAP" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPI" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPIL" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO " (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO M" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MA" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAH" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHA" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAM" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA " (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA D" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DI" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DIL" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DILO" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DILOM" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DILOMA" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DILOMAT" (Just $ PictureID 1002) (-10)
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DILOMAT!!" (Just $ PictureID 1002) 750
+                                     <> Ev.MessageTime "\nMAPILO MAHAMA DILOMAT!! だったかな?" (Just $ PictureID 1002) 500 <> Ev.ReturnCastle)
+                                   ,("n",
+                                       Ev.Message "そうなの?" (Just $ PictureID 1002) <> Ev.Reference (GameEventID 010103))
+                                   ])
+                     , ("", Ev.Message "それは知らない..." (Just $ PictureID 1002)
+                         <> Ev.Reference (GameEventID 010103))
+                     ]
+                  )
 
                 -- dance event on (1, 5, 0)
                 --         WNWSE->NE
@@ -378,6 +450,7 @@ main = do
                 , ((1, 3, 0), GameEventID 020400)
                 , ((1, 3, 1), GameEventID 020401)
                 , ((0, 0, 1), GameEventID 010101)
+                , ((3, 0, 1), GameEventID 010102)
                 ]
             , eventMapDir = Map.fromList [
                   (Position W 0 4 0, GameEventID 01050101)

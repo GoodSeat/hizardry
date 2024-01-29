@@ -47,6 +47,7 @@ doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
 
     -- interactive
     doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] (next False)
+    doEvent' (Ev.MessageTime msg picID t) next = events [MessageTime t msg picID] (next False)
     doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
       where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
     doEvent' (Ev.Ask msg picID ways) next = select (Ask msg picID) ss

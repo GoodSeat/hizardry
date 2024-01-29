@@ -36,7 +36,7 @@ flashMsgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
              <> rect (x, y) (lg + 2, length ls + 2) (Draw ' ')
   where
     ls = lines m
-    lg = maximum $ length . toTextMessage <$> ls
+    lg = maximum $ len . toTextMessage <$> ls
     x  = (windowW - lg) `div` 2 - 1
     y  = 14
     toText (n, t) = textSGR (x, y + n) (toTextMessage t) (toTextSGR t)
