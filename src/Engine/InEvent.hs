@@ -50,8 +50,16 @@ doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
     doEvent' (Ev.MessageTime msg picID t) next = events [MessageTime t msg picID] (next False)
     doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
       where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
-    doEvent' (Ev.Ask msg picID ways) next = select (Ask msg picID) ss
+    doEvent' (Ev.Ask msg picID ways)    next = select (Ask msg picID) ss
       where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
+
+    doEvent' (Ev.MessageT dt msg picID) next = talk msg dt picID (next False)
+    doEvent' (Ev.MessageTimeT dt msg picID t) next = talkSelect msg dt picID $ const (events [MessageTime t msg picID] (next False))
+    doEvent' (Ev.SelectT dt msg picID ways) next = talkSelect msg dt picID (flip select ss)
+      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
+    doEvent' (Ev.AskT dt msg picID ways)    next = talkSelect msg dt picID $ const (select (Ask msg picID) ss)
+      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
+
     -- in battle
 
     -- happens
@@ -80,6 +88,7 @@ doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
     doEvent' Ev.Escape _ = whenEscape isHidden
     doEvent' (Ev.Events [])        next = next isHidden
     doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' (Ev.Events es) whenEscape whenEnd
+    doEvent' _ next = undefined
 
 
 matchCondition :: Ev.Condition -> GameState Bool

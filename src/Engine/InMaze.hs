@@ -100,10 +100,10 @@ checkEncount c checkRoomBattle = do
 
 
 ouch :: Position -> GameMachine
-ouch p = select (MessageTime (-500) " Ouch !! " Nothing) $ moves p
+ouch p = select (FlashMessage (-500) " Ouch !! ") $ moves p
 
 flashMoveView :: String -> Event
-flashMoveView s = MessageTime (-100) s Nothing
+flashMoveView = FlashMessage (-100)
 
 moves :: Position -> [(Input, GameMachine)]
 moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)

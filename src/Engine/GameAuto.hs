@@ -35,6 +35,7 @@ data Event = None
            | Ask           String (Maybe PictureID)
            | MessageTime   Int String (Maybe PictureID) -- ^ negative wait time means enable to skip by key input
            | Time          Int        (Maybe PictureID) -- ^ negative wait time means enable to skip by key input
+           | FlashMessage  Int String                   -- ^ negative wait time means enable to skip by key input
 
            | BattleCommand String
            | SpellCommand  String
@@ -129,6 +130,7 @@ stepGame s w g =
                                        SpellCommand _          -> SequenceKey
                                        ShowStatus _ _ i'       -> i'
                                        MessageTime n _ _       -> WaitClock n 
+                                       FlashMessage n _        -> WaitClock n 
                                        Time n _                -> WaitClock n
                                        Engine.GameAuto.Ask _ _ -> SequenceKey
                                        _                       -> SingleKey
@@ -174,6 +176,22 @@ select1 e ns = selectWhen1 e $ map (\(i, g) -> (i, g, True)) ns
 
 selectEsc :: Event -> [(Input, GameMachine)] -> GameMachine
 selectEsc e ns = selectWhenEsc e $ map (\(i, g) -> (i, g, True)) ns
+
+-- --------------------------------------------------------------------------
+
+talk :: String -> Int -> Maybe PictureID -> GameMachine -> GameMachine
+talk msg t picID next = talkSelect msg t picID (\ev -> events [ev] next)
+
+-- | negative time means enable skip.
+talkSelect :: String -> Int -> Maybe PictureID -> (Event -> GameMachine) -> GameMachine
+talkSelect msg t picID lastStep = ac msgs
+  where
+    msgs = reverse $ reverse <$> foldr (\c acc -> (c:head acc):acc) [[]] (reverse msg)
+    lstep = lastStep $ MessagePic msg picID
+    ac ms = let nstep = if length ms <= 1 then lstep else ac (tail ms);
+                cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)]
+            in select (MessageTime t (head ms) picID) cs
+
 
 -- ==========================================================================
 

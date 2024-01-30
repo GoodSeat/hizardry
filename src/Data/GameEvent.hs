@@ -20,6 +20,11 @@ data Define =
             | Select      String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
             | Ask         String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
 
+            | MessageT     Int String (Maybe PictureID)
+            | MessageTimeT Int String (Maybe PictureID) Int
+            | SelectT      Int String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
+            | AskT         Int String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
+
             -- in battle
             | AsSpell SpellID
 
