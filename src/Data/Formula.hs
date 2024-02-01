@@ -13,12 +13,17 @@ import qualified Data.Map as Map
 import Control.Applicative ((<*>), (<*), (*>))
 import qualified Control.Monad.State as State
 import Control.Monad.Except
+import Text.Read (Read(readsPrec))
 
 main = do
     print $ Data.Formula.parse "(5+2)*2+3d2"
     print $ Data.Formula.parse "(1-7+50)*100/70"
     print $ Data.Formula.parse "min(1,3)"
     print $ Data.Formula.parse "min(agi*6, 95)"
+    let f = read "min(agi*6, 95)" :: Formula
+    print f
+    let fs = read "[min(agi*6, 95),(5+2)*2+3d2]" :: [Formula]
+    print fs
 
 parse :: String -> Either ParseError Formula
 parse = Text.ParserCombinators.Parsec.parse cmpr ""
@@ -81,6 +86,19 @@ instance Show Formula where
     show (Dice n m)      = show n ++ "d" ++ show m
     show (MinOf n m)     = "min(" ++ show n ++ "," ++ show m ++ ")"
     show (MaxOf n m)     = "max(" ++ show n ++ "," ++ show m ++ ")"
+
+instance Read Formula where
+    readsPrec n t = let t' = takeNextComma t 0;
+                        f' = Data.Formula.parse t'
+                    in case f' of Right f -> [(f, drop (length t') t)]
+                                  _       -> []
+      where
+        takeNextComma (',':_)  0 = []
+        takeNextComma (']':_)  _ = []
+        takeNextComma ('(':cs) n = '(' : takeNextComma cs (n + 1)
+        takeNextComma (')':cs) n = ')' : takeNextComma cs (n - 1)
+        takeNextComma (c:cs)   n =  c  : takeNextComma cs n
+        takeNextComma []       _ = []
 
 cmpr = buildExpressionParser table factor <?> "expression"
   where
