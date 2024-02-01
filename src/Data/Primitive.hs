@@ -10,37 +10,37 @@ import Data.List (delete, find)
 
 newtype CharacterID = CharacterID {
     characterId :: Int
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Read)
 
 
 newtype ItemID = ItemID {
       itemId     :: Int  -- ^ identify number.
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Read)
 
 data ItemInf = ItemInf {
       itemID     :: ItemID
     , identified :: Bool -- ^ already identified or not.
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Read)
 
 
 newtype EnemyID = EnemyID {
     enemyID :: Int
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Read)
 
 
 newtype SpellID = SpellID {
     spellId :: Int -- ^ identify number.
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Read)
 
 
 newtype GameEventID = GameEventID {
     mazeEventID :: Int
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Read)
 
 
 newtype PictureID = PictureID {
     pictureID :: Int
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Read)
 
 
 -- ==========================================================================
@@ -59,7 +59,7 @@ data StatusError = Silence
                  | Dead
                  | Ash
                  | Lost
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 -- | define of character's parameter.
 data Parameter = Parameter {
@@ -69,7 +69,7 @@ data Parameter = Parameter {
     , vitality :: !Int -- ^ vitality
     , agility  :: !Int -- ^ agility
     , luck     :: !Int -- ^ luck
-} deriving (Show, Eq)
+} deriving (Show, Eq, Read)
 
 emptyParam :: Parameter
 emptyParam = Parameter { strength = 0
@@ -122,7 +122,7 @@ prevPartyPos B6 = Just B5
 
 -- | position in enemy line groups.
 data EnemyLine = L1 | L2 | L3 | L4
-  deriving (Show, Ord, Eq)
+  deriving (Show, Ord, Eq, Read)
 
 toEnemyLine :: HasCallStack => Int -> EnemyLine
 toEnemyLine 1 = L1

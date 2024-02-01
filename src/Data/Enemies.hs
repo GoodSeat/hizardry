@@ -45,6 +45,7 @@ data Define = Define {
     , resistError       :: ![(StatusError, Int)]
     , resistAttributes  :: ![Spell.Attribute]
     , weakAttributes    :: ![Spell.Attribute]
+    , attrLabels        :: ![String]
 
     , actions           :: ![Action]
 

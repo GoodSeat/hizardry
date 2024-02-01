@@ -2,7 +2,9 @@ module Data.Items
 where
 
 import Data.Primitive
+import Data.Formula
 import qualified Data.Map as Map
+import qualified Data.Spells as Spell
 
 
 type Name = String
@@ -32,12 +34,13 @@ data Effect =
     deriving (Show, Eq)
 
 data EquipObject =
-      Weapon 
-    | Shield      Int -- ^ ac
-    | Helmet      Int -- ^ ac
-    | Armor       Int -- ^ ac
-    | Gantlett    Int -- ^ ac
-    | Accessories Int -- ^ ac
+      Weapon      !EquipBaseAttr
+                  !WeaponAttr
+    | Shield      !EquipBaseAttr -- ^ ac
+    | Helmet      !EquipBaseAttr -- ^ ac
+    | Armor       !EquipBaseAttr -- ^ ac
+    | Gantlett    !EquipBaseAttr -- ^ ac
+    | Accessories !EquipBaseAttr -- ^ ac
     deriving (Show, Eq)
 
 data UserType = All | Only [String] -- ^ job names
@@ -54,6 +57,22 @@ data Attribute =
     | Heal Int Bool -- ^ heal or damege HP (it's value, only when equip)
     deriving (Show, Eq)
 
+
+data EquipBaseAttr = EquipBaseAttr {
+      ac               :: !Int -- ^ ac
+    , st               :: !Int -- ^ st
+    , at               :: !Int -- ^ at
+    , resistLabels     :: ![String] -- ^ half shield damage attrLabels.
+    , resistAttributes :: ![Spell.Attribute] -- ^ resistAttributes
+    , weakAttributes   :: ![Spell.Attribute] -- ^ weakAttributes
+} deriving (Show, Eq, Read)
+
+data WeaponAttr = WeaponAttr {
+      targetF      :: ![EnemyLine]  -- ^ enable target enemy line in front.
+    , targetB      :: ![EnemyLine]  -- ^ enable target enemy line in back.
+    , damage       :: !Formula      -- ^ damage per hit.
+    , doubleLabels :: ![String]     -- ^ double damage target attrLabels.
+} deriving (Show, Eq, Read)
         
 
 -- | data base of items.
@@ -65,8 +84,8 @@ type DB = Map.Map ItemID Define
 
 isWeapon :: Define -> Bool
 isWeapon def = case equipType def of
-                 Just Weapon -> True
-                 _           -> False
+                 Just (Weapon _ _) -> True
+                 _                 -> False
 
 isShield :: Define -> Bool
 isShield def = case equipType def of

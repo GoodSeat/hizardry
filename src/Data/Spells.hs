@@ -10,7 +10,7 @@ import Data.Formula
 
 type Name = String
 
-data Kind = M | P deriving (Show, Eq)
+data Kind = M | P deriving (Show, Eq, Read)
 
 data Define = Define {
       name       :: Name        -- ^ name of spell.
@@ -20,17 +20,17 @@ data Define = Define {
     , target     :: TargetType  -- ^ type of target.
     , effect     :: Effect      -- ^ type of effect.
     , enableIn   :: [CastPlace] -- ^ place enable to cast.
-} deriving (Show)
+} deriving (Show, Eq, Read)
 
 data Attribute = None
                | Fire
                | Frost
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data CastPlace = InCamp
                | InCastle
                | InBattle
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 
 -- type SpellEffect = 
@@ -42,7 +42,7 @@ data Effect = Damage        Formula
             | AddLight      Int Bool -- ^ time, super light or not.
             | CheckLocation CheckLocationType
             | Event         GameEventID
-    deriving (Show)
+    deriving (Show, Eq, Read)
 
 data TargetType = OpponentSingle
                 | OpponentGroup
@@ -50,7 +50,7 @@ data TargetType = OpponentSingle
                 | AllySingle
                 | AllyGroup
                 | AllyAll
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 type DB = Map.Map SpellID Define
 

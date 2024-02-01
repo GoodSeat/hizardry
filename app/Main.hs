@@ -463,6 +463,7 @@ main = do
                     , Enemy.resistError       = [(Dead, 6)]
                     , Enemy.resistAttributes  = []
                     , Enemy.weakAttributes    = []
+                    , Enemy.attrLabels        = []
 
                     , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3") []]
 
@@ -498,6 +499,7 @@ main = do
                     , Enemy.resistError       = [(Dead, 12)]
                     , Enemy.resistAttributes  = []
                     , Enemy.weakAttributes    = []
+                    , Enemy.attrLabels        = ["beast"]
 
                     , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
                                                 ,Enemy.Spelling (parse' "11")
@@ -659,7 +661,21 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just Item.Weapon
+                    , Item.equipType        = Just $ Item.Weapon
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = 0
+                                                       , Item.st = 4
+                                                       , Item.at = 0
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
+                                                     Item.WeaponAttr {
+                                                         Item.targetF      = [L1, L2]
+                                                       , Item.targetB      = []
+                                                       , Item.damage       = read "1d8"
+                                                       , Item.doubleLabels = []
+                                                     }
                     , Item.valueInShop      = 500
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
                     , Item.enableToUse      = Item.All
@@ -672,7 +688,15 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.equipType        = Just $ Item.Shield
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = -2
+                                                       , Item.st = 0
+                                                       , Item.at = 0
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
                     , Item.valueInShop      = 500
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
                     , Item.enableToUse      = Item.All
@@ -685,7 +709,15 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.equipType        = Just $ Item.Shield
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = -2
+                                                       , Item.st = 0
+                                                       , Item.at = 0
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
                     , Item.enableToUse      = Item.All
@@ -698,7 +730,15 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.equipType        = Just $ Item.Shield
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = -2
+                                                       , Item.st = 0
+                                                       , Item.at = 0
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
                     , Item.enableToUse      = Item.All
@@ -711,7 +751,15 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.equipType        = Just $ Item.Shield
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = -2
+                                                       , Item.st = 0
+                                                       , Item.at = 0
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
                     , Item.enableToUse      = Item.All
@@ -724,7 +772,15 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.equipType        = Just $ Item.Shield
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = -2
+                                                       , Item.st = 0
+                                                       , Item.at = 0
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
                     , Item.enableToUse      = Item.All
@@ -737,7 +793,15 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield (-2)
+                    , Item.equipType        = Just $ Item.Shield
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = -2
+                                                       , Item.st = 0
+                                                       , Item.at = 0
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
                     , Item.enableToUse      = Item.All
