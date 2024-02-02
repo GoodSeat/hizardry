@@ -34,13 +34,13 @@ data Effect =
     deriving (Show, Eq)
 
 data EquipObject =
-      Weapon      !EquipBaseAttr
-                  !WeaponAttr
-    | Shield      !EquipBaseAttr -- ^ ac
-    | Helmet      !EquipBaseAttr -- ^ ac
-    | Armor       !EquipBaseAttr -- ^ ac
-    | Gantlett    !EquipBaseAttr -- ^ ac
-    | Accessories !EquipBaseAttr -- ^ ac
+      Weapon     !EquipBaseAttr
+                 !WeaponAttr
+    | Shield     !EquipBaseAttr
+    | Helmet     !EquipBaseAttr
+    | Armour     !EquipBaseAttr
+    | Gauntlet   !EquipBaseAttr
+    | Accessory  !EquipBaseAttr
     deriving (Show, Eq)
 
 data UserType = All | Only [String] -- ^ job names
@@ -97,19 +97,19 @@ isHelmet def = case equipType def of
                  Just (Helmet _) -> True
                  _               -> False
 
-isArmor :: Define -> Bool
-isArmor def = case equipType def of
-                Just (Armor _) -> True
-                _              -> False
+isArmour :: Define -> Bool
+isArmour def = case equipType def of
+                Just (Armour _) -> True
+                _               -> False
 
-isGantlett :: Define -> Bool
-isGantlett def = case equipType def of
-                   Just (Gantlett _) -> True
+isGauntlet :: Define -> Bool
+isGauntlet def = case equipType def of
+                   Just (Gauntlet _) -> True
                    _                 -> False
 
 isAccessory :: Define -> Bool
 isAccessory def = case equipType def of
-                    Just (Accessories _) -> True
-                    _                    -> False
+                    Just (Accessory _) -> True
+                    _                  -> False
 
 

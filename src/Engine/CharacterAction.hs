@@ -42,8 +42,8 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "u", selectItem sItem identified (selectUseTarget sCast (useItemInCamp i cancel)) c cancel, True)
                       : (Key "d", selectDropItem dItem i c cancel, True)
 -- TODO               : (Key "t", selectTradeItem dItem i c cancel, True)
--- TODO               : (Key "e", equip dItem i c cancel, True)
--- TODO               : (Key "r", readSpell dItem i c cancel, True)
+                      : (Key "e", equip           dItem i c cancel, True)
+-- TODO               : (Key "r", readSpell       dItem i c cancel, True)
                       : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
                       : cmdsInspect
   where
@@ -142,14 +142,64 @@ selectDropItem msgForSelect src =
   where
     drop :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     drop c i cancel = GameAuto $ do
-                        def <- itemByID $ Chara.itemAt c i
-                        if Item.CantDrop `elem` Item.attributes def then
-                          run $ events [msgForSelect "you cannot drop it."] (selectDropItem msgForSelect src c cancel)
-                        else
-                          run $ with [dropItem src i] cancel
+        let inf     = Chara.itemInfAt c i
+            isEquip = inf `elem` Chara.equips c && (length . filter (==inf)) (Chara.items c) <= 1
+        def <- itemByID $ Chara.itemAt c i
+        run $ if Item.CantDrop `elem` Item.attributes def then
+                events [msgForSelect "you cannot drop it."] (selectDropItem msgForSelect src c cancel)
+              else if isEquip then
+                events [msgForSelect "you are equippped with it."] (selectDropItem msgForSelect src c cancel)
+              else
+                with [dropItem src i] cancel
 
 dropItem :: PartyPos -> Chara.ItemPos -> GameState ()
 dropItem = breakItem (100, Item.Lost)
+
+-- =================================================================================
+-- for equipment.
+-- ---------------------------------------------------------------------------------
+equip :: (String -> Event)
+      -> PartyPos
+      -> Chara.Character
+      -> GameMachine
+      -> GameMachine
+equip msgForSelect src c = equip' msgForSelect src c [(Item.isWeapon, "weapon")
+                                                     ,(Item.isShield, "shield")
+                                                     ,(Item.isHelmet, "helmet")
+                                                     ,(Item.isArmour, "armour")
+                                                     ,(Item.isGauntlet, "gauntlet")
+                                                     ,(Item.isAccessory, "accessory")
+                                                     ]
+equip' :: (String -> Event)
+       -> PartyPos
+       -> Chara.Character
+       -> [(Item.Define -> Bool, String)]
+       -> GameMachine
+       -> GameMachine
+equip' _ _ _ [] next = next
+equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
+    let ids = itemID <$> filter identified (Chara.items c)
+    items <- mapM itemByID ids
+    let idset = zip ids items
+        tgts = filter (isTarget . snd) idset
+    run $ if null tgts then equip' msgForSelect src c rest next
+          else selectItem (const $ msgForSelect $ "Select equip " ++ typeText ++ "(^A~^J).\n  N)o equip. `[`E`S`C`]")
+                          ((`elem` (fst <$> tgts)) . itemID) selectEq c (eq Nothing)
+  where
+    selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine 
+    selectEq c pos next = eq $ Just (Chara.itemInfAt c pos) 
+
+    eq :: Maybe ItemInf -> GameMachine
+    eq item = GameAuto $ do
+      cid <- characterIDInPartyAt src
+      let es  = Chara.equips c
+      items <- mapM itemByID (itemID <$> es)
+      let es'  = snd <$> filter (not . isTarget. fst) (zip items es)
+          es'' = case item of Nothing -> es'
+                              Just i  -> i : es'
+      updateCharacter cid $ c { Chara.equips = es'' }
+      run $ equip' msgForSelect src c rest next
+
 
 -- =================================================================================
 -- for spelling.

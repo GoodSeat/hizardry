@@ -27,8 +27,8 @@ data Character = Character {
     , rips         :: !Int            -- ^ count of dead.
     , statusErrors :: ![StatusError]  -- ^ status errors.
 
-    , items        :: ![ItemInf]       -- ^ items you have.
-    , equips       :: ![ItemInf]       -- ^ items you equips.
+    , items        :: ![ItemInf]      -- ^ items you have.
+    , equips       :: ![ItemInf]      -- ^ items you equips.
 
     , spells       :: ![SpellID]      -- ^ learned spells.
     , mp           :: !([Int], [Int]) -- ^ MP
@@ -96,17 +96,11 @@ data ItemPos = ItemA
              | ItemJ
   deriving (Show, Eq, Ord)
 
+itemInfAt :: Character -> ItemPos -> ItemInf
+itemInfAt c pos = items c !! itemPosToNum pos
+
 itemAt :: Character -> ItemPos -> ItemID
-itemAt c ItemA = itemID $ items c !! 0
-itemAt c ItemB = itemID $ items c !! 1
-itemAt c ItemC = itemID $ items c !! 2
-itemAt c ItemD = itemID $ items c !! 3
-itemAt c ItemE = itemID $ items c !! 4
-itemAt c ItemF = itemID $ items c !! 5
-itemAt c ItemG = itemID $ items c !! 6
-itemAt c ItemH = itemID $ items c !! 7
-itemAt c ItemI = itemID $ items c !! 8
-itemAt c ItemJ = itemID $ items c !! 9
+itemAt c pos = itemID $ items c !! itemPosToNum pos
 
 itemPosByChar :: String -> Maybe ItemPos
 itemPosByChar "a" = Just ItemA

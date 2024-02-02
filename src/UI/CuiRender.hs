@@ -134,12 +134,26 @@ statusView msg itemNameOf c =
                     . replaceText "[Item8]"  (items' !! 7) (Left 24)
                     . replaceText "[Item9]"  (items' !! 8) (Left 24)
                     . replaceText "[Item0]"  (items' !! 9) (Left 24)
+                    . replaceText "A)#"  ("A)" ++ equipMarks !! 0) (Left 3)
+                    . replaceText "B)#"  ("B)" ++ equipMarks !! 1) (Left 3)
+                    . replaceText "C)#"  ("C)" ++ equipMarks !! 2) (Left 3)
+                    . replaceText "D)#"  ("D)" ++ equipMarks !! 3) (Left 3)
+                    . replaceText "E)#"  ("E)" ++ equipMarks !! 4) (Left 3)
+                    . replaceText "F)#"  ("F)" ++ equipMarks !! 5) (Left 3)
+                    . replaceText "G)#"  ("G)" ++ equipMarks !! 6) (Left 3)
+                    . replaceText "H)#"  ("H)" ++ equipMarks !! 7) (Left 3)
+                    . replaceText "I)#"  ("I)" ++ equipMarks !! 8) (Left 3)
+                    . replaceText "J)#"  ("J)" ++ equipMarks !! 9) (Left 3)
                     $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
   where
     st = paramOf c
     ls = lines msg
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     items' = ((\(ItemInf id identified) -> itemNameOf id identified) <$> Character.items c) ++ repeat ""
+    equipMarks = me (Character.items c) (Character.equips c)
+      where me (i:is) eqs = if i `elem` eqs then "#" : me is (filter (/=i) eqs) else " " : me is eqs
+            me _ [] = repeat " "
+            me [] _ = undefined
 
 
 replaceText :: String -> String -> Either Int Int -> [String] -> [String]
@@ -175,11 +189,11 @@ statusViewPlaceHolder =
   ,"                         Spell M:M1/M2/M3/M4/M5/M6/M7            "  --   11
   ,"                               P:P1/P2/P3/P4/P5/P6/P7            "  --   12
   ,"                                                                 "  --   13
-  ,"    A) [Item1]                    F) [Item6]                     "  --   14
-  ,"    B) [Item2]                    G) [Item7]                     "  --   15
-  ,"    C) [Item3]                    H) [Item8]                     "  --   16
-  ,"    D) [Item4]                    I) [Item9]                     "  --   17
-  ,"    E) [Item5]                    J) [Item0]                     "  --   18
+  ,"    A)#[Item1]                    F)#[Item6]                     "  --   14
+  ,"    B)#[Item2]                    G)#[Item7]                     "  --   15
+  ,"    C)#[Item3]                    H)#[Item8]                     "  --   16
+  ,"    D)#[Item4]                    I)#[Item9]                     "  --   17
+  ,"    E)#[Item5]                    J)#[Item0]                     "  --   18
   ]
 --  12345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6      

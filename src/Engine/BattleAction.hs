@@ -152,10 +152,20 @@ spell s src dst next = GameAuto $ do
             c    <- characterByID idc
             know <- knowSpell' c def
             can  <- canSpell'  c def
-            if      not know then run $ spellUnknown s src dst next
-            else if not can  then run $ spellNoMP    s src dst next
-            else                  run $ with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
-          Right _  -> run $ spell' def src dst next
+            let isSilence = c `hasStatusError` Silence
+                isFear    = c `hasStatusError` Fear
+            run $ if      not know  then spellUnknown s src dst next
+                  else if not can   then spellNoMP    s src dst next
+                  else if isSilence then spellButSilent s src dst next
+                  else if isFear    then spellButFear   s src dst next
+                  else                   with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
+          Right e -> do
+            edef <- enemyDefineByID $ Enemy.id e
+            let isSilence = (e, edef) `hasStatusError` Silence
+                isFear    = (e, edef) `hasStatusError` Fear
+            run $ if      isSilence then spellButSilent s src dst next
+                  else if isFear    then spellButFear   s src dst next
+                  else                   spell' def src dst next
         else
           run $ spellUnknown s src dst next
 
@@ -267,6 +277,12 @@ spellUnknown = spellNoEffect "no happens."
 
 spellNoMP :: Spell.Name -> SpellEffect
 spellNoMP = spellNoEffect "no more MP."
+
+spellButSilent :: Spell.Name -> SpellEffect
+spellButSilent = spellNoEffect "but it wasn't voiced."
+
+spellButFear :: Spell.Name -> SpellEffect
+spellButFear = spellNoEffect "but couldn't voice well by fear."
 
 spellNoEffect :: String -> Spell.Name -> SpellEffect
 spellNoEffect msg n src _ next = GameAuto $ do
