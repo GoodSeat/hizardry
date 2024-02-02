@@ -170,6 +170,13 @@ divvyGold = do
     forM_ (zip ids gs) $ \(id', g) -> updateCharacterWith id' $ \c -> c { Chara.gold = g }
 
 
+equipOf :: Chara.Character -> (Item.Define -> Bool) -> GameState (Maybe Item.Define)
+equipOf c isTarget = do
+    items <- mapM itemByID $ itemID <$> Chara.equips c
+    let eqs = filter isTarget items
+    return $ if null eqs then Nothing else Just (head eqs)
+
+
 knowSpell :: CharacterID -> SpellID -> GameState Bool
 knowSpell cid sid = Chara.knowSpell sid <$> characterByID cid 
 

@@ -170,6 +170,8 @@ equip msgForSelect src c = equip' msgForSelect src c [(Item.isWeapon, "weapon")
                                                      ,(Item.isGauntlet, "gauntlet")
                                                      ,(Item.isAccessory, "accessory")
                                                      ]
+-- TODO:cursed item.
+-- TODO:sp item.
 equip' :: (String -> Event)
        -> PartyPos
        -> Chara.Character
