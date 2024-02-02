@@ -74,7 +74,7 @@ instance Show OperatorKind where
 data Formula = Value Int
              | Operate OperatorKind Formula Formula
              | Variable String
-             | Dice Int Int
+             | Dice Formula Formula
              | MinOf Formula Formula
              | MaxOf Formula Formula
   deriving Eq
@@ -133,7 +133,9 @@ variable :: GenParser Char st Formula
 variable = Variable <$> many1 (noneOf " +-*/%=<>()")
 
 dice :: GenParser Char st Formula
-dice = Dice <$> natural <*> (char 'd' >> natural)
+dice =  Dice <$> (try (Value <$> natural) <|> (char '(' *> cmpr <* char ')'))
+             <*> (char 'd' >> 
+                 (try (Value <$> natural) <|> (char '(' *> cmpr <* char ')')))
 
 minOf :: GenParser Char st Formula
 minOf = MinOf <$> (string "min(" *> token cmpr) <*> (char ',' *> token cmpr) <* token (char ')')
@@ -160,12 +162,14 @@ eval' m (Operate Division       n1 n2) = div <$> eval' m n1 <*> eval' m n2
 eval' m (Operate Surplus        n1 n2) = mod <$> eval' m n1 <*> eval' m n2
 eval' m (Variable name) = case Map.lookup name m of Nothing -> throwError $ "not defined value of " ++ name
                                                     Just v  -> return v
-eval' _ (Dice 0   _) = return 0
-eval' _ (Dice n1  1) = return n1
-eval' m (Dice n1 n2) = do
-    (v, g') <- State.gets (randomR (1, n2))
+eval' _ (Dice (Value 0)  _) = return 0
+eval' m (Dice n1 (Value 1)) = eval' m n1
+eval' m (Dice n1 n2)        = do
+    n1' <- eval' m n1
+    n2' <- eval' m n2
+    (v, g') <- State.gets (randomR (1, n2'))
     State.put g'
-    (v + ) <$> eval' m (Dice (n1 - 1) n2)
+    (v + ) <$> eval' m (Dice (Value $ n1' - 1) n2)
 
 eval' m (MinOf n1 n2) = min <$> eval' m n1 <*> eval' m n2
 eval' m (MaxOf n1 n2) = max <$> eval' m n1 <*> eval' m n2
