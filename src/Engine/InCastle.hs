@@ -207,7 +207,7 @@ buyItem cid page = GameAuto $ do
       mxPage <- lastPage
       gp     <- Character.gold <$> characterByID cid
       defs   <- mapM itemByID lstItem'
-      let items = zipWith (++) (take 43 . (++ repeat ' ') . Item.name <$> defs)
+      let items = zipWith (++) (takeChar 43 . (++ repeat ' ') . Item.name <$> defs)
                                (rightTxt 10 . Item.valueInShop <$> defs)
           lst  = "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
                ++ unlines (zipWith (++) ((++") ") . show <$> [1..]) items) ++ "\n"
@@ -253,7 +253,7 @@ sellItem' greet cid = GameAuto $ do
       gp <- Character.gold <$> characterByID cid
       ns <- mapM sellName is
       vs <- mapM sellValue is
-      let items = zipWith (++) (take 43 . (++ repeat ' ') <$> ns) (rightTxt 10 <$> vs)
+      let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightTxt 10 <$> vs)
           ps    = Character.numToItemPos <$> take (length items) [0..]
           lst   = "=========================================================\n\n"
                 ++ unlines (zipWith (++) ((++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
@@ -304,7 +304,7 @@ determineItem' greet cid = GameAuto $ do
     gp <- Character.gold <$> characterByID cid
     ns <- mapM sellName is
     vs <- mapM determineValueTxt is
-    let items = zipWith (++) (take 43 . (++ repeat ' ') <$> ns) (rightString 10 <$> vs)
+    let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightString 10 <$> vs)
         ps    = Character.numToItemPos <$> take (length items) [0..]
         lst   = "=========================================================\n\n"
               ++ unlines (zipWith (++) (("^"++) . (++") ") . Character.itemPosToText <$> ps) items) ++ "\n"

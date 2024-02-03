@@ -3,6 +3,7 @@ where
 
 import GHC.Stack (HasCallStack)
 import Data.List (delete, find)
+import Data.Char (ord)
 
 -- ==========================================================================
 -- ID
@@ -243,6 +244,26 @@ rightTxt :: Show a => Int -> a -> String
 rightTxt n = rightString n . show
 
 rightString :: Int -> String -> String
-rightString n t1 = reverse . take n $ reverse t1 ++ repeat ' '
+rightString n t1 = reverse . takeChar n $ reverse t1 ++ repeat ' '
 
+takeChar :: Int -> String -> String
+takeChar 0 [] = []
+takeChar n [] = error "takeChar to empty string."
+takeChar n (c:cs)
+   | n <= 0       = []
+   | isHalfChar c = c : takeChar (n - 1) cs
+   | otherwise    = c : takeChar (n - 2) cs
+
+dropChar :: Int -> String -> String
+dropChar 0 [] = []
+dropChar n [] = error "dropChar to empty string."
+dropChar n (c:cs)
+   | n <= 0       = c:cs
+   | isHalfChar c = dropChar (n - 1) cs
+   | otherwise    = dropChar (n - 2) cs
+
+isHalfChar :: Char -> Bool
+--isHalfChar c = 0xff61 <= n && n <= 0xff9f -- utf8
+isHalfChar c = n <= 0xdf -- cp932
+  where n = ord c
 
