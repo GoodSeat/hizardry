@@ -1,9 +1,9 @@
 module Engine.BattleAction
 where
 
-
 import qualified Data.Map as Map
 import Data.List
+import Data.Maybe (fromJust)
 import Data.Function ((&))
 import Control.Monad
 import Control.Monad.Reader (asks)
@@ -18,6 +18,7 @@ import Data.Primitive
 import qualified Data.Enemies as Enemy
 import qualified Data.Characters as Chara
 import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 
 
 type ActionOfCharacter = CharacterID  -- ^ id of actor.
@@ -42,39 +43,53 @@ fightOfCharacter id el next = GameAuto $ do
 
 fightDamage :: EnemyLine -> Chara.Character -> Enemy.Instance -> GameState (Int, Int)
 fightDamage el c e = do
-    edef <- enemyDefineByID $ Enemy.id e
-    let tryCountF = parse' "lv/5 + 1" -- TODO:
-        jobBonusF = parse' "lv/3 + 2" -- TODO:
-        damageF   = parse' "2d2"      -- TODO:from wepon.
-        weponAt   = 0 -- TODO:AT value of wepon.
-        stBonus   = 0 -- TODO:sum of equip item's ST value.
-        m         = formulaMapSO c (e, edef)
-    tryCount <- max <$> (min <$> evalWith m tryCountF <*> pure 10) <*> pure weponAt
-    jobBonus <- evalWith m jobBonusF
+    edef  <- enemyDefineByID $ Enemy.id e
+    wattr <- weaponAttrOf c
+    eqis  <- filter (/= Nothing) <$> mapM (equipOf c) Item.allEquipTypeTest
+    let eats = Item.equipBaseAttr . fromJust . Item.equipType . fromJust <$> eqis
+        m    = formulaMapSO c (e, edef)
+    weponAt  <- sum <$> mapM (evalWith m . Item.ac) eats
+    stBonus  <- sum <$> mapM (evalWith m . Item.st) eats
+    tryCount <- max <$> evalWith m (Chara.fightTryCount $ Chara.job c) <*> pure weponAt
+    jobBonus <- evalWith m (Chara.fightHitBonus $ Chara.job c)
     let str      = strength . Chara.param $ c
-        strBonus
-          | str >= 16 = str - 15
-          | str < 6   = str - 6
-          | otherwise = 0
+        strBonus | str >= 16 = str - 15
+                 | str < 6   = str - 6
+                 | otherwise = 0
         hitSkill = jobBonus + strBonus + stBonus
         atSkill  = max (min (Enemy.ac edef + hitSkill - 3 * enemyLineToNum el) 19) 1
+        damageF  = Item.damage wattr
+    -- TODO:add statusError, critiacl.
     rs <- replicateM tryCount $ do
         hit <- (<=) <$> randomNext 1 20 <*> pure atSkill
         dam <- (+) <$> evalWith m damageF <*> pure (max 0 strBonus)
-        let dam' = if not . null $ Enemy.statusErrors e then dam * 2 else dam
+        let dam' = if      not . null $ Enemy.statusErrors e                            then dam * 2
+                   else if any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) then dam * 2
+                   else dam
         return $ if hit then (1, dam') else (0, 0)
     return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
 
 fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int) -> GameState [String]
 fightMessage c e (h, d) = do
-    en <- enemyNameOf e
-    v  <- randomIn vs
+    en  <- enemyNameOf e
+    vs' <- Item.atackMessages <$> weaponAttrOf c
+    v   <- randomIn $ if null vs' then vs else vs'
     let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
     let m3 = if Enemy.hp e <= 0 then en ++ " is killed." else ""
     return $ (m1 ++ m2) : [m1 ++ m3 | not (null m3)]
   where
     vs = ["leaps at", "attempts to slice", "thrusts violently at", "tries to ram", "tries to bash", "charges at", "tries to slash"]
+
+weaponAttrOf :: Chara.Character -> GameState Item.WeaponAttr
+weaponAttrOf c = do
+    wep <- equipOf c Item.isWeapon
+    case wep of
+      Nothing  -> return $ Chara.baseWeaponAttr (Chara.job c)
+      Just def -> do
+        case Item.equipType def of Just (Item.Weapon _ w) -> return w
+                                   _                      -> err $ "invalid weaponAttrOf for " ++ show c ++ "."
+
 
 -- ================================================================================
 
@@ -109,7 +124,7 @@ fightDamageE n e c dmg = do
         a  = 19 + p - acOf c - lvOf (e, edef)
         b  = a - acOf (e, edef)
         m  = formulaMapSO (e, edef) c
-        hv |  19 <= b  = 19 
+        hv |  19 <= b  = 19
            |   0 <= b  = b
            | -36 <= b  = 0
            |   a < 0   = 0
@@ -180,7 +195,7 @@ spell' def = case Spell.effect def of
       Spell.AllySingle     -> castCureSpellSingle (Spell.name def) f ss
       Spell.AllyAll        -> castCureSpellAll    (Spell.name def) f ss
       _                    -> undefined
-    Spell.AddLight n s -> \(Left id) _ next -> GameAuto $ do 
+    Spell.AddLight n s -> \(Left id) _ next -> GameAuto $ do
         c  <- characterByID id
         setLightValue s n
         run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
@@ -244,7 +259,7 @@ castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
     else do
       let toMsg t = Message $ (nameOf (e, edef) ++ " spells " ++ n ++ ".\n") ++ t
       run $ events (toMsg <$> "" : (snd <$> concat ts)) (with (fst <$> concat ts) next)
-    
+
 castDamageSpell _ _ _ _ _ = error "castDamageSpell"
 
 -- --------------------------------------------------------------------------------

@@ -43,6 +43,15 @@ data EquipObject =
     | Accessory  !EquipBaseAttr
     deriving (Show, Eq)
 
+equipBaseAttr :: EquipObject -> EquipBaseAttr
+equipBaseAttr eq = case eq of Weapon     attr _ -> attr
+                              Shield     attr   -> attr
+                              Helmet     attr   -> attr
+                              Armour     attr   -> attr
+                              Gauntlet   attr   -> attr
+                              Accessory  attr   -> attr
+  
+
 data UserType = All | Only [String] -- ^ job names
     deriving (Show, Eq)
 
@@ -59,19 +68,20 @@ data Attribute =
 
 
 data EquipBaseAttr = EquipBaseAttr {
-      ac               :: !Int -- ^ ac
-    , st               :: !Int -- ^ st
-    , at               :: !Int -- ^ at
+      ac               :: !Formula -- ^ ac
+    , st               :: !Formula -- ^ st
+    , at               :: !Formula -- ^ at
     , resistLabels     :: ![String] -- ^ half shield damage attrLabels.
     , resistAttributes :: ![Spell.Attribute] -- ^ resistAttributes
     , weakAttributes   :: ![Spell.Attribute] -- ^ weakAttributes
 } deriving (Show, Eq, Read)
 
 data WeaponAttr = WeaponAttr {
-      targetF      :: ![EnemyLine]  -- ^ enable target enemy line in front.
-    , targetB      :: ![EnemyLine]  -- ^ enable target enemy line in back.
-    , damage       :: !Formula      -- ^ damage per hit.
-    , doubleLabels :: ![String]     -- ^ double damage target attrLabels.
+      targetF       :: ![EnemyLine]  -- ^ enable target enemy line in front.
+    , targetB       :: ![EnemyLine]  -- ^ enable target enemy line in back.
+    , damage        :: !Formula      -- ^ damage per hit.
+    , doubleLabels  :: ![String]     -- ^ double damage target attrLabels.
+    , atackMessages :: ![String]     -- ^ message candidates when fight with this weapon. [optional]
 } deriving (Show, Eq, Read)
         
 
@@ -112,4 +122,6 @@ isAccessory def = case equipType def of
                     Just (Accessory _) -> True
                     _                  -> False
 
+allEquipTypeTest :: [Define -> Bool]
+allEquipTypeTest = [isWeapon, isShield, isHelmet, isArmour, isGauntlet, isAccessory]
 

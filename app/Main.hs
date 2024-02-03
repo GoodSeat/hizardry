@@ -76,6 +76,15 @@ main = do
             , agility  = 0
             , luck     = 0
            }
+        , Character.baseWeaponAttr = Item.WeaponAttr {
+              Item.targetF       = [L1, L2]
+            , Item.targetB       = []
+            , Item.damage        = read "2d2"
+            , Item.doubleLabels  = []
+            , Item.atackMessages = []
+          }
+        , Character.fightTryCount = read "min(lv/5+1,10)"
+        , Character.fightHitBonus = read "lv/3+2"
         }
         priest = Character.Job {
           Character.jobName              = "Priest"
@@ -97,6 +106,15 @@ main = do
             , agility  = 0
             , luck     = 0
            }
+        , Character.baseWeaponAttr = Item.WeaponAttr {
+              Item.targetF       = [L1, L2]
+            , Item.targetB       = []
+            , Item.damage        = read "2d2"
+            , Item.doubleLabels  = []
+            , Item.atackMessages = []
+          }
+        , Character.fightTryCount = read "1"
+        , Character.fightHitBonus = read "lv/3+2"
         }
         thief = Character.Job {
           Character.jobName              = "Thief"
@@ -117,6 +135,15 @@ main = do
             , agility  = 11
             , luck     = 0
            }
+        , Character.baseWeaponAttr = Item.WeaponAttr {
+              Item.targetF       = [L1, L2]
+            , Item.targetB       = []
+            , Item.damage        = read "2d2"
+            , Item.doubleLabels  = []
+            , Item.atackMessages = []
+          }
+        , Character.fightTryCount = read "min(lv/5+1,10)"
+        , Character.fightHitBonus = read "lv/5"
         }
     let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
         human = Character.Kind {
@@ -186,6 +213,7 @@ main = do
                                ,ItemInf (ItemID 11) True
                                ,ItemInf (ItemID 12) False
                                ,ItemInf (ItemID 13) False
+                               ,ItemInf (ItemID 103) True
                                ]
         , Character.equips   = []
 
@@ -223,7 +251,10 @@ main = do
         , Character.job      = thief
         , Character.alignment= Character.N
         , Character.spells   = []
-        , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
+        , Character.items    = [ItemInf (ItemID 2) True
+                               ,ItemInf (ItemID 2) False
+                               ,ItemInf (ItemID 103) True
+                               ]
         }
     --gen <- getStdGen
     let gen = mkStdGen 0 
@@ -663,18 +694,19 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Just $ Item.Weapon
                                                      Item.EquipBaseAttr {
-                                                         Item.ac = 0
-                                                       , Item.st = 4
-                                                       , Item.at = 0
+                                                         Item.ac = read "0"
+                                                       , Item.st = read "4"
+                                                       , Item.at = read "0"
                                                        , Item.resistLabels     = []
                                                        , Item.resistAttributes = []
                                                        , Item.weakAttributes   = []
                                                      } 
                                                      Item.WeaponAttr {
-                                                         Item.targetF      = [L1, L2]
-                                                       , Item.targetB      = []
-                                                       , Item.damage       = read "1d8"
-                                                       , Item.doubleLabels = []
+                                                         Item.targetF       = [L1, L2]
+                                                       , Item.targetB       = []
+                                                       , Item.damage        = read "1d8"
+                                                       , Item.doubleLabels  = []
+                                                       , Item.atackMessages = []
                                                      }
                     , Item.valueInShop      = 500
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
@@ -690,9 +722,9 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Just $ Item.Shield
                                                      Item.EquipBaseAttr {
-                                                         Item.ac = -2
-                                                       , Item.st = 0
-                                                       , Item.at = 0
+                                                         Item.ac = read "-2"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
                                                        , Item.resistLabels     = []
                                                        , Item.resistAttributes = []
                                                        , Item.weakAttributes   = []
@@ -711,9 +743,9 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Just $ Item.Shield
                                                      Item.EquipBaseAttr {
-                                                         Item.ac = -2
-                                                       , Item.st = 0
-                                                       , Item.at = 0
+                                                         Item.ac = read "-2"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
                                                        , Item.resistLabels     = []
                                                        , Item.resistAttributes = []
                                                        , Item.weakAttributes   = []
@@ -732,9 +764,9 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Just $ Item.Shield
                                                      Item.EquipBaseAttr {
-                                                         Item.ac = -2
-                                                       , Item.st = 0
-                                                       , Item.at = 0
+                                                         Item.ac = read "-2"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
                                                        , Item.resistLabels     = []
                                                        , Item.resistAttributes = []
                                                        , Item.weakAttributes   = []
@@ -753,9 +785,9 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Just $ Item.Shield
                                                      Item.EquipBaseAttr {
-                                                         Item.ac = -2
-                                                       , Item.st = 0
-                                                       , Item.at = 0
+                                                         Item.ac = read "-2"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
                                                        , Item.resistLabels     = []
                                                        , Item.resistAttributes = []
                                                        , Item.weakAttributes   = []
@@ -774,9 +806,9 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Just $ Item.Shield
                                                      Item.EquipBaseAttr {
-                                                         Item.ac = -2
-                                                       , Item.st = 0
-                                                       , Item.at = 0
+                                                         Item.ac = read "-2"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
                                                        , Item.resistLabels     = []
                                                        , Item.resistAttributes = []
                                                        , Item.weakAttributes   = []
@@ -795,15 +827,43 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Just $ Item.Shield
                                                      Item.EquipBaseAttr {
-                                                         Item.ac = -2
-                                                       , Item.st = 0
-                                                       , Item.at = 0
+                                                         Item.ac = read "-2"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
                                                        , Item.resistLabels     = []
                                                        , Item.resistAttributes = []
                                                        , Item.weakAttributes   = []
                                                      } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 103, Item.Define {
+                      Item.name             = "盗賊の弓"
+                    , Item.nameUndetermined = "弓?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Weapon
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = read "0"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
+                                                       , Item.resistLabels     = []
+                                                       , Item.resistAttributes = []
+                                                       , Item.weakAttributes   = []
+                                                     } 
+                                                     Item.WeaponAttr {
+                                                         Item.targetF       = [L1, L2, L3, L4]
+                                                       , Item.targetB       = [L1, L2]
+                                                       , Item.damage        = read "3d8"
+                                                       , Item.doubleLabels  = []
+                                                       , Item.atackMessages = ["aimed and shot"]
+                                                     }
+                    , Item.valueInShop      = 4000
+                    , Item.enableToEquip    = Item.Only ["Thief"]
                     , Item.enableToUse      = Item.All
                 })
                 ]

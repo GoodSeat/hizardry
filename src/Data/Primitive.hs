@@ -180,7 +180,7 @@ addPoison d s = let ss = statusErrorsOf s in
   where
     isPoison (Poison _) = True
     isPoison _          = False
-        
+
 damageHp :: Object o => Int -> o -> o
 damageHp dmg s = setHp (hpOf s - dmg) s
 

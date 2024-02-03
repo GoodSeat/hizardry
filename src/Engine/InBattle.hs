@@ -123,14 +123,18 @@ selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> Condition
                     -> GameMachine
 selectBattleCommand i cmds con = GameAuto $ do
-    p <- party <$> world
+    p   <- party <$> world
     if length p < i then
       run $ confirmBattle cmds con
     else do
       let cid = p !! (i - 1)
-      c <- characterByID cid
+      c   <- characterByID cid
+      wep <- weaponAttrOf c
+      ess <- lastEnemies
+      let els = take (length ess) $ toEnemyLine <$> [1..]
+      let fts = filter (`elem` els) $ if i <= 3 then Item.targetF wep else Item.targetB wep
       let cs     = Chara.enableBattleCommands $ Chara.job c
-          cs'    = if i <= 3 then cs else [x | x <- cs, x /= Chara.Fight]
+          cs'    = filter (if null fts then (/= Chara.Fight) else const True) cs
           next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
           cancel = selectBattleCommand i cmds con
       if isCantFight c then
@@ -141,7 +145,7 @@ selectBattleCommand i cmds con = GameAuto $ do
 -- TODO                         ,(Key "r", readSpell cid inspect)
                                 ]
             cms = [( Key "f"
-                   , selectFightTarget next
+                   , selectFightTarget fts next
                    , Chara.Fight `elem` cs')
                   ,( Key "p"
                    , next Parry
@@ -172,12 +176,14 @@ selectBattleCommand i cmds con = GameAuto $ do
             snd' (_, s, _) = s
         in run $ selectWhen1 (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
 
-selectFightTarget :: (Action -> GameMachine) -> GameMachine
-selectFightTarget next = GameAuto $ do
+selectFightTarget :: [EnemyLine] -> (Action -> GameMachine) -> GameMachine
+selectFightTarget fts next = GameAuto $ do
     ess <- lastEnemies
-    let cmds = cmdNums (length ess) $ next . Fight . toEnemyLine
+    let cmds = cmdNumsWhen (length ess) $ \i -> ((next . Fight . toEnemyLine) i, toEnemyLine i `elem` fts)
+        minl = enemyLineToNum $ minimum fts
+        maxl = enemyLineToNum $ maximum fts
     run $ if length ess == 1 then next (Fight L1)
-          else select1 (BattleCommand $ "Target group?\n(^1`*~^" ++ show (length ess) ++ ")") cmds
+          else selectWhen1 (BattleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")") cmds
 
 
 confirmBattle :: [(CharacterID, Action)]

@@ -7,6 +7,7 @@ import Data.Primitive
 import Data.Formula (Formula)
 import qualified Data.Map as Map
 import qualified Data.Spells as Spell
+import qualified Data.Items as Item
 
 data Character = Character {
       name         :: !String         -- ^ name of character.
@@ -66,7 +67,7 @@ data Kind = Kind {
 type DB = Map.Map CharacterID Character
 
 
-data Alignment = G | N | E deriving (Show, Eq)
+data Alignment = G | N | E deriving (Show, Eq, Read)
 
 -- | define of character class.
 data Job = Job {
@@ -76,7 +77,10 @@ data Job = Job {
     , inspectTrapAbility   :: !Formula -- ^ Probability of success of trap identification.
     , disarmTrapAbility    :: !Formula -- ^ Probability of success of disarming trap.
     , needParameter        :: !Parameter
-} --deriving (Show, Eq)
+    , baseWeaponAttr       :: !Item.WeaponAttr -- ^ use when no weapon equipd.
+    , fightTryCount        :: !Formula
+    , fightHitBonus        :: !Formula
+} deriving Read
 instance Show Job where
   show = jobName
 instance Eq Job where
@@ -161,7 +165,7 @@ data BattleCommand = Fight
                    | Run
                    | Parry
                    | UseItem
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 -- =================================================================================
 
