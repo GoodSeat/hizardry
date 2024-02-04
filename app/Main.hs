@@ -8,7 +8,7 @@ import qualified Data.Map as Map
 import Data.Maybe (maybe, catMaybes, isJust, isNothing, fromJust)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
-import Control.Monad (void)
+import Control.Monad (void, when)
 
 import Engine.GameAuto
 import Engine.InCastle
@@ -294,8 +294,7 @@ main = do
       , debugMode       = True -- MEMO:forDebug
       , debugMessage    = []
       }
-    let cmd = getKey
-        option = ScenarioOption {
+    let option = ScenarioOption {
           enableEffectDumapic = [Spell.OnlyCoord, Spell.ViewMap]
         , enableMinimapType   = [Disable, Normal, AlwaysN]
         }
@@ -885,9 +884,15 @@ main = do
                  is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
              return $ loadGame (reverse is')
              
+    drawCache <- newDrawCache
+    let renderMethod = renderWithCache drawCache
+        cmd = getKey (clearCache drawCache)
+    --let renderMethod = render
+    --    cmd = getKey (return ())
+
     clearScreen
     hideCursor
-    putStrLn =<< run (testRender picOf scenario) cmd scenario w inCastle
+    putStrLn =<< run (testRender renderMethod picOf scenario) cmd scenario w inCastle
     showCursor
 
     appendFile saveDataPath $ show Abort ++ "\n"
@@ -897,8 +902,8 @@ saveDataPath = "save.txt"
 
 -- ==========================================================================
 
-getKey :: InputType -> IO Input
-getKey itype = do
+getKey :: IO () -> InputType -> IO Input
+getKey refresh itype = do
     i <- getKey' itype
     appendFile saveDataPath (show i ++ "\n")
     return i
@@ -906,11 +911,12 @@ getKey itype = do
     getKey' SingleKey = do
         hSetBuffering stdin NoBuffering
         x <- getChar
+        when (x == '\ESC') refresh
         return $ Key [x]
     getKey' SequenceKey = do
         hSetBuffering stdin LineBuffering
         showCursor
-        (Key <$> getLine) <* (cursorUp 1 >> clearLine >> hideCursor)
+        (Key <$> getLine) <* (cursorUp 1 >> clearLine >> hideCursor >> refresh)
     getKey' (WaitClock n)
       | n > 0     = threadDelay (n * 1000) >> return Clock
       | otherwise = do
@@ -927,26 +933,29 @@ waitKey = do
 
 -- ==========================================================================
 
-testRender :: (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
-testRender picOf s (Ask m picID)           w = testRender picOf s (MessagePic m picID) w
-testRender picOf s (MessageTime t m picID) w = testRender picOf s (MessagePic m picID) w
-testRender picOf s (FlashMessage t m)      w = rendering  picOf s "" m "" Nothing Nothing w
-testRender picOf s (Message m)             w = testRender picOf s (MessagePic m Nothing) w
-testRender picOf s (SpellCommand m)        w = testRender picOf s (BattleCommand m) w
-testRender picOf s None                    w = testRender picOf s (Time 0 Nothing) w
+type RenderMethod = Bool -> Craphic -> IO ()
 
-testRender picOf s (MessagePic m picID)    w = rendering  picOf s m "" ""  Nothing  picID w
-testRender picOf s (BattleCommand m)       w = rendering  picOf s "" "" m  Nothing  Nothing w
-testRender picOf s (Time _ picID)          w = rendering  picOf s "" "" "" Nothing  picID w
-testRender picOf s (ShowStatus cid m _)    w = rendering  picOf s m "" ""  (Just cid) Nothing w
+testRender :: RenderMethod -> (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
+testRender renderMethod picOf s (Ask m picID)           w = testRender renderMethod picOf s (MessagePic m picID) w
+testRender renderMethod picOf s (MessageTime t m picID) w = testRender renderMethod picOf s (MessagePic m picID) w
+testRender renderMethod picOf s (FlashMessage t m)      w = rendering  renderMethod picOf s "" m "" Nothing Nothing w
+testRender renderMethod picOf s (Message m)             w = testRender renderMethod picOf s (MessagePic m Nothing) w
+testRender renderMethod picOf s (SpellCommand m)        w = testRender renderMethod picOf s (BattleCommand m) w
+testRender renderMethod picOf s None                    w = testRender renderMethod picOf s (Time 0 Nothing) w
 
-testRender _ s (ShowMap m trans) w = setCursorPosition 0 0 >> render (debugMode w) (mapView m (place w) trans (visitHitory w) s)
+testRender renderMethod picOf s (MessagePic m picID)    w = rendering  renderMethod picOf s m "" ""  Nothing  picID w
+testRender renderMethod picOf s (BattleCommand m)       w = rendering  renderMethod picOf s "" "" m  Nothing  Nothing w
+testRender renderMethod picOf s (Time _ picID)          w = rendering  renderMethod picOf s "" "" "" Nothing  picID w
+testRender renderMethod picOf s (ShowStatus cid m _)    w = rendering  renderMethod picOf s m "" ""  (Just cid) Nothing w
 
-testRender _ _ Exit w = undefined
+testRender renderMethod _ s (ShowMap m trans) w = setCursorPosition 0 0 >> renderMethod (debugMode w) (mapView m (place w) trans (visitHitory w) s)
+
+testRender renderMethod _ _ Exit w = undefined
 
 -- --------------------------------------------------------------------------
 
-rendering :: (Maybe PictureID -> Craphic)
+rendering :: RenderMethod
+          -> (Maybe PictureID -> Craphic)
           -> Scenario
           -> String -- ^ message on MessageBox
           -> String -- ^ message on FlashMessageBox
@@ -955,9 +964,9 @@ rendering :: (Maybe PictureID -> Craphic)
           -> Maybe PictureID
           -> World
           -> IO()
-rendering picOf s mMsg fMsg cMsg cid' picID w = do
+rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
     setCursorPosition 0 0
-    render (debugMode w)
+    renderMethod (debugMode w)
            $ t1 (if null locationText         then mempty else location locationText)
           <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
           <> t1 (if null fMsg                 then mempty else flashMsgBox fMsg)

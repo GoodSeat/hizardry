@@ -5,6 +5,8 @@ import Control.Monad
 import Data.Char
 import Data.Maybe (fromMaybe)
 import System.Console.ANSI
+import qualified Data.Map as Map
+import Data.IORef
 
 
 -- | (1,1) means top-left position.
@@ -48,6 +50,33 @@ draw (w,h) v = forM_ [1..h] $ \r -> drawRow r [1..w] v
                     _              -> setSGR [Reset]
         putStr $ show dot
         drawRow r cs v
+
+type DrawCache = IORef (Map.Map Point Dot)
+
+newDrawCache :: IO DrawCache
+newDrawCache = newIORef Map.empty
+
+drawWithCache :: Size -> DrawCache -> Craphic -> IO()
+drawWithCache (w,h) map v = forM_ [1..h] $ \r -> drawRow False r [1..w] v
+  where
+    drawRow :: Bool -> Int -> [Int] -> Craphic -> IO()
+    drawRow _ _ [] _ = putStrLn ""
+    drawRow f r (c:cs) v = do
+        let dot = at v (c, r)
+        cacheMap <- readIORef map
+        let cache = Map.lookup (c, r) cacheMap
+        f' <- if not f && cache == Just dot then
+                cursorForward 1 >> return f
+              else do
+                case dot of DrawSGR _ sgrs -> setSGR (Reset:sgrs)
+                            _              -> setSGR [Reset]
+                putStr $ show dot
+                return True
+        modifyIORef map $ Map.insert (c, r) dot
+        drawRow f' r cs v
+
+clearCache :: DrawCache -> IO()
+clearCache = flip writeIORef Map.empty
 
 
 text :: Point -> String -> Craphic

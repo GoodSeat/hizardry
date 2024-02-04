@@ -23,6 +23,9 @@ debugWindowH = 10
 render :: Bool -> Craphic -> IO ()
 render showDebugWindow = if showDebugWindow then draw (windowW + 2, windowH + 2 + (debugWindowH + 3))
                                             else draw (windowW + 2, windowH + 2)
+renderWithCache :: DrawCache -> Bool -> Craphic -> IO ()
+renderWithCache cache showDebugWindow = if showDebugWindow then drawWithCache (windowW + 2, windowH + 2 + (debugWindowH + 3)) cache
+                                                           else drawWithCache (windowW + 2, windowH + 2) cache
 
 msgBox :: String -> Craphic
 msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
