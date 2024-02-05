@@ -380,7 +380,7 @@ addParamToMap prefix s m = do
     vit <- vitality <$> paramOf s
     agi <- agility  <$> paramOf s
     luc <- luck     <$> paramOf s
-    let m' = insert (prefix ++ "ac" ) ac
+    return $ insert (prefix ++ "ac" ) ac
            . insert (prefix ++ "str") str
            . insert (prefix ++ "iq" ) iq
            . insert (prefix ++ "pie") pie
@@ -388,7 +388,6 @@ addParamToMap prefix s m = do
            . insert (prefix ++ "agi") agi
            . insert (prefix ++ "luc") luc
            $ m
-    return m
 
 addParamBase :: String -> TargetSO -> Map String Int -> Map String Int
 addParamBase prefix (Left  s) = addParamBase' prefix s
@@ -424,7 +423,7 @@ formulaMap1 i n o = do
             . insert "gold"    (Chara.gold o)
             . insert "marks"   (Chara.marks o)
             . insert "rips"    (Chara.rips o)
-            $ m 
+            $ m
 
 
 addEvFlagToFormulaMap :: Map String Int -> GameState (Map String Int)

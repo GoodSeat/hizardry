@@ -67,6 +67,8 @@ enterGrid :: Maybe Ev.Define -- ^ happened event.
 enterGrid e probEncount evMoved p = GameAuto $ do
     movePlace $ InMaze p
     resetEffectInOnlyBattle
+    -- record visit history.
+    modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
     -- TODO!:all character lost if they are in stone.
     lab <- mazeAt $ z p
     let c = coordOf p
