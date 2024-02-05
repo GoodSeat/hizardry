@@ -1,6 +1,8 @@
 module Data.Primitive
 where
 
+import Data.Formula
+
 import GHC.Stack (HasCallStack)
 import Data.List (delete, find)
 import Data.Char (ord)
@@ -72,27 +74,6 @@ data Parameter = Parameter {
     , luck     :: !Int -- ^ luck
 } deriving (Show, Eq, Read)
 
-emptyParam :: Parameter
-emptyParam = Parameter { strength = 0
-                       , iq       = 0
-                       , piety    = 0
-                       , vitality = 0
-                       , agility  = 0
-                       , luck     = 0
-                       }
-
-
-data ParamChange = ParamChange {
-      deltaParam :: !Parameter
-    , deltaAC    :: !Int
-} deriving (Show, Eq, Read)
-
-emptyParamChange = ParamChange emptyParam 0
-
-data Term = OnlyInBattle | OnlyInMaze
-    deriving (Show, Eq, Read)
-
-
 instance Semigroup Parameter where
     p1 <> p2 = Parameter {
       strength = strength p1 + strength p2
@@ -107,6 +88,40 @@ instance Monoid Parameter where
     mempty = emptyParam
     mappend = (<>)
 
+emptyParam :: Parameter
+emptyParam = Parameter { strength = 0
+                       , iq       = 0
+                       , piety    = 0
+                       , vitality = 0
+                       , agility  = 0
+                       , luck     = 0
+                       }
+
+-- | define of temporary parameter change.
+data ParamChange = ParamChange {
+      deltaParam :: !Parameter
+    , deltaAC    :: !Int
+    , effectName :: !String -- ^ effect name. if this name isn't empty, can't apply multiple.
+} deriving (Show, Eq, Read)
+
+emptyParamChange = ParamChange emptyParam 0 ""
+
+
+data AdParam = AdParam {
+      adStrength :: !Formula -- ^ strength
+    , adIq       :: !Formula -- ^ I.Q.
+    , adPiety    :: !Formula -- ^ piety
+    , adVitality :: !Formula -- ^ vitality
+    , adAgility  :: !Formula -- ^ agility
+    , adLuck     :: !Formula -- ^ luck
+    , adAC       :: !Formula -- ^ AC
+    , adName     :: !String -- ^ effect name. if this name isn't empty, can't apply multiple.
+} deriving (Show, Eq, Read)
+
+
+-- | effect valid term.
+data Term = OnlyInBattle | OnlyInMaze
+    deriving (Show, Eq, Read)
 
 -- ==========================================================================
 

@@ -344,6 +344,29 @@ paramOf (Left c) = do
 paramOf (Right (ei, def)) = return $ Enemy.param def <> deltaParam (Enemy.modParam ei)
 
 
+toParamChange :: TargetSO -> TargetSO -> AdParam -> GameState ParamChange
+toParamChange s o ad = do
+    m <- formulaMapSO s o
+    str <- evalWith m (adStrength ad)
+    iq  <- evalWith m (adIq       ad)
+    pie <- evalWith m (adPiety    ad)
+    vit <- evalWith m (adVitality ad)
+    agi <- evalWith m (adAgility  ad)
+    luc <- evalWith m (adLuck     ad)
+    ac  <- evalWith m (adAC       ad)
+    return $ ParamChange {
+        deltaParam = Parameter {
+          strength = str 
+        , iq       = iq  
+        , piety    = pie 
+        , vitality = vit 
+        , agility  = agi 
+        , luck     = luc 
+        }
+        , deltaAC = ac
+        , effectName = adName ad
+    }
+
 -- =================================================================================
 -- for Formula map.
 -- ---------------------------------------------------------------------------------

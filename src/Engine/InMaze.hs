@@ -12,7 +12,7 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
-import Engine.InEvent (doEvent, setLightValueWith, setLightValue)
+import Engine.InEvent (doEvent, setLightValueWith, setLightValue, resetEffectInOnlyBattle)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
@@ -66,16 +66,7 @@ enterGrid :: Maybe Ev.Define -- ^ happened event.
           -> GameMachine
 enterGrid e probEncount evMoved p = GameAuto $ do
     movePlace $ InMaze p
-
-    -- remove effect only in battle.
-    ps <- party <$> world
-    mapM_ (`updateCharacterWith` (\ca -> ca { Chara.paramDelta = filter ((/= OnlyInBattle) . fst) (Chara.paramDelta ca) })) ps
-    w <- world
-    modify $ \w -> w { partyParamDelta = filter ((/= OnlyInBattle) . fst) (partyParamDelta w) }
-
-    -- record visit history.
-    modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
-
+    resetEffectInOnlyBattle
     -- TODO!:all character lost if they are in stone.
     lab <- mazeAt $ z p
     let c = coordOf p

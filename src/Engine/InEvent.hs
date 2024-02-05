@@ -124,15 +124,27 @@ returnToCastle = do
     resetRoomBattle
     setLightValue True  0
     setLightValue False 0
-    modify $ \w -> w { partyParamDelta = [] }
 
+-- TODO: remove dead/stoned/staned characters etc.
+
+    resetEffectInOnlyBattle
+
+    modify $ \w -> w { partyParamDelta = [] }
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterByID p
       updateCharacter p $ foldl (&) c (whenReturnCastle <$> statusErrorsOf c)
       updateCharacter p c { Chara.paramDelta = [] }
 
--- TODO: remove dead/stoned/staned characters etc.
+
+-- | remove effects that is valid in battle only.
+resetEffectInOnlyBattle :: GameState ()
+resetEffectInOnlyBattle = do
+    ps <- party <$> world
+    mapM_ (`updateCharacterWith` (\ca -> ca { Chara.paramDelta = filter ((/= OnlyInBattle) . fst) (Chara.paramDelta ca) })) ps
+    w <- world
+    modify $ \w -> w { partyParamDelta = filter ((/= OnlyInBattle) . fst) (partyParamDelta w) }
+
 
 
 resetRoomBattle :: GameState ()

@@ -157,7 +157,7 @@ selectBattleCommand i cmds con = GameAuto $ do
                   ,( Key "u"
                    , selectItem BattleCommand identified
                        (selectUseTarget BattleCommand (\i l -> next $ UseItem i l)) c cancel
-                   , Chara.Spell `elem` cs')
+                   , Chara.UseItem `elem` cs')
                   ,( Key "r"
                    , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
                    , Chara.Run `elem` cs')

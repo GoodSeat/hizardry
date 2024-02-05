@@ -3,8 +3,9 @@ module Engine.CharacterAction
 where
 
 import Prelude hiding (lookup)
-import Control.Monad (when, join, forM)
+import Control.Monad (when, join, forM, forM_)
 import Control.Monad.Reader (asks)
+import Control.Monad.State (modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
 import Data.Function ((&))
 
@@ -190,8 +191,8 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
           else selectItem (const $ msgForSelect $ "Select equip " ++ typeText ++ "(^A~^J).\n  N)o equip. `[`E`S`C`]")
                           ((`elem` (fst <$> tgts)) . itemID) selectEq c (eq Nothing)
   where
-    selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine 
-    selectEq c pos next = eq $ Just (Chara.itemInfAt c pos) 
+    selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
+    selectEq c pos next = eq $ Just (Chara.itemInfAt c pos)
 
     eq :: Maybe ItemInf -> GameMachine
     eq item = GameAuto $ do
@@ -238,6 +239,7 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
     (toEnemy, mx) <- case Spell.target def of
       Spell.OpponentSingle -> (True,) . length <$> lastEnemies
       Spell.OpponentGroup  -> (True,) . length <$> lastEnemies
+      Spell.OpponentAll    -> return (True , 1) -- MEMO:target should be ignored...
       Spell.AllySingle     -> return (False, length ps)
       _                    -> return (False, 1) -- MEMO:target should be ignored...
     select toEnemy (if know then mx else 1) next
@@ -285,14 +287,17 @@ spellInCampNoCost def src dst next = GameAuto $ do
     pn  <- length . party <$> world
     cid <- characterIDInPartyAt src
     c   <- characterInPartyAt src
+    let tgt = case Spell.target def of
+                Spell.AllySingle -> [dst]
+                Spell.AllyAll    -> toPartyPos <$> [1..pn]
+                _                -> []
     case Spell.effect def of
       Spell.Damage _  -> undefined
       Spell.Cure f ss -> do
-        let tgt = case Spell.target def of
-                    Spell.AllySingle -> [dst]
-                    Spell.AllyAll    -> toPartyPos <$> [1..pn]
-                    _                -> []
-        efs <- castCureSpell (Spell.name def) f ss (Left c) (Left tgt)
+        efs <- castCureSpell f ss (Left c) (Left tgt)
+        run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+      Spell.ChangeParam ad term etxt -> do
+        efs <- castParamChangeSpell ad term etxt (Left c) (Left tgt)
         run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
       Spell.AddLight n s -> setLightValue s n >> run (events [ShowStatus cid "done" SingleKey] next)
       Spell.CheckLocation t -> do
@@ -314,11 +319,14 @@ showMap msg (x,y) next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`
                                    ]
 
 
-castCureSpell :: Spell.Name -> Formula -> [StatusError]
-              -> Either Chara.Character Enemy.Instance  -- ^ src
-              -> Either [PartyPos] [Enemy.Instance]     -- ^ dst
-              -> GameState [(GameState (), String)]
-castCureSpell n f ss (Left src) (Left is) = do
+-- --------------------------------------------------------------------------------
+
+type CastAction = (Either Chara.Character Enemy.Instance  -- ^ src
+                -> Either [PartyPos] [Enemy.Instance]     -- ^ dst (if it is empty, target is party)
+                -> GameState [(GameState (), String)])
+
+castCureSpell :: Formula -> [StatusError] -> CastAction
+castCureSpell f ss (Left src) (Left is) = do
     ps  <- party <$> world
     ts  <- forM is $ \i -> do
       dst <- characterInPartyAt i
@@ -334,7 +342,50 @@ castCureSpell n f ss (Left src) (Left is) = do
                     nameOf dst ++ " cured."
         return [(join $ updateCharacter <$> characterIDInPartyAt i <*> pure dst', msg)]
     return $ concat ts
-castCureSpell _ _ _ _ _ = undefined
+castCureSpell _ _ _ _ = undefined
 
+
+castParamChangeSpell :: AdParam -> Term -> String -> CastAction
+castParamChangeSpell ad term etxt (Left src) (Left is)
+    | null is = do
+          prmc <- toParamChange (Left src) (Left src) ad
+          return [(modify $ \w -> w { partyParamDelta = Spell.applyChangeParam term prmc (partyParamDelta w) }
+                  , "party " ++ etxt ++ ".")]
+    | otherwise = concat <$> forM is (\i -> do
+          dst  <- characterIDInPartyAt i
+          cdst <- characterInPartyAt i
+          prmc <- toParamChange (Left src) (Left cdst) ad
+          if hpOf cdst == 0 then return []
+          else return [(updateCharacter dst $ cdst { Chara.paramDelta = Spell.applyChangeParam term prmc (Chara.paramDelta cdst) }
+                      , nameOf cdst ++ " " ++ etxt ++ ".")]
+          )
+
+castDamageSpell :: Formula -> CastAction
+castDamageSpell f (Left c) (Right es) = do
+    ts <- forM es $ \e -> do
+      edef <- enemyDefineByID $ Enemy.id e
+      m    <- formulaMapSO (Left c) (Right (e, edef))
+      if Enemy.hp e <= 0 then return []
+      else do
+        d <- evalWith m f
+        let (e', _) = damageHp d (e, edef)
+        let msg = nameOf (e, edef) ++ " takes " ++ show d ++ "."
+        return $ (updateEnemy e (const e'), msg)
+               : [(return (), msg ++ "\n" ++ nameOf (e, edef) ++ " is killed.") | Enemy.hp e' <= 0]
+    return $ concat ts
+castDamageSpell f (Right e) (Left is) = do
+    edef <- enemyDefineByID $ Enemy.id e
+    ts   <- forM is $ \i -> do
+      c <- characterInPartyAt i
+      m <- formulaMapSO (Right (e, edef)) (Left c)
+      if hpOf c == 0 then return []
+      else do
+        d <- evalWith m f
+        let c' = damageHp d c
+        let msg = nameOf c ++ " takes " ++ show d ++ "."
+        return $ (join $ updateCharacter <$> characterIDInPartyAt i <*> pure c', msg)
+               : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
+    return $ concat ts
+castDamageSpell f src dst = error $ "castDamageSpell:" ++ show f ++ ", src=" ++ show src ++ ", dst=" ++ show dst
 
 

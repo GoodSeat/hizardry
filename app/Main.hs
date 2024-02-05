@@ -244,7 +244,7 @@ main = do
 
         , Character.job      = priest
         , Character.alignment= Character.N
-        , Character.spells   = [SpellID 12, SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 121]
+        , Character.spells   = [SpellID 12, SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 114, SpellID 121]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
         testChara4 = testChara1 {
@@ -621,6 +621,25 @@ main = do
                     , Spell.attribute = Spell.None
                     , Spell.target    = Spell.AllyAll
                     , Spell.effect    = Spell.Cure (parse' "1d8") []
+                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                })
+                ,
+                (SpellID 114, Spell.Define {
+                      Spell.name      = "maporfic"
+                    , Spell.kind      = Spell.P
+                    , Spell.lv        = 1
+                    , Spell.attribute = Spell.None
+                    , Spell.target    = Spell.Party
+                    , Spell.effect    = Spell.ChangeParam (AdParam {
+                          adStrength = read "0" -- ^ strength
+                        , adIq       = read "0" -- ^ I.Q.
+                        , adPiety    = read "0" -- ^ piety
+                        , adVitality = read "0" -- ^ vitality
+                        , adAgility  = read "0" -- ^ agility
+                        , adLuck     = read "0" -- ^ luck
+                        , adAC       = read "-2" -- ^ AC
+                        , adName     = "Protection" -- ^ effect name. if this name isn't empty, can't apply multiple.
+                        }) OnlyInMaze "is protected."
                     , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
                 })
                 ,

@@ -10,7 +10,7 @@ import Control.Monad.Reader (asks)
 
 import Engine.GameAuto
 import Engine.Utils
-import Engine.CharacterAction (castCureSpell)
+import Engine.CharacterAction (CastAction, castCureSpell, castParamChangeSpell, castDamageSpell)
 import Engine.InEvent (setLightValue)
 import Data.World
 import Data.Formula
@@ -190,13 +190,19 @@ spell s src dst next = GameAuto $ do
 spell' :: Spell.Define -> SpellEffect
 spell' def = case Spell.effect def of
     Spell.Damage f  -> case Spell.target def of
-      Spell.OpponentSingle -> castDamageSpellSingle (Spell.name def) f
-      Spell.OpponentGroup  -> castDamageSpellGroup  (Spell.name def) f
-      Spell.OpponentAll    -> castDamageSpellAll    (Spell.name def) f
+      Spell.OpponentSingle -> castSpellSingle (Spell.name def) (castDamageSpell f)
+      Spell.OpponentGroup  -> castSpellGroup  (Spell.name def) (castDamageSpell f)
+      Spell.OpponentAll    -> castSpellAll    (Spell.name def) (castDamageSpell f)
       _                    -> undefined
     Spell.Cure f ss -> case Spell.target def of
-      Spell.AllySingle     -> castCureSpellSingle (Spell.name def) f ss
-      Spell.AllyAll        -> castCureSpellAll    (Spell.name def) f ss
+      Spell.AllySingle     -> castSpellSingle (Spell.name def) (castCureSpell f ss)
+      Spell.AllyAll        -> castSpellAll    (Spell.name def) (castCureSpell f ss)
+      Spell.Party          -> castSpellAll    (Spell.name def) (castCureSpell f ss)
+      _                    -> undefined
+    Spell.ChangeParam ad term etxt -> case Spell.target def of
+      Spell.AllySingle     -> castSpellSingle (Spell.name def) (castParamChangeSpell ad term etxt)
+      Spell.AllyAll        -> castSpellAll    (Spell.name def) (castParamChangeSpell ad term etxt)
+      Spell.Party          -> castSpellNull   (Spell.name def) (castParamChangeSpell ad term etxt)
       _                    -> undefined
     Spell.AddLight n s -> \(Left id) _ next -> GameAuto $ do
         c  <- characterByID id
@@ -205,90 +211,52 @@ spell' def = case Spell.effect def of
 
 -- --------------------------------------------------------------------------------
 
-castDamageSpellSingle :: Spell.Name -> Formula -> SpellEffect
-castDamageSpellSingle n f (Left id) (Right el) next = GameAuto $ do
+castSpellNull :: Spell.Name -> CastAction -> SpellEffect
+castSpellNull n ca (Left id) (Left l) = castSpellInBattle n ca (Left []) (Left id)
+
+castSpellSingle :: Spell.Name -> CastAction -> SpellEffect
+castSpellSingle n ca (Left id) (Left l) next = castSpellInBattle n ca (Left [l]) (Left id) next
+castSpellSingle n ca (Left id) (Right el) next = GameAuto $ do
     e1 <- aliveEnemyLineHead el
     case e1 of Nothing -> run next
-               Just e  -> run $ castDamageSpell n f (Right [e]) (Left id) next
-castDamageSpellSingle n f (Right e) (Left l) next = castDamageSpell n f (Left [l]) (Right e) next
-castDamageSpellSingle _ _ _ _ _ = error "invalid castDamageSpellSingle"
+               Just e  -> run $ castSpellInBattle n ca (Right [e]) (Left id) next
+castSpellSingle n ca (Right e) (Left l) next = castSpellInBattle n ca (Left [l]) (Right e) next
+castSpellSingle _ _ _ _ _ = error "invalid castSpellSingle"
 
-castDamageSpellGroup :: Spell.Name -> Formula -> SpellEffect
-castDamageSpellGroup n f (Left id) (Right el) next = GameAuto $ do
+castSpellGroup :: Spell.Name -> CastAction -> SpellEffect
+castSpellGroup n ca (Left id) (Right el) next = GameAuto $ do
     es <- aliveEnemiesLine el
-    run $ castDamageSpell n f (Right es) (Left id) next
-castDamageSpellGroup n f (Right e) _ next = GameAuto $ do
+    run $ castSpellInBattle n ca (Right es) (Left id) next
+castSpellGroup n ca (Right e) (Left _) next = GameAuto $ do
     ps <- party <$> world
-    run $ castDamageSpell n f (Left $ toPartyPos <$> [1..length ps]) (Right e) next
-castDamageSpellGroup _ _ _ _ _ = error "invalid castDamageSpellGroup"
+    run $ castSpellInBattle n ca (Left $ toPartyPos <$> [1..length ps]) (Right e) next
+castSpellGroup _ _ _ _ _ = error "invalid castSpellGroup"
 
-castDamageSpellAll :: Spell.Name -> Formula -> SpellEffect
-castDamageSpellAll n f (Left id) l next = GameAuto $ do
+castSpellAll :: Spell.Name -> CastAction -> SpellEffect
+castSpellAll n ca (Left id) (Left _) next = GameAuto $ do
+    ps <- party <$> world
+    run $ castSpellInBattle n ca (Left $ toPartyPos <$> [1..length ps]) (Left id) next
+castSpellAll n ca (Left id) (Right _) next = GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
-    run $ castDamageSpell n f (Right $ concat es) (Left id) next
-castDamageSpellAll n f (Right e) l next = castDamageSpellGroup n f (Right e) l next
+    run $ castSpellInBattle n ca (Right $ concat es) (Left id) next
+castSpellAll n ca (Right e) l next = castSpellGroup n ca (Right e) l next
 
 
-castDamageSpell :: Spell.Name -> Formula
-                -> Either [PartyPos] [Enemy.Instance] -- ^ dst
-                -> Either CharacterID Enemy.Instance  -- ^ src
-                -> GameMachine -> GameMachine
-castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
-    c  <- characterByID id
-    ts <- forM es $ \e -> do
-      edef <- enemyDefineByID $ Enemy.id e
-      m    <- formulaMapSO (Left c) (Right (e, edef))
-      if Enemy.hp e <= 0 then return []
-      else do
-        d <- evalWith m f
-        let (e', _) = damageHp d (e, edef)
-        updateEnemy e $ const e'
-        let msg = nameOf (e, edef) ++ " takes " ++ show d ++ "."
-        return $ msg : [msg ++ "\n" ++ nameOf (e, edef) ++ " is killed." | Enemy.hp e' <= 0]
-    let toMsg t = Message $ (nameOf c ++ " spells " ++ n ++ ".\n") ++ t
-    run $ events (toMsg <$> "" : concat ts) next
-
-castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
-    edef <- enemyDefineByID $ Enemy.id e
-    ts   <- forM is $ \i -> do
-      c <- characterInPartyAt i
-      m <- formulaMapSO (Right (e, edef)) (Left c)
-      if hpOf c == 0 then return []
-      else do
-        d <- evalWith m f
-        let c' = damageHp d c
-        let msg = nameOf c ++ " takes " ++ show d ++ "."
-        return $ (join $ updateCharacter <$> characterIDInPartyAt i <*> pure c', msg)
-               : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
-    if null ts then run next
-    else do
-      let toMsg t = Message $ (nameOf (e, edef) ++ " spells " ++ n ++ ".\n") ++ t
-      run $ events (toMsg <$> "" : (snd <$> concat ts)) (with (fst <$> concat ts) next)
-
-castDamageSpell _ _ _ _ _ = error "castDamageSpell"
-
--- --------------------------------------------------------------------------------
-
-castCureSpellSingle :: Spell.Name -> Formula -> [StatusError] -> SpellEffect
-castCureSpellSingle n f ss (Left id) (Left l) next = GameAuto $ do
-    ps <- party <$> world
-    run $ castCureSpellInBattle n f ss (Left [l]) (Left id) next
-castCureSpellSingle _ _ _ _ _ _ = error "castCureSpellSingle"
-
-castCureSpellAll n f ss (Left id) _ next = GameAuto $ do
-    ps <- party <$> world
-    run $ castCureSpellInBattle n f ss (Left $ toPartyPos <$> [1..length ps]) (Left id) next
-castCureSpellAll _ _ _ _ _ _ = error "castCureSpellAll"
-
-castCureSpellInBattle :: Spell.Name -> Formula -> [StatusError]
-              -> Either [PartyPos] [Enemy.Instance]
-              -> Either CharacterID Enemy.Instance -> GameMachine -> GameMachine
-castCureSpellInBattle n f ss dst (Left cid) next = GameAuto $ do
-    wiz <- characterByID cid
-    ts  <- castCureSpell n f ss (Left wiz) dst
-    let toMsg t = Message $ (nameOf wiz ++ " spells " ++ n ++ ".\n") ++ t
+castSpellInBattle :: Spell.Name
+                  -> CastAction
+                  -> Either [PartyPos] [Enemy.Instance] -- dst
+                  -> Either CharacterID Enemy.Instance  -- src
+                  -> GameMachine -> GameMachine
+castSpellInBattle n ca dst (Left cid) next = GameAuto $ do
+    src <- characterByID cid
+    ts  <- ca (Left src) dst
+    let toMsg t = Message $ (nameOf src ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
-castCureSpellInBattle _ _ _ _ _ _ = error "castCureSpellInBattle"
+castSpellInBattle n ca dst (Right e) next = GameAuto $ do
+    edef <- enemyDefineByID $ Enemy.id e
+    ts  <- ca (Right e) dst
+    let toMsg t = Message $ (nameOf (e, edef) ++ " spells " ++ n ++ ".\n") ++ t
+    run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
 
 -- --------------------------------------------------------------------------------
 
