@@ -10,7 +10,7 @@ import Control.Monad.State
 import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
-import Engine.CharacterAction (inputSpell, selectItem, selectUseTarget)
+import Engine.CharacterAction (inputSpell, selectItem, selectUseTarget, castDamageSpell)
 import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), getTreasures)
 import Data.World
 import Data.Primitive
@@ -291,13 +291,30 @@ act (ByEnemies l e a) next = GameAuto $ do
               s' <- spellByID . SpellID =<< eval f
               np <- length . party <$> world
               cp <- randomIn $ toPartyPos <$> [1..np]
-              case s' of Just s  -> run $ spell' s (Right e') (Left cp) next
+              case s' of Just s  -> do
+                           let tt = Spell.target s
+                           if tt == Spell.OpponentSingle ||
+                              tt == Spell.OpponentGroup  ||
+                              tt == Spell.OpponentAll then
+                              run $ spell' s (Right e') (Left cp) next
+                           else if tt == Spell.AllySingle ||
+                                   tt == Spell.AllyGroup then do
+                              ess <- lastEnemies
+                              el  <- randomIn $ toEnemyLine <$> [1..length ess]
+                              run $ spell' s (Right e') (Right el) next
+                           else
+                              run $ spell' s (Right e') (Right L1) next
                          Nothing -> run $ spellUnknown "?" (Right e') (Left cp) next
+
+          Enemy.Breath f         -> do
+              ps <- party <$> world
+              ts <- castDamageSpell f (Right e') (Left $ toPartyPos <$> [1..length ps])
+              let toMsg t = Message $ (nameOf e ++ " spit out a breath.\n") ++ t
+              run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
           Enemy.Run              -> do
               en   <- enemyNameOf e'
               updateEnemy e' $ const e' { Enemy.hp = 0 }
               run $ events [Message $ en ++ " flees."] next
-          _                      -> undefined
 
 -- "*** hidden away"
 --  vs = ["tries to ambush"]

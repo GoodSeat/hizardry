@@ -202,54 +202,58 @@ spell' def = case Spell.effect def of
       Spell.Party          -> castSpellNull   (Spell.name def) (castParamChangeSpell ad term etxt)
       _                    -> undefined
     Spell.AddLight n s -> \(Left id) _ next -> GameAuto $ do
-        c  <- characterByID id
-        setLightValue s n
-        run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
+      c <- characterByID id
+      setLightValue s n
+      run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
 
 -- --------------------------------------------------------------------------------
 
 castSpellNull :: Spell.Name -> CastAction -> SpellEffect
-castSpellNull n ca (Left id) (Left l) = castSpellInBattle n ca (Left []) (Left id)
+castSpellNull n ca src (Left l)  next = castSpellInBattle n ca src (Left []) next
+castSpellNull n ca src (Right _) next = GameAuto $ do
+    es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
+    run $ castSpellInBattle n ca src (Right $ concat es) next
 
 castSpellSingle :: Spell.Name -> CastAction -> SpellEffect
-castSpellSingle n ca (Left id) (Left l) next = castSpellInBattle n ca (Left [l]) (Left id) next
+castSpellSingle n ca (Left id) (Left l) next = castSpellInBattle n ca (Left id) (Left [l]) next
 castSpellSingle n ca (Left id) (Right el) next = GameAuto $ do
-    e1 <- aliveEnemyLineHead el
+    e1 <- aliveEnemyLineRandom el
     case e1 of Nothing -> run next
-               Just e  -> run $ castSpellInBattle n ca (Right [e]) (Left id) next
-castSpellSingle n ca (Right e) (Left l) next = castSpellInBattle n ca (Left [l]) (Right e) next
-castSpellSingle _ _ _ _ _ = error "invalid castSpellSingle"
+               Just e  -> run $ castSpellInBattle n ca (Left id) (Right [e]) next
+castSpellSingle n ca (Right e) (Left l) next = castSpellInBattle n ca (Right e) (Left [l]) next
+castSpellSingle n ca (Right se) (Right el) next = GameAuto $ do
+    e1 <- aliveEnemyLineRandom el
+    case e1 of Nothing -> run next
+               Just e  -> run $ castSpellInBattle n ca (Right se) (Right [e]) next
 
 castSpellGroup :: Spell.Name -> CastAction -> SpellEffect
-castSpellGroup n ca (Left id) (Right el) next = GameAuto $ do
+castSpellGroup n ca src (Right el) next = GameAuto $ do
     es <- aliveEnemiesLine el
-    run $ castSpellInBattle n ca (Right es) (Left id) next
-castSpellGroup n ca (Right e) (Left _) next = GameAuto $ do
+    run $ castSpellInBattle n ca src (Right es) next
+castSpellGroup n ca src (Left _) next = GameAuto $ do
     ps <- party <$> world
-    run $ castSpellInBattle n ca (Left $ toPartyPos <$> [1..length ps]) (Right e) next
-castSpellGroup _ _ _ _ _ = error "invalid castSpellGroup"
+    run $ castSpellInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
 
 castSpellAll :: Spell.Name -> CastAction -> SpellEffect
-castSpellAll n ca (Left id) (Left _) next = GameAuto $ do
+castSpellAll n ca src (Left _) next = GameAuto $ do
     ps <- party <$> world
-    run $ castSpellInBattle n ca (Left $ toPartyPos <$> [1..length ps]) (Left id) next
-castSpellAll n ca (Left id) (Right _) next = GameAuto $ do
+    run $ castSpellInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
+castSpellAll n ca src (Right _) next = GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
-    run $ castSpellInBattle n ca (Right $ concat es) (Left id) next
-castSpellAll n ca (Right e) l next = castSpellGroup n ca (Right e) l next
+    run $ castSpellInBattle n ca src (Right $ concat es) next
 
 
 castSpellInBattle :: Spell.Name
                   -> CastAction
-                  -> Either [PartyPos] [Enemy.Instance] -- dst
                   -> Either CharacterID Enemy.Instance  -- src
+                  -> Either [PartyPos] [Enemy.Instance] -- dst
                   -> GameMachine -> GameMachine
-castSpellInBattle n ca dst (Left cid) next = GameAuto $ do
+castSpellInBattle n ca (Left cid) dst next = GameAuto $ do
     src <- characterByID cid
     ts  <- ca (Left src) dst
     let toMsg t = Message $ (nameOf src ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
-castSpellInBattle n ca dst (Right e) next = GameAuto $ do
+castSpellInBattle n ca (Right e) dst next = GameAuto $ do
     ts <- ca (Right e) dst
     let toMsg t = Message $ (nameOf e ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
@@ -288,6 +292,11 @@ aliveEnemyLineHead el = do
     es <- aliveEnemiesLine el
     return $ if null es then Nothing else Just $ head es
 
+aliveEnemyLineRandom :: EnemyLine -> GameState (Maybe Enemy.Instance)
+aliveEnemyLineRandom el = do
+    es <- aliveEnemiesLine el
+    if null es then return Nothing
+               else Just <$> randomIn es
 
 -- ================================================================================
 enemyNameOf :: Enemy.Instance -> GameState String

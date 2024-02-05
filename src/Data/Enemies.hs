@@ -69,7 +69,7 @@ instance Object Instance where
   lvOf              = lv . define
   statusErrorsOf    = statusErrors
 
-  setHp           v e = let e' = e { hp = max 0 v } in
+  setHp           v e = let e' = e { hp = max 0 (min v (maxhp e)) } in
                         if hp e' == 0 then addStatusError Dead e' else e'
   setStatusErrors v e = let e' = e { statusErrors = nub v }
                             ss = statusErrorsOf e' in

@@ -8,6 +8,7 @@ import Control.Monad.Reader (asks)
 import Control.Monad.State (modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
 import Data.Function ((&))
+import Data.List (isInfixOf)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -327,9 +328,10 @@ type CastAction = (Either Chara.Character Enemy.Instance  -- ^ src
 
 castCureSpell :: Formula -> [StatusError] -> CastAction
 castCureSpell f ss (Left src) (Left is) = do
-    ps  <- party <$> world
-    ts  <- forM is $ \i -> do
+    ps <- party <$> world
+    ts <- forM is $ \i -> do
       dst <- characterInPartyAt i
+      id  <- characterIDInPartyAt i
       let ssc = statusErrorsOf dst
       if hpOf dst == 0 && all (`notElem` ssc) ss then return []
       else do
@@ -340,7 +342,21 @@ castCureSpell f ss (Left src) (Left is) = do
                     nameOf dst ++ " heal " ++ show (hpOf dst' - hpOf dst) ++ "."
                   else
                     nameOf dst ++ " cured."
-        return [(join $ updateCharacter <$> characterIDInPartyAt i <*> pure dst', msg)]
+        return [(updateCharacter id dst', msg)]
+    return $ concat ts
+castCureSpell f ss (Right src) (Right is) = do
+    ts <- forM is $ \dst -> do
+      let ssc = statusErrorsOf dst
+      if hpOf dst == 0 && all (`notElem` ssc) ss then return []
+      else do
+        m <- formulaMapSO (Right src) (Right dst)
+        d <- evalWith m f
+        let dst' = foldl (&) (setHp (hpOf dst + d) dst) (removeStatusError <$> ss)
+        let msg = if hpOf dst /= hpOf dst' then
+                    nameOf dst ++ " heal " ++ show (hpOf dst' - hpOf dst) ++ "."
+                  else
+                    nameOf dst ++ " cured."
+        return [(updateEnemy dst (const dst'), msg)]
     return $ concat ts
 castCureSpell _ _ _ _ = undefined
 
@@ -359,6 +375,17 @@ castParamChangeSpell ad term etxt (Left src) (Left is)
           else return [(updateCharacter dst $ cdst { Chara.paramDelta = Spell.applyChangeParam term prmc (Chara.paramDelta cdst) }
                       , nameOf cdst ++ " " ++ etxt ++ ".")]
           )
+castParamChangeSpell ad term etxt (Right src) (Right is) = concat <$> forM is (\dst -> do
+    prmc <- toParamChange (Right src) (Right dst) ad
+    let org = Enemy.modParam dst
+        p'  = if effectName prmc `isInfixOf` effectName org then org
+              else ParamChange { deltaParam = deltaParam org <> deltaParam prmc
+                               , deltaAC    = deltaAC org + deltaAC prmc
+                               , effectName = effectName org ++ effectName prmc ++ "\n" }
+    if hpOf dst == 0 then return []
+    else return [(updateEnemy dst $ const dst { Enemy.modParam = p' }
+                , nameOf dst ++ " " ++ etxt ++ ".")]
+    )
 
 castDamageSpell :: Formula -> CastAction
 castDamageSpell f (Left c) (Right es) = do
