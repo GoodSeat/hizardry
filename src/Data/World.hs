@@ -24,6 +24,7 @@ data World = World {
     , roomBattled     :: ![Coord] -- ^ already room battled in current mazing.
     , partyLight      :: !Int     -- ^ last time milwa effect.
     , partyLight'     :: !Int     -- ^ last time super milwa effect.(ignore dark zone)
+    , partyParamDelta :: ![(ValidTerm, ParameterChange)]
 
     , visitHitory     :: !(Map.Map Coord Bool)
 

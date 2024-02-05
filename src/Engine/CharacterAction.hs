@@ -325,7 +325,8 @@ castCureSpell n f ss (Left src) (Left is) = do
       let ssc = statusErrorsOf dst
       if hpOf dst == 0 && all (`notElem` ssc) ss then return []
       else do
-        d <- evalWith (formulaMapSO src dst) f
+        m <- formulaMapSO (Left src) (Left dst)
+        d <- evalWith m f
         let dst' = foldl (&) (setHp (hpOf dst + d) dst) (removeStatusError <$> ss)
         let msg = if hpOf dst /= hpOf dst' then
                     nameOf dst ++ " heal " ++ show (hpOf dst' - hpOf dst) ++ "."

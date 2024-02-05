@@ -11,7 +11,7 @@ import Control.Monad.Reader
 
 import Data.List (find)
 import Data.Map hiding (filter, null, foldl)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 
 import Engine.GameAuto
 import Data.Primitive
@@ -139,6 +139,7 @@ deleteCharacter id = do
             , inTarvernMember = filter (/= id) $ inTarvernMember w
             , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
             }
+
 
 
 updateCharacter :: CharacterID -> Chara.Character -> GameState ()
@@ -272,10 +273,7 @@ updateEnemy e f = do
 -- for make number commands.
 -- ---------------------------------------------------------------------------------
 
-cmdNums :: Int
-        -> (Int -> GameMachine)
-        -> [(Input, GameMachine)]
---cmdNums n f = [(Key (show i), f i) | i <- [1..n]]
+cmdNums :: Int -> (Int -> GameMachine) -> [(Input, GameMachine)]
 cmdNums n f = rmv <$> cmdNumsWhen n ((,True).f)
   where rmv (a,b,_) = (a,b)
 
@@ -292,9 +290,7 @@ cmdNumPartiesID f = fmap rmv <$> cmdNumPartiesIDWhen ((,True).f)
   where rmv (a,b,_) = (a,b)
 
 
-cmdNumsWhen :: Int
-            -> (Int -> (GameMachine, Bool))
-            -> [(Input, GameMachine, Bool)]
+cmdNumsWhen :: Int -> (Int -> (GameMachine, Bool)) -> [(Input, GameMachine, Bool)]
 cmdNumsWhen n f = [(Key (show i), fst (f i), snd (f i)) | i <- [1..n]]
 
 
@@ -317,6 +313,104 @@ cmdNumPartiesIDWhen f = do
 
 
 -- =================================================================================
+-- Character or Enemy as Target.
+-- ---------------------------------------------------------------------------------
+
+type TargetSO = Either Chara.Character (Enemy.Instance, Enemy.Define)
+
+acOf :: TargetSO -> GameState Int
+acOf s@(Left c) = do
+    eqis <- filter (/= Nothing) <$> mapM (equipOf c) Item.allEquipTypeTest
+    let eats = Item.equipBaseAttr . fromJust . Item.equipType . fromJust <$> eqis
+        m    = formulaMapSBase s
+    acEq <- sum <$> mapM (evalWith m . Item.ac) eats
+
+    acBase <- evalWith m (Chara.baseAC (Chara.job c))
+    ps     <- partyParamDelta <$> world
+    let pss = deltaAC . snd <$> ps
+    let acC = sum $ (acBase : (deltaAC . snd <$> Chara.paramDelta c)) ++ pss
+    return $ acC + acEq
+
+
+acOf (Right (e, def)) = return $ Enemy.ac def + deltaAC (Enemy.modParam e)
+
+paramOf :: TargetSO -> GameState Parameter
+paramOf (Left c) = do
+    ps <- partyParamDelta <$> world
+    let pss = deltaParam . snd <$> ps
+    let p = foldl1 (<>) $ (Chara.param c : (deltaParam . snd <$> Chara.paramDelta c)) ++ pss
+    return p
+
+paramOf (Right (ei, def)) = return $ Enemy.param def <> deltaParam (Enemy.modParam ei)
+
+
+-- =================================================================================
+-- for Formula map.
+-- ---------------------------------------------------------------------------------
+
+addParamToMap :: String -> TargetSO -> Map String Int -> GameState (Map String Int)
+addParamToMap prefix s m = do
+    ac  <- acOf s
+    str <- strength <$> paramOf s
+    iq  <- iq       <$> paramOf s
+    pie <- piety    <$> paramOf s
+    vit <- vitality <$> paramOf s
+    agi <- agility  <$> paramOf s
+    luc <- luck     <$> paramOf s
+    let m' = insert (prefix ++ "ac" ) ac
+           . insert (prefix ++ "str") str
+           . insert (prefix ++ "iq" ) iq
+           . insert (prefix ++ "pie") pie
+           . insert (prefix ++ "vit") vit
+           . insert (prefix ++ "agi") agi
+           . insert (prefix ++ "luc") luc
+           $ m
+    return m
+
+addParamBase :: String -> TargetSO -> Map String Int -> Map String Int
+addParamBase prefix (Left  s) = addParamBase' prefix s
+addParamBase prefix (Right s) = addParamBase' prefix s
+
+addParamBase' :: Object o => String -> o -> Map String Int -> Map String Int
+addParamBase' prefix o = insert (prefix ++ "lv") (lvOf o)
+                       . insert (prefix ++ "hp") (hpOf o)
+                       . insert (prefix ++ "maxhp") (maxhpOf o)
+
+
+formulaMapS :: TargetSO -> GameState (Map String Int)
+formulaMapS s = addParamToMap "" s (formulaMapSBase s)
+
+formulaMapSO :: TargetSO -> TargetSO -> GameState (Map String Int)
+formulaMapSO s o = addParamToMap "" s (formulaMapSOBase s o) >>= addParamToMap "o." o
+
+formulaMapSBase :: TargetSO -> Map String Int
+formulaMapSBase s = addParamBase "" s empty
+
+formulaMapSOBase :: TargetSO -> TargetSO -> Map String Int
+formulaMapSOBase s o = addParamBase "o." o . addParamBase "" s $ empty
+
+
+formulaMap1 :: Int -> Int -> Chara.Character -> GameState (Map String Int)
+formulaMap1 i n o = do
+     m <- formulaMapS (Left o)
+     return $ insert "order" i
+            . insert "partynum" n
+            . insert "partynum" n
+            . insert "age"     (Chara.age  o)
+            . insert "exp"     (Chara.exp  o)
+            . insert "gold"    (Chara.gold o)
+            . insert "marks"   (Chara.marks o)
+            . insert "rips"    (Chara.rips o)
+            $ m 
+
+
+addEvFlagToFormulaMap :: Map String Int -> GameState (Map String Int)
+addEvFlagToFormulaMap m = do
+  efs <- eventFlags <$> world
+  return $ foldl (\acc i -> Data.Map.insert ("evf." ++ show i) (efs !! i) acc) m [0..99]
+
+
+-- =================================================================================
 -- Other.
 -- ---------------------------------------------------------------------------------
 
@@ -328,47 +422,4 @@ currentPosition = do
                 FindTreasureChest p _ -> return p
                 Camping p             -> return p
                 _                     -> err "failed on currentPosition."
-
-formulaMapS :: Object s => s -> Map String Int
-formulaMapS s = fromList [
-     ("ac"      , acOf s)
-    ,("lv"      , lvOf s)
-    ,("hp"      , hpOf s)
-    ,("maxhp"   , maxhpOf s)
-    ,("str"     , strength.paramOf $ s)
-    ,("iq"      , iq      .paramOf $ s)
-    ,("pie"     , piety   .paramOf $ s)
-    ,("vit"     , vitality.paramOf $ s)
-    ,("agi"     , agility .paramOf $ s)
-    ,("luc"     , luck    .paramOf $ s)
-    ]
-
-formulaMapSO :: Object s => Object o => s -> o -> Map String Int
-formulaMapSO s o = fromList [
-     ("ac"      , acOf s)
-    ,("lv"      , lvOf s)
-    ,("hp"      , hpOf s)
-    ,("maxhp"   , maxhpOf s)
-    ,("str"     , strength.paramOf $ s)
-    ,("iq"      , iq      .paramOf $ s)
-    ,("pie"     , piety   .paramOf $ s)
-    ,("vit"     , vitality.paramOf $ s)
-    ,("agi"     , agility .paramOf $ s)
-    ,("luc"     , luck    .paramOf $ s)
-    ,("o.ac"    , acOf o)
-    ,("o.lv"    , lvOf o)
-    ,("o.hp"    , hpOf o)
-    ,("o.maxhp" , maxhpOf o)
-    ,("o.str"   , strength.paramOf $ o)
-    ,("o.iq"    , iq      .paramOf $ o)
-    ,("o.pie"   , piety   .paramOf $ o)
-    ,("o.vit"   , vitality.paramOf $ o)
-    ,("o.agi"   , agility .paramOf $ o)
-    ,("o.luc"   , luck    .paramOf $ o)
-    ]
-
-addEvFlagToFormulaMap :: Map String Int -> GameState (Map String Int)
-addEvFlagToFormulaMap m = do
-  efs <- eventFlags <$> world
-  return $ foldl (\acc i -> Data.Map.insert ("evf." ++ show i) (efs !! i) acc) m [0..99]
 

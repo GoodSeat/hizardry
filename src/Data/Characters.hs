@@ -27,6 +27,7 @@ data Character = Character {
     , marks        :: !Int            -- ^ count of defeated enemies.
     , rips         :: !Int            -- ^ count of dead.
     , statusErrors :: ![StatusError]  -- ^ status errors.
+    , paramDelta   :: ![(ValidTerm, ParameterChange)] -- ^ temporary changed paramter.
 
     , items        :: ![ItemInf]      -- ^ items you have.
     , equips       :: ![ItemInf]      -- ^ items you equips.
@@ -40,13 +41,10 @@ instance Object Character where
   nameOf          = name
   hpOf            = hp
   maxhpOf         = maxhp
-  paramOf         = param
-  acOf            = const 10 -- TODO:
   lvOf            = lv
   statusErrorsOf  = statusErrors
 
   setHp           v c = let c' = c { hp = min (maxhpOf c) (max 0 v) } in if hp c' == 0 then addStatusError Dead c' else c'
-  setAc           v c = c -- TODO:
   setStatusErrors v c = let c' = c { statusErrors = nub v }
                             ss = statusErrorsOf c' in
      if      Lost `elem` ss && length ss > 1 then setStatusErrors [Lost] c'
@@ -80,6 +78,7 @@ data Job = Job {
     , baseWeaponAttr       :: !Item.WeaponAttr -- ^ use when no weapon equipd.
     , fightTryCount        :: !Formula
     , fightHitBonus        :: !Formula
+    , baseAC               :: !Formula
 } deriving Read
 instance Show Job where
   show = jobName

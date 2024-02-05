@@ -185,6 +185,7 @@ makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainin
               , Character.marks     = 0
               , Character.rips      = 0
               , Character.statusErrors = []
+              , Character.paramDelta   = []
 
               , Character.items        = []
               , Character.equips       = []

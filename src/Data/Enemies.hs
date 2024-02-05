@@ -19,7 +19,7 @@ data Instance = Instance {
     , maxhp         :: !Int
     , statusErrors  :: ![StatusError]
     , maybeDropItem :: !Bool
-    , modAc         :: !Int
+    , modParam      :: !ParameterChange
 } deriving (Show, Eq)
 
 data Define = Define {
@@ -58,22 +58,18 @@ data Define = Define {
     , enableRun         :: !Bool
     , trapCandidate     :: ![Trap]
 
-} deriving (Show)
+} deriving (Show, Eq)
 
 
 instance Object (Instance, Define) where
-  nameOf          = name . snd
-  hpOf            = hp . fst
-  maxhpOf         = maxhp . fst
-  paramOf         = param . snd
-  acOf (e, def)   = ac def + modAc e
-  lvOf            = lv . snd
-  statusErrorsOf  = statusErrors . fst
+  nameOf            = name . snd
+  hpOf              = hp . fst
+  maxhpOf           = maxhp . fst
+  lvOf              = lv . snd
+  statusErrorsOf    = statusErrors . fst
 
   setHp           v (e, def) = let e' = e { hp = max 0 v } in
                                if hp e' == 0 then addStatusError Dead (e', def) else (e', def)
-  setAc           v (e, def) = let mod = v - acOf (e, def)
-                               in (e { modAc = modAc e + mod }, def)
   setStatusErrors v (e, def) = let e' = e { statusErrors = nub v }
                                    ss = statusErrorsOf (e', def) in
      if      Lost `elem` ss && length ss > 1 then setStatusErrors [Lost] (e', def)
@@ -89,7 +85,7 @@ data Action = Fight Int     -- ^ count of attack.
             | Spelling Formula -- ^ spel id.
             | Breath Formula   -- ^ damage.
             | Run
-    deriving (Show)
+    deriving (Show, Eq)
 
 data Trap = DropDirectly
           | NoTrap

@@ -85,6 +85,7 @@ main = do
           }
         , Character.fightTryCount = read "min(lv/5+1,10)"
         , Character.fightHitBonus = read "lv/3+2"
+        , Character.baseAC        = read "10"
         }
         priest = Character.Job {
           Character.jobName              = "Priest"
@@ -115,6 +116,7 @@ main = do
           }
         , Character.fightTryCount = read "1"
         , Character.fightHitBonus = read "lv/3+2"
+        , Character.baseAC        = read "10"
         }
         thief = Character.Job {
           Character.jobName              = "Thief"
@@ -144,6 +146,7 @@ main = do
           }
         , Character.fightTryCount = read "min(lv/5+1,10)"
         , Character.fightHitBonus = read "lv/5"
+        , Character.baseAC        = read "10"
         }
     let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
         human = Character.Kind {
@@ -207,6 +210,7 @@ main = do
         , Character.marks    = 0
         , Character.rips     = 0
         , Character.statusErrors = []
+        , Character.paramDelta = []
 
         , Character.items    = [ItemInf (ItemID 1) True
                                ,ItemInf (ItemID 1) False
@@ -227,6 +231,7 @@ main = do
         , Character.maxhp    = 148
         , Character.lv       = 15
         , Character.statusErrors = [Poison 5]
+        , Character.paramDelta = []
         }
         testChara3 = testChara1 {
           Character.name     = "PRI1"
@@ -235,6 +240,7 @@ main = do
         , Character.maxhp    = 48
         , Character.lv       = 5
         , Character.statusErrors = []
+        , Character.paramDelta = []
 
         , Character.job      = priest
         , Character.alignment= Character.N
@@ -247,6 +253,7 @@ main = do
         , Character.maxhp    = 108
         , Character.lv       = 5
         , Character.statusErrors = []
+        , Character.paramDelta = []
 
         , Character.job      = thief
         , Character.alignment= Character.N
@@ -272,6 +279,7 @@ main = do
       , roomBattled     = []
       , partyLight      = 0
       , partyLight'     = 0
+      , partyParamDelta = []
 
       , visitHitory     = Map.empty
 
@@ -971,7 +979,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
           <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
           <> t1 (if null fMsg                 then mempty else flashMsgBox fMsg)
           <> t1 (if null cMsg                 then mempty else cmdBox cMsg )
-          <> t1 (if visibleStatusWindow w && not hideStatus then status (catMaybes ps) else mempty)
+          <> t1 (if visibleStatusWindow w && not hideStatus then status s w (catMaybes ps) else mempty)
           <> t1 (if visibleGuideWindow w then guide else mempty)
           <>    (if null cMsg && null mMsg && isNothing picID then minimapScreen else mempty)
 --        <> t1 location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
@@ -998,7 +1006,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
                                     FindTreasureChest _ True  -> treasure
                                     _                         -> mempty
     statusScene   = case cid' of Nothing  -> mempty
-                                 Just cid -> statusView mMsg itemNameOf (cs Map.! cid)
+                                 Just cid -> statusView s w mMsg itemNameOf (cs Map.! cid)
     mMsg' | not (null mMsg) = mMsg
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
           | isOnTreasure    = "you found a treasure chest."

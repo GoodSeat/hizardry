@@ -48,8 +48,9 @@ inspectTreasureChest ps con = GameAuto $ do
 inspectTreasureChestBy :: PartyPos -> [PartyPos] -> TreasureCondition -> GameMachine
 inspectTreasureChestBy i ps con = GameAuto $ do
     c <- characterInPartyAt i
-    successed  <- happens =<< evalWith (formulaMapS c) (Chara.inspectTrapAbility $ Chara.job c)
-    invokeTrap <- happens =<< evalWith (formulaMapS c) (parse' "100*(19-agi)/20")
+    m <- formulaMapS (Left c)
+    successed  <- happens =<< evalWith m (Chara.inspectTrapAbility $ Chara.job c)
+    invokeTrap <- happens =<< evalWith m (parse' "100*(19-agi)/20")
     trap'      <- randomIn [Enemy.NoTrap .. Enemy.Alarm]
     let afterInspect = actionForTreasureChest con $ i:ps
     run $ if      successed  then events [Message $ inspectMessage (trap con)] afterInspect
@@ -73,9 +74,10 @@ disarmTrap con afterNotDisarm = GameAuto $ do
 tryDisarm :: TreasureCondition -> String -> PartyPos -> GameMachine -> GameMachine
 tryDisarm con t i afterNotDisarm = GameAuto $ do
     c <- characterInPartyAt i
+    m <- formulaMapS (Left c)
     let matchTrap = (toLower <$> show (trap con)) == (toLower <$> t)
-    sucessDisarming <- happens =<< evalWith (formulaMapS c) (Chara.disarmTrapAbility $ Chara.job c)
-    invokeTrap      <- happens =<< evalWith (formulaMapS c) (parse' "100*(20-agi)/20")
+    sucessDisarming <- happens =<< evalWith m (Chara.disarmTrapAbility $ Chara.job c)
+    invokeTrap      <- happens =<< evalWith m (parse' "100*(20-agi)/20")
     run $ if      not matchTrap   then invokingTrap con i
           else if sucessDisarming then events [Message "Trap successfully disarmed!"] (getTreasures con)
           else if invokeTrap      then invokingTrap con i
@@ -110,7 +112,8 @@ effectTrap i Enemy.GasBomb = do
     ps <- party <$> world
     forM_ ps $ \i -> do
       c   <- characterByID i
-      hit <- happens =<< evalWith (formulaMapS c) (parse' "100*(20-luc)/20")
+      m   <- formulaMapS (Left c)
+      hit <- happens =<< evalWith m (parse' "100*(20-luc)/20")
       when hit $ updateCharacterWith i (addPoison 1)
     return ("Ooops!! Gas Bomb!!", Nothing)
 effectTrap i Enemy.CrossbowBolt = do

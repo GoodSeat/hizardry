@@ -5,6 +5,7 @@ import Data.List (isPrefixOf)
 
 import Control.CUI
 import Engine.GameAuto
+import Engine.Utils
 import Data.Primitive
 import Data.Characters as Character
 import Data.World
@@ -81,36 +82,39 @@ partyStatus m = foldl1 (<>) (fmap toText (zip [1..] ls))
     toText (n, t) = text (31, 18 + n) t
 
 
-status :: [Character] -> Craphic
-status p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
+status :: Scenario -> World -> [Character] -> Craphic
+status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
     [text (6, windowH - 6) "#--CHARACTER NAME-------------CLASS-----AC----HITS---STATUS"
     ,rect (5, windowH - 6) (67, 8) (Draw ' ')]
   where
-    toStatusLine (n, c) =  text (6,  windowH - 6 + n) (show n ++ "  " ++ name c)
+    toStatusLine (n, c) = let (ac', _) = runGameState s w (acOf $ Left c);
+                              ac = case ac' of Right v -> v
+                                               _       -> 99
+                        in text (6,  windowH - 6 + n) (show n ++ "  " ++ name c)
                         <> text (36, windowH - 6 + n) (show (alignment c) ++ "-" ++ take 3 (jobName $ job c))
-                        <> text (46, windowH - 6 + n) (show $ acOf c)
+                        <> text (46, windowH - 6 + n) (show $ ac)
                         <> text (54, windowH - 6 + n) (show $ hp c)
                         <> text (61, windowH - 6 + n) (show $ maxhp c)
 
-statusView :: String -> (ItemID -> Bool -> Item.Name)  -> Character -> Craphic
-statusView msg itemNameOf c =
+statusView :: Scenario -> World -> String -> (ItemID -> Bool -> Item.Name)  -> Character -> Craphic
+statusView s w msg itemNameOf c =
     foldl1 (<>) (fmap toText (zip [1..] ls)) <>
     rect (8, 24) (61, 7) (Draw ' ') <>
     ( translate (5, 4) $
       fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
                     . replaceText "[STR]"   (show $ strength st)     (Right 3)
-                    . replaceText "[IQ]"    (show $ iq st)           (Right 3)
-                    . replaceText "[PIE]"   (show $ piety st)        (Right 3)
+                    . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
+                    . replaceText "[PIE]"   (show $ piety    st)     (Right 3)
                     . replaceText "[VIT]"   (show $ vitality st)     (Right 3)
-                    . replaceText "[AGI]"   (show $ agility st)      (Right 3)
-                    . replaceText "[LUK]"   (show $ luck st)         (Right 3)
+                    . replaceText "[AGI]"   (show $ agility  st)     (Right 3)
+                    . replaceText "[LUK]"   (show $ luck     st)     (Right 3)
                     . replaceText "[HP]"    (show $ hp c)            (Right 4)
                     . replaceText "[MaxHP]" (show $ maxhp c)         (Right 4)
                     . replaceText "[Exp]"   (show $ Character.exp c) (Right 8)
                     . replaceText "[Gold]"  (show $ gold c)          (Right 8)
                     . replaceText "[Age]"   (show $ age c)           (Right 4)
-                    . replaceText "[AC]"    (show $ acOf c)          (Right 4)
+                    . replaceText "[AC]"    (show $ ac)              (Right 4)
                     . replaceText "[Marks]" (show $ marks c)         (Right 4)
                     . replaceText "[RIPs]"  (show $ rips c)          (Right 4)
                     . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
@@ -149,7 +153,14 @@ statusView msg itemNameOf c =
                     . replaceText "J)#"  ("J)" ++ equipMarks !! 9) (Left 3)
                     $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
   where
-    st = paramOf c
+    (ac', _) = runGameState s w (acOf $ Left c)
+    ac = case ac' of Right v -> v
+                     _       -> 99
+
+    (st', _) = runGameState s w (paramOf $ Left c)
+    st = case st' of Right v -> v
+                     _       -> emptyParam
+
     ls = lines msg
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     items' = ((\(ItemInf id identified) -> itemNameOf id identified) <$> Character.items c) ++ repeat ""

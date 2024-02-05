@@ -73,7 +73,7 @@ doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
       efs <- eventFlags <$> world
       ps  <- party <$> world
       os  <- mapM characterByID ps
-      map <- addEvFlagToFormulaMap $ Ev.formulaMapParty os
+      map <- addEvFlagToFormulaMap Map.empty
       n   <- evalWith map f
       modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
       run $ next isHidden
@@ -95,12 +95,12 @@ matchCondition :: Ev.Condition -> GameState Bool
 matchCondition (Ev.FormulaCheckParty f) = do
     ps  <- party <$> world
     os  <- mapM characterByID ps
-    map <- addEvFlagToFormulaMap $ Ev.formulaMapParty os
+    map <- addEvFlagToFormulaMap Map.empty
     n   <- evalWith map f
     happens n
 matchCondition (Ev.FormulaCheckLeader f) = do
     c   <- characterByID . head . party =<< world
-    map <- addEvFlagToFormulaMap $ formulaMapS c
+    map <- addEvFlagToFormulaMap =<< formulaMapS (Left c)
     n   <- evalWith map f
     happens n
 matchCondition Ev.Otherwise = return True

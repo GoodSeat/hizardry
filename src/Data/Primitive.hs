@@ -81,6 +81,33 @@ emptyParam = Parameter { strength = 0
                        , luck     = 0
                        }
 
+
+data ParameterChange = ParameterChange {
+      deltaParam :: !Parameter
+    , deltaAC    :: !Int
+} deriving (Show, Eq, Read)
+
+emptyParamChange = ParameterChange emptyParam 0
+
+data ValidTerm = OnlyInBattle | OnlyInMaze
+    deriving (Show, Eq, Read)
+
+
+instance Semigroup Parameter where
+    p1 <> p2 = Parameter {
+      strength = strength p1 + strength p2
+    , iq       = iq       p1 + iq       p2
+    , piety    = piety    p1 + piety    p2
+    , vitality = vitality p1 + vitality p2
+    , agility  = agility  p1 + agility  p2
+    , luck     = luck     p1 + luck     p2
+    }
+
+instance Monoid Parameter where
+    mempty = emptyParam
+    mappend = (<>)
+
+
 -- ==========================================================================
 
 -- | position in party.
@@ -155,17 +182,14 @@ type SpellTarget = Either PartyPos EnemyLine
 
 -- ==========================================================================
 
-class Object o where
+class Eq o => Object o where
   nameOf          :: o -> String
   hpOf            :: o -> Int
   maxhpOf         :: o -> Int
-  paramOf         :: o -> Parameter
-  acOf            :: o -> Int
   lvOf            :: o -> Int
   statusErrorsOf  :: o -> [StatusError]  -- ^ status errors.
 
   setHp           :: Int -> o -> o
-  setAc           :: Int -> o -> o
   setStatusErrors :: [StatusError] -> o -> o
 
 addStatusError :: Object o => StatusError -> o -> o

@@ -46,9 +46,9 @@ fightDamage el c e = do
     edef  <- enemyDefineByID $ Enemy.id e
     wattr <- weaponAttrOf c
     eqis  <- filter (/= Nothing) <$> mapM (equipOf c) Item.allEquipTypeTest
+    m     <- formulaMapSO (Left c) (Right (e, edef))
     let eats = Item.equipBaseAttr . fromJust . Item.equipType . fromJust <$> eqis
-        m    = formulaMapSO c (e, edef)
-    weponAt  <- sum <$> mapM (evalWith m . Item.ac) eats
+    weponAt  <- sum <$> mapM (evalWith m . Item.at) eats
     stBonus  <- sum <$> mapM (evalWith m . Item.st) eats
     tryCount <- max <$> evalWith m (Chara.fightTryCount $ Chara.job c) <*> pure weponAt
     jobBonus <- evalWith m (Chara.fightHitBonus $ Chara.job c)
@@ -120,10 +120,12 @@ fightDamageE :: Int             -- ^ count of attack.
              -> GameState (Int, Int)
 fightDamageE n e c dmg = do
     edef <- enemyDefineByID $ Enemy.id e
+    acC  <- acOf (Left c)
+    acE  <- acOf (Right (e, edef))
+    m    <- formulaMapSO (Right (e, edef)) (Left c)
     let p  = -2 -- TODO!:parry bonus of c.
-        a  = 19 + p - acOf c - lvOf (e, edef)
-        b  = a - acOf (e, edef)
-        m  = formulaMapSO (e, edef) c
+        a  = 19 + p - acC - lvOf (e, edef)
+        b  = a - acE
         hv |  19 <= b  = 19
            |   0 <= b  = b
            | -36 <= b  = 0
@@ -221,7 +223,7 @@ castDamageSpellGroup _ _ _ _ _ = error "invalid castDamageSpellGroup"
 
 castDamageSpellAll :: Spell.Name -> Formula -> SpellEffect
 castDamageSpellAll n f (Left id) l next = GameAuto $ do
-    es <- sequence $ aliveEnemiesLine . toEnemyLine <$> [1..4]
+    es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
     run $ castDamageSpell n f (Right $ concat es) (Left id) next
 castDamageSpellAll n f (Right e) l next = castDamageSpellGroup n f (Right e) l next
 
@@ -234,9 +236,10 @@ castDamageSpell n f (Right es) (Left id) next = GameAuto $ do
     c  <- characterByID id
     ts <- forM es $ \e -> do
       edef <- enemyDefineByID $ Enemy.id e
+      m    <- formulaMapSO (Left c) (Right (e, edef))
       if Enemy.hp e <= 0 then return []
       else do
-        d <- evalWith (formulaMapSO c (e, edef)) f
+        d <- evalWith m f
         let (e', _) = damageHp d (e, edef)
         updateEnemy e $ const e'
         let msg = nameOf (e, edef) ++ " takes " ++ show d ++ "."
@@ -248,9 +251,10 @@ castDamageSpell n f (Left is) (Right e) next = GameAuto $ do
     edef <- enemyDefineByID $ Enemy.id e
     ts   <- forM is $ \i -> do
       c <- characterInPartyAt i
+      m <- formulaMapSO (Right (e, edef)) (Left c)
       if hpOf c == 0 then return []
       else do
-        d <- evalWith (formulaMapSO (e, edef) c) f
+        d <- evalWith m f
         let c' = damageHp d c
         let msg = nameOf c ++ " takes " ++ show d ++ "."
         return $ (join $ updateCharacter <$> characterIDInPartyAt i <*> pure c', msg)
