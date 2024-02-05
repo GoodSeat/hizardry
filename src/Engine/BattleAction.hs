@@ -33,37 +33,37 @@ fightOfCharacter id el next = GameAuto $ do
     case e1 of
       Nothing -> run next
       Just e  -> do
-        edef   <- enemyDefineByID $ Enemy.id e
         c      <- characterByID id
         (h, d) <- fightDamage el c e
-        let (e', _) = damageHp d (e, edef)
+        let e' = damageHp d e
         updateEnemy e $ const e'
         es <- fmap Message <$> fightMessage c e' (h, d)
         run $ events es next
 
 fightDamage :: EnemyLine -> Chara.Character -> Enemy.Instance -> GameState (Int, Int)
 fightDamage el c e = do
-    edef  <- enemyDefineByID $ Enemy.id e
     wattr <- weaponAttrOf c
     eqis  <- filter (/= Nothing) <$> mapM (equipOf c) Item.allEquipTypeTest
-    m     <- formulaMapSO (Left c) (Right (e, edef))
+    m     <- formulaMapSO (Left c) (Right e)
     let eats = Item.equipBaseAttr . fromJust . Item.equipType . fromJust <$> eqis
     weponAt  <- sum <$> mapM (evalWith m . Item.at) eats
     stBonus  <- sum <$> mapM (evalWith m . Item.st) eats
     tryCount <- max <$> evalWith m (Chara.fightTryCount $ Chara.job c) <*> pure weponAt
     jobBonus <- evalWith m (Chara.fightHitBonus $ Chara.job c)
     prm      <- paramOf (Left c)
+    acE      <- acOf (Right e)
     let str      = strength prm
         strBonus | str >= 16 = str - 15
                  | str < 6   = str - 6
                  | otherwise = 0
         hitSkill = jobBonus + strBonus + stBonus
-        atSkill  = max (min (Enemy.ac edef + hitSkill - 3 * enemyLineToNum el) 19) 1
+        atSkill  = max (min (acE + hitSkill - 3 * enemyLineToNum el) 19) 1
         damageF  = Item.damage wattr
     -- TODO:add statusError, critiacl.
     rs <- replicateM tryCount $ do
         hit <- (<=) <$> randomNext 1 20 <*> pure atSkill
         dam <- (+) <$> evalWith m damageF <*> pure (max 0 strBonus)
+        let edef = Enemy.define e
         let dam' = if      not . null $ Enemy.statusErrors e                            then dam * 2
                    else if any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) then dam * 2
                    else dam
@@ -102,7 +102,6 @@ fightOfEnemy :: Enemy.Instance       -- ^ attacker enemy.
              -> GameMachine          -- ^ next game auto.
              -> GameMachine          -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
-    edef <- enemyDefineByID $ Enemy.id e
     ps   <- party <$> world
     idc  <- flip mod (length ps) <$> eval tgt
     c    <- characterByID (ps !! idc)
@@ -120,12 +119,11 @@ fightDamageE :: Int             -- ^ count of attack.
              -> Formula         -- ^ damage per hit.
              -> GameState (Int, Int)
 fightDamageE n e c dmg = do
-    edef <- enemyDefineByID $ Enemy.id e
     acC  <- acOf (Left c)
-    acE  <- acOf (Right (e, edef))
-    m    <- formulaMapSO (Right (e, edef)) (Left c)
+    acE  <- acOf (Right e)
+    m    <- formulaMapSO (Right e) (Left c)
     let p  = -2 -- TODO!:parry bonus of c.
-        a  = 19 + p - acC - lvOf (e, edef)
+        a  = 19 + p - acC - lvOf e
         b  = a - acE
         hv |  19 <= b  = 19
            |   0 <= b  = b
@@ -178,9 +176,8 @@ spell s src dst next = GameAuto $ do
                   else if isFear    then spellButFear   s src dst next
                   else                   with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
           Right e -> do
-            edef <- enemyDefineByID $ Enemy.id e
-            let isSilence = (e, edef) `hasStatusError` Silence
-                isFear    = (e, edef) `hasStatusError` Fear
+            let isSilence = e `hasStatusError` Silence
+                isFear    = e `hasStatusError` Fear
             run $ if      isSilence then spellButSilent s src dst next
                   else if isFear    then spellButFear   s src dst next
                   else                   spell' def src dst next
@@ -253,9 +250,8 @@ castSpellInBattle n ca dst (Left cid) next = GameAuto $ do
     let toMsg t = Message $ (nameOf src ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
 castSpellInBattle n ca dst (Right e) next = GameAuto $ do
-    edef <- enemyDefineByID $ Enemy.id e
-    ts  <- ca (Right e) dst
-    let toMsg t = Message $ (nameOf (e, edef) ++ " spells " ++ n ++ ".\n") ++ t
+    ts <- ca (Right e) dst
+    let toMsg t = Message $ (nameOf e ++ " spells " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
 
 -- --------------------------------------------------------------------------------

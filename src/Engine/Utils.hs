@@ -316,7 +316,7 @@ cmdNumPartiesIDWhen f = do
 -- Character or Enemy as Target.
 -- ---------------------------------------------------------------------------------
 
-type TargetSO = Either Chara.Character (Enemy.Instance, Enemy.Define)
+type TargetSO = Either Chara.Character Enemy.Instance
 
 acOf :: TargetSO -> GameState Int
 acOf s@(Left c) = do
@@ -332,7 +332,7 @@ acOf s@(Left c) = do
     return $ acC + acEq
 
 
-acOf (Right (e, def)) = return $ Enemy.ac def + deltaAC (Enemy.modParam e)
+acOf (Right e) = return $ Enemy.ac (Enemy.define e) + deltaAC (Enemy.modParam e)
 
 paramOf :: TargetSO -> GameState Parameter
 paramOf (Left c) = do
@@ -341,7 +341,7 @@ paramOf (Left c) = do
     let p = foldl1 (<>) $ (Chara.param c : (deltaParam . snd <$> Chara.paramDelta c)) ++ pss
     return p
 
-paramOf (Right (ei, def)) = return $ Enemy.param def <> deltaParam (Enemy.modParam ei)
+paramOf (Right ei) = return $ Enemy.param (Enemy.define ei) <> deltaParam (Enemy.modParam ei)
 
 
 toParamChange :: TargetSO -> TargetSO -> AdParam -> GameState ParamChange

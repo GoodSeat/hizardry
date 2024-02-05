@@ -13,6 +13,7 @@ import qualified Data.Items as Item
 
 data Instance = Instance {
       id            :: !EnemyID -- ^ define id.
+    , define        :: !Define  -- ^ define.
     , noID          :: !Int     -- ^ number for identiry inscance.
     , determined    :: !Bool
     , hp            :: !Int
@@ -61,21 +62,21 @@ data Define = Define {
 } deriving (Show, Eq)
 
 
-instance Object (Instance, Define) where
-  nameOf            = name . snd
-  hpOf              = hp . fst
-  maxhpOf           = maxhp . fst
-  lvOf              = lv . snd
-  statusErrorsOf    = statusErrors . fst
+instance Object Instance where
+  nameOf            = name . define
+  hpOf              = hp
+  maxhpOf           = maxhp
+  lvOf              = lv . define
+  statusErrorsOf    = statusErrors
 
-  setHp           v (e, def) = let e' = e { hp = max 0 v } in
-                               if hp e' == 0 then addStatusError Dead (e', def) else (e', def)
-  setStatusErrors v (e, def) = let e' = e { statusErrors = nub v }
-                                   ss = statusErrorsOf (e', def) in
-     if      Lost `elem` ss && length ss > 1 then setStatusErrors [Lost] (e', def)
-     else if Ash  `elem` ss && length ss > 1 then setStatusErrors [Ash]  (e', def)
-     else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] (e', def)
-     else                                         (e', def)
+  setHp           v e = let e' = e { hp = max 0 v } in
+                        if hp e' == 0 then addStatusError Dead e' else e'
+  setStatusErrors v e = let e' = e { statusErrors = nub v }
+                            ss = statusErrorsOf e' in
+     if      Lost `elem` ss && length ss > 1 then setStatusErrors [Lost] e'
+     else if Ash  `elem` ss && length ss > 1 then setStatusErrors [Ash]  e'
+     else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] e'
+     else                                         e'
 
 
 data Action = Fight Int     -- ^ count of attack.

@@ -71,6 +71,7 @@ createEnemyInstances n l eid dropItem = do
     mhp <- eval $ Enemy.hpFormula def
     let e = Enemy.Instance {
         Enemy.id            = eid
+      , Enemy.define        = def
       , Enemy.noID          = n + 10 * l
       , Enemy.determined    = False
       , Enemy.hp            = mhp
@@ -220,7 +221,7 @@ updateCondition :: Condition -> GameState Condition
 updateCondition con = do
     ess   <- lastEnemies
     drops <- forM (concat ess) (\e -> do
-        edef <- enemyDefineByID $ Enemy.id e
+        let edef = Enemy.define e
         if notElem Dead $ Enemy.statusErrors e then return (0, 0, [], [])
         else (,,,) <$> eval (Enemy.dropGold edef) <*> pure (Enemy.exp edef) <*> drops edef <*> pure (Enemy.trapCandidate edef))
     let (g, exp, is, ts) = foldl' (\(g1, e1, is1, ts1) (g2, e2, is2, ts2) -> (g1 + g2, e1 + e2, is1 ++ is2, ts1 ++ ts2)) (0, 0, [], []) drops
@@ -283,8 +284,7 @@ act (ByEnemies l e a) next = GameAuto $ do
     case e_ of
       Nothing -> run next
       Just e' -> do
-        edef <- enemyDefineByID $ Enemy.id e'
-        if isCantFight (e', edef) then run next
+        if isCantFight e' then run next
         else case a of
           Enemy.Fight n d t effs -> run $ fightOfEnemy e' n d t effs next
           Enemy.Spelling f       -> do
@@ -320,9 +320,8 @@ determineActions cmds = do
 
 toEnemyAction :: (Int, Enemy.Instance) -> GameState (Int, BattleAction)
 toEnemyAction (l, ei) = do
-    def <- enemyDefineByID $ Enemy.id ei
-    key <- agiBonus . agility =<< paramOf (Right (ei, def))
-    act <- randomIn $ Enemy.actions def
+    key <- agiBonus . agility =<< paramOf (Right ei)
+    act <- randomIn $ Enemy.actions (Enemy.define ei)
     return (key, ByEnemies l ei act)
 
 

@@ -363,21 +363,19 @@ castParamChangeSpell ad term etxt (Left src) (Left is)
 castDamageSpell :: Formula -> CastAction
 castDamageSpell f (Left c) (Right es) = do
     ts <- forM es $ \e -> do
-      edef <- enemyDefineByID $ Enemy.id e
-      m    <- formulaMapSO (Left c) (Right (e, edef))
+      m <- formulaMapSO (Left c) (Right e)
       if Enemy.hp e <= 0 then return []
       else do
         d <- evalWith m f
-        let (e', _) = damageHp d (e, edef)
-        let msg = nameOf (e, edef) ++ " takes " ++ show d ++ "."
+        let e' = damageHp d e
+        let msg = nameOf e ++ " takes " ++ show d ++ "."
         return $ (updateEnemy e (const e'), msg)
-               : [(return (), msg ++ "\n" ++ nameOf (e, edef) ++ " is killed.") | Enemy.hp e' <= 0]
+               : [(return (), msg ++ "\n" ++ nameOf e ++ " is killed.") | Enemy.hp e' <= 0]
     return $ concat ts
 castDamageSpell f (Right e) (Left is) = do
-    edef <- enemyDefineByID $ Enemy.id e
-    ts   <- forM is $ \i -> do
+    ts <- forM is $ \i -> do
       c <- characterInPartyAt i
-      m <- formulaMapSO (Right (e, edef)) (Left c)
+      m <- formulaMapSO (Right e) (Left c)
       if hpOf c == 0 then return []
       else do
         d <- evalWith m f
