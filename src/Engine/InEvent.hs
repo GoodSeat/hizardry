@@ -24,6 +24,9 @@ doEvent = doEventInner True
 doEventInner :: Bool -> Ev.Define -> (Bool -> GameMachine) -> (Bool -> GameMachine) -> GameMachine
 doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
   where
+    candidates :: [(String, Ev.Define)] -> [(Input, GameMachine)]
+    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd) | x <- lines m])
+
     doEvent' :: Ev.Define -> (Bool -> GameMachine) -> GameMachine
     -- moving
     doEvent' Ev.ReturnCastle _ = GameAuto $ do
@@ -46,19 +49,15 @@ doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
         run $ events' (updownEffect p' False) (next False)
 
     -- interactive
-    doEvent' (Ev.Message msg picID) next = events [MessagePic msg picID] (next False)
-    doEvent' (Ev.MessageTime msg picID t) next = events [MessageTime t msg picID] (next False)
-    doEvent' (Ev.Select msg picID ways) next = select (MessagePic msg picID) ss
-      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
-    doEvent' (Ev.Ask msg picID ways)    next = select (Ask msg picID) ss
-      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
+    doEvent' (Ev.Message     msg picID     ) next = events [MessagePic msg picID] (next False)
+    doEvent' (Ev.MessageTime msg picID t   ) next = events [MessageTime t msg picID] (next False)
+    doEvent' (Ev.Select      msg picID ways) next = select (MessagePic msg picID) (candidates ways)
+    doEvent' (Ev.Ask         msg picID ways) next = select (Ask msg picID) (candidates ways)
 
-    doEvent' (Ev.MessageT dt msg picID) next = talk msg dt picID (next False)
-    doEvent' (Ev.MessageTimeT dt msg picID t) next = talkSelect msg dt picID $ const (events [MessageTime t msg picID] (next False))
-    doEvent' (Ev.SelectT dt msg picID ways) next = talkSelect msg dt picID (flip select ss)
-      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
-    doEvent' (Ev.AskT dt msg picID ways)    next = talkSelect msg dt picID $ const (select (Ask msg picID) ss)
-      where ss = (\(m, edef) -> (Key m, doEventInner False edef whenEscape whenEnd)) <$> ways
+    doEvent' (Ev.MessageT     dt msg picID     ) next = talk msg dt picID (next False)
+    doEvent' (Ev.MessageTimeT dt msg picID t   ) next = talkSelect msg dt picID $ const (events [MessageTime t msg picID] (next False))
+    doEvent' (Ev.SelectT      dt msg picID ways) next = talkSelect msg dt picID (`select` candidates ways)
+    doEvent' (Ev.AskT         dt msg picID ways) next = talkSelect msg dt picID $ const (select (Ask msg picID) (candidates ways))
 
     -- in battle
 
