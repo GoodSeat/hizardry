@@ -19,7 +19,7 @@ data Instance = Instance {
     , maxhp         :: !Int
     , statusErrors  :: ![StatusError]
     , maybeDropItem :: !Bool
-    , modParam      :: !ParameterChange
+    , modParam      :: !ParamChange
 } deriving (Show, Eq)
 
 data Define = Define {

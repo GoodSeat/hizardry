@@ -27,7 +27,7 @@ data Character = Character {
     , marks        :: !Int            -- ^ count of defeated enemies.
     , rips         :: !Int            -- ^ count of dead.
     , statusErrors :: ![StatusError]  -- ^ status errors.
-    , paramDelta   :: ![(ValidTerm, ParameterChange)] -- ^ temporary changed paramter.
+    , paramDelta   :: ![(Term, ParamChange)] -- ^ temporary changed paramter.
 
     , items        :: ![ItemInf]      -- ^ items you have.
     , equips       :: ![ItemInf]      -- ^ items you equips.

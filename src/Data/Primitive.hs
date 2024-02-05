@@ -82,14 +82,14 @@ emptyParam = Parameter { strength = 0
                        }
 
 
-data ParameterChange = ParameterChange {
+data ParamChange = ParamChange {
       deltaParam :: !Parameter
     , deltaAC    :: !Int
 } deriving (Show, Eq, Read)
 
-emptyParamChange = ParameterChange emptyParam 0
+emptyParamChange = ParamChange emptyParam 0
 
-data ValidTerm = OnlyInBattle | OnlyInMaze
+data Term = OnlyInBattle | OnlyInMaze
     deriving (Show, Eq, Read)
 
 

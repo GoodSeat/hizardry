@@ -13,6 +13,7 @@ import Data.Primitive
 import Engine.GameAuto
 import Engine.Utils
 import qualified Data.GameEvent as Ev
+import qualified Data.Characters as Chara
 
 import Control.CUI (translate)
 
@@ -123,12 +124,15 @@ returnToCastle = do
     resetRoomBattle
     setLightValue True  0
     setLightValue False 0
+    modify $ \w -> w { partyParamDelta = [] }
+
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterByID p
       updateCharacter p $ foldl (&) c (whenReturnCastle <$> statusErrorsOf c)
+      updateCharacter p c { Chara.paramDelta = [] }
 
--- todo: remove dead/stoned/staned characters etc.
+-- TODO: remove dead/stoned/staned characters etc.
 
 
 resetRoomBattle :: GameState ()

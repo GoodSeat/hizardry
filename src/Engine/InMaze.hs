@@ -17,6 +17,7 @@ import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
 import Data.Primitive
+import qualified Data.Characters as Chara
 import qualified Data.GameEvent as Ev
 
 exitGame' :: GameMachine
@@ -65,7 +66,16 @@ enterGrid :: Maybe Ev.Define -- ^ happened event.
           -> GameMachine
 enterGrid e probEncount evMoved p = GameAuto $ do
     movePlace $ InMaze p
+
+    -- remove effect only in battle.
+    ps <- party <$> world
+    mapM_ (`updateCharacterWith` (\ca -> ca { Chara.paramDelta = filter ((/= OnlyInBattle) . fst) (Chara.paramDelta ca) })) ps
+    w <- world
+    modify $ \w -> w { partyParamDelta = filter ((/= OnlyInBattle) . fst) (partyParamDelta w) }
+
+    -- record visit history.
     modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
+
     -- TODO!:all character lost if they are in stone.
     lab <- mazeAt $ z p
     let c = coordOf p
@@ -155,7 +165,7 @@ nextMiniMap = do
 -- =======================================================================
 
 encountEnemy :: EnemyID -> Bool -> GameMachine
-encountEnemy id isRB = startBattle id isRB (with [updateRoomVisit] (escapeEvent None False)
+encountEnemy id isRB = startBattle id isRB (with [updateRoomVisit]      (escapeEvent None False)
                                            ,with [when isRB backfoward] (escapeEvent None False))
 
 updateRoomVisit :: GameState ()

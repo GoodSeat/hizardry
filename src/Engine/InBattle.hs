@@ -1,5 +1,4 @@
-module Engine.InBattle
-where
+module Engine.InBattle (startBattle) where
 
 import Data.List
 import Data.Maybe
@@ -103,11 +102,11 @@ startBattle' :: EnemyID                    -- ^ encounted enemy.
 startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
     es <- decideEnemyInstance eid
     ps <- party <$> world
-    -- TODO:maybe enemies (or parties) ambush.
+    -- TODO:maybe enemies (or parties) suprised you.
     -- TODO:maybe friendly enemy.
     -- A friendly group of ****.
     -- They hail you in welcome!
-    --   A)ttack!  L)eave in Peace
+    --   ^A)ttack!  ^L)eave in Peace
     let con = Condition {
       afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
     }
@@ -132,14 +131,16 @@ selectBattleCommand i cmds con = GameAuto $ do
       wep <- weaponAttrOf c
       ess <- lastEnemies
       let els = take (length ess) $ toEnemyLine <$> [1..]
-      let fts = filter (`elem` els) $ if i <= 3 then Item.targetF wep else Item.targetB wep
-      let cs     = Chara.enableBattleCommands $ Chara.job c
-          cs'    = filter (if null fts then (/= Chara.Fight) else const True) cs
-          next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
+          fts = filter (`elem` els) $ if i <= 3 then Item.targetF wep else Item.targetB wep
+          cs  = Chara.enableBattleCommands $ Chara.job c
+          cs' = filter (if null fts then (/= Chara.Fight) else const True)
+              . filter (if any (`elem` cantSpellStatus) (statusErrorsOf c) then (/= Chara.Spell) else const True)
+              $ cs
+      let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
           cancel = selectBattleCommand i cmds con
       if isCantFight c then
         run $ next CantMove
-      else 
+      else
         let inspect = selectEsc (ShowStatus cid "^R)ead Spell   ^L)eave `[`E`S`C`]" SingleKey)
                                 [(Key "l", selectBattleCommand i cmds con)
 -- TODO                         ,(Key "r", readSpell cid inspect)
@@ -171,7 +172,7 @@ selectBattleCommand i cmds con = GameAuto $ do
                                     Chara.Hide    -> "^H)ide\n"
                                     Chara.Ambush  -> "^A)mbush\n"
                                     Chara.Run     -> "^R)un\n"
-                                    Chara.Parry   -> if Chara.Fight `elem` cs' then "^P)arry\n" else "^P)arry`*\n" 
+                                    Chara.Parry   -> if Chara.Fight `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
                                     Chara.UseItem -> "^U)se Item\n"
             snd' (_, s, _) = s
         in run $ selectWhen1 (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
@@ -230,7 +231,7 @@ updateCondition con = do
       itemID  <- eval f
       return [itemID | dropped && isRoomBattle con]
       )
-      
+
 
 wonBattle :: Condition -> GameMachine
 wonBattle con = GameAuto $ do
@@ -251,7 +252,7 @@ findTreasureChest con = GameAuto $ do
 findTreasures :: Condition -> GameMachine
 findTreasures con = getTreasures $ TreasureCondition (afterWin con) (dropGold con) (dropItems con) undefined undefined
 
-                             
+
 
 -- ==========================================================================
 startProgressBattle :: [(CharacterID, Action)]
@@ -304,24 +305,23 @@ act (ByEnemies l e a) next = GameAuto $ do
 -- ==========================================================================
 determineActions :: [(CharacterID, Action)]
                  -> GameState [BattleAction]
-determineActions cmds = do 
+determineActions cmds = do
     pcs  <- mapM toPair cmds
     elss <- zip [1..] <$> lastEnemies
-    let els = concatMap (\(l, es) -> zip (repeat l) es) elss
-    ecs  <- mapM toEnemyAction els
+    ecs  <- mapM toEnemyAction $ concatMap (\(l, es) -> zip (repeat l) es) elss
     return $ snd <$> sortOn fst (pcs ++ ecs)
   where
     toPair :: (CharacterID, Action) -> GameState (Int, BattleAction)
     toPair (id, act) = do
-        agi <- agility . Chara.param <$> characterByID id
-        key <- agiBonus agi
+        c   <- characterByID id
+        key <- agiBonus . agility =<< paramOf (Left c)
         return (key, ByParties id act)
 
 
 toEnemyAction :: (Int, Enemy.Instance) -> GameState (Int, BattleAction)
 toEnemyAction (l, ei) = do
     def <- enemyDefineByID $ Enemy.id ei
-    key <- agiBonus $ agility . Enemy.param $ def
+    key <- agiBonus . agility =<< paramOf (Right (ei, def))
     act <- randomIn $ Enemy.actions def
     return (key, ByEnemies l ei act)
 

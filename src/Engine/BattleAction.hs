@@ -52,7 +52,8 @@ fightDamage el c e = do
     stBonus  <- sum <$> mapM (evalWith m . Item.st) eats
     tryCount <- max <$> evalWith m (Chara.fightTryCount $ Chara.job c) <*> pure weponAt
     jobBonus <- evalWith m (Chara.fightHitBonus $ Chara.job c)
-    let str      = strength . Chara.param $ c
+    prm      <- paramOf (Left c)
+    let str      = strength prm
         strBonus | str >= 16 = str - 15
                  | str < 6   = str - 6
                  | otherwise = 0
