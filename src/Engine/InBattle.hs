@@ -2,7 +2,6 @@ module Engine.InBattle (startBattle) where
 
 import Data.List
 import Data.Maybe
-import Data.Function
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
@@ -201,12 +200,18 @@ confirmBattle cmds con = select1 (BattleCommand "Are you OK?\n\n^F)ight`*\n^T)ak
 nextTurn :: Condition -> GameMachine
 nextTurn con = GameAuto $ do
     ps <- party <$> world
-    rs <- replicateM (length ps) (randomNext 0 100)
-    forM_ (zip ps rs) $ \(p, r) -> do
-      c <- characterByID p
-      updateCharacter p $ foldl (&) c (whenToNextTurn r <$> statusErrorsOf c)
+    forM_ ps $ \cid -> do
+      c <- characterByID cid
+      r <- randomNext 0 100
+      updateCharacter cid $ whenToNextTurn r c
     sortPartyAutoWith (defaultOrder con)
     -- TODO!:if all character dead, move to gameover.
+
+    -- update enemy condition.
+    ess1 <- lastEnemies
+    forM_ ess1 $ \es -> forM_ es $ \e -> do
+      r <- randomNext 0 100
+      updateEnemy e (damageHp (-(Enemy.healPerTurn $ Enemy.define e)) . whenToNextTurn r)
 
     con' <- updateCondition con
     ess  <- execState (do

@@ -21,7 +21,10 @@ data Instance = Instance {
     , statusErrors  :: ![StatusError]
     , maybeDropItem :: !Bool
     , modParam      :: !ParamChange
-} deriving (Show, Eq)
+} deriving (Show)
+
+instance Eq Instance where
+  e1 == e2 = (noID e1 == noID e2)
 
 data Define = Define {
       name              :: !String

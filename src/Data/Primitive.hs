@@ -6,6 +6,7 @@ import Data.Formula
 import GHC.Stack (HasCallStack)
 import Data.List (delete, find)
 import Data.Char (ord)
+import Data.Function
 
 -- ==========================================================================
 -- ID
@@ -239,10 +240,13 @@ whenReturnCastle :: Object o => StatusError -> o -> o
 whenReturnCastle (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o
 whenReturnCastle _ o = o
 
-whenToNextTurn :: Object o => Int -> StatusError -> o -> o
-whenToNextTurn _ (Poison n) o = setHp (hpOf o - n) o
-whenToNextTurn n (Sleep   ) o = if n < 50 then o else whenBattleEnd Sleep o
-whenToNextTurn _ _ o = o
+whenToNextTurn :: Object o => Int -> o -> o
+whenToNextTurn n o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf o)
+  where
+    whenToNextTurn' :: Object o => Int -> StatusError -> o -> o
+    whenToNextTurn' _ (Poison n) o = setHp (hpOf o - n) o
+    whenToNextTurn' n (Sleep   ) o = if n < 50 then o else whenBattleEnd Sleep o
+    whenToNextTurn' _ _ o = o
 
 whenWalking :: Object o => StatusError -> o -> o
 whenWalking (Poison n) o = setHp (hpOf o - n) o
