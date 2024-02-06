@@ -28,12 +28,12 @@ data CastPlace = InCamp
                | InBattle
     deriving (Show, Eq, Read)
 
-data Effect = Damage         Formula
-            | Cure           Formula [StatusError]
-            | Resurrection   Formula [(StatusError, Formula)] -- ^ post healed hp, [(target status error, probability)].
-            | ChangeParam    AdParam Term String   -- ^ [optional]message when apply(exp:"is protected.").
-            | AddStatusError Formula String        -- ^ probability (0~100), message when kill(exp:"is dead").
-            | AddLight       Int Bool              -- ^ time, super light or not.
+data Effect = Damage         Formula                          -- ^ damage hp.
+            | Cure           Formula [StatusError]            -- ^ heal hp, cure target status error.
+            | Resurrection   Formula [(StatusError, Formula)] -- ^ post heal hp, [(target status error, probability)].
+            | ChangeParam    AdParam Term String              -- ^ [optional]message when apply(exp:"is protected.").
+            | AddStatusError [(StatusError, Formula, String)] -- ^ (status error, probability, message when kill exp:"is dead").
+            | AddLight       Int Bool                         -- ^ time, super light or not.
             | CheckLocation  CheckLocationType
             | Event          GameEventID
     deriving (Show, Eq, Read)
