@@ -14,28 +14,20 @@ type Name = String
 data Kind = M | P deriving (Show, Eq, Read)
 
 data Define = Define {
-      name       :: Name        -- ^ name of spell.
-    , kind       :: Kind        -- ^ kind of spell.
-    , lv         :: Int         -- ^ level of spell.
-    , attribute  :: Attribute   -- ^ attribute of spell.
-    , target     :: TargetType  -- ^ type of target.
-    , effect     :: Effect      -- ^ type of effect.
-    , enableIn   :: [CastPlace] -- ^ place enable to cast.
+      name       :: !Name          -- ^ name of spell.
+    , kind       :: !Kind          -- ^ kind of spell.
+    , lv         :: !Int           -- ^ level of spell.
+    , attrLabels :: ![EffectLabel] -- ^ attribute of spell.
+    , target     :: !TargetType    -- ^ type of target.
+    , effect     :: !Effect        -- ^ type of effect.
+    , enableIn   :: ![CastPlace]   -- ^ place enable to cast.
 } deriving (Show, Eq, Read)
-
-data Attribute = None
-               | Fire
-               | Frost
-    deriving (Show, Eq, Read)
 
 data CastPlace = InCamp
                | InCastle
                | InBattle
     deriving (Show, Eq, Read)
 
-
--- type SpellEffect = 
--- 
 data Effect = Damage        Formula
             | Cure          Formula [StatusError]
             | ChangeParam   AdParam Term String -- ^ [optional]message when apply(exp:"is protected.").

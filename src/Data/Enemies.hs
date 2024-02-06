@@ -38,15 +38,12 @@ data Define = Define {
     , kind              :: !String
     , friendlyProb      :: !Int
     , numOfOccurrences  :: !Formula
-    , resistProbM       :: !Int
-    , resistProbP       :: !Int
     , healPerTurn       :: !Int
     , moveFrontProb     :: !Int
 
-    , resistError       :: ![(StatusError, Int)]
-    , resistAttributes  :: ![Spell.Attribute]
-    , weakAttributes    :: ![Spell.Attribute]
-    , attrLabels        :: ![String]
+    , resistError       :: ![(StatusError, Formula)] -- ^ 
+    , vsEffectLabels    :: ![(EffectLabel, Formula)] -- ^ damage or probablity ratio. using "value" variable.
+    , attrLabels        :: ![EnemyLabel]
 
     , actions           :: ![Action]
 

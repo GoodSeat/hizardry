@@ -45,6 +45,14 @@ newtype PictureID = PictureID {
     pictureID :: Int
 } deriving (Show, Eq, Ord, Read)
 
+-- ==========================================================================
+-- label
+-- --------------------------------------------------------------------------
+
+newtype EnemyLabel = EnemyLabel { enemyLabel :: String } deriving (Show, Eq, Read)
+
+newtype EffectLabel = EffectLabel { effectLabel :: String } deriving (Show, Eq, Read)
+
 
 -- ==========================================================================
 -- object

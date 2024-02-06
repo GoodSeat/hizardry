@@ -20,18 +20,18 @@ data Define = Define {
     , valueInShop      :: Int
     , enableToEquip    :: UserType
     , enableToUse      :: UserType
-} deriving (Show, Eq)
+} deriving (Show, Eq, Read)
 
 
 data ItemType = 
       Misc
     | Equip
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data Effect = 
       EqSpell SpellID
     | Happens GameEventID
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data EquipObject =
       Weapon     !EquipBaseAttr
@@ -41,7 +41,7 @@ data EquipObject =
     | Armour     !EquipBaseAttr
     | Gauntlet   !EquipBaseAttr
     | Accessory  !EquipBaseAttr
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 equipBaseAttr :: EquipObject -> EquipBaseAttr
 equipBaseAttr eq = case eq of Weapon     attr _ -> attr
@@ -53,35 +53,35 @@ equipBaseAttr eq = case eq of Weapon     attr _ -> attr
   
 
 data UserType = All | Only [String] -- ^ job names
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data WhenBroken =
       Lost
     | ChangeTo ItemInf
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data Attribute =
       CantDrop
     | Cursed
     | Heal Int Bool -- ^ heal or damege HP (it's value, only when equip)
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 
 data EquipBaseAttr = EquipBaseAttr {
-      ac               :: !Formula -- ^ ac
-    , st               :: !Formula -- ^ st
-    , at               :: !Formula -- ^ at
-    , resistLabels     :: ![String] -- ^ half shield damage attrLabels.
-    , resistAttributes :: ![Spell.Attribute] -- ^ resistAttributes
-    , weakAttributes   :: ![Spell.Attribute] -- ^ weakAttributes
+      ac             :: !Formula -- ^ ac
+    , st             :: !Formula -- ^ st
+    , at             :: !Formula -- ^ at
+    , resistLabels   :: ![EnemyLabel] -- ^ half shield damage attrLabels.
+    , vsEffectLabels :: ![(EffectLabel, Formula)] -- ^ resistAttributes
 } deriving (Show, Eq, Read)
 
 data WeaponAttr = WeaponAttr {
-      targetF       :: ![EnemyLine]  -- ^ enable target enemy line in front.
-    , targetB       :: ![EnemyLine]  -- ^ enable target enemy line in back.
-    , damage        :: !Formula      -- ^ damage per hit.
-    , doubleLabels  :: ![String]     -- ^ double damage target attrLabels.
-    , atackMessages :: ![String]     -- ^ message candidates when fight with this weapon. [optional]
+      targetF       :: ![EnemyLine]   -- ^ enable target enemy line in front.
+    , targetB       :: ![EnemyLine]   -- ^ enable target enemy line in back.
+    , damage        :: !Formula       -- ^ damage per hit.
+    , doubleLabels  :: ![EnemyLabel]  -- ^ double damage target attrLabels.
+    , attrLabels    :: ![EffectLabel] -- ^ attribute of atack.
+    , atackMessages :: ![String]      -- ^ message candidates when fight with this weapon. [optional]
 } deriving (Show, Eq, Read)
         
 

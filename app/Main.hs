@@ -80,6 +80,7 @@ main = do
             , Item.targetB       = []
             , Item.damage        = read "2d2"
             , Item.doubleLabels  = []
+            , Item.attrLabels    = []
             , Item.atackMessages = []
           }
         , Character.fightTryCount = read "min(lv/5+1,10)"
@@ -111,6 +112,7 @@ main = do
             , Item.targetB       = []
             , Item.damage        = read "2d2"
             , Item.doubleLabels  = []
+            , Item.attrLabels    = []
             , Item.atackMessages = []
           }
         , Character.fightTryCount = read "1"
@@ -141,6 +143,7 @@ main = do
             , Item.targetB       = []
             , Item.damage        = read "2d2"
             , Item.doubleLabels  = []
+            , Item.attrLabels    = []
             , Item.atackMessages = []
           }
         , Character.fightTryCount = read "min(lv/5+1,10)"
@@ -487,14 +490,11 @@ main = do
                     , Enemy.kind              = "animal"
                     , Enemy.friendlyProb      = 0
                     , Enemy.numOfOccurrences  = parse' "2d2"
-                    , Enemy.resistProbM       = 0
-                    , Enemy.resistProbP       = 0
                     , Enemy.healPerTurn       = 2
                     , Enemy.moveFrontProb     = 20
 
-                    , Enemy.resistError       = [(Dead, 6)]
-                    , Enemy.resistAttributes  = []
-                    , Enemy.weakAttributes    = []
+                    , Enemy.resistError       = [(Dead, read "6")]
+                    , Enemy.vsEffectLabels    = []
                     , Enemy.attrLabels        = []
 
                     , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3") []
@@ -525,15 +525,12 @@ main = do
                     , Enemy.kind              = "animal"
                     , Enemy.friendlyProb      = 15
                     , Enemy.numOfOccurrences  = parse' "2d3"
-                    , Enemy.resistProbM       = 0
-                    , Enemy.resistProbP       = 0
                     , Enemy.healPerTurn       = 0
                     , Enemy.moveFrontProb     = 20
 
-                    , Enemy.resistError       = [(Dead, 12)]
-                    , Enemy.resistAttributes  = []
-                    , Enemy.weakAttributes    = []
-                    , Enemy.attrLabels        = ["beast"]
+                    , Enemy.resistError       = [(Dead, read "12")]
+                    , Enemy.vsEffectLabels    = []
+                    , Enemy.attrLabels        = [EnemyLabel "beast"]
 
                     , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
                                                 ,Enemy.Spelling (parse' "11")
@@ -554,84 +551,84 @@ main = do
                 ]
             , spells         = Map.fromList [
                 (SpellID 11, Spell.Define {
-                      Spell.name      = "halito"
-                    , Spell.kind      = Spell.M
-                    , Spell.lv        = 1
-                    , Spell.attribute = Spell.Fire
-                    , Spell.target    = Spell.OpponentSingle
-                    , Spell.effect    = Spell.Damage (parse' "1d6")
-                    , Spell.enableIn  = [Spell.InBattle]
+                      Spell.name       = "halito"
+                    , Spell.kind       = Spell.M
+                    , Spell.lv         = 1
+                    , Spell.attrLabels = [EffectLabel "mage", EffectLabel "fire"]
+                    , Spell.target     = Spell.OpponentSingle
+                    , Spell.effect     = Spell.Damage (parse' "1d6")
+                    , Spell.enableIn   = [Spell.InBattle]
                 })
                 ,
                 (SpellID 12, Spell.Define {
-                      Spell.name      = "dumapic"
-                    , Spell.kind      = Spell.M
-                    , Spell.lv        = 1
-                    , Spell.attribute = Spell.None
-                    , Spell.target    = Spell.AllyAll
-                    --, Spell.effect    = Spell.CheckLocation Spell.OnlyCoord
-                    , Spell.effect    = Spell.CheckLocation Spell.ViewMap
-                    , Spell.enableIn  = [Spell.InCamp]
+                      Spell.name       = "dumapic"
+                    , Spell.kind       = Spell.M
+                    , Spell.lv         = 1
+                    , Spell.attrLabels = [EffectLabel "mage"]
+                    , Spell.target     = Spell.AllyAll
+                    --, Spell.effect     = Spell.CheckLocation Spell.OnlyCoord
+                    , Spell.effect     = Spell.CheckLocation Spell.ViewMap
+                    , Spell.enableIn   = [Spell.InCamp]
                 })
                 ,
                 (SpellID 21, Spell.Define {
-                      Spell.name      = "mahalito"
-                    , Spell.kind      = Spell.M
-                    , Spell.lv        = 2
-                    , Spell.attribute = Spell.Fire
-                    , Spell.target    = Spell.OpponentGroup
-                    , Spell.effect    = Spell.Damage (parse' "2d6")
-                    , Spell.enableIn  = [Spell.InBattle]
+                      Spell.name       = "mahalito"
+                    , Spell.kind       = Spell.M
+                    , Spell.lv         = 2
+                    , Spell.attrLabels = [EffectLabel "mage", EffectLabel "fire"]
+                    , Spell.target     = Spell.OpponentGroup
+                    , Spell.effect     = Spell.Damage (parse' "2d6")
+                    , Spell.enableIn   = [Spell.InBattle]
                 })
                 ,
                 (SpellID 71, Spell.Define {
-                      Spell.name      = "tiltowait"
-                    , Spell.kind      = Spell.M
-                    , Spell.lv        = 7
-                    , Spell.attribute = Spell.None
-                    , Spell.target    = Spell.OpponentAll
-                    , Spell.effect    = Spell.Damage (parse' "10d10")
-                    , Spell.enableIn  = [Spell.InBattle]
+                      Spell.name       = "tiltowait"
+                    , Spell.kind       = Spell.M
+                    , Spell.lv         = 7
+                    , Spell.attrLabels = [EffectLabel "mage"]
+                    , Spell.target     = Spell.OpponentAll
+                    , Spell.effect     = Spell.Damage (parse' "10d10")
+                    , Spell.enableIn   = [Spell.InBattle]
                 })
 
                 ,
                 (SpellID 111, Spell.Define {
-                      Spell.name      = "dios"
-                    , Spell.kind      = Spell.P
-                    , Spell.lv        = 1
-                    , Spell.attribute = Spell.None
-                    , Spell.target    = Spell.AllySingle
-                    , Spell.effect    = Spell.Cure (parse' "1d8") []
-                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                      Spell.name       = "dios"
+                    , Spell.kind       = Spell.P
+                    , Spell.lv         = 1
+                    , Spell.attrLabels = [EffectLabel "priest"]
+                    , Spell.target     = Spell.AllySingle
+                    , Spell.effect     = Spell.Cure (parse' "1d8") []
+                    , Spell.enableIn   = [Spell.InCamp, Spell.InBattle]
                 })
                 ,
                 (SpellID 112, Spell.Define {
-                      Spell.name      = "milwa"
-                    , Spell.kind      = Spell.P
-                    , Spell.lv        = 1
-                    , Spell.attribute = Spell.None
-                    , Spell.target    = Spell.AllyAll
-                    , Spell.effect    = Spell.AddLight 30 False
-                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                      Spell.name       = "milwa"
+                    , Spell.kind       = Spell.P
+                    , Spell.lv         = 1
+                    , Spell.attrLabels = [EffectLabel "priest"]
+                    , Spell.target     = Spell.AllyAll
+                    , Spell.effect     = Spell.AddLight 30 False
+                    , Spell.enableIn   = [Spell.InCamp, Spell.InBattle]
                 })
                 ,
                 (SpellID 113, Spell.Define {
-                      Spell.name      = "diosa"
-                    , Spell.kind      = Spell.P
-                    , Spell.lv        = 1
-                    , Spell.attribute = Spell.None
-                    , Spell.target    = Spell.AllyAll
-                    , Spell.effect    = Spell.Cure (parse' "1d8") []
-                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                      Spell.name       = "diosa"
+                    , Spell.kind       = Spell.P
+                    , Spell.lv         = 1
+                    , Spell.attrLabels = [EffectLabel "priest"]
+                    , Spell.target     = Spell.AllyAll
+                    , Spell.effect     = Spell.Cure (parse' "1d8") []
+                    , Spell.enableIn   = [Spell.InCamp, Spell.InBattle]
                 })
                 ,
                 (SpellID 114, Spell.Define {
-                      Spell.name      = "maporfic"
-                    , Spell.kind      = Spell.P
-                    , Spell.lv        = 1
-                    , Spell.attribute = Spell.None
-                    , Spell.target    = Spell.Party
-                    , Spell.effect    = Spell.ChangeParam (AdParam {
+                      Spell.name       = "maporfic"
+                    , Spell.kind       = Spell.P
+                    , Spell.lv         = 1
+                    , Spell.attrLabels = [EffectLabel "priest"]
+                    , Spell.target     = Spell.Party
+                    , Spell.effect     = Spell.ChangeParam (AdParam {
                           adStrength = read "0" -- ^ strength
                         , adIq       = read "0" -- ^ I.Q.
                         , adPiety    = read "0" -- ^ piety
@@ -641,17 +638,17 @@ main = do
                         , adAC       = read "-2" -- ^ AC
                         , adName     = "Protection" -- ^ effect name. if this name isn't empty, can't apply multiple.
                         }) OnlyInMaze "is protected."
-                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                    , Spell.enableIn   = [Spell.InCamp, Spell.InBattle]
                 })
                 ,
                 (SpellID 121, Spell.Define {
-                      Spell.name      = "smilwa"
-                    , Spell.kind      = Spell.P
-                    , Spell.lv        = 2
-                    , Spell.attribute = Spell.None
-                    , Spell.target    = Spell.AllyAll
-                    , Spell.effect    = Spell.AddLight 30 True
-                    , Spell.enableIn  = [Spell.InCamp, Spell.InBattle]
+                      Spell.name       = "smilwa"
+                    , Spell.kind       = Spell.P
+                    , Spell.lv         = 2
+                    , Spell.attrLabels = [EffectLabel "priest"]
+                    , Spell.target     = Spell.AllyAll
+                    , Spell.effect     = Spell.AddLight 30 True
+                    , Spell.enableIn   = [Spell.InCamp, Spell.InBattle]
                 })
                 ]
             , items = Map.fromList [
@@ -719,15 +716,15 @@ main = do
                                                          Item.ac = read "0"
                                                        , Item.st = read "4"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                                                      Item.WeaponAttr {
                                                          Item.targetF       = [L1, L2]
                                                        , Item.targetB       = []
                                                        , Item.damage        = read "1d8"
                                                        , Item.doubleLabels  = []
+                                                       , Item.attrLabels    = [EffectLabel "fire"]
                                                        , Item.atackMessages = []
                                                      }
                     , Item.valueInShop      = 500
@@ -747,9 +744,8 @@ main = do
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 500
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
@@ -768,9 +764,8 @@ main = do
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
@@ -789,9 +784,8 @@ main = do
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
@@ -810,9 +804,8 @@ main = do
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
@@ -831,9 +824,8 @@ main = do
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
@@ -852,9 +844,8 @@ main = do
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
                     , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
@@ -873,15 +864,43 @@ main = do
                                                          Item.ac = read "0"
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
-                                                       , Item.resistLabels     = []
-                                                       , Item.resistAttributes = []
-                                                       , Item.weakAttributes   = []
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
                                                      } 
                                                      Item.WeaponAttr {
                                                          Item.targetF       = [L1, L2, L3, L4]
                                                        , Item.targetB       = [L1, L2]
                                                        , Item.damage        = read "3d8"
                                                        , Item.doubleLabels  = []
+                                                       , Item.attrLabels    = []
+                                                       , Item.atackMessages = ["aimed and shot"]
+                                                     }
+                    , Item.valueInShop      = 4000
+                    , Item.enableToEquip    = Item.Only ["Thief"]
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 104, Item.Define {
+                      Item.name             = "火矢の弓"
+                    , Item.nameUndetermined = "弓?"
+                    , Item.itemType         = Item.Equip
+                    , Item.usingEffect      = Nothing
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Just $ Item.Weapon
+                                                     Item.EquipBaseAttr {
+                                                         Item.ac = read "0"
+                                                       , Item.st = read "0"
+                                                       , Item.at = read "0"
+                                                       , Item.resistLabels   = []
+                                                       , Item.vsEffectLabels = []
+                                                     } 
+                                                     Item.WeaponAttr {
+                                                         Item.targetF       = [L1, L2, L3, L4]
+                                                       , Item.targetB       = [L1, L2]
+                                                       , Item.damage        = read "3d8"
+                                                       , Item.doubleLabels  = [EnemyLabel "beast"]
+                                                       , Item.attrLabels    = [EffectLabel "fire"]
                                                        , Item.atackMessages = ["aimed and shot"]
                                                      }
                     , Item.valueInShop      = 4000
