@@ -38,7 +38,6 @@ data Define = Define {
     , ac                :: !Int
 
     , exp               :: !Int
-    , kind              :: !String
     , friendlyProb      :: !Int
     , numOfOccurrences  :: !Formula
     , healPerTurn       :: !Int
@@ -60,7 +59,6 @@ data Define = Define {
     , trapCandidate     :: ![Trap]
 
 } deriving (Show, Eq)
-
 
 instance Object Instance where
   nameOf            = name . define
@@ -104,3 +102,11 @@ data Trap = DropDirectly
 -- | data base of enemies.
 type DB = Map.Map EnemyID Define
 
+
+
+resistProbOf :: Define -> StatusError -> Formula
+resistProbOf def = resistProbOf' (resistError def)
+  where
+    resistProbOf' [] s = read "0"
+    resistProbOf' ((t, p):ts) s | t == s    = p
+                                | otherwise = resistProbOf' ts s

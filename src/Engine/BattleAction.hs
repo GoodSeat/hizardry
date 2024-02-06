@@ -33,51 +33,64 @@ fightOfCharacter id el next = GameAuto $ do
     case e1 of
       Nothing -> run next
       Just e  -> do
-        c      <- characterByID id
-        (h, d) <- fightDamage el c e
+        c           <- characterByID id
+        (h, d, ses) <- fightDamage el c e
         let e' = damageHp d e
         updateEnemy e $ const e'
-        es <- fmap Message <$> fightMessage c e' (h, d)
+        es <- fmap Message <$> fightMessage c e' (h, d, ses)
         run $ events es next
 
-fightDamage :: EnemyLine -> Chara.Character -> Enemy.Instance -> GameState (Int, Int)
+fightDamage :: EnemyLine
+            -> Chara.Character
+            -> Enemy.Instance
+            -> GameState (Int, Int, [StatusError])
 fightDamage el c e = do
     wattr <- weaponAttrOf c
     m     <- formulaMapSO (Left c) (Right e)
     eats  <- allValidEquipAttrs c
+    vs    <- vsEffectLabelsOf (Right e)
     weponAt  <- sum <$> mapM (evalWith m . Item.at) eats
     stBonus  <- sum <$> mapM (evalWith m . Item.st) eats
     tryCount <- max <$> evalWith m (Chara.fightTryCount $ Chara.job c) <*> pure weponAt
     jobBonus <- evalWith m (Chara.fightHitBonus $ Chara.job c)
     prm      <- paramOf (Left c)
     acE      <- acOf (Right e)
-    let str      = strength prm
+    let edef     = Enemy.define e
+        str      = strength prm
         strBonus | str >= 16 = str - 15
                  | str < 6   = str - 6
                  | otherwise = 0
         hitSkill = jobBonus + strBonus + stBonus
         atSkill  = max (min (acE + hitSkill - 3 * enemyLineToNum el) 19) 1
         damageF  = Item.damage wattr
-    -- TODO:add statusError, critical.
     rs <- replicateM tryCount $ do
         hit <- (<=) <$> randomNext 1 20 <*> pure atSkill
         dam <- (+) <$> evalWith m damageF <*> pure (max 0 strBonus)
-        let edef = Enemy.define e
         let dam' | not . null $ Enemy.statusErrors e                            = dam * 2
                  | any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) = dam * 2
                  | otherwise                                                    = dam
-        return $ if hit then (1, dam') else (0, 0)
-    return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
+        dam'' <- applyVsEffect (Item.attrLabels wattr) vs (Left c) (Right e) dam'
+        return $ if hit then (1, dam'') else (0, 0)
+    let dh = foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
+    ses <- if snd dh == 0 then return []
+           else flip filterM (Item.addStatusErrors wattr) $ \(prob, se, attrs) -> do
+             m  <- formulaMapSO (Left c) (Right e)
+             p  <- evalWith m prob
+             p' <- applyVsEffect attrs vs (Left c) (Right e) p
+             resist <- happens =<< evalWith m (Enemy.resistProbOf edef se)
+             (&&) <$> happens p' <*> pure (not resist)
+    return (fst dh, snd dh, (\(_,s,_) -> s) <$> ses)
 
-fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int) -> GameState [String]
-fightMessage c e (h, d) = do
+fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
+fightMessage c e (h, d, ses) = do
     en  <- enemyNameOf e
     vs' <- Item.atackMessages <$> weaponAttrOf c
     v   <- randomIn $ if null vs' then vs else vs'
     let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if Enemy.hp e <= 0 then en ++ " is killed." else ""
-    return $ (m1 ++ m2) : [m1 ++ m3 | not (null m3)]
+    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
+             else (en ++) . statusErrorMessage <$> sort ses
+    return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
     vs = ["leaps at", "attempts to slice", "thrusts violently at", "tries to ram", "tries to bash", "charges at", "tries to slash"]
 

@@ -81,6 +81,7 @@ main = do
             , Item.damage        = read "2d2"
             , Item.doubleLabels  = []
             , Item.attrLabels    = []
+            , Item.addStatusErrors = []
             , Item.atackMessages = []
           }
         , Character.fightTryCount = read "min(lv/5+1,10)"
@@ -113,6 +114,7 @@ main = do
             , Item.damage        = read "2d2"
             , Item.doubleLabels  = []
             , Item.attrLabels    = []
+            , Item.addStatusErrors = []
             , Item.atackMessages = []
           }
         , Character.fightTryCount = read "1"
@@ -144,6 +146,7 @@ main = do
             , Item.damage        = read "2d2"
             , Item.doubleLabels  = []
             , Item.attrLabels    = []
+            , Item.addStatusErrors = []
             , Item.atackMessages = []
           }
         , Character.fightTryCount = read "min(lv/5+1,10)"
@@ -246,7 +249,7 @@ main = do
 
         , Character.job      = priest
         , Character.alignment= Character.N
-        , Character.spells   = [SpellID 12, SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 114, SpellID 121]
+        , Character.spells   = [SpellID 11, SpellID 12, SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 114, SpellID 121]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
         testChara4 = testChara1 {
@@ -263,6 +266,7 @@ main = do
         , Character.items    = [ItemInf (ItemID 2) True
                                ,ItemInf (ItemID 2) False
                                ,ItemInf (ItemID 103) True
+                               ,ItemInf (ItemID 104) True
                                ]
         }
     --gen <- getStdGen
@@ -487,15 +491,14 @@ main = do
                     , Enemy.ac                = 10
 
                     , Enemy.exp               = 55
-                    , Enemy.kind              = "animal"
                     , Enemy.friendlyProb      = 0
                     , Enemy.numOfOccurrences  = parse' "2d2"
                     , Enemy.healPerTurn       = 2
                     , Enemy.moveFrontProb     = 20
 
                     , Enemy.resistError       = [(Dead, read "6")]
-                    , Enemy.vsEffectLabels    = []
-                    , Enemy.attrLabels        = []
+                    , Enemy.vsEffectLabels    = [(EffectLabel "fire", read "value*5")]
+                    , Enemy.attrLabels        = [EnemyLabel "animal"]
 
                     , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3")
                                                  [(read "lv*20-o.lv", Silence,  [EffectLabel "mucus"])
@@ -525,7 +528,6 @@ main = do
                     , Enemy.ac                = 8
 
                     , Enemy.exp               = 415
-                    , Enemy.kind              = "animal"
                     , Enemy.friendlyProb      = 15
                     , Enemy.numOfOccurrences  = parse' "2d3"
                     , Enemy.healPerTurn       = 0
@@ -729,6 +731,7 @@ main = do
                                                        , Item.damage        = read "1d8"
                                                        , Item.doubleLabels  = []
                                                        , Item.attrLabels    = [EffectLabel "fire"]
+                                                       , Item.addStatusErrors = []
                                                        , Item.atackMessages = []
                                                      }
                     , Item.valueInShop      = 500
@@ -877,6 +880,7 @@ main = do
                                                        , Item.damage        = read "3d8"
                                                        , Item.doubleLabels  = []
                                                        , Item.attrLabels    = []
+                                                       , Item.addStatusErrors = []
                                                        , Item.atackMessages = ["aimed and shot"]
                                                      }
                     , Item.valueInShop      = 4000
@@ -905,6 +909,7 @@ main = do
                                                        , Item.damage        = read "3d8"
                                                        , Item.doubleLabels  = [EnemyLabel "beast"]
                                                        , Item.attrLabels    = [EffectLabel "fire"]
+                                                       , Item.addStatusErrors = [(read "lv-o.lv", Dead, [EffectLabel "fire"])]
                                                        , Item.atackMessages = ["aimed and shot"]
                                                      }
                     , Item.valueInShop      = 4000
@@ -916,7 +921,7 @@ main = do
 
     let pic id | id == PictureID 1001 = himiko
                | id == PictureID 1002 = werdna
-               | id == PictureID 2001 = himiko
+               | id == PictureID 2001 = treasure
                | id == PictureID 2002 = werdna
                | otherwise            = mempty
     let picOf = maybe mempty pic
