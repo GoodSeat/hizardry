@@ -177,6 +177,11 @@ equipOf c isTarget = do
     let eqs = filter isTarget items
     return $ if null eqs then Nothing else Just (head eqs)
 
+allValidEquipAttrs :: Chara.Character -> GameState [Item.EquipBaseAttr]
+allValidEquipAttrs c = do
+    eqis  <- filter (/= Nothing) <$> mapM (equipOf c) Item.allEquipTypeTest
+    return $ Item.equipBaseAttr . fromJust . Item.equipType . fromJust <$> eqis
+
 
 knowSpell :: CharacterID -> SpellID -> GameState Bool
 knowSpell cid sid = Chara.knowSpell sid <$> characterByID cid 
@@ -311,7 +316,6 @@ cmdNumPartiesIDWhen f = do
     let f' x = f (toPartyPos x, ids !! (x - 1))
     return [(Key (show i), fst (f' i), snd (f' i)) | i <- [1..np]]
 
-
 -- =================================================================================
 -- Character or Enemy as Target.
 -- ---------------------------------------------------------------------------------
@@ -319,10 +323,10 @@ cmdNumPartiesIDWhen f = do
 type TargetSO = Either Chara.Character Enemy.Instance
 
 acOf :: TargetSO -> GameState Int
+acOf (Right e) = return $ Enemy.ac (Enemy.define e) + deltaAC (Enemy.modParam e)
 acOf s@(Left c) = do
-    eqis <- filter (/= Nothing) <$> mapM (equipOf c) Item.allEquipTypeTest
-    let eats = Item.equipBaseAttr . fromJust . Item.equipType . fromJust <$> eqis
-        m    = formulaMapSBase s
+    eats <- allValidEquipAttrs c
+    let m = formulaMapSBase s
     acEq <- sum <$> mapM (evalWith m . Item.ac) eats
 
     acBase <- evalWith m (Chara.baseAC (Chara.job c))
@@ -332,16 +336,27 @@ acOf s@(Left c) = do
     return $ acC + acEq
 
 
-acOf (Right e) = return $ Enemy.ac (Enemy.define e) + deltaAC (Enemy.modParam e)
-
 paramOf :: TargetSO -> GameState Parameter
+paramOf (Right ei) = return $ Enemy.param (Enemy.define ei) <> deltaParam (Enemy.modParam ei)
 paramOf (Left c) = do
     ps <- partyParamDelta <$> world
     let pss = deltaParam . snd <$> ps
     let p = foldl1 (<>) $ (Chara.param c : (deltaParam . snd <$> Chara.paramDelta c)) ++ pss
     return p
 
-paramOf (Right ei) = return $ Enemy.param (Enemy.define ei) <> deltaParam (Enemy.modParam ei)
+
+vsEffectLabelsOf :: TargetSO -> GameState [(EffectLabel, Formula)]
+vsEffectLabelsOf (Right e) = return $ Enemy.vsEffectLabels (Enemy.define e)
+vsEffectLabelsOf (Left c) = concatMap Item.vsEffectLabels <$> allValidEquipAttrs c
+
+
+applyVsEffect :: [EffectLabel] -> [(EffectLabel, Formula)] -> TargetSO -> TargetSO -> Int -> GameState Int
+applyVsEffect es [] s o v = return v
+applyVsEffect es (ev:evs) s o v = do
+    m  <- insert "value" v <$> formulaMapSO s o
+    v' <- if fst ev `elem` es then evalWith m $ snd ev
+                              else return v
+    applyVsEffect es evs s o v'
 
 
 toParamChange :: TargetSO -> TargetSO -> AdParam -> GameState ParamChange

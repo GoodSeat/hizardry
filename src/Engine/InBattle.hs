@@ -311,7 +311,7 @@ act (ByEnemies l e a) next = GameAuto $ do
                               run $ spell' s (Right e') (Right L1) next
                          Nothing -> run $ spellUnknown "?" (Right e') (Left cp) next
 
-          Enemy.Breath f         -> do
+          Enemy.Breath f attrs   -> do
               ps <- party <$> world
               ts <- castDamageSpell f (Right e') (Left $ toPartyPos <$> [1..length ps])
               let toMsg t = Message $ (nameOf e ++ " spit out a breath.\n") ++ t

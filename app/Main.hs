@@ -498,7 +498,7 @@ main = do
                     , Enemy.attrLabels        = []
 
                     , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3") []
-                                                ,Enemy.Breath (read "hp/2")
+                                                ,Enemy.Breath (read "hp/2") [EffectLabel "fire"]
                                                 ]
 
                     , Enemy.dropItem          = [(50, parse' "1d3")]

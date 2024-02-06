@@ -71,7 +71,7 @@ data EquipBaseAttr = EquipBaseAttr {
       ac             :: !Formula -- ^ ac
     , st             :: !Formula -- ^ st
     , at             :: !Formula -- ^ at
-    , resistLabels   :: ![EnemyLabel] -- ^ half shield damage attrLabels.
+    , resistLabels   :: ![EnemyLabel] -- ^ decrease damage of fight and breath.
     , vsEffectLabels :: ![(EffectLabel, Formula)] -- ^ resistAttributes
 } deriving (Show, Eq, Read)
 
@@ -79,7 +79,7 @@ data WeaponAttr = WeaponAttr {
       targetF       :: ![EnemyLine]   -- ^ enable target enemy line in front.
     , targetB       :: ![EnemyLine]   -- ^ enable target enemy line in back.
     , damage        :: !Formula       -- ^ damage per hit.
-    , doubleLabels  :: ![EnemyLabel]  -- ^ double damage target attrLabels.
+    , doubleLabels  :: ![EnemyLabel]  -- ^ double damage target.
     , attrLabels    :: ![EffectLabel] -- ^ attribute of atack.
     , atackMessages :: ![String]      -- ^ message candidates when fight with this weapon. [optional]
 } deriving (Show, Eq, Read)

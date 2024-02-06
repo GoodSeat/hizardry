@@ -43,9 +43,8 @@ fightOfCharacter id el next = GameAuto $ do
 fightDamage :: EnemyLine -> Chara.Character -> Enemy.Instance -> GameState (Int, Int)
 fightDamage el c e = do
     wattr <- weaponAttrOf c
-    eqis  <- filter (/= Nothing) <$> mapM (equipOf c) Item.allEquipTypeTest
     m     <- formulaMapSO (Left c) (Right e)
-    let eats = Item.equipBaseAttr . fromJust . Item.equipType . fromJust <$> eqis
+    eats  <- allValidEquipAttrs c
     weponAt  <- sum <$> mapM (evalWith m . Item.at) eats
     stBonus  <- sum <$> mapM (evalWith m . Item.st) eats
     tryCount <- max <$> evalWith m (Chara.fightTryCount $ Chara.job c) <*> pure weponAt
@@ -94,13 +93,13 @@ weaponAttrOf c = do
 
 -- ================================================================================
 
-fightOfEnemy :: Enemy.Instance       -- ^ attacker enemy.
-             -> Int                  -- ^ count of attack.
-             -> Formula              -- ^ damage per hit.
-             -> Formula              -- ^ target number. 1~3 are front member, 4~6 are back member.
-             -> [(Int, StatusError)] -- ^ additinal effect, and it's probablity.
-             -> GameMachine          -- ^ next game auto.
-             -> GameMachine          -- ^ game auto.
+fightOfEnemy :: Enemy.Instance                        -- ^ attacker enemy.
+             -> Int                                   -- ^ count of attack.
+             -> Formula                               -- ^ damage per hit.
+             -> Formula                               -- ^ target number. 1~3 are front member, 4~6 are back member.
+             -> [(Formula, StatusError, EffectLabel)] -- ^ additinal effect, and it's probablity.
+             -> GameMachine                           -- ^ next game auto.
+             -> GameMachine                           -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     ps   <- party <$> world
     idc  <- flip mod (length ps) <$> eval tgt
