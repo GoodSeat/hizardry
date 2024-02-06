@@ -723,6 +723,7 @@ main = do
                                                        , Item.st = read "4"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                                                      Item.WeaponAttr {
@@ -752,6 +753,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = [(Sleep, read "min(30,lv)")]
                                                        , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 500
@@ -772,6 +774,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
@@ -792,6 +795,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
@@ -812,6 +816,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
@@ -832,6 +837,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
@@ -852,6 +858,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                     , Item.valueInShop      = 300
@@ -872,6 +879,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                                                      Item.WeaponAttr {
@@ -901,6 +909,7 @@ main = do
                                                        , Item.st = read "0"
                                                        , Item.at = read "0"
                                                        , Item.resistLabels   = []
+                                                       , Item.resistError    = []
                                                        , Item.vsEffectLabels = []
                                                      } 
                                                      Item.WeaponAttr {

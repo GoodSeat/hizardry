@@ -43,7 +43,7 @@ data Define = Define {
     , healPerTurn       :: !Int
     , moveFrontProb     :: !Int
 
-    , resistError       :: ![(StatusError, Formula)] -- ^ 
+    , resistError       :: ![(StatusError, Formula)] -- ^ resistant probablity
     , vsEffectLabels    :: ![(EffectLabel, Formula)] -- ^ damage or probablity ratio. using "value" variable.
     , attrLabels        :: ![EnemyLabel]
 
@@ -102,11 +102,3 @@ data Trap = DropDirectly
 -- | data base of enemies.
 type DB = Map.Map EnemyID Define
 
-
-
-resistProbOf :: Define -> StatusError -> Formula
-resistProbOf def = resistProbOf' (resistError def)
-  where
-    resistProbOf' [] s = read "0"
-    resistProbOf' ((t, p):ts) s | t == s    = p
-                                | otherwise = resistProbOf' ts s

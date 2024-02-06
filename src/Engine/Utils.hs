@@ -382,6 +382,15 @@ toParamChange s o ad = do
         , effectName = adName ad
     }
 
+
+resistStatusError :: Map String Int -> StatusError -> [(StatusError, Formula)] -> GameState Bool
+resistStatusError m s [] = return False
+resistStatusError m s ((t, p):ts)
+    | s == t = do
+        resist <- happens =<< evalWith m p
+        if resist then return True else resistStatusError m s ts
+    | otherwise = resistStatusError m s ts
+
 -- =================================================================================
 -- for Formula map.
 -- ---------------------------------------------------------------------------------

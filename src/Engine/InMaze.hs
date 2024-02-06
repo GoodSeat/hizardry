@@ -133,9 +133,7 @@ moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
             setLightValueWith False (\n -> n - 1)
             -- update party status.
             ps <- party <$> world
-            forM_ ps $ \p -> do
-              c <- characterByID p
-              updateCharacter p $ foldl (&) c (whenWalking <$> statusErrorsOf c) 
+            forM_ ps (`updateCharacterWith` whenWalking)
             sortPartyAuto
             -- TODO!:if all character dead, move to gameover.
             run $ enterMaybeEncount (flashMoveView " 1  ") p'
@@ -158,8 +156,14 @@ nextMiniMap = do
 -- =======================================================================
 
 encountEnemy :: EnemyID -> Bool -> GameMachine
-encountEnemy id isRB = startBattle id isRB (with [updateRoomVisit]      (escapeEvent None False)
-                                           ,with [when isRB backfoward] (escapeEvent None False))
+encountEnemy id isRB = startBattle id isRB (with [updateRoomVisit, whenEndBattle]      (escapeEvent None False)
+                                           ,with [when isRB backfoward, whenEndBattle] (escapeEvent None False))
+
+
+whenEndBattle :: GameState ()
+whenEndBattle = do
+    ps <- party <$> world
+    forM_ ps (`updateCharacterWith` whenBattleEnd)
 
 updateRoomVisit :: GameState ()
 updateRoomVisit = do

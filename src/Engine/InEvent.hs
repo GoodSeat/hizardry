@@ -133,8 +133,8 @@ returnToCastle = do
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterByID p
-      updateCharacter p $ foldl (&) c (whenReturnCastle <$> statusErrorsOf c)
       updateCharacter p c { Chara.paramDelta = [] }
+      updateCharacterWith p whenReturnCastle
 
 
 -- | remove effects that is valid in battle only.

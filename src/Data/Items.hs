@@ -72,6 +72,7 @@ data EquipBaseAttr = EquipBaseAttr {
     , st             :: !Formula                  -- ^ st
     , at             :: !Formula                  -- ^ at
     , resistLabels   :: ![EnemyLabel]             -- ^ decrease damage of fight and breath.
+    , resistError    :: ![(StatusError, Formula)] -- ^ resistant probablity
     , vsEffectLabels :: ![(EffectLabel, Formula)] -- ^ resistAttributes
 } deriving (Show, Eq, Read)
 

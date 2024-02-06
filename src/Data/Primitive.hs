@@ -236,27 +236,36 @@ damageHp dmg s = setHp (hpOf s - dmg) s
 
 
 
-whenReturnCastle :: Object o => StatusError -> o -> o
-whenReturnCastle (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o
-whenReturnCastle _ o = o
+whenReturnCastle :: Object o => o -> o
+whenReturnCastle c = foldl (&) c (whenReturnCastle' <$> statusErrorsOf c) 
+  where
+    whenReturnCastle' :: Object o => StatusError -> o -> o
+    whenReturnCastle' (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o
+    whenReturnCastle' _ o = o
 
 whenToNextTurn :: Object o => Int -> o -> o
 whenToNextTurn n o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf o)
   where
     whenToNextTurn' :: Object o => Int -> StatusError -> o -> o
     whenToNextTurn' _ (Poison n) o = setHp (hpOf o - n) o
-    whenToNextTurn' n (Sleep   ) o = if n < 50 then o else whenBattleEnd Sleep o
+    whenToNextTurn' n (Sleep   ) o = if n < 50 then o else removeStatusError Sleep o
     whenToNextTurn' _ _ o = o
 
-whenWalking :: Object o => StatusError -> o -> o
-whenWalking (Poison n) o = setHp (hpOf o - n) o
-whenWalking _ o = o
+whenWalking :: Object o => o -> o
+whenWalking c = foldl (&) c (whenWalking' <$> statusErrorsOf c) 
+  where
+    whenWalking' :: Object o => StatusError -> o -> o
+    whenWalking' (Poison n) o = setHp (hpOf o - n) o
+    whenWalking' _ o = o
 
-whenBattleEnd :: Object o => StatusError -> o -> o
-whenBattleEnd Silence o = setStatusErrors (filter (/= Silence) $ statusErrorsOf o) o
-whenBattleEnd Fear    o = setStatusErrors (filter (/= Fear) $ statusErrorsOf o) o
-whenBattleEnd Sleep   o = setStatusErrors (filter (/= Sleep) $ statusErrorsOf o) o
-whenBattleEnd _ o = o
+whenBattleEnd :: Object o => o -> o
+whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c) 
+  where
+    whenBattleEnd' :: Object o => StatusError -> o -> o
+    whenBattleEnd' Silence o = setStatusErrors (filter (/= Silence) $ statusErrorsOf o) o
+    whenBattleEnd' Fear    o = setStatusErrors (filter (/= Fear) $ statusErrorsOf o) o
+    whenBattleEnd' Sleep   o = setStatusErrors (filter (/= Sleep) $ statusErrorsOf o) o
+    whenBattleEnd' _ o = o
 
 hasStatusError :: Object o => o -> StatusError -> Bool
 hasStatusError o = (`elem` statusErrorsOf o)

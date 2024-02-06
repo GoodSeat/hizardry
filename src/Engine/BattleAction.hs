@@ -77,7 +77,7 @@ fightDamage el c e = do
              m  <- formulaMapSO (Left c) (Right e)
              p  <- evalWith m prob
              p' <- applyVsEffect attrs vs (Left c) (Right e) p
-             resist <- happens =<< evalWith m (Enemy.resistProbOf edef se)
+             resist <- resistStatusError m se (Enemy.resistError edef)
              (&&) <$> happens p' <*> pure (not resist)
     return (fst dh, snd dh, (\(_,s,_) -> s) <$> ses)
 
@@ -155,7 +155,9 @@ fightDamageE n e c dmg sts = do
              p  <- evalWith m prob
              vs <- vsEffectLabelsOf (Left c)
              p' <- applyVsEffect attrs vs (Right e) (Left c) p
-             happens p'
+             eats <- allValidEquipAttrs c
+             resist <- resistStatusError m se (concatMap Item.resistError eats)
+             (&&) <$> happens p' <*> pure (not resist)
     return (fst dh, snd dh, (\(_,s,_) -> s) <$> ses)
 
 fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int, [StatusError]) -> GameState [String]
