@@ -211,7 +211,7 @@ nextTurn con = GameAuto $ do
     ess1 <- lastEnemies
     forM_ ess1 $ \es -> forM_ es $ \e -> do
       r <- randomNext 0 100
-      updateEnemy e (damageHp (-(Enemy.healPerTurn $ Enemy.define e)) . whenToNextTurn r)
+      when (Enemy.hp e > 0) $ updateEnemy e (damageHp (-(Enemy.healPerTurn $ Enemy.define e)) . whenToNextTurn r)
 
     con' <- updateCondition con
     ess  <- execState (do
@@ -313,7 +313,7 @@ act (ByEnemies l e a) next = GameAuto $ do
 
           Enemy.Breath f attrs   -> do
               ps <- party <$> world
-              ts <- castDamageSpell f (Right e') (Left $ toPartyPos <$> [1..length ps])
+              ts <- castDamageSpell f attrs (Right e') (Left $ toPartyPos <$> [1..length ps])
               let toMsg t = Message $ (nameOf e ++ " spit out a breath.\n") ++ t
               run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
           Enemy.Run              -> do

@@ -387,30 +387,37 @@ castParamChangeSpell ad term etxt (Right src) (Right is) = concat <$> forM is (\
                 , nameOf dst ++ " " ++ etxt ++ ".")]
     )
 
-castDamageSpell :: Formula -> CastAction
-castDamageSpell f (Left c) (Right es) = do
+castDamageSpell :: Formula -> [EffectLabel] -> CastAction
+castDamageSpell f attrs (Left c) (Right es) = do
     ts <- forM es $ \e -> do
       m <- formulaMapSO (Left c) (Right e)
       if Enemy.hp e <= 0 then return []
       else do
-        d <- evalWith m f
-        let e' = damageHp d e
-        let msg = nameOf e ++ " takes " ++ show d ++ "."
+        vs <- vsEffectLabelsOf (Right e)
+        d  <- evalWith m f
+        d' <- applyVsEffect attrs vs (Left c) (Right e) d
+        let e' = damageHp d' e
+        let msg = if d /= 0 && d' == 0 then nameOf e ++ " resisted."
+                                       else nameOf e ++ " takes " ++ show d' ++ "."
         return $ (updateEnemy e (const e'), msg)
                : [(return (), msg ++ "\n" ++ nameOf e ++ " is killed.") | Enemy.hp e' <= 0]
     return $ concat ts
-castDamageSpell f (Right e) (Left is) = do
+castDamageSpell f attrs s@(Right e) (Left is) = do
     ts <- forM is $ \i -> do
       c <- characterInPartyAt i
       m <- formulaMapSO (Right e) (Left c)
       if hpOf c == 0 then return []
       else do
-        d <- evalWith m f
-        let c' = damageHp d c
-        let msg = nameOf c ++ " takes " ++ show d ++ "."
-        return $ (join $ updateCharacter <$> characterIDInPartyAt i <*> pure c', msg)
+        vs <- vsEffectLabelsOf (Left c)
+        d  <- evalWith m f
+        d' <- applyVsEffect attrs vs s (Left c)  d
+        let c' = damageHp d' c
+        let msg = if d /= 0 && d' == 0 then nameOf c ++ " resisted."
+                                       else nameOf c ++ " takes " ++ show d' ++ "."
+        cid <- characterIDInPartyAt i
+        return $ (updateCharacter cid c', msg)
                : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
     return $ concat ts
-castDamageSpell f src dst = error $ "castDamageSpell:" ++ show f ++ ", src=" ++ show src ++ ", dst=" ++ show dst
+castDamageSpell f attrs src dst = error $ "castDamageSpell:" ++ show f ++ ", src=" ++ show src ++ ", dst=" ++ show dst
 
 

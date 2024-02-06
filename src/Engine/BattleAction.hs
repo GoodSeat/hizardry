@@ -58,14 +58,14 @@ fightDamage el c e = do
         hitSkill = jobBonus + strBonus + stBonus
         atSkill  = max (min (acE + hitSkill - 3 * enemyLineToNum el) 19) 1
         damageF  = Item.damage wattr
-    -- TODO:add statusError, critiacl.
+    -- TODO:add statusError, critical.
     rs <- replicateM tryCount $ do
         hit <- (<=) <$> randomNext 1 20 <*> pure atSkill
         dam <- (+) <$> evalWith m damageF <*> pure (max 0 strBonus)
         let edef = Enemy.define e
-        let dam' = if      not . null $ Enemy.statusErrors e                            then dam * 2
-                   else if any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) then dam * 2
-                   else dam
+        let dam' | not . null $ Enemy.statusErrors e                            = dam * 2
+                 | any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) = dam * 2
+                 | otherwise                                                    = dam
         return $ if hit then (1, dam') else (0, 0)
     return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
 
@@ -93,31 +93,32 @@ weaponAttrOf c = do
 
 -- ================================================================================
 
-fightOfEnemy :: Enemy.Instance                        -- ^ attacker enemy.
-             -> Int                                   -- ^ count of attack.
-             -> Formula                               -- ^ damage per hit.
-             -> Formula                               -- ^ target number. 1~3 are front member, 4~6 are back member.
-             -> [(Formula, StatusError, EffectLabel)] -- ^ additinal effect, and it's probablity.
-             -> GameMachine                           -- ^ next game auto.
-             -> GameMachine                           -- ^ game auto.
+fightOfEnemy :: Enemy.Instance                          -- ^ attacker enemy.
+             -> Int                                     -- ^ count of attack.
+             -> Formula                                 -- ^ damage per hit.
+             -> Formula                                 -- ^ target number. 1~3 are front member, 4~6 are back member.
+             -> [(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
+             -> GameMachine                             -- ^ next game auto.
+             -> GameMachine                             -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     ps   <- party <$> world
     idc  <- flip mod (length ps) <$> eval tgt
     c    <- characterByID (ps !! idc)
     if hpOf c == 0 then run next
     else do
-      (h, d) <- fightDamageE n e c dmg
-      let c' = damageHp d c
-         -- TODO:lv drain, poison, critical ...etc
-      es <- fmap Message <$> fightMessageE e c' (h, d)
+      (h, d, ses) <- fightDamageE n e c dmg sts
+      let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
+         -- TODO:lv drain
+      es <- fmap Message <$> fightMessageE e c' (h, d, ses)
       run $ events es (with [updateCharacter (ps !! idc) c'] next)
 
 fightDamageE :: Int             -- ^ count of attack.
              -> Enemy.Instance  -- ^ attacker enemy.
              -> Chara.Character -- ^ target character.
              -> Formula         -- ^ damage per hit.
-             -> GameState (Int, Int)
-fightDamageE n e c dmg = do
+             -> [(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
+             -> GameState (Int, Int, [StatusError])
+fightDamageE n e c dmg sts = do
     acC  <- acOf (Left c)
     acE  <- acOf (Right e)
     m    <- formulaMapSO (Right e) (Left c)
@@ -134,19 +135,40 @@ fightDamageE n e c dmg = do
         dam <- evalWith m dmg
         let dam' = if not . null $ statusErrorsOf c then dam * 2 else dam
         return $ if hit then (1, dam') else (0, 0)
-    return $ foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
+    let dh = foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
+    ses <- if snd dh == 0 then return []
+           else flip filterM sts $ \(prob, se, attrs) -> do
+             m  <- formulaMapSO (Right e) (Left c)
+             p  <- evalWith m prob
+             vs <- vsEffectLabelsOf (Left c)
+             p' <- applyVsEffect attrs vs (Right e) (Left c) p
+             happens p'
+    return (fst dh, snd dh, (\(_,s,_) -> s) <$> ses)
 
-fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int) -> GameState [String]
-fightMessageE e c (h, d) = do
+fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int, [StatusError]) -> GameState [String]
+fightMessageE e c (h, d, ses) = do
     en <- enemyNameOf e
     v  <- randomIn vs
     let m1 = en ++ " " ++ v ++ "\n " ++ Chara.name c ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if hpOf c <= 0 then Chara.name c  ++ " is killed." else ""
-    return $ (m1 ++ m2) : [m1 ++ m3 | not (null m3)]
+    let m3 = if hpOf c <= 0 then [Chara.name c  ++ " is killed."]
+             else (Chara.name c ++) . statusErrorMessage <$> sort ses
+    return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
     vs = ["charges at", "claws at"]
 
+
+statusErrorMessage :: StatusError -> String
+statusErrorMessage Silence    = " become unable to speak !"
+statusErrorMessage Paralysis  = " is paralyzed !"
+statusErrorMessage Stoned     = " become petrified !"
+statusErrorMessage (Poison _) = " is poisoned !"
+statusErrorMessage Fear       = " is horrified !"
+statusErrorMessage Sleep      = " is fell asleep !"
+statusErrorMessage (Drain n)  = " is drained " ++ show n ++ " Level !"
+statusErrorMessage Dead       = " is decapitated !"
+statusErrorMessage Ash        = " became to ash !"
+statusErrorMessage Lost       = " is losted !"
 
 -- ================================================================================
 
@@ -186,9 +208,9 @@ spell s src dst next = GameAuto $ do
 spell' :: Spell.Define -> SpellEffect
 spell' def = case Spell.effect def of
     Spell.Damage f  -> case Spell.target def of
-      Spell.OpponentSingle -> castSpellSingle (Spell.name def) (castDamageSpell f)
-      Spell.OpponentGroup  -> castSpellGroup  (Spell.name def) (castDamageSpell f)
-      Spell.OpponentAll    -> castSpellAll    (Spell.name def) (castDamageSpell f)
+      Spell.OpponentSingle -> castSpellSingle (Spell.name def) (castDamageSpell f $ Spell.attrLabels def)
+      Spell.OpponentGroup  -> castSpellGroup  (Spell.name def) (castDamageSpell f $ Spell.attrLabels def)
+      Spell.OpponentAll    -> castSpellAll    (Spell.name def) (castDamageSpell f $ Spell.attrLabels def)
       _                    -> undefined
     Spell.Cure f ss -> case Spell.target def of
       Spell.AllySingle     -> castSpellSingle (Spell.name def) (castCureSpell f ss)

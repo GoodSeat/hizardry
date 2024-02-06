@@ -6,7 +6,7 @@ import Data.Formula
 import GHC.Stack (HasCallStack)
 import Data.List (delete, find)
 import Data.Char (ord)
-import Data.Function
+import Data.Function ((&))
 
 -- ==========================================================================
 -- ID
@@ -66,12 +66,11 @@ data StatusError = Silence
                  | Poison Int
                  | Fear
                  | Sleep
-                 | Rigor
                  | Drain Int
                  | Dead
                  | Ash
                  | Lost
-    deriving (Show, Eq, Read)
+    deriving (Ord, Show, Eq, Read)
 
 -- | define of character's parameter.
 data Parameter = Parameter {
@@ -217,7 +216,8 @@ class Eq o => Object o where
   setStatusErrors :: [StatusError] -> o -> o
 
 addStatusError :: Object o => StatusError -> o -> o
-addStatusError s o = setStatusErrors (s : statusErrorsOf (removeStatusError s o)) o
+addStatusError s o = let o' = if s >= Dead && hpOf o > 0 then setHp 0 o else o
+                     in setStatusErrors (s : statusErrorsOf (removeStatusError s o')) o'
 
 removeStatusError :: Object o => StatusError -> o -> o
 removeStatusError s o = setStatusErrors (delete s $ statusErrorsOf o) o
@@ -256,7 +256,6 @@ whenBattleEnd :: Object o => StatusError -> o -> o
 whenBattleEnd Silence o = setStatusErrors (filter (/= Silence) $ statusErrorsOf o) o
 whenBattleEnd Fear    o = setStatusErrors (filter (/= Fear) $ statusErrorsOf o) o
 whenBattleEnd Sleep   o = setStatusErrors (filter (/= Sleep) $ statusErrorsOf o) o
-whenBattleEnd Rigor   o = setStatusErrors (filter (/= Rigor) $ statusErrorsOf o) o
 whenBattleEnd _ o = o
 
 hasStatusError :: Object o => o -> StatusError -> Bool
@@ -270,7 +269,6 @@ cantFightStatus = [ Paralysis
                   , Stoned
                   , Fear
                   , Sleep
-                  , Rigor
                   , Dead
                   , Ash
                   , Lost]
@@ -281,7 +279,6 @@ cantSpellStatus = [ Silence
                   , Stoned
                   , Fear
                   , Sleep
-                  , Rigor
                   , Dead
                   , Ash
                   , Lost]

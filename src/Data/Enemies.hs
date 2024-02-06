@@ -82,7 +82,7 @@ instance Object Instance where
 data Action = Fight Int     -- ^ count of attack.
                     Formula -- ^ damage per hit.
                     Formula -- ^ target number. 1~3 are front member, 4~6 are back member.
-                    [(Formula, StatusError, EffectLabel)] -- ^ additinal effect, and it's probablity.
+                    [(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
             | Spelling Formula -- ^ spel id.
             | Breath Formula [EffectLabel] -- ^ damage.
             | Run

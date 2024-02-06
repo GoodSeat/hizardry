@@ -232,7 +232,7 @@ main = do
         , Character.hp       = 126
         , Character.maxhp    = 148
         , Character.lv       = 15
-        , Character.statusErrors = [Poison 5]
+        , Character.statusErrors = [] -- [Poison 5]
         , Character.paramDelta = []
         }
         testChara3 = testChara1 {
@@ -497,7 +497,10 @@ main = do
                     , Enemy.vsEffectLabels    = []
                     , Enemy.attrLabels        = []
 
-                    , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3") []
+                    , Enemy.actions           = [Enemy.Fight 1 (parse' "1d1") (parse' "1d3")
+                                                 [(read "lv*20-o.lv", Silence,  [EffectLabel "mucus"])
+                                                 ,(read "lv*20-o.lv", Poison 2, [EffectLabel "mucus"])
+                                                 ]
                                                 ,Enemy.Breath (read "hp/2") [EffectLabel "fire"]
                                                 ]
 
@@ -532,9 +535,10 @@ main = do
                     , Enemy.vsEffectLabels    = []
                     , Enemy.attrLabels        = [EnemyLabel "beast"]
 
-                    , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3") []
+                    , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3")
+                                                 [(read "lv*20-o.lv", Dead,  [EffectLabel "cutlery"])]
                                                 ,Enemy.Spelling (parse' "11")
-                                                ,Enemy.Spelling (parse' "21")
+                                                --,Enemy.Spelling (parse' "21")
                                                 --,Enemy.Spelling (parse' "71")
                                                 ,Enemy.Run
                                                 ]

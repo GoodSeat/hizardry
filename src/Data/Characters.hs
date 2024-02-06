@@ -44,7 +44,8 @@ instance Object Character where
   lvOf            = lv
   statusErrorsOf  = statusErrors
 
-  setHp           v c = let c' = c { hp = min (maxhpOf c) (max 0 v) } in if hp c' == 0 then addStatusError Dead c' else c'
+  setHp           v c = let c' = c { hp = min (maxhpOf c) (max 0 v) }
+                        in if hp c' == 0 then addStatusError Dead c' else c'
   setStatusErrors v c = let c' = c { statusErrors = nub v }
                             ss = statusErrorsOf c' in
      if      Lost `elem` ss && length ss > 1 then setStatusErrors [Lost] c'
