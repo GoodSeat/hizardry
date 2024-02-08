@@ -36,15 +36,16 @@ inspectCharacter h canSpell i = GameAuto $ do
     let cancel = inspectCharacter h canSpell i
         iCast  = flip (ShowStatus cid) SequenceKey
         sCast  = flip (ShowStatus cid) SingleKey
-        sItem  = const (sCast "Select item(^A~^J).  ^L)eave")
+        sItem  = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
         dItem  = sCast
     run $ selectWhenEsc (ShowStatus cid msg SingleKey)
                       $ (Key "l", h, True)
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
-                      : (Key "u", selectItem sItem identified (selectUseTarget sCast (useItemInCamp i cancel)) c cancel, True)
+                      : (Key "u", selectItem sItem identified (useItem sCast (useItemInCamp i cancel)) c cancel, True)
                       : (Key "d", selectDropItem dItem i c cancel, True)
--- TODO               : (Key "t", selectTradeItem dItem i c cancel, True)
+                      : (Key "t", selectTradeItem dItem i cancel, True)
                       : (Key "e", equip           dItem i c cancel, True)
+-- TODO               : (Key "i", identifyItem    dItem i c cancel, canIdentify)
 -- TODO               : (Key "r", readSpell       dItem i c cancel, True)
                       : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
                       : cmdsInspect
@@ -84,18 +85,6 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
 useItemInCamp _ _ _ _ = error "invalid useItemInCamp"
 
 
-breakItem :: (Int, Item.WhenBroken) -> PartyPos -> Chara.ItemPos -> GameState ()
-breakItem (prob, to) src i = do
-    broken <- happens prob
-    when broken $ do
-      idc <- characterIDInPartyAt  src
-      p   <- characterInPartyAt src
-      let is = Chara.items p
-          ix = Chara.itemPosToNum i
-          is' = case to of Item.Lost        -> take ix is ++ drop (ix + 1) is
-                           Item.ChangeTo i' -> take ix is ++ [i'] ++ drop (ix + 1) is
-      updateCharacter idc (p { Chara.items = is' })
-
 selectItem :: (String -> Event)
            -> (ItemInf -> Bool)
            -> (Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine)
@@ -108,7 +97,9 @@ selectItem msgForSelect isTarget next c cancel = GameAuto $ do
         its = Chara.items c
         cs  = filter (isTarget . snd) (zip (Chara.numToItemPos <$> [0..]) its)
         msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
-    return (msgForSelect $ "Select item(^A~^J).\n^L)eave `[`E`S`C`]\n\n" ++ unlines msg,
+    return (msgForSelect $
+              "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n"
+              ++ unlines msg,
             \(Key s) -> if s == "l" || s == "\ESC" then cancel
                         else case Chara.itemPosByChar s of
                           Nothing -> selectItem msgForSelect isTarget next c cancel
@@ -116,31 +107,31 @@ selectItem msgForSelect isTarget next c cancel = GameAuto $ do
                                      else selectItem msgForSelect isTarget next c cancel
            )
 
-selectUseTarget :: (String -> Event)
-                -> (Chara.ItemPos -> SpellTarget -> GameMachine)
-                -> Chara.Character
-                -> Chara.ItemPos
-                -> GameMachine
-                -> GameMachine
-selectUseTarget msgForTargeting next c i cancel = GameAuto $ do
-    let id = Chara.itemAt c i
+useItem :: (String -> Event)
+        -> (Chara.ItemPos -> SpellTarget -> GameMachine)
+        -> Chara.Character
+        -> Chara.ItemPos
+        -> GameMachine
+        -> GameMachine
+useItem msgForTargeting next c i cancel = GameAuto $ do
     ps  <- party <$> world
-    def <- itemByID id
+    def <- itemByID $ Chara.itemAt c i
     case Item.usingEffect def of
       Nothing                    -> run $ next i (Left F1) -- MEMO:target should be ignored...
       Just (Item.EqSpell ids, _) -> do
          sdef' <- spellByID ids
          case sdef' of
            Just sdef -> run $ selectSpellTarget sdef undefined False (next i) msgForTargeting cancel
-           Nothing   -> error "invalid spellId in selectUseTarget"
+           Nothing   -> error "invalid spellId in useItem"
+
 
 selectDropItem :: (String -> Event)
                -> PartyPos
                -> Chara.Character
                -> GameMachine
                -> GameMachine
-selectDropItem msgForSelect src =
-    selectItem (const $ msgForSelect "Select drop item(^A~^J).\n^L)eave `[`E`S`C`]") (const True) drop
+selectDropItem msgForSelect src c =
+    selectItem (const $ msgForSelect $ "Select drop item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]") (const True) drop c
   where
     drop :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     drop c i cancel = GameAuto $ do
@@ -154,8 +145,63 @@ selectDropItem msgForSelect src =
               else
                 with [dropItem src i] cancel
 
+
+
+
+selectTradeItem :: (String -> Event)
+                -> PartyPos
+                -> GameMachine
+                -> GameMachine
+selectTradeItem msgForSelect src cancel = GameAuto $ do
+    ps   <- party <$> world
+    c    <- characterByID =<< characterIDInPartyAt src
+    cmds <- cmdNumPartiesID (\(i, cid) -> tradeTo cid)
+    run $ if null (Chara.items c) then cancel
+          else selectEsc (msgForSelect $ "Select target character(^1~^" ++ show (length ps) ++ ").\n^L)eave `[`E`S`C`]")
+                         ((Key "l", cancel) : cmds)
+  where
+    tradeTo dst = GameAuto $ do
+        c'   <- characterByID =<< characterIDInPartyAt src
+        cdst <- characterByID dst
+        let msg = const $ msgForSelect $ "Select item to trade to " ++ Chara.name cdst ++ "(" ++ textItemCandidate c' ++ ").\n^L)eave `[`E`S`C`]"
+        run $ if      null (Chara.items c')      then cancel
+              else if Chara.hasMaxCountItem cdst then selectTradeItem msgForSelect src cancel
+                                                 else selectItem msg (const True) (trade dst) c' cancel
+    trade :: CharacterID -> Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
+    trade dst c i cancel = GameAuto $ do
+        let inf = Chara.itemInfAt c i
+        dropItem src i
+        gainItem dst inf
+        run $ tradeTo dst
+        
+
+
+
+breakItem :: (Int, Item.WhenBroken) -> PartyPos -> Chara.ItemPos -> GameState ()
+breakItem (prob, to) src i = do
+    broken <- happens prob
+    when broken $ do
+      idc <- characterIDInPartyAt src
+      p   <- characterInPartyAt   src
+      let is = Chara.items p
+          ix = Chara.itemPosToNum i
+          is' = case to of Item.Lost        -> take ix is ++ drop (ix + 1) is
+                           Item.ChangeTo i' -> take ix is ++ [i'] ++ drop (ix + 1) is
+      updateCharacter idc (p { Chara.items = is' })
+
 dropItem :: PartyPos -> Chara.ItemPos -> GameState ()
 dropItem = breakItem (100, Item.Lost)
+
+gainItem :: CharacterID -> ItemInf -> GameState ()
+gainItem cid inf = do
+    c' <- characterByID cid
+    let itms = Chara.items c'
+    updateCharacter cid (c' { Chara.items = itms ++ [inf] })
+
+
+textItemCandidate :: Chara.Character -> String
+textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . Chara.numToItemPos) (length (Chara.items c) - 1)
+
 
 -- =================================================================================
 -- for equipment.
@@ -187,7 +233,7 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
     let idset = zip ids items
         tgts  = filter (Chara.canEquip c . snd) . filter (isTarget . snd) $ idset
     run $ if null tgts then equip' msgForSelect src c rest next
-          else selectItem (const $ msgForSelect $ "Select equip " ++ typeText ++ "(^A~^J).\n  N)o equip. `[`E`S`C`]")
+          else selectItem (const $ msgForSelect $ "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]")
                           ((`elem` (fst <$> tgts)) . itemID) selectEq c (eq Nothing)
   where
     selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine

@@ -31,7 +31,7 @@ import UI.CuiRender
 -- * items
 -- *   sp
 -- * shop
--- *   identify items
+-- *   remove cursed item.
 -- * temple
 -- * training ground
 -- * room battle

@@ -4,6 +4,7 @@ import Control.Monad (forM, forM_, when)
 import Control.Monad.Reader (asks)
 import Engine.GameAuto
 import Engine.Utils
+import Engine.CharacterAction (gainItem)
 import Data.World
 import Data.Primitive
 import qualified Data.Characters as Chara
@@ -166,13 +167,12 @@ divideItems [] = return []
 divideItems (i:is) = do
     ids <- party <$> world
     ps  <- forM ids (\cid -> (,) cid <$> characterByID cid)
-    case find (\(cid, c) -> length (Chara.items c) < 10) ps of
+    case find (\(_, c) -> not (Chara.hasMaxCountItem c)) ps of
       Nothing         -> return []
       Just (cid', c') -> do
-        let itms = Chara.items c'
-        updateCharacter cid' (c' { Chara.items = itms ++ [ItemInf (ItemID i) False] })
-        rest <- divideItems is
+        gainItem cid' (ItemInf (ItemID i) False)
         idef <- itemByID (ItemID i)
+        rest <- divideItems is
         return $ (Chara.name c' ++ " got " ++ Item.nameUndetermined idef ++ ".") : rest
 
 

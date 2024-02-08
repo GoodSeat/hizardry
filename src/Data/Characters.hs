@@ -118,6 +118,9 @@ itemInfAt c pos = items c !! itemPosToNum pos
 itemAt :: Character -> ItemPos -> ItemID
 itemAt c pos = itemID $ items c !! itemPosToNum pos
 
+hasMaxCountItem :: Character -> Bool
+hasMaxCountItem c = length (items c) >= 10
+
 itemPosByChar :: String -> Maybe ItemPos
 itemPosByChar "a" = Just ItemA
 itemPosByChar "b" = Just ItemB
