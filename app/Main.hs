@@ -33,7 +33,6 @@ import UI.CuiRender
 -- * shop
 -- *   identify items
 -- * temple
--- * lvup
 -- * training ground
 -- * room battle
 -- *   treasure chest
@@ -87,6 +86,10 @@ main = do
         , Character.fightTryCount = read "min(lv/5+1,10)"
         , Character.fightHitBonus = read "lv/3+2"
         , Character.baseAC        = read "10"
+        , Character.lvupExps      = [
+            1000,724,1248,2152,3710,6397,11029,19015,32785,56526,97458,168031,289709
+          ]
+        , Character.hpFormula     = read "(lv)d(10 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
         }
         priest = Character.Job {
           Character.jobName              = "Priest"
@@ -120,6 +123,10 @@ main = do
         , Character.fightTryCount = read "1"
         , Character.fightHitBonus = read "lv/3+2"
         , Character.baseAC        = read "10"
+        , Character.lvupExps      = [
+            1050,760,1310,2259,3895,6715,11578,19962,34417,59343,102307,176397,304132
+          ]
+        , Character.hpFormula     = read "(lv)d(8 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
         }
         thief = Character.Job {
           Character.jobName              = "Thief"
@@ -152,6 +159,10 @@ main = do
         , Character.fightTryCount = read "min(lv/5+1,10)"
         , Character.fightHitBonus = read "lv/5"
         , Character.baseAC        = read "10"
+        , Character.lvupExps      = [
+            900,651,1123,1936,3338,5755,9922,17107,29495,50854,87679,151171,260639
+          ]
+        , Character.hpFormula     = read "(lv)d(6 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
         }
     let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
         human = Character.Kind {

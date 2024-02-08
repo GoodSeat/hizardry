@@ -199,6 +199,45 @@ costSpell' :: Chara.Character -> Spell.Define -> GameState Chara.Character
 costSpell' c def = asks (Chara.costSpell' . spells) <*> pure def <*> pure c
 
 
+lvup :: Chara.Character -> GameState (String, Chara.Character)
+lvup c = do
+    changes <- forM ps $ \(v, mv, dp, t) -> do
+      d <- deltaParam v mv (Chara.age c)
+      return (toText t d, dp d)
+    let p' = foldl1 mappend $ Chara.param c : (snd <$> changes)
+        c' = c { Chara.lv = Chara.lv c + 1, Chara.param = p' }
+    hp' <- join $ evalWith <$> formulaMapS (Left c') <*> pure (Chara.hpFormula $ Chara.job c)
+    let maxhp' = max (Chara.maxhp c + 1) hp'
+        uphp   = maxhp' - Chara.maxhp c
+        txt = "You made the next level !\n\n"
+           ++ "You gained " ++ show uphp ++ " HitPoitns."
+           ++ foldl1 (++) (fst <$> changes)
+    return (txt, c' { Chara.maxhp = Chara.maxhp c + uphp, Chara.hp    = Chara.hp c + uphp })
+  where
+    toText p (-1) = "\nYou lost "   ++ p ++ " ."
+    toText p   1  = "\nYou gained " ++ p ++ " ."
+    toText _   _  = ""
+    cp = Chara.param c
+    mp = Chara.maxParam $ Chara.kind c
+    ps = [ (strength cp, strength mp, \n -> emptyParam { strength = n }, "strength")
+         , (iq       cp, iq       mp, \n -> emptyParam { iq       = n }, "I.Q."    )
+         , (piety    cp, piety    mp, \n -> emptyParam { piety    = n }, "piety"   )
+         , (vitality cp, vitality mp, \n -> emptyParam { vitality = n }, "vitality")
+         , (agility  cp, agility  mp, \n -> emptyParam { agility  = n }, "agility" )
+         , (luck     cp, luck     mp, \n -> emptyParam { luck     = n }, "luck"    )
+         ]
+    deltaParam v maxv age = do
+        n1 <- randomIn [1..4]
+        n2 <- randomIn [0..130]
+        n3 <- randomIn [1..6]
+        if      n1 == 1  then return 0
+        else if age < n2 && v < maxv then return 1
+        else if age < n2             then return 0
+        else if v >= maxv && n3 == 1 then return 0
+        else if v < 2                then return 0
+        else                              return (-1)
+
+
 sortPartyAuto :: GameState ()
 sortPartyAuto = sortPartyAutoWith . party =<< world
 

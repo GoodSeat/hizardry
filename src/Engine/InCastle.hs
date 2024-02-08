@@ -142,18 +142,16 @@ sleep id h g d = GameAuto $ do
 checkLvup :: CharacterID -> GameMachine
 checkLvup id = GameAuto $ do
     c <- characterByID id
-    let nextLvExp = neps !! (Character.lv c - 1)
+    let nextLvExp = Character.totalExpToLv (Character.job c) (Character.lv c + 1)
         nextLvMsg = "You need " ++ show (nextLvExp - Character.exp c) ++ 
                     " more E.P.\nto make the next level."
     if Character.exp c >= nextLvExp
       then run $ doLvup id
       else run $ events [Message nextLvMsg] (selectStayPlan id)
-  where
-    neps = [1100, 3500, 5000, 11000, 25000, 40000, 80000, 150000]  -- TODO
 
 doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do
-    (txt, c') <- Character.lvup <$> characterByID id
+    (txt, c') <- lvup =<< characterByID id
     updateCharacter id c' >> run (events [Message txt] $ selectStayPlan id)
 
 -- =======================================================================

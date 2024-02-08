@@ -80,12 +80,24 @@ data Job = Job {
     , fightTryCount        :: !Formula
     , fightHitBonus        :: !Formula
     , baseAC               :: !Formula
+    , lvupExps             ::  [Int] -- need exp to next Lv.
+    , hpFormula            :: !Formula
 } deriving Read
 instance Show Job where
   show = jobName
 instance Eq Job where
    j1 == j2 = jobName j1 == jobName j2
 
+
+totalExpToLv :: Job
+             -> Int -- ^ target lv.
+             -> Int
+totalExpToLv j lv = totalExpToLv' (lvupExps j) (lv - 1)
+  where
+    totalExpToLv' [] _      = undefined
+    totalExpToLv' _ 0       = 0
+    totalExpToLv' [n] lv    = n + totalExpToLv' [n] (lv - 1)
+    totalExpToLv' (n:ns) lv = n + totalExpToLv' ns (lv - 1)
 
 
 data ItemPos = ItemA
@@ -168,16 +180,6 @@ data BattleCommand = Fight
     deriving (Show, Eq, Read)
 
 -- =================================================================================
-
-lvup :: Character -> (String, Character)
-lvup c = (txt, c {
-      lv    = lv c + 1
-    , maxhp = maxhp c + uphp
-    , hp    = hp c + uphp
-    })
-  where
-    txt = "You made the next level !\n\n You gained 5 HitPoitns.\n"
-    uphp = 5
 
 healHp :: Int -> Character -> Character
 healHp p c = setHp (hp c + p) c
