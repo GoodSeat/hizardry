@@ -185,9 +185,7 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
     let ids = itemID <$> filter identified (Chara.items c)
     items <- mapM itemByID ids
     let idset = zip ids items
-        canEquip def = case Item.enableToEquip def of Item.All     -> True
-                                                      Item.Only js -> Chara.jobName (Chara.job c) `elem` js
-        tgts = filter (canEquip . snd) . filter (isTarget . snd) $ idset
+        tgts  = filter (Chara.canEquip c . snd) . filter (isTarget . snd) $ idset
     run $ if null tgts then equip' msgForSelect src c rest next
           else selectItem (const $ msgForSelect $ "Select equip " ++ typeText ++ "(^A~^J).\n  N)o equip. `[`E`S`C`]")
                           ((`elem` (fst <$> tgts)) . itemID) selectEq c (eq Nothing)

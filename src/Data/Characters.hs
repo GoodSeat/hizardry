@@ -199,6 +199,10 @@ addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age =
                                                  else c { days = d' }
 
 
+canEquip :: Character -> Item.Define -> Bool
+canEquip c idef = case Item.enableToEquip idef of Item.All     -> True
+                                                  Item.Only js -> jobName (job c) `elem` js
+
 -- =================================================================================
 
 knowSpell :: SpellID -> Character -> Bool

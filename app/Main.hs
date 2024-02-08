@@ -64,7 +64,7 @@ main = do
             , Character.Spell
             , Character.UseItem
             , Character.Run
-            ]
+          ]
         , Character.inspectTrapAbility = parse' "agi"
         , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
         , Character.needParameter = Parameter {
@@ -74,7 +74,7 @@ main = do
             , vitality = 0
             , agility  = 0
             , luck     = 0
-           }
+          }
         , Character.baseWeaponAttr = Item.WeaponAttr {
               Item.targetF       = [L1, L2]
             , Item.targetB       = []
@@ -97,7 +97,7 @@ main = do
             , Character.Spell
             , Character.UseItem
             , Character.Run
-            ]
+          ]
         , Character.inspectTrapAbility = parse' "agi"
         , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
         , Character.needParameter = Parameter {
@@ -107,7 +107,7 @@ main = do
             , vitality = 0
             , agility  = 0
             , luck     = 0
-           }
+          }
         , Character.baseWeaponAttr = Item.WeaponAttr {
               Item.targetF       = [L1, L2]
             , Item.targetB       = []
@@ -1028,7 +1028,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
     setCursorPosition 0 0
     renderMethod (debugMode w)
            $ t1 (if null locationText         then mempty else location locationText)
-          <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox) mMsg')
+          <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox') mMsg')
           <> t1 (if null fMsg                 then mempty else flashMsgBox fMsg)
           <> t1 (if null cMsg                 then mempty else cmdBox cMsg )
           <> t1 (if visibleStatusWindow w && not hideStatus then status s w (catMaybes ps) else mempty)
@@ -1058,7 +1058,9 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
                                     FindTreasureChest _ True  -> treasure
                                     _                         -> mempty
     statusScene   = case cid' of Nothing  -> mempty
-                                 Just cid -> statusView s w mMsg itemNameOf (cs Map.! cid)
+                                 Just cid -> statusView s w mMsg itemDefOf (cs Map.! cid)
+    msgBox' = case place w of Camping _ -> msgBoxCamp
+                              _         -> msgBox
     mMsg' | not (null mMsg) = mMsg
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
           | isOnTreasure    = "you found a treasure chest."
@@ -1074,8 +1076,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
          nAll       = show $ length es
          nActive    = show $ length . filter (null . Enemy.statusErrors) $ es
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
-    itemNameOf id identified = let def = items s Map.! id in
-        (if identified then Item.name else Item.nameUndetermined) def
+    itemDefOf = (Map.!) (items s)
     locationText = if isJust cid' then "" else
                    case place w of InCastle            -> "Castle" 
                                    Gilgamesh'sTarvern  -> "ギルガメッシュの酒場" --"Gilgamesh's Tarvern"

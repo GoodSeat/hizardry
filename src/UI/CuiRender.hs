@@ -35,6 +35,17 @@ msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
     ls = lines m
     toText (n, t) = textSGR (9, 5 + n) (toTextMessage t) (toTextSGR t)
 
+msgBoxCamp :: String -> Craphic
+msgBoxCamp m = foldl1 (<>) (fmap toText (zip [1..] ls))
+             <> rect (x, y) (lg + 6, length ls + 2) (Draw ' ')
+  where
+    ls = lines m
+    lg = maximum $ len . toTextMessage <$> ls
+    x  = (windowW - lg) `div` 2 - 3
+    y  = 9
+    toText (n, t) = textSGR (x + 1, y + n) (toTextMessage t) (toTextSGR t)
+
+
 flashMsgBox :: String -> Craphic
 flashMsgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
              <> rect (x, y) (lg + 2, length ls + 2) (Draw ' ')
@@ -96,8 +107,8 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> text (54, windowH - 6 + n) (show $ hp c)
                         <> text (61, windowH - 6 + n) (show $ maxhp c)
 
-statusView :: Scenario -> World -> String -> (ItemID -> Bool -> Item.Name)  -> Character -> Craphic
-statusView s w msg itemNameOf c =
+statusView :: Scenario -> World -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
+statusView s w msg itemDefOf c =
     foldl1 (<>) (fmap toText (zip [1..] ls)) <>
     rect (8, 24) (61, 7) (Draw ' ') <>
     ( translate (5, 4) $
@@ -163,9 +174,13 @@ statusView s w msg itemNameOf c =
 
     ls = lines msg
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
-    items' = ((\(ItemInf id identified) -> itemNameOf id identified) <$> Character.items c) ++ repeat ""
+    items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
+              <$> Character.items c) ++ repeat ""
     equipMarks = me (Character.items c) (Character.equips c)
-      where me (i:is) eqs = if i `elem` eqs then "#" : me is (filter (/=i) eqs) else " " : me is eqs
+      where me (i@(ItemInf id identified):is) eqs 
+                | i `elem` eqs                                            = "*" : me is (filter (/=i) eqs)
+                | identified && not (c `Character.canEquip` itemDefOf id) = "#" : me is eqs
+                | otherwise                                               = " " : me is eqs
             me _ [] = repeat " "
             me [] _ = undefined
 
