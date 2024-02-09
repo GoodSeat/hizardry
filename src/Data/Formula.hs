@@ -19,7 +19,15 @@ main = do
     print $ Data.Formula.parse "(5+2)*2+3d2"
     print $ Data.Formula.parse "(1-7+50)*100/70"
     print $ Data.Formula.parse "min(1,3)"
-    print $ Data.Formula.parse "min(agi*6, 95)"
+    print $ Data.Formula.parse "max(agi*6, 95)"
+    print $ Data.Formula.parse "(lv)d(8 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
+    print $ Data.Formula.parse "(lv)d6 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
+    let f = read "lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
+
+    let gen = mkStdGen 0 
+    let m = Map.insert "lv" 1 . Map.insert "vit" 8 $ Map.empty 
+    print $ evalFormula m f gen
+
     let f = read "min(agi*6, 95)" :: Formula
     print f
     let fs = read "[min(agi*6, 95),(5+2)*2+3d2]" :: [Formula]
@@ -100,7 +108,7 @@ instance Read Formula where
         takeNextComma (c:cs)   n =  c  : takeNextComma cs n
         takeNextComma []       _ = []
 
-cmpr = buildExpressionParser table factor <?> "expression"
+cmpr = buildExpressionParser table (token factor) <?> "expression"
   where
     table = [
              [binary "*" (Operate Production ) AssocLeft, binary "/"  (Operate Division      ) AssocLeft, binary "%" (Operate Surplus   ) AssocLeft]
@@ -113,11 +121,13 @@ cmpr = buildExpressionParser table factor <?> "expression"
     binary mark fun = Infix (string mark >> return fun)
    
 factor :: GenParser Char st Formula
-factor =  (char '(' *> token cmpr <* char ')')
-      <|> try dice
+factor =  try dice
+      <|> try (char '(' *> token cmpr <* char ')')
       <|> try (Value <$> integer)
       <|> try minOf
       <|> try maxOf
+      <|> (char '-' >> (Operate Production (Value (-1)) <$> factor))
+      <|> (char '+' >> factor)
       <|> variable
 
 token :: GenParser Char st a -> GenParser Char st a
@@ -127,21 +137,21 @@ natural :: GenParser Char st Int
 natural = read <$> many1 digit
 
 integer :: GenParser Char st Int
-integer = (char '-' >> (*(-1)) <$> natural) <|> natural
+integer = (char '-' >> (*(-1)) <$> natural) <|> (char '+' >> natural) <|> natural
 
 variable :: GenParser Char st Formula
-variable = Variable <$> many1 (noneOf " +-*/%=<>()")
+variable = Variable <$> many1 (noneOf " +-*/%=<>(),")
 
 dice :: GenParser Char st Formula
-dice =  Dice <$> (try (Value <$> natural) <|> (char '(' *> cmpr <* char ')'))
+dice =  Dice <$> (try (Value <$> natural) <|> (char '(' *> token cmpr <* char ')'))
              <*> (char 'd' >> 
-                 (try (Value <$> natural) <|> (char '(' *> cmpr <* char ')')))
+                 (try (Value <$> natural) <|> (char '(' *> token cmpr <* char ')')))
 
 minOf :: GenParser Char st Formula
-minOf = MinOf <$> (string "min(" *> token cmpr) <*> (char ',' *> token cmpr) <* token (char ')')
+minOf = MinOf <$> (token (string "min(") *> token cmpr) <*> (char ',' *> token cmpr) <* token (char ')')
 
 maxOf :: GenParser Char st Formula
-maxOf = MaxOf <$> (string "max(" *> token cmpr) <*> (char ',' *> token cmpr) <* token (char ')')
+maxOf = MaxOf <$> (token (string "max(") *> token cmpr) <*> (char ',' *> token cmpr) <* token (char ')')
 
 -- ================================================================================
 
