@@ -252,7 +252,7 @@ main = do
                                ]
         , Character.equips   = []
 
-        , Character.spells   = [SpellID 11, SpellID 21]
+        , Character.spells   = []
         , Character.mp       = (replicate 7 7, replicate 7 7)
         , Character.maxmp    = (replicate 7 7, replicate 7 7)
         }
@@ -275,7 +275,7 @@ main = do
 
         , Character.job      = priest
         , Character.alignment= Character.N
-        , Character.spells   = [SpellID 11, SpellID 12, SpellID 71, SpellID 111, SpellID 112, SpellID 113, SpellID 114, SpellID 121]
+        , Character.spells   = []
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         }
         testChara4 = testChara1 {
