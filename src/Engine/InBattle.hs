@@ -110,7 +110,7 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
     let con = Condition {
       afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
     }
-    run $ events [MessageTime (-1000) "\nEncounter!\n" Nothing]
+    run $ events [FlashMessage (-1000) "\n      Encounter!!      \n "]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()

@@ -52,7 +52,7 @@ flashMsgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))
   where
     ls = lines m
     lg = maximum $ len . toTextMessage <$> ls
-    x  = (windowW - lg) `div` 2 - 1
+    x  = (windowW - lg) `div` 2
     y  = 14
     toText (n, t) = textSGR (x, y + n) (toTextMessage t) (toTextSGR t)
 
@@ -196,8 +196,9 @@ replaceLine src dst align = rep src' dst''
     n'    = max (len src) (len dst')
     dst'' = fill (n' - len dst') dst' False
     src'  = fill (n' - len src ) src  False
-    fill 0 s _ = s
-    fill n s toL = if toL then ' ' : fill (n - 1) s toL else fill (n - 1) s toL ++ " "
+    fill n s toL
+      | n <= 0    = s
+      | otherwise = if toL then ' ' : fill (n - 1) s toL else fill (n - 1) s toL ++ " "
 
 rep :: String -> String -> String -> String
 rep _   _  [] = []

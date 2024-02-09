@@ -26,7 +26,7 @@ doEventInner :: Bool -> Ev.Define -> (Bool -> GameMachine) -> (Bool -> GameMachi
 doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
   where
     candidates :: [(String, Ev.Define)] -> [(Input, GameMachine)]
-    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd) | x <- lines m])
+    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd) | x <- if m == "" then [""] else lines m])
 
     doEvent' :: Ev.Define -> (Bool -> GameMachine) -> GameMachine
     -- moving

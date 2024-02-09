@@ -89,7 +89,7 @@ main = do
         , Character.lvupExps      = [
             1000,724,1248,2152,3710,6397,11029,19015,32785,56526,97458,168031,289709
           ]
-        , Character.hpFormula     = read "(lv)d(10 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
+        , Character.hpFormula     = read "(lv)d10 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
         , Character.mpFormula     = ([], [])
         , Character.learningSpells= []
         }
@@ -128,7 +128,7 @@ main = do
         , Character.lvupExps      = [
             1050,760,1310,2259,3895,6715,11578,19962,34417,59343,102307,176397,304132
           ]
-        , Character.hpFormula     = read "(lv)d(8 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
+        , Character.hpFormula     = read "(lv)d8 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
         , Character.mpFormula     = ( replicate 7 (read "0")
                                     , read "min(9,max(1,lv*2-mlv*4+pie/6+1d3))"
                                     : replicate 6 (read "min(9,lv*2-mlv*4+pie/6+1d3)"))
@@ -175,7 +175,7 @@ main = do
         , Character.lvupExps      = [
             900,651,1123,1936,3338,5755,9922,17107,29495,50854,87679,151171,260639
           ]
-        , Character.hpFormula     = read "(lv)d(6 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
+        , Character.hpFormula     = read "(lv)d6 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
         , Character.mpFormula     = ([], [])
         , Character.learningSpells= []
         }
@@ -229,7 +229,7 @@ main = do
         , Character.days     = 0
 
         , Character.lv       = 1
-        , Character.exp      = 400000000
+        , Character.exp      = 40000000
         , Character.gold     = 1000
 
         , Character.job      = fighter
@@ -253,8 +253,8 @@ main = do
         , Character.equips   = []
 
         , Character.spells   = []
-        , Character.mp       = (replicate 7 7, replicate 7 7)
-        , Character.maxmp    = (replicate 7 7, replicate 7 7)
+        , Character.mp       = (replicate 7 0, replicate 7 0)
+        , Character.maxmp    = (replicate 7 0, replicate 7 0)
         }
         testChara2 = testChara1 {
           Character.name     = "FIG2"
@@ -269,7 +269,7 @@ main = do
         , Character.kind     = elf
         , Character.hp       = 34
         , Character.maxhp    = 48
-        , Character.lv       = 5
+        , Character.lv       = 1
         , Character.statusErrors = []
         , Character.paramDelta = []
 
@@ -861,7 +861,7 @@ main = do
                 ,
                 (SpellID 115, Spell.Define {
                       Spell.name       = "porfic"
-                    , Spell.kind       = Spell.M
+                    , Spell.kind       = Spell.P
                     , Spell.lv         = 1
                     , Spell.attrLabels = [EffectLabel "priest"]
                     , Spell.target     = Spell.AllyOwn
@@ -1577,6 +1577,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
                                    TempleOfCant        -> "Temple of Cant"
                                    InEdgeOfTown        -> "Edge of Town"
                                    TrainingGrounds     -> "Training Grounds"
+                                   Camping _           -> "Camp"
                                    _ -> []
     msgTrans = if null locationText then id else translate (0, 1)
 

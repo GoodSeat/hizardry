@@ -82,7 +82,7 @@ data Job = Job {
     , baseAC               :: !Formula
     , lvupExps             ::  [Int]   -- need exp to next Lv.
     , hpFormula            :: !Formula -- use determine HP when Lvup.
-    , mpFormula            :: ([Formula], [Formula]) -- use determine MP when Lvup.(variable of "mlv" means target magic lv(1~7).)
+    , mpFormula            :: !([Formula], [Formula]) -- use determine MP when Lvup.(variable of "mlv" means target magic lv(1~7).)
     , learningSpells       :: ![(Formula, [SpellID])] -- count of learning magic on this lv.(variable of "mlv" means target magic lv(1~7).)
 } deriving Read
 instance Show Job where

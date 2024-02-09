@@ -196,8 +196,9 @@ makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainin
               , Character.maxmp        = (replicate 7 0, replicate 7 0)
               }
       hp' <- join $ evalWith <$> formulaMapS (Left c) <*> pure (Character.hpFormula j)
-      let c' = c { Character.maxhp = hp', Character.hp = hp' }
-
+      (sn, maxmp') <- learnSpellsAndMps c
+      let c' = c { Character.maxhp = hp', Character.hp = hp',
+                   Character.spells = sn, Character.maxmp = maxmp', Character.mp = maxmp' }
       w <- world
       let cmap = allCharacters w
           midn = maximum $ characterId . fst <$> Map.toList cmap

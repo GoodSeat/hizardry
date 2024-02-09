@@ -47,6 +47,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "e", equip           dItem i c cancel, True)
 -- TODO               : (Key "i", identifyItem    dItem i c cancel, canIdentify)
 -- TODO               : (Key "r", readSpell       dItem i c cancel, True)
+                      : (Key "r", with [msgDebug $ show (Chara.spells c)] cancel, True)
                       : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
                       : cmdsInspect
   where

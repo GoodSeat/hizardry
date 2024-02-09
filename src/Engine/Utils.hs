@@ -208,49 +208,30 @@ costSpell' :: Chara.Character -> Spell.Define -> GameState Chara.Character
 costSpell' c def = asks (Chara.costSpell' . spells) <*> pure def <*> pure c
 
 
+
 lvup :: Chara.Character -> GameState (String, Chara.Character)
 lvup c = do
-    let j = Chara.job c
-
     changes <- forM ps $ \(v, mv, dp, t) -> do
       d <- deltaParam v mv (Chara.age c)
       return (toText t d, dp d)
     let p' = foldl1 mappend $ Chara.param c : (snd <$> changes)
         c' = c { Chara.lv = Chara.lv c + 1, Chara.param = p' }
 
-    m <- formulaMapS $ Left c'
+    (sn', maxmp') <- learnSpellsAndMps c'
+    let ss' = sort $ Chara.spells c' ++ sn'
 
-    let ss = Chara.spells c'
-    sn' <- fmap concat $ forM (Chara.learningSpells j) $ \(f, spells) -> do
-        let so = filter (`elem`    ss) spells
-            sn = filter (`notElem` ss) spells
-        n' <- evalWith m f
-        randomsIn (min n' (length spells) - length so) sn
-    let ss' = sort $ ss ++ sn'
-    spls' <- catMaybes <$> mapM spellByID ss'
-
-    maxmp1' <- forM [1..(length . fst) (Chara.maxmp c)] $ \mlv -> do
-      let m' = insert "mlv" mlv m
-          nm = length $ filter ((== mlv) . Spell.lv) . filter ((== Spell.M) . Spell.kind) $ spls'
-      mp' <- evalWith m' $ fst (Chara.mpFormula j) !! (mlv - 1)
-      return $ max nm (max mp' (fst (Chara.maxmp c) !! (mlv - 1)))
-    maxmp2' <- forM [1..(length . snd) (Chara.maxmp c)] $ \mlv -> do
-      let m' = insert "mlv" mlv m
-          nm = length $ filter ((== mlv) . Spell.lv) . filter ((== Spell.P) . Spell.kind) $ spls'
-      mp' <- evalWith m' $ snd (Chara.mpFormula j) !! (mlv - 1)
-      return $ max nm (max mp' (snd (Chara.maxmp c) !! (mlv - 1)))
-
-    hp' <- evalWith m (Chara.hpFormula j)
+    m   <- formulaMapS $ Left c'
+    hp' <- evalWith m (Chara.hpFormula $ Chara.job c)
     let maxhp' = max (Chara.maxhp c + 1) hp'
         uphp   = maxhp' - Chara.maxhp c
         txt = "You made the next level !\n\n"
            ++ "You gained " ++ show uphp ++ " HitPoitns."
            ++ foldl1 (++) (fst <$> changes)
-           ++ if null ss' then "" else "\nYou have learned a new spell."
+           ++ if null sn' then "" else "\nYou have learned a new spell."
     return (txt, c' { Chara.maxhp = Chara.maxhp c + uphp
                     , Chara.hp    = Chara.hp c + uphp 
-                    , Chara.maxmp = (maxmp1', maxmp2')
-                    , Chara.mp    = (maxmp1', maxmp2')
+                    , Chara.maxmp = maxmp'
+                    , Chara.mp    = maxmp'
                     , Chara.spells = ss'
                     })
   where
@@ -276,6 +257,35 @@ lvup c = do
         else if v >= maxv && n3 == 1 then return 0
         else if v < 2                then return 0
         else                              return (-1)
+
+learnSpellsAndMps :: Chara.Character -> GameState ([SpellID], ([Int], [Int]))
+learnSpellsAndMps c' = do
+    let j = Chara.job c'
+    m <- formulaMapS $ Left c'
+
+    let ss = Chara.spells c'
+    sn' <- fmap concat $ forM (Chara.learningSpells j) $ \(f, spells) -> do
+        let so = filter (`elem`    ss) spells
+            sn = filter (`notElem` ss) spells
+        n' <- evalWith m f
+        randomsIn (min n' (length spells) - length so) sn
+    let ss' = sort $ ss ++ sn'
+    spls' <- catMaybes <$> mapM spellByID ss'
+
+    maxmp1' <- forM [1..(length . fst) (Chara.maxmp c')] $ \mlv -> do
+      let m' = insert "mlv" mlv m
+          nm = length $ filter ((== mlv) . Spell.lv) . filter ((== Spell.M) . Spell.kind) $ spls'
+          mfs = fst (Chara.mpFormula j)
+      mp' <- if length mfs < mlv then return 0 else evalWith m' $ mfs !! (mlv - 1)
+      return $ max nm (max mp' (fst (Chara.maxmp c') !! (mlv - 1)))
+    maxmp2' <- forM [1..(length . snd) (Chara.maxmp c')] $ \mlv -> do
+      let m' = insert "mlv" mlv m
+          nm = length $ filter ((== mlv) . Spell.lv) . filter ((== Spell.P) . Spell.kind) $ spls'
+          mfs = snd (Chara.mpFormula j)
+      mp' <- if length mfs < mlv then return 0 else evalWith m' $ mfs !! (mlv - 1)
+      return $ max nm (max mp' (snd (Chara.maxmp c') !! (mlv - 1)))
+
+    return (sort sn', (maxmp1', maxmp2'))
 
 
 sortPartyAuto :: GameState ()
