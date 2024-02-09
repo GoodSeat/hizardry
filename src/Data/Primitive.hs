@@ -126,6 +126,17 @@ data AdParam = AdParam {
     , adName     :: !String -- ^ effect name. if this name isn't empty, can't apply multiple.
 } deriving (Show, Eq, Read)
 
+emptyAdParam = AdParam {
+      adStrength = read "0"
+    , adIq       = read "0"
+    , adPiety    = read "0"
+    , adVitality = read "0"
+    , adAgility  = read "0"
+    , adLuck     = read "0"
+    , adAC       = read "0"
+    , adName     = ""
+}
+
 
 -- | effect valid term.
 data Term = OnlyInBattle | OnlyInMaze

@@ -21,6 +21,7 @@ data Define = Define {
     , target     :: !TargetType    -- ^ type of target.
     , effect     :: !Effect        -- ^ type of effect.
     , enableIn   :: ![CastPlace]   -- ^ place enable to cast.
+    , infomation :: !String        -- ^ infomation of spell.
 } deriving (Show, Eq, Read)
 
 data CastPlace = InCamp
@@ -41,6 +42,7 @@ data Effect = Damage         Formula                          -- ^ damage hp.
 data TargetType = OpponentSingle
                 | OpponentGroup
                 | OpponentAll
+                | AllyOwn
                 | AllySingle
                 | AllyGroup
                 | AllyAll
