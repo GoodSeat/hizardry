@@ -90,6 +90,8 @@ main = do
             1000,724,1248,2152,3710,6397,11029,19015,32785,56526,97458,168031,289709
           ]
         , Character.hpFormula     = read "(lv)d(10 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
+        , Character.mpFormula     = ([], [])
+        , Character.learningSpells= []
         }
         priest = Character.Job {
           Character.jobName              = "Priest"
@@ -127,6 +129,17 @@ main = do
             1050,760,1310,2259,3895,6715,11578,19962,34417,59343,102307,176397,304132
           ]
         , Character.hpFormula     = read "(lv)d(8 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
+        , Character.mpFormula     = ( replicate 7 (read "0")
+                                    , read "min(9,max(1,lv*2-mlv*4+pie/6+1d3))"
+                                    : replicate 6 (read "min(9,lv*2-mlv*4+pie/6+1d3)"))
+        , Character.learningSpells= [(read "max(1,lv*2-4+1d(pie/5))", SpellID <$> [111..115])
+                                    ,(read "lv*2- 8+1d(pie/5)"      , SpellID <$> [121..124])
+                                    ,(read "lv*2-12+1d(pie/5)"      , SpellID <$> [131..134])
+                                    ,(read "lv*2-16+1d(pie/5)"      , SpellID <$> [141..144])
+                                    ,(read "lv*2-20+1d(pie/5)"      , SpellID <$> [151..156])
+                                    ,(read "lv*2-24+1d(pie/5)"      , SpellID <$> [161..164])
+                                    ,(read "lv*2-28+1d(pie/5)"      , SpellID <$> [171..172])
+                                    ]
         }
         thief = Character.Job {
           Character.jobName              = "Thief"
@@ -163,6 +176,8 @@ main = do
             900,651,1123,1936,3338,5755,9922,17107,29495,50854,87679,151171,260639
           ]
         , Character.hpFormula     = read "(lv)d(6 + max(vit-15, min(-(vit=5) + 5-vit,0)))"
+        , Character.mpFormula     = ([], [])
+        , Character.learningSpells= []
         }
     let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
         human = Character.Kind {
