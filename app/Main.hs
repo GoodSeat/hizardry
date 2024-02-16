@@ -36,6 +36,7 @@ import UI.CuiRender
 -- * training ground
 -- * room battle
 -- *   treasure chest
+-- * secret door
 -- * other spells
 -- * other events
 
@@ -580,6 +581,45 @@ main = do
                     , Enemy.enableRun         = True
                     , Enemy.trapCandidate     = [Enemy.Alarm, Enemy.Teleporter, Enemy.Stunner]
                 })
+                , (EnemyID 3, Enemy.Define {
+                      Enemy.name              = "zombie"
+                    , Enemy.nameUndetermined  = "humanoid creature"
+                    , Enemy.pic               = PictureID 1002
+                    , Enemy.picUndetermined   = PictureID 2002
+                    , Enemy.lv                = 2
+                    , Enemy.hpFormula         = parse' "2d3+1"
+
+                    , Enemy.param             = Parameter 5 8 8 8 8 8
+                    , Enemy.ac                = 5
+
+                    , Enemy.exp               = 715
+                    , Enemy.friendlyProb      = 5
+                    , Enemy.numOfOccurrences  = parse' "1d3"
+                    , Enemy.healPerTurn       = 0
+                    , Enemy.moveFrontProb     = 20
+
+                    , Enemy.resistError       = [(Dead, read "12")]
+                    , Enemy.vsEffectLabels    = [(EffectLabel "purgation", read "-1*value")]
+                    , Enemy.attrLabels        = [EnemyLabel "undead"]
+
+                    , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3")
+                                                 [(read "lv*20-o.lv", Fear,  [EffectLabel "fear"])
+                                                 ,(read "lv*20-o.lv", Poison 1,  [EffectLabel "poison"] )]
+                                                ,Enemy.Spelling (parse' "11")
+                                                --,Enemy.Spelling (parse' "21")
+                                                --,Enemy.Spelling (parse' "71")
+                                                ,Enemy.Run
+                                                ]
+
+                    , Enemy.dropItem          = [(50, parse' "1d3")]
+                    , Enemy.dropGold          = parse' "2d10"
+
+                    , Enemy.withBackProb      = 15
+                    , Enemy.backEnemyID       = parse' "1"
+
+                    , Enemy.enableRun         = True
+                    , Enemy.trapCandidate     = [Enemy.Alarm, Enemy.Teleporter, Enemy.Stunner]
+                })
                 ]
             , spells         = Map.fromList [
                 (SpellID 11, Spell.Define {
@@ -754,7 +794,7 @@ main = do
                     , Spell.lv         = 6
                     , Spell.attrLabels = [EffectLabel "mage", EffectLabel "purgation"]
                     , Spell.target     = Spell.OpponentSingle
-                    , Spell.effect     = Spell.AddStatusError [(Dead, read "min(80,(lv-o.lv)*10+50)", "is purged.")]
+                    , Spell.effect     = Spell.AddStatusError [(Dead, read "-1*min(80,(lv-o.lv)*10+50)", "is purged.")]
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "不死系1体を即死させる"
                 })
