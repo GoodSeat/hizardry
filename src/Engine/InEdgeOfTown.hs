@@ -62,7 +62,7 @@ createNewCharacter = GameAuto $
     return (Ask ">Input name of character. \n(Empty to cancel.)" Nothing,
            \(Key s) -> if null s then inTrainingGrounds else GameAuto $ do
               isOK <- not <$> existSameName s
-              run $ if isOK then selectKind s
+              run $ if isOK then selectRace s
                     else events [Message $ s ++ " is already exist."] createNewCharacter)
   where
     existSameName :: String -> GameState Bool
@@ -72,18 +72,18 @@ createNewCharacter = GameAuto $
       ns <- map Character.name <$> mapM characterByID cids
       return $ name `elem` ns
 
-selectKind :: String -> GameMachine
-selectKind name = GameAuto $ do
-    ks <- asks kinds
-    let ts  = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.kindName <$> ks)
+selectRace :: String -> GameMachine
+selectRace name = GameAuto $ do
+    ks <- asks racies
+    let ts  = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.raceName <$> ks)
         cs  = zip (Key <$> (show <$> [1..])) (selectAlignment name <$> ks)
         msg = Message $ showCharacter name Nothing Nothing Nothing
                      ++ "\n=========================================================\n"
-                     ++ ">Select kind.(ESC to cancel)\n\n"
+                     ++ ">Select race.(ESC to cancel)\n\n"
                      ++ unlines ts
     run $ select msg ((Key "\ESC", inTrainingGrounds) : cs)
 
-selectAlignment :: String -> Character.Kind -> GameMachine
+selectAlignment :: String -> Character.Race -> GameMachine
 selectAlignment name k = select msg [(Key "\ESC", inTrainingGrounds)
                                     ,(Key "g", determineParameter name k Character.G)
                                     ,(Key "n", determineParameter name k Character.N)
@@ -96,12 +96,12 @@ selectAlignment name k = select msg [(Key "\ESC", inTrainingGrounds)
                  ++ "  ^N)eutral\n"
                  ++ "  ^E)vil"
 
-determineParameter :: String -> Character.Kind -> Character.Alignment -> GameMachine
+determineParameter :: String -> Character.Race -> Character.Alignment -> GameMachine
 determineParameter name k a = GameAuto $ do
     bns <- eval $ Character.initialBonus k
     run $ determineParameter' bns emptyParam name k a
 
-determineParameter' :: Int -> Parameter -> String -> Character.Kind -> Character.Alignment -> GameMachine
+determineParameter' :: Int -> Parameter -> String -> Character.Race -> Character.Alignment -> GameMachine
 determineParameter' bns aps name k a = GameAuto $ do
     js <- asks (filter (isEnableJob a param) . jobs)
     let ibns = bns + totalParameter aps
@@ -139,7 +139,7 @@ determineParameter' bns aps name k a = GameAuto $ do
               else if bns' <= 0 || sumParameter aps' ips == mps then selectJob aps' name k a
               else                                                   determineParameter' bns' aps' name k a
 
-selectJob :: Parameter -> String -> Character.Kind -> Character.Alignment -> GameMachine
+selectJob :: Parameter -> String -> Character.Race -> Character.Alignment -> GameMachine
 selectJob aps name k a = GameAuto $ do
     js <- asks (filter (isEnableJob a param) . jobs)
     if null js then run $ determineParameter' 0 aps name k a
@@ -157,7 +157,7 @@ selectJob aps name k a = GameAuto $ do
     ips = Character.initialParam k
     param = sumParameter aps ips
 
-makeCharacter :: Parameter -> String -> Character.Kind -> Character.Alignment -> Character.Job -> GameMachine
+makeCharacter :: Parameter -> String -> Character.Race -> Character.Alignment -> Character.Job -> GameMachine
 makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainingGrounds)
                                             ,(Key "c", inTrainingGrounds)]
   where
@@ -170,7 +170,7 @@ makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainin
     register = do
       let c = Character.Character {
                 Character.name      = name
-              , Character.kind      = k
+              , Character.race      = k
               , Character.age       = 10 -- TODO!
               , Character.days      = 10 -- TODO!
               , Character.lv        = 1
@@ -220,10 +220,10 @@ sumParameter p1 p2 = Parameter {
     , luck     = luck     p1 + luck     p2
 }
 
-showCharacter :: String -> Maybe Character.Kind -> Maybe Character.Alignment -> Maybe Character.Job -> String
+showCharacter :: String -> Maybe Character.Race -> Maybe Character.Alignment -> Maybe Character.Job -> String
 showCharacter name k' a' j' = "\n    " ++ name ++ replicate (40 - length name) ' ' ++ kt ++ at ++ jt ++ "\n"
   where kt = case k' of Nothing -> "??"
-                        Just k  -> take 2 (Character.kindName k)
+                        Just k  -> take 2 (Character.raceName k)
         at = case a' of Nothing -> "??"
                         Just a  -> "-" ++ show a
         jt = case j' of Nothing -> "????"

@@ -61,8 +61,8 @@ main = do
           , luck     = 10
         }
     let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
-        human = Character.Kind {
-            Character.kindName = "Human"
+        human = Character.Race {
+            Character.raceName = "Human"
           , Character.initialParam = Parameter {
               strength = 8
             , iq       = 8
@@ -81,8 +81,8 @@ main = do
           }
           , Character.initialBonus = bonus
         }
-        elf = Character.Kind {
-            Character.kindName = "Elf"
+        elf = Character.Race {
+            Character.raceName = "Elf"
           , Character.initialParam = Parameter {
               strength =  7
             , iq       = 10
@@ -105,7 +105,7 @@ main = do
 
     let testChara1 = Character.Character {
               Character.name     = "FIG1"
-            , Character.kind     = human
+            , Character.race     = human
             , Character.age      = 18
             , Character.days     = 0
 
@@ -149,7 +149,7 @@ main = do
         }
         testChara3 = testChara1 {
               Character.name     = "PRI1"
-            , Character.kind     = elf
+            , Character.race     = elf
             , Character.hp       = 34
             , Character.maxhp    = 48
             , Character.lv       = 1
@@ -230,7 +230,7 @@ main = do
     let scenario = Scenario {
               scenarioOption = option
             , scenarioHome   = inCastle
-            , kinds          = [human, elf]
+            , racies         = [human, elf]
             , jobs           = [SampleJobs.fighter, SampleJobs.priest, SampleJobs.thief]
             --, mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
             , mazes          = [("B1F", (4, 5), testMaze), ("B2F", (26, 25), testMaze2)]

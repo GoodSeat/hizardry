@@ -11,7 +11,7 @@ import qualified Data.Items as Item
 
 data Character = Character {
       name         :: !String         -- ^ name of character.
-    , kind         :: !Kind           -- ^ kind.
+    , race         :: !Race           -- ^ race
     , age          :: !Int            -- ^ age
     , days         :: !Int            -- ^ past days after last birth.
     , lv           :: !Int            -- ^ level.
@@ -54,8 +54,8 @@ instance Object Character where
      else                                         c'
 
 
-data Kind = Kind {
-      kindName     :: !String
+data Race = Race {
+      raceName     :: !String
     , initialParam :: !Parameter
     , maxParam     :: !Parameter
     , initialBonus :: !Formula

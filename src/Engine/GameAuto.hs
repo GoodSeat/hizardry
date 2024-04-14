@@ -53,7 +53,7 @@ data ScenarioOption = ScenarioOption {
 data Scenario = Scenario {
       scenarioOption :: !ScenarioOption
     , scenarioHome   :: !GameMachine
-    , kinds          :: ![Kind]
+    , racies         :: ![Race]
     , jobs           :: ![Job]
     , mazes          :: ![(String, (Int, Int), Maze)]
     , encountMap     :: !(Map.Map Coord (Int, [EnemyID]))

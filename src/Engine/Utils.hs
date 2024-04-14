@@ -239,7 +239,7 @@ lvup c = do
     toText p   1  = "\nYou gained " ++ p ++ " ."
     toText _   _  = ""
     cp = Chara.param c
-    mp = Chara.maxParam $ Chara.kind c
+    mp = Chara.maxParam $ Chara.race c
     ps = [ (strength cp, strength mp, \n -> emptyParam { strength = n }, "strength")
          , (iq       cp, iq       mp, \n -> emptyParam { iq       = n }, "I.Q."    )
          , (piety    cp, piety    mp, \n -> emptyParam { piety    = n }, "piety"   )
