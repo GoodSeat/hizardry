@@ -19,7 +19,6 @@ import Data.Formula
 import qualified Data.Characters as Character
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
-import qualified Data.Items as Item
 
 import Control.CUI
 import UI.CuiRender
@@ -28,6 +27,7 @@ import qualified SampleScenario.Spells as SampleSpells
 import qualified SampleScenario.Items as SampleItems
 import qualified SampleScenario.Enemies as SampleEnemies
 import qualified SampleScenario.Events as SampleEvents
+import qualified SampleScenario.Jobs as SampleJobs
 
 
 -- note
@@ -53,137 +53,12 @@ import qualified SampleScenario.Events as SampleEvents
 main :: IO ()
 main = do
     let param = Parameter {
-          strength = 12
-        , iq       = 10
-        , piety    = 10
-        , vitality = 10
-        , agility  = 10
-        , luck     = 10
-        }
-        fighter = Character.Job {
-          Character.jobName              = "Fighter"
-        , Character.enableAlignments     = [Character.G, Character.N, Character.E]
-        , Character.enableBattleCommands = [
-              Character.Fight
-            , Character.Parry
-            , Character.Spell
-            , Character.UseItem
-            , Character.Run
-          ]
-        , Character.inspectTrapAbility = parse' "agi"
-        , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
-        , Character.needParameter = Parameter {
-              strength = 11
-            , iq       = 0
-            , piety    = 0
-            , vitality = 0
-            , agility  = 0
-            , luck     = 0
-          }
-        , Character.baseWeaponAttr = Item.WeaponAttr {
-              Item.targetF       = [L1, L2]
-            , Item.targetB       = []
-            , Item.damage        = read "2d2"
-            , Item.doubleLabels  = []
-            , Item.attrLabels    = []
-            , Item.addStatusErrors = []
-            , Item.atackMessages = []
-          }
-        , Character.fightTryCount = read "min(lv/5+1,10)"
-        , Character.fightHitBonus = read "lv/3+2"
-        , Character.baseAC        = read "10"
-        , Character.lvupExps      = [
-            1000,724,1248,2152,3710,6397,11029,19015,32785,56526,97458,168031,289709
-          ]
-        , Character.hpFormula     = read "(lv)d10 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
-        , Character.mpFormula     = ([], [])
-        , Character.learningSpells= []
-        }
-        priest = Character.Job {
-          Character.jobName              = "Priest"
-        , Character.enableAlignments     = [Character.G, Character.N]
-        , Character.enableBattleCommands = [
-              Character.Fight
-            , Character.Parry
-            , Character.Spell
-            , Character.UseItem
-            , Character.Run
-          ]
-        , Character.inspectTrapAbility = parse' "agi"
-        , Character.disarmTrapAbility  = parse' "(lv-7)*100/70"
-        , Character.needParameter = Parameter {
-              strength = 0
-            , iq       = 0
-            , piety    = 11
-            , vitality = 0
-            , agility  = 0
-            , luck     = 0
-          }
-        , Character.baseWeaponAttr = Item.WeaponAttr {
-              Item.targetF       = [L1, L2]
-            , Item.targetB       = []
-            , Item.damage        = read "2d2"
-            , Item.doubleLabels  = []
-            , Item.attrLabels    = []
-            , Item.addStatusErrors = []
-            , Item.atackMessages = []
-          }
-        , Character.fightTryCount = read "1"
-        , Character.fightHitBonus = read "lv/3+2"
-        , Character.baseAC        = read "10"
-        , Character.lvupExps      = [
-            1050,760,1310,2259,3895,6715,11578,19962,34417,59343,102307,176397,304132
-          ]
-        , Character.hpFormula     = read "(lv)d8 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
-        , Character.mpFormula     = ( replicate 7 (read "0")
-                                    , read "min(9,max(1,lv*2-mlv*4+pie/6+1d3))"
-                                    : replicate 6 (read "min(9,lv*2-mlv*4+pie/6+1d3)"))
-        , Character.learningSpells= [(read "max(1,lv*2-4+1d(pie/5))", SpellID <$> [111..115])
-                                    ,(read "lv*2- 8+1d(pie/5)"      , SpellID <$> [121..124])
-                                    ,(read "lv*2-12+1d(pie/5)"      , SpellID <$> [131..134])
-                                    ,(read "lv*2-16+1d(pie/5)"      , SpellID <$> [141..144])
-                                    ,(read "lv*2-20+1d(pie/5)"      , SpellID <$> [151..156])
-                                    ,(read "lv*2-24+1d(pie/5)"      , SpellID <$> [161..164])
-                                    ,(read "lv*2-28+1d(pie/5)"      , SpellID <$> [171..172])
-                                    ]
-        }
-        thief = Character.Job {
-          Character.jobName              = "Thief"
-        , Character.enableAlignments     = [Character.E, Character.N]
-        , Character.enableBattleCommands = [
-              Character.Fight
-            , Character.Parry
-            , Character.UseItem
-            , Character.Run
-            ]
-        , Character.inspectTrapAbility = parse' "min(agi*6, 95)"
-        , Character.disarmTrapAbility  = parse' "(lv-7+50)*100/70"
-        , Character.needParameter = Parameter {
-              strength = 0
-            , iq       = 0
-            , piety    = 0
-            , vitality = 0
-            , agility  = 11
-            , luck     = 0
-           }
-        , Character.baseWeaponAttr = Item.WeaponAttr {
-              Item.targetF       = [L1, L2]
-            , Item.targetB       = []
-            , Item.damage        = read "2d2"
-            , Item.doubleLabels  = []
-            , Item.attrLabels    = []
-            , Item.addStatusErrors = []
-            , Item.atackMessages = []
-          }
-        , Character.fightTryCount = read "min(lv/5+1,10)"
-        , Character.fightHitBonus = read "lv/5"
-        , Character.baseAC        = read "10"
-        , Character.lvupExps      = [
-            900,651,1123,1936,3338,5755,9922,17107,29495,50854,87679,151171,260639
-          ]
-        , Character.hpFormula     = read "(lv)d6 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
-        , Character.mpFormula     = ([], [])
-        , Character.learningSpells= []
+            strength = 12
+          , iq       = 10
+          , piety    = 10
+          , vitality = 10
+          , agility  = 10
+          , luck     = 10
         }
     let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
         human = Character.Kind {
@@ -229,132 +104,134 @@ main = do
 
 
     let testChara1 = Character.Character {
-          Character.name     = "FIG1"
-        , Character.kind     = human
-        , Character.age      = 18
-        , Character.days     = 0
+              Character.name     = "FIG1"
+            , Character.kind     = human
+            , Character.age      = 18
+            , Character.days     = 0
 
-        , Character.lv       = 1
-        , Character.exp      = 40000000
-        , Character.gold     = 1000
+            , Character.lv       = 1
+            , Character.exp      = 40000000
+            , Character.gold     = 1000
 
-        , Character.job      = fighter
-        , Character.alignment= Character.G
+            , Character.job      = SampleJobs.fighter
+            , Character.alignment= Character.G
 
-        , Character.hp       = 12
-        , Character.maxhp    = 20
-        , Character.param    = param
-        , Character.marks    = 0
-        , Character.rips     = 0
-        , Character.statusErrors = []
-        , Character.paramDelta = []
+            , Character.hp       = 12
+            , Character.maxhp    = 20
+            , Character.param    = param
+            , Character.marks    = 0
+            , Character.rips     = 0
+            , Character.statusErrors = []
+            , Character.paramDelta = []
 
-        , Character.items    = [ItemInf (ItemID 1) True
-                               ,ItemInf (ItemID 1) False
-                               ,ItemInf (ItemID 4) True
-                               ,ItemInf (ItemID 5) True
-                               ,ItemInf (ItemID 11) True
-                               ,ItemInf (ItemID 12) False
-                               ,ItemInf (ItemID 13) False
-                               ,ItemInf (ItemID 103) True
-                               ]
-        , Character.equips   = []
+            , Character.items    = [ItemInf (ItemID 1) True
+                                   ,ItemInf (ItemID 1) False
+                                   ,ItemInf (ItemID 4) True
+                                   ,ItemInf (ItemID 5) True
+                                   ,ItemInf (ItemID 11) True
+                                   ,ItemInf (ItemID 12) False
+                                   ,ItemInf (ItemID 13) False
+                                   ,ItemInf (ItemID 103) True
+                                   ]
+            , Character.equips   = []
 
-        , Character.spells   = []
-        , Character.mp       = (replicate 7 0, replicate 7 0)
-        , Character.maxmp    = (replicate 7 0, replicate 7 0)
+            , Character.spells   = []
+            , Character.mp       = (replicate 7 0, replicate 7 0)
+            , Character.maxmp    = (replicate 7 0, replicate 7 0)
         }
         testChara2 = testChara1 {
-          Character.name     = "FIG2"
-        , Character.hp       = 126
-        , Character.maxhp    = 148
-        , Character.lv       = 15
-        , Character.statusErrors = [] -- [Poison 5]
-        , Character.paramDelta = []
+              Character.name     = "FIG2"
+            , Character.hp       = 126
+            , Character.maxhp    = 148
+            , Character.lv       = 15
+            , Character.statusErrors = [] -- [Poison 5]
+            , Character.paramDelta = []
         }
         testChara3 = testChara1 {
-          Character.name     = "PRI1"
-        , Character.kind     = elf
-        , Character.hp       = 34
-        , Character.maxhp    = 48
-        , Character.lv       = 1
-        , Character.statusErrors = []
-        , Character.paramDelta = []
+              Character.name     = "PRI1"
+            , Character.kind     = elf
+            , Character.hp       = 34
+            , Character.maxhp    = 48
+            , Character.lv       = 1
+            , Character.statusErrors = []
+            , Character.paramDelta = []
 
-        , Character.job      = priest
-        , Character.alignment= Character.N
-        , Character.spells   = [SpellID 11, SpellID 13, SpellID 14, 
-                                SpellID 112, SpellID 114 
-                               ]
-        , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
-        , Character.mp       = (replicate 7 5, replicate 7 5)
-        , Character.maxmp    = (replicate 7 4, replicate 7 4)
+            , Character.job      = SampleJobs.priest
+            , Character.alignment= Character.N
+            , Character.spells   = [SpellID 11, SpellID 13, SpellID 14, 
+                                    SpellID 112, SpellID 114 
+                                   ]
+            , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
+            , Character.mp       = (replicate 7 5, replicate 7 5)
+            , Character.maxmp    = (replicate 7 4, replicate 7 4)
         }
         testChara4 = testChara1 {
-          Character.name     = "THI1"
-        , Character.hp       = 104
-        , Character.maxhp    = 108
-        , Character.lv       = 5
-        , Character.statusErrors = []
-        , Character.paramDelta = []
+              Character.name     = "THI1"
+            , Character.hp       = 104
+            , Character.maxhp    = 108
+            , Character.lv       = 5
+            , Character.statusErrors = []
+            , Character.paramDelta = []
 
-        , Character.job      = thief
-        , Character.alignment= Character.N
-        , Character.spells   = []
-        , Character.items    = [ItemInf (ItemID 2) True
-                               ,ItemInf (ItemID 2) False
-                               ,ItemInf (ItemID 103) True
-                               ,ItemInf (ItemID 104) True
-                               ]
+            , Character.job      = SampleJobs.thief
+            , Character.alignment= Character.N
+            , Character.spells   = []
+            , Character.items    = [ItemInf (ItemID 2) True
+                                   ,ItemInf (ItemID 2) False
+                                   ,ItemInf (ItemID 103) True
+                                   ,ItemInf (ItemID 104) True
+                                   ]
         }
     --gen <- getStdGen
     let gen = mkStdGen 0 
-    let w = World {
-        randomGen       = gen
-      , guideOn         = True
-      , statusOn        = True
-      , worldOption     = WorldOption {
-          effectDumapic = Spell.ViewMap
-        , minimapType   = Normal
-        }
 
-      , party           = []
-      , place           = InCastle
-      , roomBattled     = []
-      , partyLight      = 0
-      , partyLight'     = 0
-      , partyParamDelta = []
-
-      , visitHitory     = Map.empty
-
-      , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4]
-      , inMazeMember    = []
-      , shopItems       = Map.fromList [ (ItemID 1, 10), (ItemID 2, 2), (ItemID 3, 2)
-                                       , (ItemID 11, 3), (ItemID 12, 3), (ItemID 13, 3)
-                                       , (ItemID 14, 3), (ItemID 15, 3), (ItemID 16, 3)
-                                       , (ItemID 17, 3)
-                                       ]
-      , allCharacters   = Map.fromList [
-                              (CharacterID 1, testChara1)
-                            , (CharacterID 2, testChara2)
-                            , (CharacterID 3, testChara3)
-                            , (CharacterID 4, testChara4)
-                            ]
-      , sceneTrans      = id
-      , eventFlags      = repeat 0
-
-      , debugMode       = True -- MEMO:forDebug
-      , debugMessage    = []
-      }
     let option = ScenarioOption {
           enableEffectDumapic = [Spell.OnlyCoord, Spell.ViewMap]
         , enableMinimapType   = [Disable, Normal, AlwaysN]
         }
-        scenario = Scenario {
+
+    let w = World {
+            randomGen       = gen
+          , guideOn         = True
+          , statusOn        = True
+          , worldOption     = WorldOption {
+              effectDumapic = Spell.ViewMap
+            , minimapType   = Normal
+            }
+
+          , party           = []
+          , place           = InCastle
+          , roomBattled     = []
+          , partyLight      = 0
+          , partyLight'     = 0
+          , partyParamDelta = []
+
+          , visitHitory     = Map.empty
+
+          , inTarvernMember = [CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4]
+          , inMazeMember    = []
+          , shopItems       = Map.fromList [ (ItemID 1, 10), (ItemID 2, 2), (ItemID 3, 2)
+                                           , (ItemID 11, 3), (ItemID 12, 3), (ItemID 13, 3)
+                                           , (ItemID 14, 3), (ItemID 15, 3), (ItemID 16, 3)
+                                           , (ItemID 17, 3)
+                                           ]
+          , allCharacters   = Map.fromList [
+                                  (CharacterID 1, testChara1)
+                                , (CharacterID 2, testChara2)
+                                , (CharacterID 3, testChara3)
+                                , (CharacterID 4, testChara4)
+                                ]
+          , sceneTrans      = id
+          , eventFlags      = repeat 0
+
+          , debugMode       = True -- MEMO:forDebug
+          , debugMessage    = []
+      }
+    let scenario = Scenario {
               scenarioOption = option
             , scenarioHome   = inCastle
             , kinds          = [human, elf]
-            , jobs           = [fighter, priest, thief]
+            , jobs           = [SampleJobs.fighter, SampleJobs.priest, SampleJobs.thief]
             --, mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
             , mazes          = [("B1F", (4, 5), testMaze), ("B2F", (26, 25), testMaze2)]
             , encountMap     = Map.fromList [
