@@ -28,6 +28,7 @@ import qualified SampleScenario.Items as SampleItems
 import qualified SampleScenario.Enemies as SampleEnemies
 import qualified SampleScenario.Events as SampleEvents
 import qualified SampleScenario.Jobs as SampleJobs
+import qualified SampleScenario.Racies as SampleRacies
 
 
 -- note
@@ -60,52 +61,10 @@ main = do
           , agility  = 10
           , luck     = 10
         }
-    let bonus = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
-        human = Character.Race {
-            Character.raceName = "Human"
-          , Character.initialParam = Parameter {
-              strength = 8
-            , iq       = 8
-            , piety    = 8
-            , vitality = 8
-            , agility  = 8
-            , luck     = 8
-          }
-          , Character.maxParam = Parameter {
-              strength = 18
-            , iq       = 18
-            , piety    = 18
-            , vitality = 18
-            , agility  = 18
-            , luck     = 18
-          }
-          , Character.initialBonus = bonus
-        }
-        elf = Character.Race {
-            Character.raceName = "Elf"
-          , Character.initialParam = Parameter {
-              strength =  7
-            , iq       = 10
-            , piety    = 10
-            , vitality =  6
-            , agility  =  9
-            , luck     =  6
-          }
-          , Character.maxParam = Parameter {
-              strength = 17
-            , iq       = 20
-            , piety    = 20
-            , vitality = 16
-            , agility  = 19
-            , luck     = 16
-          }
-          , Character.initialBonus = bonus
-        }
-
 
     let testChara1 = Character.Character {
               Character.name     = "FIG1"
-            , Character.race     = human
+            , Character.race     = SampleRacies.human
             , Character.age      = 18
             , Character.days     = 0
 
@@ -149,7 +108,7 @@ main = do
         }
         testChara3 = testChara1 {
               Character.name     = "PRI1"
-            , Character.race     = elf
+            , Character.race     = SampleRacies.elf
             , Character.hp       = 34
             , Character.maxhp    = 48
             , Character.lv       = 1
@@ -230,8 +189,8 @@ main = do
     let scenario = Scenario {
               scenarioOption = option
             , scenarioHome   = inCastle
-            , racies         = [human, elf]
-            , jobs           = [SampleJobs.fighter, SampleJobs.priest, SampleJobs.thief]
+            , racies         = SampleRacies.racies
+            , jobs           = SampleJobs.jobs
             --, mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
             , mazes          = [("B1F", (4, 5), testMaze), ("B2F", (26, 25), testMaze2)]
             , encountMap     = Map.fromList [
