@@ -283,7 +283,7 @@ act (ByParties id a) next = GameAuto $ do
         Parry       -> run next
         Run         -> run next
         CantMove    -> run next
-        UseItem i l -> run $ events [Message "sorry, using item is not implemented."] next -- TODO!
+        UseItem i l -> run $ useItemInBattle i (Left id) l next
         _           -> undefined
 act (ByEnemies l e a) next = GameAuto $ do
     e_ <- currentEnemyByNo $ Enemy.noID e
@@ -310,7 +310,7 @@ act (ByEnemies l e a) next = GameAuto $ do
                               run $ spell' s (Right e') (Right el) next
                            else
                               run $ spell' s (Right e') (Right L1) next
-                         Nothing -> run $ spellUnknown "?" (Right e') (Left cp) next
+                         Nothing -> run $ asSpell castUnknown "?" (Right e') (Left cp) next
 
           Enemy.Breath f attrs   -> do
               ps <- party <$> world

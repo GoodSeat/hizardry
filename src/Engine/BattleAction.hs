@@ -1,17 +1,19 @@
 module Engine.BattleAction
 where
 
+import Prelude hiding (lookup)
 import qualified Data.Map as Map
-import Data.List
+import Data.List hiding (lookup)
 import Data.Maybe (fromJust)
 import Data.Function ((&))
+import Data.Map hiding (filter, null, foldl, foldl', take, drop)
 import Control.Monad
 import Control.Monad.Reader (asks)
 
 import Engine.GameAuto
 import Engine.Utils
-import Engine.CharacterAction (CastAction, castCureSpell, castParamChangeSpell, castDamageSpell)
-import Engine.InEvent (setLightValue)
+import Engine.CharacterAction (CastAction, castCureSpell, castParamChangeSpell, castDamageSpell, castAddLight, breakItem)
+import Engine.InEvent (setLightValue, doEvent)
 import Data.World
 import Data.Formula
 import Data.Primitive
@@ -188,6 +190,32 @@ statusErrorMessage Lost       = " is losted !"
 -- ================================================================================
 
 
+useItemInBattle :: Chara.ItemPos -> SpellEffect
+useItemInBattle i (Left cid) dst next = GameAuto $ do
+    c   <- characterByID cid
+    def <- itemByID $ Chara.itemAt c i
+    case Item.usingEffect def of
+      Nothing                     -> run $ events [Message "no happens."] next
+      Just (Item.EqSpell ids, bp) -> do
+         sdef' <- spellByID ids
+         case sdef' of
+           Just sdef -> run $ use (Item.name def) sdef (Left cid) dst (with [breakItem bp cid i] next)
+           Nothing   -> error "invalid spellId in useItemInBattle"
+      Just (Item.Happens eid, bp) -> do
+         let next' = with [breakItem bp cid i] next
+         edef' <- asks (lookup eid . mazeEvents)
+         case edef' of Nothing   -> run next'
+                       Just edef -> run $ doEvent edef (const next') (const next')
+
+useItemInBattle i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
+
+use :: String -> Spell.Define -> SpellEffect
+use name def = if Spell.InBattle `elem` Spell.enableIn def then cast asItem name def 
+                                                           else asItem castUnknown name 
+
+-- ================================================================================
+
+
 type SpellEffect  = Either CharacterID Enemy.Instance
                  -> SpellTarget -- ^ target line or character no.
                  -> GameMachine
@@ -197,7 +225,7 @@ spell :: Spell.Name -> SpellEffect
 spell s src dst next = GameAuto $ do
     spellDef <- spellByName s
     case spellDef of
-      Nothing  -> run $ spellUnknown s src dst next
+      Nothing  -> run $ asSpell castUnknown s src dst next
       Just def ->
         if Spell.InBattle `elem` Spell.enableIn def then case src of
           Left idc -> do
@@ -206,115 +234,126 @@ spell s src dst next = GameAuto $ do
             can  <- canSpell'  c def
             let isSilence = c `hasStatusError` Silence
                 isFear    = c `hasStatusError` Fear
-            run $ if      not know  then spellUnknown s src dst next
-                  else if not can   then spellNoMP    s src dst next
-                  else if isSilence then spellButSilent s src dst next
-                  else if isFear    then spellButFear   s src dst next
+            run $ if      not know  then asSpell castUnknown s src dst next
+                  else if not can   then asSpell castNoMP    s src dst next
+                  else if isSilence then asSpell castButSilent s src dst next
+                  else if isFear    then asSpell castButFear   s src dst next
                   else                   with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
           Right e -> do
             let isSilence = e `hasStatusError` Silence
                 isFear    = e `hasStatusError` Fear
-            run $ if      isSilence then spellButSilent s src dst next
-                  else if isFear    then spellButFear   s src dst next
+            run $ if      isSilence then asSpell castButSilent s src dst next
+                  else if isFear    then asSpell castButFear   s src dst next
                   else                   spell' def src dst next
         else
-          run $ spellUnknown s src dst next
+          run $ asSpell castUnknown s src dst next
 
 spell' :: Spell.Define -> SpellEffect
-spell' def = case Spell.effect def of
+spell' def = cast asSpell (Spell.name def) def
+
+cast :: CastAs -> String -> Spell.Define -> SpellEffect
+cast as name def = case Spell.effect def of
     Spell.Damage f  -> case Spell.target def of
-      Spell.OpponentSingle -> castSpellSingle (Spell.name def) (castDamageSpell f $ Spell.attrLabels def)
-      Spell.OpponentGroup  -> castSpellGroup  (Spell.name def) (castDamageSpell f $ Spell.attrLabels def)
-      Spell.OpponentAll    -> castSpellAll    (Spell.name def) (castDamageSpell f $ Spell.attrLabels def)
+      Spell.OpponentSingle -> castToSingle as name (castDamageSpell f $ Spell.attrLabels def)
+      Spell.OpponentGroup  -> castToGroup  as name (castDamageSpell f $ Spell.attrLabels def)
+      Spell.OpponentAll    -> castToAll    as name (castDamageSpell f $ Spell.attrLabels def)
       _                    -> undefined
     Spell.Cure f ss -> case Spell.target def of
-      Spell.AllySingle     -> castSpellSingle (Spell.name def) (castCureSpell f ss)
-      Spell.AllyAll        -> castSpellAll    (Spell.name def) (castCureSpell f ss)
-      Spell.Party          -> castSpellAll    (Spell.name def) (castCureSpell f ss)
+      Spell.AllySingle     -> castToSingle as name (castCureSpell f ss)
+      Spell.AllyAll        -> castToAll    as name (castCureSpell f ss)
+      Spell.Party          -> castToAll    as name (castCureSpell f ss)
       _                    -> undefined
     Spell.ChangeParam ad term etxt -> case Spell.target def of
-      Spell.AllySingle     -> castSpellSingle (Spell.name def) (castParamChangeSpell ad term etxt)
-      Spell.AllyAll        -> castSpellAll    (Spell.name def) (castParamChangeSpell ad term etxt)
-      Spell.Party          -> castSpellNull   (Spell.name def) (castParamChangeSpell ad term etxt)
+      Spell.AllySingle     -> castToSingle as name (castParamChangeSpell ad term etxt)
+      Spell.AllyAll        -> castToAll    as name (castParamChangeSpell ad term etxt)
+      Spell.Party          -> castToNull   as name (castParamChangeSpell ad term etxt)
       _                    -> undefined
-    Spell.AddLight n s -> \(Left id) _ next -> GameAuto $ do
-      c <- characterByID id
-      setLightValue s n
-      run $ events [Message $ nameOf c ++ " spells " ++ Spell.name def ++ "."] next
+    Spell.AddLight n s -> castToNull as name (castAddLight n s)
 
 -- --------------------------------------------------------------------------------
 
-castSpellNull :: Spell.Name -> CastAction -> SpellEffect
-castSpellNull n ca src (Left l)  next = castSpellInBattle n ca src (Left []) next
-castSpellNull n ca src (Right _) next = GameAuto $ do
+castToNull :: CastAs -> String -> CastAction -> SpellEffect
+castToNull as n ca src (Left l)  next = as castInBattle n ca src (Left []) next
+castToNull as n ca src (Right _) next = GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
-    run $ castSpellInBattle n ca src (Right $ concat es) next
+    run $ as castInBattle n ca src (Right $ concat es) next
 
-castSpellSingle :: Spell.Name -> CastAction -> SpellEffect
-castSpellSingle n ca (Left id) (Left l) next = castSpellInBattle n ca (Left id) (Left [l]) next
-castSpellSingle n ca (Left id) (Right el) next = GameAuto $ do
+castToSingle :: CastAs -> String -> CastAction -> SpellEffect
+castToSingle as n ca (Left id) (Left l) next = as castInBattle n ca (Left id) (Left [l]) next
+castToSingle as n ca (Left id) (Right el) next = GameAuto $ do
     e1 <- aliveEnemyLineRandom el
     case e1 of Nothing -> run next
-               Just e  -> run $ castSpellInBattle n ca (Left id) (Right [e]) next
-castSpellSingle n ca (Right e) (Left l) next = castSpellInBattle n ca (Right e) (Left [l]) next
-castSpellSingle n ca (Right se) (Right el) next = GameAuto $ do
+               Just e  -> run $ as castInBattle n ca (Left id) (Right [e]) next
+castToSingle as n ca (Right e) (Left l) next = as castInBattle n ca (Right e) (Left [l]) next
+castToSingle as n ca (Right se) (Right el) next = GameAuto $ do
     e1 <- aliveEnemyLineRandom el
     case e1 of Nothing -> run next
-               Just e  -> run $ castSpellInBattle n ca (Right se) (Right [e]) next
+               Just e  -> run $ as castInBattle n ca (Right se) (Right [e]) next
 
-castSpellGroup :: Spell.Name -> CastAction -> SpellEffect
-castSpellGroup n ca src (Right el) next = GameAuto $ do
+castToGroup :: CastAs -> String -> CastAction -> SpellEffect
+castToGroup as n ca src (Right el) next = GameAuto $ do
     es <- aliveEnemiesLine el
-    run $ castSpellInBattle n ca src (Right es) next
-castSpellGroup n ca src (Left _) next = GameAuto $ do
+    run $ as castInBattle n ca src (Right es) next
+castToGroup as n ca src (Left _) next = GameAuto $ do
     ps <- party <$> world
-    run $ castSpellInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
+    run $ as castInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
 
-castSpellAll :: Spell.Name -> CastAction -> SpellEffect
-castSpellAll n ca src (Left _) next = GameAuto $ do
+castToAll :: CastAs -> String -> CastAction -> SpellEffect
+castToAll as n ca src (Left _) next = GameAuto $ do
     ps <- party <$> world
-    run $ castSpellInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
-castSpellAll n ca src (Right _) next = GameAuto $ do
+    run $ as castInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
+castToAll as n ca src (Right _) next = GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
-    run $ castSpellInBattle n ca src (Right $ concat es) next
+    run $ as castInBattle n ca src (Right $ concat es) next
 
+type Verb = String
 
-castSpellInBattle :: Spell.Name
-                  -> CastAction
-                  -> Either CharacterID Enemy.Instance  -- src
-                  -> Either [PartyPos] [Enemy.Instance] -- dst
-                  -> GameMachine -> GameMachine
-castSpellInBattle n ca (Left cid) dst next = GameAuto $ do
+type Cast = String -- object (spell name or item name).
+         -> CastAction
+         -> Either CharacterID Enemy.Instance  -- src
+         -> Either [PartyPos] [Enemy.Instance] -- dst
+         -> GameMachine -> GameMachine
+
+castInBattle :: Verb -> Cast
+castInBattle v n ca (Left cid) dst next = GameAuto $ do
     src <- characterByID cid
     ts  <- ca (Left src) dst
-    let toMsg t = Message $ (nameOf src ++ " spells " ++ n ++ ".\n") ++ t
+    let toMsg t = Message $ (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
-castSpellInBattle n ca (Right e) dst next = GameAuto $ do
+castInBattle v n ca (Right e) dst next = GameAuto $ do
     ts <- ca (Right e) dst
-    let toMsg t = Message $ (nameOf e ++ " spells " ++ n ++ ".\n") ++ t
+    let toMsg t = Message $ (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
+
+
+type CastAs = (Verb -> Cast) -> Cast
+
+asSpell cast = cast "spells"
+asItem  cast = cast "uses"
+
 
 -- --------------------------------------------------------------------------------
 
-spellUnknown :: Spell.Name -> SpellEffect
-spellUnknown = spellNoEffect "no happens."
+castUnknown :: Verb -> String -> SpellEffect
+castUnknown v = castNoEffect v "no happens."
 
-spellNoMP :: Spell.Name -> SpellEffect
-spellNoMP = spellNoEffect "no more MP."
+castNoMP :: Verb -> String -> SpellEffect
+castNoMP v = castNoEffect v "no more MP."
 
-spellButSilent :: Spell.Name -> SpellEffect
-spellButSilent = spellNoEffect "but it wasn't voiced."
+castButSilent :: Verb -> String -> SpellEffect
+castButSilent v = castNoEffect v "but it wasn't voiced."
 
-spellButFear :: Spell.Name -> SpellEffect
-spellButFear = spellNoEffect "but couldn't voice well by fear."
+castButFear :: Verb -> String -> SpellEffect
+castButFear v = castNoEffect v "but couldn't voice well by fear."
 
-spellNoEffect :: String -> Spell.Name -> SpellEffect
-spellNoEffect msg n src _ next = GameAuto $ do
+castNoEffect :: Verb -> String -> String -> SpellEffect
+castNoEffect v msg n src _ next = GameAuto $ do
     name <- case src of Left id -> Chara.name <$> characterByID id
                         Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
     let ts      = ["", msg]
-        toMsg t = Message $ (name ++ " spells " ++ n ++ ".\n") ++ t
+        toMsg t = Message $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
+
 
 -- ==========================================================================
 aliveEnemiesLine :: EnemyLine -> GameState [Enemy.Instance]

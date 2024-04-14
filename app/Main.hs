@@ -246,6 +246,8 @@ main = do
 
         , Character.items    = [ItemInf (ItemID 1) True
                                ,ItemInf (ItemID 1) False
+                               ,ItemInf (ItemID 4) True
+                               ,ItemInf (ItemID 5) True
                                ,ItemInf (ItemID 11) True
                                ,ItemInf (ItemID 12) False
                                ,ItemInf (ItemID 13) False
@@ -401,7 +403,7 @@ main = do
                               <> Ev.Reference (GameEventID 010103))
                      , ("haskell", Ev.MessageT (-15) "Haskellはこの世界を作っている言語だ。\nつまり神の言語だ!!" (Just $ PictureID 1002)
                                 <> Ev.Reference (GameEventID 010103))
-                     , ("god\n神", Ev.MessageT (-15) "まぁよく分からず言っている。" (Just $ PictureID 1002)
+                     , ("god\n神", Ev.MessageT (-15) "まぁ私もよく分からず言っている。" (Just $ PictureID 1002)
                                 <> Ev.Reference (GameEventID 010103))
                      , ("fight", Ev.MessageT (-15) "私は平和主義者だ。\n戦いは好まない。" (Just $ PictureID 1002)
                               <> Ev.Reference (GameEventID 010103))
@@ -639,7 +641,7 @@ main = do
                     , Spell.lv         = 1
                     , Spell.attrLabels = [EffectLabel "mage"]
                     , Spell.target     = Spell.AllyOwn
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-2" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-2" }) OnlyInBattle "'s AC decreased by 2"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "唱えた者のACを2低下させる"
                 })
@@ -673,7 +675,7 @@ main = do
                     , Spell.lv         = 2
                     , Spell.attrLabels = [EffectLabel "mage", EffectLabel "ac-attack"]
                     , Spell.target     = Spell.OpponentGroup
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "2" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "2" }) OnlyInBattle "'s AC increased by 2"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "敵1グループのACを2上昇させる"
                 })
@@ -684,7 +686,7 @@ main = do
                     , Spell.lv         = 2
                     , Spell.attrLabels = [EffectLabel "mage"]
                     , Spell.target     = Spell.AllyOwn
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-4" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-4" }) OnlyInBattle "'s AC decreased by 4"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "唱えた者のACを4低下させる"
                 })
@@ -717,7 +719,7 @@ main = do
                     , Spell.lv         = 4
                     , Spell.attrLabels = [EffectLabel "mage", EffectLabel "ac-attack"]
                     , Spell.target     = Spell.OpponentGroup
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "4" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "4" }) OnlyInBattle "'s AC increased by 4"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "敵1グループのACを4上昇させる"
                 })
@@ -750,7 +752,7 @@ main = do
                     , Spell.lv         = 5
                     , Spell.attrLabels = [EffectLabel "mage", EffectLabel "ac-attack"]
                     , Spell.target     = Spell.OpponentAll
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "4" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "4" }) OnlyInBattle "'s AC increased by 4"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "敵全てのACを4上昇させる"
                 })
@@ -805,7 +807,7 @@ main = do
                     , Spell.lv         = 6
                     , Spell.attrLabels = [EffectLabel "mage"]
                     , Spell.target     = Spell.AllyAll
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-4" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-4" }) OnlyInBattle "'s AC decreased by 4"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "パーティ全員のACを4低下させる"
                 })
@@ -861,7 +863,7 @@ main = do
                     , Spell.lv         = 1
                     , Spell.attrLabels = [EffectLabel "priest"]
                     , Spell.target     = Spell.AllyAll
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-1" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-1" }) OnlyInBattle "'s AC decreased by 1"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "パーティ全員のACを1低下させる"
                 })
@@ -905,7 +907,7 @@ main = do
                     , Spell.lv         = 1
                     , Spell.attrLabels = [EffectLabel "priest"]
                     , Spell.target     = Spell.AllyOwn
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-4" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-4" }) OnlyInBattle "'s AC decreased by 4"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "唱えた者のACを4低下させる"
                 })
@@ -916,7 +918,7 @@ main = do
                     , Spell.lv         = 2
                     , Spell.attrLabels = [EffectLabel "priest"]
                     , Spell.target     = Spell.AllyAll
-                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-2" }) OnlyInBattle ""
+                    , Spell.effect     = Spell.ChangeParam (emptyAdParam { adAC = read "-2" }) OnlyInBattle "'s AC decreased by 2"
                     , Spell.enableIn   = [Spell.InBattle]
                     , Spell.infomation = "パーティ全員のACを2低下させる"
                 })
@@ -1207,7 +1209,7 @@ main = do
                       Item.name             = "DIOS POTION"
                     , Item.nameUndetermined = "POTION?"
                     , Item.itemType         = Item.Misc
-                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
+                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 112, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
                     , Item.equipType        = Nothing
@@ -1220,7 +1222,7 @@ main = do
                       Item.name             = "CURSED STONE"
                     , Item.nameUndetermined = "STONE?"
                     , Item.itemType         = Item.Misc
-                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
+                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 14, (0, Item.Lost))
                     , Item.spEffect         = Nothing
                     , Item.attributes       = [Item.CantDrop, Item.Heal (-2) False]
                     , Item.equipType        = Nothing
@@ -1238,6 +1240,32 @@ main = do
                     , Item.attributes       = []
                     , Item.equipType        = Nothing
                     , Item.valueInShop      = 500
+                    , Item.enableToEquip    = Item.All
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 4, Item.Define {
+                      Item.name             = "HALITO POTION"
+                    , Item.nameUndetermined = "POTION?"
+                    , Item.itemType         = Item.Misc
+                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 11, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Nothing
+                    , Item.valueInShop      = 100
+                    , Item.enableToEquip    = Item.All
+                    , Item.enableToUse      = Item.All
+                })
+                ,
+                (ItemID 5, Item.Define {
+                      Item.name             = "KALKI POTION"
+                    , Item.nameUndetermined = "POTION?"
+                    , Item.itemType         = Item.Misc
+                    , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
+                    , Item.spEffect         = Nothing
+                    , Item.attributes       = []
+                    , Item.equipType        = Nothing
+                    , Item.valueInShop      = 100
                     , Item.enableToEquip    = Item.All
                     , Item.enableToUse      = Item.All
                 })
@@ -1300,7 +1328,7 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield
+                    , Item.equipType        = Just $ Item.Helmet
                                                      Item.EquipBaseAttr {
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
@@ -1321,7 +1349,7 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield
+                    , Item.equipType        = Just $ Item.Helmet
                                                      Item.EquipBaseAttr {
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
@@ -1342,7 +1370,7 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield
+                    , Item.equipType        = Just $ Item.Helmet
                                                      Item.EquipBaseAttr {
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
@@ -1363,7 +1391,7 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield
+                    , Item.equipType        = Just $ Item.Helmet
                                                      Item.EquipBaseAttr {
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"
@@ -1384,7 +1412,7 @@ main = do
                     , Item.usingEffect      = Nothing
                     , Item.spEffect         = Nothing
                     , Item.attributes       = []
-                    , Item.equipType        = Just $ Item.Shield
+                    , Item.equipType        = Just $ Item.Helmet
                                                      Item.EquipBaseAttr {
                                                          Item.ac = read "-2"
                                                        , Item.st = read "0"

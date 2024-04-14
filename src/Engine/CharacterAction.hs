@@ -74,12 +74,12 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
          sdef' <- spellByID ids
          case sdef' of
            Just sdef -> if Spell.InCamp `elem` Spell.enableIn sdef then
-                          run $ spellInCampNoCost sdef src dst (with [breakItem bp src i] next)
+                          run $ spellInCampNoCost sdef src dst (with [breakItem bp cid i] next)
                         else
                           run $ events [ShowStatus cid "can't use it here." SingleKey] next
            Nothing   -> error "invalid spellId in useItemInCamp"
       Just (Item.Happens eid, bp) -> do
-         let next' = with [breakItem bp src i] next
+         let next' = with [breakItem bp cid i] next
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
                        Just edef -> run $ doEvent edef (const next') (const next')
@@ -178,20 +178,21 @@ selectTradeItem msgForSelect src cancel = GameAuto $ do
 
 
 
-breakItem :: (Int, Item.WhenBroken) -> PartyPos -> Chara.ItemPos -> GameState ()
-breakItem (prob, to) src i = do
+breakItem :: (Int, Item.WhenBroken) -> CharacterID -> Chara.ItemPos -> GameState ()
+breakItem (prob, to) cid i = do
     broken <- happens prob
     when broken $ do
-      idc <- characterIDInPartyAt src
-      p   <- characterInPartyAt   src
+      p <- characterByID cid
       let is = Chara.items p
           ix = Chara.itemPosToNum i
           is' = case to of Item.Lost        -> take ix is ++ drop (ix + 1) is
                            Item.ChangeTo i' -> take ix is ++ [i'] ++ drop (ix + 1) is
-      updateCharacter idc (p { Chara.items = is' })
+      updateCharacter cid (p { Chara.items = is' })
 
 dropItem :: PartyPos -> Chara.ItemPos -> GameState ()
-dropItem = breakItem (100, Item.Lost)
+dropItem src pos = do
+  cid <- characterIDInPartyAt src
+  breakItem (100, Item.Lost) cid pos
 
 gainItem :: CharacterID -> ItemInf -> GameState ()
 gainItem cid inf = do
@@ -345,7 +346,9 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.ChangeParam ad term etxt -> do
         efs <- castParamChangeSpell ad term etxt (Left c) (Left tgt)
         run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
-      Spell.AddLight n s -> setLightValue s n >> run (events [ShowStatus cid "done" SingleKey] next)
+      Spell.AddLight n s -> do
+        efs <- castAddLight n s (Left c) (Left tgt)
+        run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
       Spell.CheckLocation t -> do
         p              <- currentPosition
         (fn, (w,h), m) <- asks ((!! z p) . mazes)
@@ -464,5 +467,9 @@ castDamageSpell f attrs s@(Right e) (Left is) = do
                : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
     return $ concat ts
 castDamageSpell f attrs src dst = error $ "castDamageSpell:" ++ show f ++ ", src=" ++ show src ++ ", dst=" ++ show dst
+
+
+castAddLight :: Int -> Bool -> CastAction
+castAddLight n s _ _ = return [(setLightValue s n, "it is brightly lit.")]
 
 
