@@ -14,7 +14,6 @@ import Engine.GameAuto
 import Engine.InCastle
 import Data.Primitive
 import Data.World
-import Data.Maze
 import Data.Formula
 import qualified Data.Characters as Character
 import qualified Data.Enemies as Enemy
@@ -29,6 +28,7 @@ import qualified SampleScenario.Enemies as SampleEnemies
 import qualified SampleScenario.Events as SampleEvents
 import qualified SampleScenario.Jobs as SampleJobs
 import qualified SampleScenario.Racies as SampleRacies
+import qualified SampleScenario.Maze as SampleMaze
 
 
 -- note
@@ -192,7 +192,7 @@ main = do
             , racies         = SampleRacies.racies
             , jobs           = SampleJobs.jobs
             --, mazes          = [("B1F", (14, 15), testMaze), ("B2F", (36, 35), testMaze2)]
-            , mazes          = [("B1F", (4, 5), testMaze), ("B2F", (26, 25), testMaze2)]
+            , mazes          = [("B1F", (4, 5), SampleMaze.maze1F), ("B2F", (26, 25), SampleMaze.maze2F)]
             , encountMap     = Map.fromList [
                   ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
                 , ((0, 1, 0), (10, [EnemyID 1, EnemyID 2]))
