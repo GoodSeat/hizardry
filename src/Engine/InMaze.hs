@@ -12,16 +12,13 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
-import Engine.InEvent (doEvent, setLightValueWith, setLightValue, resetEffectInOnlyBattle)
+import Engine.InEvent (doEvent, setLightValueWith, setLightValue, resetEffectInOnlyBattle, returnToCastle)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
 import Data.Primitive
 import qualified Data.Characters as Chara
 import qualified Data.GameEvent as Ev
-
-exitGame' :: GameMachine
-exitGame' = GameAuto $ return (Exit, const exitGame')
 
 -- =======================================================================
 -- depends on Scenario.
@@ -114,7 +111,7 @@ moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
-          ,(Key "q", exitGame')
+          ,(Key "q", suspend p)
           ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
           ,(Key "m", with [nextMiniMap] (select None $ moves p))
@@ -152,6 +149,16 @@ nextMiniMap = do
     next a org (n:ns) | n == a = head ns
                       | n /= a = next a org ns
 
+-- =======================================================================
+
+suspend :: Position -> GameMachine
+suspend p = GameAuto $ do
+    modify $ \w -> w {
+      inMazeMember = inMazeMember w ++ ((,p) <$> party w)
+    , party = []
+    }
+    toCastle <- home
+    returnToCastle >> run toCastle
 
 -- =======================================================================
 
