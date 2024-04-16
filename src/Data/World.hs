@@ -60,7 +60,7 @@ data MiniMapType = Disable | Normal | AlwaysN deriving (Show, Eq, Read)
 data WorldOption = WorldOption {
       effectDumapic :: !Spell.CheckLocationType
     , minimapType   :: !MiniMapType
-    }
+    } deriving (Show)
 
 
 -- TODO!:explicit saving(only in Edge of Town, or Castle. Auto?).
@@ -75,8 +75,56 @@ data WorldOption = WorldOption {
 --        NOTE:
 --         * when saving "randomGen", save random int(with random by getStdGen), and replace randomGen by made StdGen using mkStdGen it.
 --         * when loading "randomGen", restore by "mkStdGen :: Int -> RandomGen")
-saveWorld :: World -> FilePath -> IO ()
-saveWorld = undefined
+saveWorld :: World -> FilePath -> IO World
+saveWorld w path = do
+    r <- randomIO
+    writeFile path (txt r)
+    return $ w { randomGen = mkStdGen r }
+  where
+    txt :: Int -> String
+    txt r = unlines [
+        "### randomGen ###"
+      , show r
+
+      , "### guideOn ###"
+      , show $ guideOn         w
+      , "### statusOn ###"
+      , show $ statusOn        w
+      , "### worldOption ###"
+      , show $ worldOption     w
+
+      , "### party ###"
+      , show $ party           w
+      , "### place ###"
+      , show $ place           w
+      , "### roomBattled ###"
+      , show $ roomBattled     w
+      , "### partyLight ###"
+      , show $ partyLight      w
+      , "### partyLight ###"
+      , show $ partyLight'     w
+      , "### partyParamDelta ###"
+      , show $ partyParamDelta w
+
+      , "### visitHitory ###"
+      , show $ visitHitory     w
+
+      , "### inTarvernMember ###"
+      , show $ inTarvernMember w
+      , "### inMazeMember ###"
+      , show $ inMazeMember    w
+      , "### shopItems ###"
+      , show $ shopItems       w
+
+      , "### allCharacters ###"
+      , show $ allCharacters   w
+
+      , "### eventFlags ###"
+      , show $ take 100000 (eventFlags w)
+
+      , "### debugMode ###"
+      , show $ debugMode       w
+      ]
 
 
 loadWorld :: FilePath -> IO (Either String World)

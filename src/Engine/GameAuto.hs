@@ -94,10 +94,10 @@ runGame :: (Event -> World -> IO a) -- ^ renderer of game.
         -> Scenario                  -- ^ game scenario.
         -> World                     -- ^ current environment.
         -> GameMachine               -- ^ target GameMachine.
-        -> IO String
+        -> IO World
 runGame render cmd s w g = do
     let (e, w', itype, next') = stepGame s w g
-    if e == Exit then return "thank you for playing."
+    if e == Exit then return w'
     else do
       render e w'
       i <- cmd itype
@@ -110,7 +110,7 @@ loadGame :: [Input]
          -> Scenario                  -- ^ game scenario.
          -> World                     -- ^ initial environment.
          -> GameMachine               -- ^ initial GameMachine.
-         -> IO String
+         -> IO World
 loadGame [] render cmd s w g = runGame render cmd s w g
 loadGame (i:is) render cmd s w g = do
     let (e, w', _, next') = stepGame s w g
