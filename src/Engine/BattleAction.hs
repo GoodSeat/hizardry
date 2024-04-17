@@ -189,17 +189,19 @@ statusErrorMessage Lost       = " is losted !"
 
 -- ================================================================================
 
+verbForItem  = "uses"
 
 useItemInBattle :: Chara.ItemPos -> SpellEffect
 useItemInBattle i (Left cid) dst next = GameAuto $ do
     c   <- characterByID cid
     def <- itemByID $ Chara.itemAt c i
+    let n = Item.name def
     case Item.usingEffect def of
-      Nothing                     -> run $ events [Message "no happens."] next
+      Nothing                     -> run $ asItem castUnknown n (Left cid) dst next
       Just (Item.EqSpell ids, bp) -> do
          sdef' <- spellByID ids
          case sdef' of
-           Just sdef -> run $ use (Item.name def) sdef (Left cid) dst (with [breakItem bp cid i] next)
+           Just sdef -> run $ use n sdef (Left cid) dst (with [breakItem bp cid i] next)
            Nothing   -> error "invalid spellId in useItemInBattle"
       Just (Item.Happens eid, bp) -> do
          let next' = with [breakItem bp cid i] next
@@ -210,10 +212,12 @@ useItemInBattle i (Left cid) dst next = GameAuto $ do
 useItemInBattle i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
 
 use :: String -> Spell.Define -> SpellEffect
-use name def = if Spell.InBattle `elem` Spell.enableIn def then cast asItem name def 
+use name def = if Spell.InBattle `elem` Spell.enableIn def then cast verbForItem name def 
                                                            else asItem castUnknown name 
 
 -- ================================================================================
+
+verbForSpell = "spells"
 
 
 type SpellEffect  = Either CharacterID Enemy.Instance
@@ -249,10 +253,10 @@ spell s src dst next = GameAuto $ do
           run $ asSpell castUnknown s src dst next
 
 spell' :: Spell.Define -> SpellEffect
-spell' def = cast asSpell (Spell.name def) def
+spell' def = cast verbForSpell (Spell.name def) def
 
-cast :: CastAs -> String -> Spell.Define -> SpellEffect
-cast as name def = case Spell.effect def of
+cast :: Verb -> String -> Spell.Define -> SpellEffect
+cast v name def = let as = \cast -> cast v in case Spell.effect def of
     Spell.Damage f  -> case Spell.target def of
       Spell.OpponentSingle -> castToSingle as name (castDamageSpell f $ Spell.attrLabels def)
       Spell.OpponentGroup  -> castToGroup  as name (castDamageSpell f $ Spell.attrLabels def)
@@ -263,12 +267,16 @@ cast as name def = case Spell.effect def of
       Spell.AllyAll        -> castToAll    as name (castCureSpell f ss)
       Spell.Party          -> castToAll    as name (castCureSpell f ss)
       _                    -> undefined
+--  Spell.Resurrection hp ts -> undefined
     Spell.ChangeParam ad term etxt -> case Spell.target def of
       Spell.AllySingle     -> castToSingle as name (castParamChangeSpell ad term etxt)
       Spell.AllyAll        -> castToAll    as name (castParamChangeSpell ad term etxt)
       Spell.Party          -> castToNull   as name (castParamChangeSpell ad term etxt)
       _                    -> undefined
+--  Spell.AddStatusError ts -> undefined
     Spell.AddLight n s -> castToNull as name (castAddLight n s)
+    Spell.CheckLocation _  -> as castUnknown name
+--  Spell.Event eid -> undefined
 
 -- --------------------------------------------------------------------------------
 
@@ -328,8 +336,8 @@ castInBattle v n ca (Right e) dst next = GameAuto $ do
 
 type CastAs = (Verb -> Cast) -> Cast
 
-asSpell cast = cast "spells"
-asItem  cast = cast "uses"
+asSpell cast = cast verbForSpell
+asItem  cast = cast verbForItem
 
 
 -- --------------------------------------------------------------------------------
