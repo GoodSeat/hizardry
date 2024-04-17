@@ -2,7 +2,7 @@
 module Engine.InMaze (openCamp) where
 
 import Control.Monad (when)
-import Control.Monad.State (modify, forM_, guard)
+import Control.Monad.State (modify, forM_, guard, gets)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
 import Data.List (find, nub)
@@ -12,16 +12,13 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
-import Engine.InEvent (doEvent, setLightValueWith, setLightValue, resetEffectInOnlyBattle)
+import Engine.InEvent (doEvent, setLightValueWith, setLightValue, resetEffectInOnlyBattle, returnToCastle)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
 import Data.Primitive
 import qualified Data.Characters as Chara
 import qualified Data.GameEvent as Ev
-
-exitGame' :: GameMachine
-exitGame' = GameAuto $ return (Exit, const exitGame')
 
 -- =======================================================================
 -- depends on Scenario.
@@ -114,7 +111,8 @@ moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
-          ,(Key "q", exitGame')
+          ,(Key "q", suspend p)
+          ,(Key "i", inspect p)
           ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
           ,(Key "m", with [nextMiniMap] (select None $ moves p))
@@ -152,6 +150,28 @@ nextMiniMap = do
     next a org (n:ns) | n == a = head ns
                       | n /= a = next a org ns
 
+-- =======================================================================
+
+suspend :: Position -> GameMachine
+suspend p = GameAuto $ do
+    modify $ \w -> w {
+      inMazeMember = inMazeMember w ++ ((,p) <$> party w)
+    , party = []
+    }
+    toCastle <- home
+    returnToCastle >> run toCastle
+
+inspect :: Position -> GameMachine
+inspect p = selectWhenEsc (Message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
+    [(Key "l", enterWithoutEncount None p, True)
+    ,(Key "s", searchCharacter p, True)
+    ]
+
+searchCharacter :: Position -> GameMachine
+searchCharacter p = GameAuto $ do
+    cs <- gets inMazeMember
+    undefined
+    
 
 -- =======================================================================
 

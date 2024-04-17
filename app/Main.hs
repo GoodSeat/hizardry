@@ -237,10 +237,11 @@ main = do
 
     clearScreen
     hideCursor
-    putStrLn =<< run (testRender renderMethod picOf scenario) cmd scenario w inCastle
+    w' <- run (testRender renderMethod picOf scenario) cmd scenario w inCastle
     showCursor
 
     appendFile saveDataPath $ show Abort ++ "\n"
+    void $ saveWorld w' "world.dat"
 
 
 saveDataPath = "save.txt"
