@@ -241,7 +241,7 @@ main = do
     showCursor
 
     appendFile saveDataPath $ show Abort ++ "\n"
-    saveWorld w' "world.dat"
+    void $ saveWorld w' "world.dat"
 
 
 saveDataPath = "save.txt"

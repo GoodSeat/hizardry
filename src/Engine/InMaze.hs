@@ -2,7 +2,7 @@
 module Engine.InMaze (openCamp) where
 
 import Control.Monad (when)
-import Control.Monad.State (modify, forM_, guard)
+import Control.Monad.State (modify, forM_, guard, gets)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
 import Data.List (find, nub)
@@ -112,6 +112,7 @@ moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
           ,(Key "q", suspend p)
+          ,(Key "i", inspect p)
           ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
           ,(Key "m", with [nextMiniMap] (select None $ moves p))
@@ -159,6 +160,18 @@ suspend p = GameAuto $ do
     }
     toCastle <- home
     returnToCastle >> run toCastle
+
+inspect :: Position -> GameMachine
+inspect p = selectWhenEsc (Message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
+    [(Key "l", enterWithoutEncount None p, True)
+    ,(Key "s", searchCharacter p, True)
+    ]
+
+searchCharacter :: Position -> GameMachine
+searchCharacter p = GameAuto $ do
+    cs <- gets inMazeMember
+    undefined
+    
 
 -- =======================================================================
 
