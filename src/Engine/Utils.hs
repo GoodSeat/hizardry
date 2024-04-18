@@ -555,6 +555,6 @@ currentPosition = do
     case plc of InMaze p              -> return p
                 InBattle p _          -> return p
                 FindTreasureChest p _ -> return p
-                Camping p             -> return p
+                Camping p _           -> return p
                 _                     -> err "failed on currentPosition."
 

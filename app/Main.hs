@@ -345,8 +345,8 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
                                     _                         -> mempty
     statusScene   = case cid' of Nothing  -> mempty
                                  Just cid -> statusView s w mMsg itemDefOf (cs Map.! cid)
-    msgBox' = case place w of Camping _ -> msgBoxCamp
-                              _         -> msgBox
+    msgBox' = case place w of Camping _ _ -> msgBoxCamp
+                              _           -> msgBox
     mMsg' | not (null mMsg) = mMsg
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
           | isOnTreasure    = "you found a treasure chest."
@@ -371,7 +371,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
                                    TempleOfCant        -> "Temple of Cant"
                                    InEdgeOfTown        -> "Edge of Town"
                                    TrainingGrounds     -> "Training Grounds"
-                                   Camping _           -> "Camp"
+                                   Camping _ t         -> if null t then "Camp" else t
                                    _ -> []
     msgTrans = if null locationText then id else translate (0, 1)
 

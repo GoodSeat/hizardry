@@ -236,7 +236,7 @@ scene :: Place
       -> Scenario
       -> Craphic
 scene (InMaze p)              onLight superLight = dunsion p onLight superLight True
-scene (Camping p)             onLight superLight = do
+scene (Camping p _)           onLight superLight = do
           msg <- const $ if onLight || superLight then partyStatus "    Light" else mempty
           d   <- dunsion p onLight superLight False
           return $ msg <> d
@@ -255,7 +255,7 @@ scene _                       _       _          = const mempty
 mapView :: String -> Place -> (Int, Int) -> Map.Map Coord Bool -> Scenario -> Craphic
 mapView msg place (dx, dy) mvt scenario = case place of
     InMaze   p   -> mapView' p
-    Camping  p   -> mapView' p
+    Camping  p _ -> mapView' p
     InBattle p _ -> mapView' p
     _            -> mempty
   where

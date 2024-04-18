@@ -162,10 +162,12 @@ suspend p = GameAuto $ do
     returnToCastle >> run toCastle
 
 inspect :: Position -> GameMachine
-inspect p = selectWhenEsc (Message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
-    [(Key "l", enterWithoutEncount None p, True)
-    ,(Key "s", searchCharacter p, True)
-    ]
+inspect p = GameAuto $ do
+    movePlace (Camping p "Inspect")
+    run $ selectWhenEsc (Message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
+          [(Key "l", enterWithoutEncount None p, True)
+          ,(Key "s", searchCharacter p, True)
+          ]
 
 searchCharacter :: Position -> GameMachine
 searchCharacter p = GameAuto $ do
@@ -196,7 +198,7 @@ updateRoomVisit = do
 
 openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
-    movePlace (Camping p)
+    movePlace (Camping p "")
     np <- length . party <$> world
     run $ selectWhenEsc (Message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)

@@ -52,7 +52,7 @@ data Place  = InCastle
             | InMaze            Position
             | InBattle          Position [[Enemy.Instance]]
             | FindTreasureChest Position Bool -- ^ chest is opend.
-            | Camping           Position
+            | Camping           Position String -- ^ title
     deriving (Show, Eq)
 
 data MiniMapType = Disable | Normal | AlwaysN deriving (Show, Eq, Read)
