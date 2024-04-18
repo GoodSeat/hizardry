@@ -61,7 +61,8 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
 createNewCharacter :: GameMachine
 createNewCharacter = GameAuto $
     return (Ask ">Input name of character. \n(Empty to cancel.)" Nothing,
-           \(Key s) -> if null s then inTrainingGrounds else GameAuto $ do
+           \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
+              if null s then inTrainingGrounds else GameAuto $ do
               isOK <- not <$> existSameName s
               run $ if isOK then selectRace s
                     else events [Message $ s ++ " is already exist."] createNewCharacter)
