@@ -7,6 +7,7 @@ import Control.Monad.Reader (asks)
 import Data.Function ((&))
 import Data.List (find, nub)
 import Data.Maybe (fromMaybe)
+import Data.Char (toLower)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -154,10 +155,7 @@ nextMiniMap = do
 
 suspend :: Position -> GameMachine
 suspend p = GameAuto $ do
-    modify $ \w -> w {
-      inMazeMember = inMazeMember w ++ ((,p) <$> party w)
-    , party = []
-    }
+    modify $ \w -> w { inMazeMember = inMazeMember w ++ ((,p) <$> party w), party = [] }
     toCastle <- home
     returnToCastle >> run toCastle
 
@@ -172,8 +170,61 @@ inspect p = GameAuto $ do
 searchCharacter :: Position -> GameMachine
 searchCharacter p = GameAuto $ do
     cs <- gets inMazeMember
-    undefined
-    
+    let ts = fst <$> filter ((== coordOf p) . (coordOf . snd)) cs
+    run $ events msgs (editParty p 0 ts)
+  where
+    msgs = [ MessageTime 400 " Searching character     " Nothing
+           , MessageTime 400 " Searching character.    " Nothing
+           , MessageTime 400 " Searching character..   " Nothing
+           , MessageTime 400 " Searching character...  " Nothing
+           , MessageTime 400 " Searching character.... " Nothing
+           ]
+
+editParty :: Position -> Int -> [CharacterID] -> GameMachine
+editParty p page ts = let mxPage' = (length ts - 1) `div` 10; mxPage = if mxPage' >= 0 then mxPage' else 0 in
+    if      page < 0      then editParty p mxPage ts
+    else if page > mxPage then editParty p 0 ts
+    else GameAuto $ do
+      let ts' = if null ts then [] else take 10 $ drop (page*10) ts 
+      ns <- zipWith (++) (('^':) . (++")") <$> ms) <$> mapM (fmap Chara.name <$> characterByID) ts'
+      let cmdRemoves = cmdNums 6 (removeFromParty p ts page)
+          cmdAdds = zip (Key <$> (fmap toLower <$> ms))
+                        ((\cid -> addToParty p cid ts page) <$> ts')
+          msg = if null ns then "\n No body found." else "You found ...\n\n" ++ unlines ns
+      run $ selectEsc (Message $ msg ++ "\n\n" ++
+            "\n======================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")======================\n\n" ++
+            "^A~)Add to party  ^#)Remove from party \n" ++ 
+            "^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
+            )
+          ([(Key "l", enterWithoutEncount None p)
+           ,(Key "n", editParty p (page + 1) ts)
+           ,(Key "p", editParty p (page - 1) ts)
+           ] ++ cmdRemoves ++ cmdAdds)
+  where
+    ms = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+
+addToParty :: Position -> CharacterID -> [CharacterID] -> Int -> GameMachine
+addToParty p cid ts page = GameAuto $ do
+    ps <- gets party
+    if length ps >= 6 then run $ editParty p page ts
+    else do
+      modify $ \w -> w {
+          party = party w ++ [cid]
+        , inMazeMember = filter ((/= cid) . fst) (inMazeMember w)
+        }
+      run $ editParty p page (filter (/= cid) ts)
+
+removeFromParty :: Position -> [CharacterID] -> Int -> Int -> GameMachine
+removeFromParty p ts page n = GameAuto $ do
+    ps <- gets party
+    if length ps < n || length ps == 1 then run $ editParty p page ts
+    else do
+      let cid = ps !! (n - 1)
+      modify $ \w -> w {
+          party = take (n - 1) ps ++ drop n ps
+        , inMazeMember = inMazeMember w ++ [(cid, p)]
+        }
+      run $ editParty p page (ts ++ [cid])
 
 -- =======================================================================
 

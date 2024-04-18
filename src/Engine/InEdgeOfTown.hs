@@ -21,12 +21,13 @@ inEdgeOfTown = GameAuto $ do
     toCastle <- home
     run $ selectWhen msg [(Key "m", enteringMaze, notnull)
                          ,(Key "t", inTrainingGrounds, True)
-                         ,(Key "r", toCastle, True)
+                         ,(Key "c", toCastle, True)
                          ,(Key "q", exitGame, True)]
   where
     msg = Message $ "^M)aze\n"
                  ++ "^T)raining Grounds\n"
-                 ++ "^R)eturn to the Castle\n"
+                 ++ "^R)estart an \"OUT\" Party\n"
+                 ++ "Return to the ^C)astle\n"
                  ++ "^Q)uit Game\n"
 
 -- =======================================================================
