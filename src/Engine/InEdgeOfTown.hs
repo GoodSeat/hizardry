@@ -60,7 +60,7 @@ restart :: CharacterID -> GameMachine
 restart cid = GameAuto $ do
     cps <- gets inMazeMember
     let (_, p) = head $ filter ((== cid) . fst) cps
-        cs  = filter ((== p) . snd) cps
+        cs  = filter ((== coordOf p) . coordOf . snd) cps
     cs1 <- mapM characterByID (fst <$> cs)
     let ccs  = zip cs1 (fst <$> cs)
         ccs1 = filter ((/= cid) . snd) $ filter ((>  0) . Character.hp . fst) ccs
