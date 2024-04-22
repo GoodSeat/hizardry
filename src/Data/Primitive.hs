@@ -308,6 +308,12 @@ cantSpellStatus = [ Silence
 -- functions
 -- --------------------------------------------------------------------------
 
+leftTxt :: Show a => Int -> a -> String
+leftTxt n = leftString n . show
+
+leftString :: Int -> String -> String
+leftString n t1 = takeChar n $ t1 ++ repeat ' '
+
 rightTxt :: Show a => Int -> a -> String
 rightTxt n = rightString n . show
 

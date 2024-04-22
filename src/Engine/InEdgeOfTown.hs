@@ -1,7 +1,7 @@
 module Engine.InEdgeOfTown (inEdgeOfTown) where
 
 import Control.Monad (join)
-import Control.Monad.State (modify, put)
+import Control.Monad.State (modify, put, gets)
 import Control.Monad.Reader (asks)
 import Data.List (sort, sortOn)
 import qualified Data.Map as Map
@@ -21,6 +21,7 @@ inEdgeOfTown = GameAuto $ do
     toCastle <- home
     run $ selectWhen msg [(Key "m", enteringMaze, notnull)
                          ,(Key "t", inTrainingGrounds, True)
+                         ,(Key "r", restartAnOutParty, True)
                          ,(Key "c", toCastle, True)
                          ,(Key "q", exitGame, True)]
   where
@@ -29,6 +30,21 @@ inEdgeOfTown = GameAuto $ do
                  ++ "^R)estart an \"OUT\" Party\n"
                  ++ "Return to the ^C)astle\n"
                  ++ "^Q)uit Game\n"
+
+-- =======================================================================
+
+restartAnOutParty :: GameMachine
+restartAnOutParty = GameAuto $ do
+    cs <- gets inMazeMember
+    cs' <- mapM (characterByID . fst) cs
+    let ccs = filter ((> 0) . Character.hp . fst) $ zip cs' cs
+        page   = 0 -- TODO
+        mxPage = max 0 ((length ccs - 1) `div` 10)
+        msg = Message $ unlines (Character.toText 34 . fst <$> ccs) ++
+             "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")=========================\n\n" ++
+             "^A~)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
+    run $ selectEsc msg [(Key "l", inEdgeOfTown)]
+
 
 -- =======================================================================
 

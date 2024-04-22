@@ -210,6 +210,11 @@ canEquip :: Character -> Item.Define -> Bool
 canEquip c idef = case Item.enableToEquip idef of Item.All     -> True
                                                   Item.Only js -> jobName (job c) `elem` js
 
+
+toText :: Int -> Character -> String
+toText w c = leftString w (name c) ++ show (alignment c) ++ "-" ++ take 3 (jobName $ job c)
+        ++ rightTxt 10 (hp c) ++ "/" ++ rightTxt 5 (maxhp c)
+
 -- =================================================================================
 
 knowSpell :: SpellID -> Character -> Bool

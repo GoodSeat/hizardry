@@ -181,12 +181,12 @@ searchCharacter p = GameAuto $ do
            ]
 
 editParty :: Position -> Int -> [CharacterID] -> GameMachine
-editParty p page ts = let mxPage' = (length ts - 1) `div` 10; mxPage = if mxPage' >= 0 then mxPage' else 0 in
+editParty p page ts = let mxPage = max 0 ((length ts - 1) `div` 10) in
     if      page < 0      then editParty p mxPage ts
     else if page > mxPage then editParty p 0 ts
     else GameAuto $ do
       let ts' = if null ts then [] else take 10 $ drop (page*10) ts 
-      ns <- zipWith (++) (('^':) . (++")") <$> ms) <$> mapM (fmap Chara.name <$> characterByID) ts'
+      ns <- zipWith (++) (('^':) . (++")") <$> ms) <$> mapM (fmap (Chara.toText 28) <$> characterByID) ts'
       let cmdRemoves = cmdNums 6 (removeFromParty p ts page)
           cmdAdds = zip (Key <$> (fmap toLower <$> ms))
                         ((\cid -> addToParty p cid ts page) <$> ts')
