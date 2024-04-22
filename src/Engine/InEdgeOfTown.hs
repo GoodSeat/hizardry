@@ -4,6 +4,7 @@ import Control.Monad (join)
 import Control.Monad.State (modify, put, gets)
 import Control.Monad.Reader (asks)
 import Data.List (sort, sortOn)
+import Data.Char (toLower)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -21,7 +22,7 @@ inEdgeOfTown = GameAuto $ do
     toCastle <- home
     run $ selectWhen msg [(Key "m", enteringMaze, notnull)
                          ,(Key "t", inTrainingGrounds, True)
-                         ,(Key "r", restartAnOutParty, True)
+                         ,(Key "r", restartAnOutParty 0, True)
                          ,(Key "c", toCastle, True)
                          ,(Key "q", exitGame, True)]
   where
@@ -33,18 +34,44 @@ inEdgeOfTown = GameAuto $ do
 
 -- =======================================================================
 
-restartAnOutParty :: GameMachine
-restartAnOutParty = GameAuto $ do
-    cs <- gets inMazeMember
-    cs' <- mapM (characterByID . fst) cs
+restartAnOutParty :: Int -> GameMachine
+restartAnOutParty page = GameAuto $ do
+    cs  <- gets (fmap fst . inMazeMember)
+    cs' <- mapM characterByID cs
     let ccs = filter ((> 0) . Character.hp . fst) $ zip cs' cs
-        page   = 0 -- TODO
         mxPage = max 0 ((length ccs - 1) `div` 10)
-        msg = Message $ unlines (Character.toText 34 . fst <$> ccs) ++
-             "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")=========================\n\n" ++
-             "^A~)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
-    run $ selectEsc msg [(Key "l", inEdgeOfTown)]
+    if      null ccs      then run inEdgeOfTown
+    else if page < 0      then run $ restartAnOutParty mxPage
+    else if page > mxPage then run $ restartAnOutParty 0
+    else do
+      let msg = Message $ unlines (zipWith (++) (('^':) . (++")") <$> ms) (Character.toText 34 . fst <$> ccs)) ++
+               "\n==========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")=========================\n\n" ++
+               "^A~)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
+          ts' = if null ccs then [] else take 10 $ drop (page*10) ccs 
+          cmds = zip (Key <$> (fmap toLower <$> ms)) (restart . snd <$> ts')
+      run $ selectEsc msg $ [(Key "l", inEdgeOfTown)
+                            ,(Key "n", restartAnOutParty $ page + 1)
+                            ,(Key "p", restartAnOutParty $ page - 1)
+                            ] ++ cmds
+  where
+    ms = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
+restart :: CharacterID -> GameMachine
+restart cid = GameAuto $ do
+    cps <- gets inMazeMember
+    let (_, p) = head $ filter ((== cid) . fst) cps
+        cs  = filter ((== p) . snd) cps
+    cs1 <- mapM characterByID (fst <$> cs)
+    let ccs  = zip cs1 (fst <$> cs)
+        ccs1 = filter ((/= cid) . snd) $ filter ((>  0) . Character.hp . fst) ccs
+        ccs2 = filter ((== 0) . Character.hp . fst) ccs
+        ps = cid : take 5 (snd <$> (ccs1 ++ ccs2))
+    modify $ \w -> w {
+        party = ps
+      , inTarvernMember = sort (inTarvernMember w ++ party w)
+      , inMazeMember = filter ((`notElem` ps) . fst) (inMazeMember w)
+      }
+    run $ openCamp p
 
 -- =======================================================================
 
