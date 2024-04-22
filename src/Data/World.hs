@@ -101,7 +101,7 @@ saveWorld w path = do
       , show $ roomBattled     w
       , "### partyLight ###"
       , show $ partyLight      w
-      , "### partyLight ###"
+      , "### partyLight' ###"
       , show $ partyLight'     w
       , "### partyParamDelta ###"
       , show $ partyParamDelta w
