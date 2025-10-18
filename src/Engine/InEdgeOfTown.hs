@@ -89,6 +89,7 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                   $ selectEsc msg [(Key "l", inEdgeOfTown)
                                   ,(Key "c", createNewCharacter)
                                   ,(Key "s", showListOfCharacters 0)
+                                  ,(Key "d", clearCharacter 0)
                                   ,(Key "q", exitGame)]
   where
     msg = Message $ "^C)reate Character\n"
@@ -304,7 +305,7 @@ showListOfCharacters page = GameAuto $ do
     else if null cids then run inTrainingGrounds
     else do
       let cst = zipWith (++) (("^"++) .(++")") . show <$> [1..]) (Character.name . snd <$> cids)
-          msg = Message $ "^N)ext list  ^P)revious list  ^#)Inspect  ^L)eave [Esc]"
+          msg = Message $ "^N)ext list  ^P)revious list  ^#)Inspect  ^L)eave `[`E`s`c`]"
                       ++ "\n\n-------------------------(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")--------------------------\n\n"
                       ++ unlines cst
           cmds = cmdNums (length cids) (\i -> inspectCharacter (showListOfCharacters page) $ (fst <$> cids) !! (i-1))
@@ -326,6 +327,36 @@ sizePage = 9
 
 lastPage :: GameState Int
 lastPage = flip div sizePage . flip (-) 1 . length . Map.toList . allCharacters <$> world
+
+-- -----------------------------------------------------------------------
+
+clearCharacter :: Int -> GameMachine
+clearCharacter (-1) = GameAuto $ do
+    mxPage <- lastPage
+    run $ clearCharacter mxPage
+clearCharacter page = GameAuto $ do
+    mxPage <- lastPage
+    cids <- take sizePage . drop (page * sizePage) . sortOn fst . Map.toList . allCharacters <$> world 
+    if page > mxPage then run $ clearCharacter 0
+    else if null cids then run inTrainingGrounds
+    else do
+      let cst = zipWith (++) (("^"++) .(++")") . show <$> [1..]) (Character.name . snd <$> cids)
+          msg = Message $ "^N)ext list  ^P)revious list  ^#)Delete  ^L)eave `[`E`s`c`]"
+                      ++ "\n\n-------------------------(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")--------------------------\n\n"
+                      ++ unlines cst
+          cmds = cmdNums (length cids) (\i -> showDeleteTargetCharacter (clearCharacter page) $ (fst <$> cids) !! (i-1))
+      run $ selectEsc msg $ (Key "l", inTrainingGrounds)
+                          : (Key "n", clearCharacter (page+1))
+                          : (Key "p", clearCharacter (page-1))
+                          : cmds
+
+showDeleteTargetCharacter :: GameMachine -> CharacterID -> GameMachine
+showDeleteTargetCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
+                                   [(Key "n", h)
+                                   ,(Key "y", with [deleteCharacter cid] h)
+                                   ]
+  where
+    msg = "Are you sure? (his items are also lost) ^Y)es   ^N)o `[`E`S`C`]"
 
 -- =======================================================================
 
