@@ -92,7 +92,16 @@ selectItem :: (String -> Event)
            -> Chara.Character
            -> GameMachine
            -> GameMachine
-selectItem msgForSelect isTarget next c cancel = GameAuto $ do
+selectItem = selectItem' "l"
+
+selectItem' :: String
+            -> (String -> Event)
+            -> (ItemInf -> Bool)
+            -> (Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine)
+            -> Chara.Character
+            -> GameMachine
+            -> GameMachine
+selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
     is <- asks items
     let nameOf id = Item.name (is ! id)
         its = Chara.items c
@@ -101,11 +110,11 @@ selectItem msgForSelect isTarget next c cancel = GameAuto $ do
     return (msgForSelect $
               "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n"
               ++ unlines msg,
-            \(Key s) -> if s == "l" || s == "\ESC" then cancel
+            \(Key s) -> if s == cancelKey || s == "\ESC" then cancel
                         else case Chara.itemPosByChar s of
-                          Nothing -> selectItem msgForSelect isTarget next c cancel
+                          Nothing -> selectItem' cancelKey msgForSelect isTarget next c cancel
                           Just i  -> if i `elem` (fst <$> cs) then next c i cancel
-                                     else selectItem msgForSelect isTarget next c cancel
+                                     else selectItem' cancelKey msgForSelect isTarget next c cancel
            )
 
 useItem :: (String -> Event)
@@ -235,7 +244,7 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
     let idset = zip ids items
         tgts  = filter (Chara.canEquip c . snd) . filter (isTarget . snd) $ idset
     run $ if null tgts then equip' msgForSelect src c rest next
-          else selectItem (const $ msgForSelect $ "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]")
+          else selectItem' "n" (const $ msgForSelect $ "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]")
                           ((`elem` (fst <$> tgts)) . itemID) selectEq c (eq Nothing)
   where
     selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
