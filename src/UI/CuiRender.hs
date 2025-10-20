@@ -102,11 +102,21 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
     toStatusLine (n, c) = let (ac', _) = runGameState s w (acOf $ Left c);
                               ac = case ac' of Right v -> v
                                                _       -> 99
-                        in text (6,  windowH - 6 + n) (show n ++ "  " ++ name c)
-                        <> text (36, windowH - 6 + n) (show (alignment c) ++ "-" ++ take 3 (jobName $ job c))
-                        <> text (46, windowH - 6 + n) (show $ ac)
-                        <> text (54, windowH - 6 + n) (show $ hp c)
-                        <> text (61, windowH - 6 + n) (show $ maxhp c)
+                              isPoison (Poison _) = True
+                              isPoison _          = False
+                              sgr
+                                | Ash       `elem` statusErrors c = 'w'
+                                | Dead      `elem` statusErrors c = 'r'
+                                | Paralysis `elem` statusErrors c = 'm'
+                                | Sleep     `elem` statusErrors c = 'y'
+                                | any isPoison (statusErrors c)   = 'g'
+                                | otherwise                       = ' '
+                              sgrs = replicate windowH sgr
+                        in textSGR (6,  windowH - 6 + n) (show n ++ "  " ++ name c) sgrs
+                        <> textSGR (36, windowH - 6 + n) (show (alignment c) ++ "-" ++ take 3 (jobName $ job c)) sgrs
+                        <> textSGR (46, windowH - 6 + n) (show $ ac) sgrs
+                        <> textSGR (54, windowH - 6 + n) (show $ hp c) sgrs
+                        <> textSGR (61, windowH - 6 + n) (show $ maxhp c) sgrs
 
 statusView :: Scenario -> World -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
 statusView s w msg itemDefOf c =
