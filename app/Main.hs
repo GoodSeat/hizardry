@@ -29,11 +29,11 @@ import qualified SampleScenario.Events as SampleEvents
 import qualified SampleScenario.Jobs as SampleJobs
 import qualified SampleScenario.Racies as SampleRacies
 import qualified SampleScenario.Maze as SampleMaze
+import qualified SampleScenario.PicturesOfEnemies as SamplePicturesOfEnemies
 
 
 -- note
 -- * game over
--- *   search other parties
 -- * items
 -- *   sp
 -- * shop
@@ -213,11 +213,10 @@ main = do
             , items   = SampleItems.items
             }
 
-    let pic id | id == PictureID 1001 = himiko
-               | id == PictureID 1002 = werdna
-               | id == PictureID 2001 = treasure
-               | id == PictureID 2002 = werdna
-               | otherwise            = mempty
+    let pic (PictureID id) | 1000 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
+                           | id == 2001              = treasure
+                           | id == 2002              = werdna
+                           | otherwise               = mempty
     let picOf = maybe mempty pic
 
     existSaveData <- doesFileExist saveDataPath

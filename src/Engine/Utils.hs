@@ -10,7 +10,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import Data.List (find, sort)
-import Data.Map hiding (filter, null, foldl,drop,take)
+import Data.Map hiding (filter, null, foldl, drop, take)
 import Data.Maybe (fromMaybe, fromJust, catMaybes)
 
 import Engine.GameAuto
@@ -147,6 +147,7 @@ deleteCharacter id = do
     put $ w { party           = filter (/= id) $ party w
             , inTarvernMember = filter (/= id) $ inTarvernMember w
             , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
+            , allCharacters   = Data.Map.delete id $ allCharacters w
             }
 
 
