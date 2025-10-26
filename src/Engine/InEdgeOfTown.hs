@@ -340,27 +340,30 @@ selectReorderTargetCharacter :: Int -> GameMachine
 selectReorderTargetCharacter = cmdWithCharacterList ("Change Order", changeOrder)
 
 changeOrder :: GameMachine -> CharacterID -> GameMachine
-changeOrder h cid = GameAuto $ do
-    mx <- length . allCharacters <$> world
-    run $ selectEsc (Message $ "^1~" ++ show mx ++ ")New order   ^L)eave `[`E`S`C`]")
-          $ (Key "l", h) : cmdNums mx (\i -> with [changeOrderTo i] h)
-  where
-    changeOrderTo i = do
-        cs  <- Map.toList . allCharacters <$> world
-        let cis  = fst <$> cs
-            cis' = filter (/= cid) cis
-            cist = filter (== cid) cis
-            cis1 = take (i - 1) cis'
-            cis2 = drop (i - 1) cis'
-            cisn = cis1 ++ cist ++ cis2
-            conv n = CharacterID $ fromJust (elemIndex n cisn) + 1
-            conv2 (a, b) = (conv a, b)
-        w <- world
-        put $ w { party           = conv <$> party w
-                , inTarvernMember = conv <$> inTarvernMember w
-                , inMazeMember    = conv2 <$> inMazeMember w
-                , allCharacters   = Map.fromList (conv2 <$> cs)
-                }
+changeOrder _ cid = GameAuto $ do
+    cs <- Map.toList . allCharacters <$> world
+    let tos  = fromJust (elemIndex cid $ fst <$> cs)
+        fromPage = div tos sizePage
+    run $ cmdWithCharacterList ("Insert", insertCharacter cid) fromPage
+
+insertCharacter :: CharacterID -> GameMachine -> CharacterID -> GameMachine
+insertCharacter cid _ cidTo = GameAuto $ do
+    cs <- Map.toList . allCharacters <$> world
+    let cis  = fst <$> cs
+        toi  = fromJust (elemIndex cidTo cis)
+        cis' = filter (/= cid) cis
+        cist = filter (== cid) cis
+        cisn = take toi cis' ++ cist ++ drop toi cis'
+        conv n = CharacterID $ fromJust (elemIndex n cisn) + 1
+        conv2 (a, b) = (conv a, b)
+    w <- world
+    put $ w { party           = conv <$> party w
+            , inTarvernMember = conv <$> inTarvernMember w
+            , inMazeMember    = conv2 <$> inMazeMember w
+            , allCharacters   = Map.fromList (conv2 <$> cs)
+            }
+    let toPage = div toi sizePage
+    run $ selectReorderTargetCharacter toPage
 
 -- -----------------------------------------------------------------------
 
