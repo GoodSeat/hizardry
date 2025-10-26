@@ -89,7 +89,8 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                   $ selectEsc msg [(Key "l", inEdgeOfTown)
                                   ,(Key "c", createNewCharacter)
                                   ,(Key "s", showListOfCharacters 0)
-                                  ,(Key "d", clearCharacter 0)
+                                  ,(Key "d", selectDeleteTargetCharacter 0)
+                                  ,(Key "n", selectCharacterToChangeName 0)
                                   ,(Key "q", exitGame)]
   where
     msg = Message $ "^C)reate Character\n"
@@ -110,13 +111,13 @@ createNewCharacter = GameAuto $
               isOK <- not <$> existSameName s
               run $ if isOK then selectRace s
                     else events [Message $ s ++ " is already exist."] createNewCharacter)
-  where
-    existSameName :: String -> GameState Bool
-    existSameName name = do
-      w <- world
-      let cids = inTarvernMember w ++ (fst <$> inMazeMember w)
-      ns <- map Character.name <$> mapM characterByID cids
-      return $ name `elem` ns
+
+existSameName :: String -> GameState Bool
+existSameName name = do
+  w <- world
+  let cids = inTarvernMember w ++ (fst <$> inMazeMember w)
+  ns <- map Character.name <$> mapM characterByID cids
+  return $ name `elem` ns
 
 selectRace :: String -> GameMachine
 selectRace name = GameAuto $ do
@@ -305,8 +306,8 @@ inspectCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
   where
     msg = "^R)ead Spell   ^L)eave `[`E`S`C`]"
 
-clearCharacter :: Int -> GameMachine
-clearCharacter = cmdWithCharacterList ("Delete", showDeleteTargetCharacter)
+selectDeleteTargetCharacter :: Int -> GameMachine
+selectDeleteTargetCharacter = cmdWithCharacterList ("Delete", showDeleteTargetCharacter)
 
 showDeleteTargetCharacter :: GameMachine -> CharacterID -> GameMachine
 showDeleteTargetCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
@@ -315,6 +316,23 @@ showDeleteTargetCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
                                    ]
   where
     msg = "Are you sure? (his items are also lost)\n ^Y)es   ^N)o `[`E`S`C`]"
+
+
+selectCharacterToChangeName :: Int -> GameMachine
+selectCharacterToChangeName = cmdWithCharacterList ("Change Name", changeCharacterName)
+
+changeCharacterName :: GameMachine -> CharacterID -> GameMachine
+changeCharacterName h cid = GameAuto $
+    return (Ask ">Input name of character. \n(Empty to cancel.)" Nothing,
+           \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
+              if null s then h else GameAuto $ do
+              isOK <- not <$> existSameName s
+              run $ if isOK then with [changeName s] h
+                    else events [Message $ s ++ " is already exist."] (changeCharacterName h cid))
+  where
+    changeName newName = do
+        c <- characterByID cid
+        updateCharacter cid $ c { Character.name = newName }
 
 -- -----------------------------------------------------------------------
 
