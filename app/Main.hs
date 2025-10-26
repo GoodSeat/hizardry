@@ -30,6 +30,7 @@ import qualified SampleScenario.Jobs as SampleJobs
 import qualified SampleScenario.Racies as SampleRacies
 import qualified SampleScenario.Maze as SampleMaze
 import qualified SampleScenario.PicturesOfEnemies as SamplePicturesOfEnemies
+import qualified SampleScenario.PicturesOfEnemiesUnidentified as SamplePicturesOfEnemiesUnidentified
 
 
 -- note
@@ -213,9 +214,8 @@ main = do
             , items   = SampleItems.items
             }
 
-    let pic (PictureID id) | 1000 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
-                           | id == 2001              = treasure
-                           | id == 2002              = werdna
+    let pic (PictureID id) | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
+                           | 2001 <= id && id < 3000 = SamplePicturesOfEnemiesUnidentified.picOfEnemiesUnidentified id
                            | otherwise               = mempty
     let picOf = maybe mempty pic
 

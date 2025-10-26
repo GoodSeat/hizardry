@@ -3778,97 +3778,7 @@ inStone True  = fromTextsSGR '_'
   ,"___________________________________________________________________________"]
 
 
-werdna :: Craphic
-werdna = fromTextsA ' ' 'w'
-  ["                                                                           "   --    1
-  ,"                                                                           "   --    2
-  ,"                                                                           "   --    3
-  ,"                                                                           "   --    4
-  ,"                                                                           "   --    5
-  ,"                                                                           "   --    6
-  ,"                                                                           "   --    7
-  ,"                                                                           "   --    8
-  ,"                                                                           "   --    9
-  ,"                                                                           "   --   10
-  ,"                                                                           "   --   11
-  ,"                                                                           "   --   12
-  ,"                                                                           "   --   13
-  ,"                                       .8H[                                "   --   14
-  ,"                                      .HKON-  .m,                          "   --   15
-  ,"                                     . HHkK` .dNg,                         "   --   16
-  ,"                          WUHX+...  jNNMQQWNNLdMM]  ...J++,                "   --   17
-  ,"                               dM8dHNMdMHmdHuHMBkMM9^?!   ?`               "   --   18
-  ,"                              (NgdkMMW#dC>dYMMMNQMb                        "   --   19
-  ,"                          ..gHMMMSdkNKVw<(+4dMMMNNHMHWH,                   "   --   20
-  ,"                       .&HHMHHHMNMMMMK1W$~j+NHMMMHMMMMMM|                  "   --   21
-  ,"                      .MMMHNMMMMMMMHMSljD<_vHWMMMMMMMMMMN,                 "   --   22
-  ,"                   JHgWMMMHMMMMMMMMMMh+Wl~(WJHMMMMMMM#Cd#!                 "   --   23
-  ,"                   4HMMHMHMMMMMNMMMNH5dXb(<UWHMM^!    T#`                  "   --   24
-  ,"                   dHHHNHMMHMMMMMNMMSRzZPI~(dNM~                           "   --   25
-  ,"                  (F`  7^=7T^1dNMMMNWNOP$<~+gMM]                           "   --   26
-  ,"                .MY        .dMMMMMMNM#dR1>((WHM]                           "   --   27
-  ,"               .MP        .8JHMMM#MMMHMNk>(<1dNK+                          "   --   28
-  ,"               (MR        JndmMMMMMMbMMMMz(l_dNWd~                         "   --   29
-  ,"                ?Hn.,  . .HHHqHMMN#MNKHMMwJRwWMBf                          "   --   30
-  ,"                 (H;   .~JFOgHNMMMMM#qMMEdH6dMMM%                          "   --   31
-  ,"                  .74JT^ (;(HMMMMMHMHWHQHMBdMMM]                           "   --   32
-  ,"                          ?(HHMMM#HM@@MMMNdMNMM]                           "   --   33
-  ,"                             ?4MNNHHMHqMNMMHMHM]                           "   --   34
-  ,"                          .   .BYHHMHYGiMMMMMHM]                           "   --   35
-  ,"                          h, .HNMNHMMMMMMqMMMgM+....                       "   --   36
-  ,"                      +JNMMNmgMMNMHMNHMMqkMqMNMMMMMY^                      "   --   37
-  ,"                           .??????^^WHMMNNMNMHB^=!                         "   --   38
-  ,"                                                                           "   --   39
-  ,"                                                                           "]  --   40
---  123456789012345678901234567890123456789012345678901234567890123456789012345
---           1         2         3         4         5         6         7
-
-himiko :: Craphic
-himiko = fromTextsA ' ' 'w'
-  ["                                                                           "   --   1
-  ,"                                                                           "   --   2
-  ,"                                                                           "   --   3
-  ,"                                                                           "   --   4
-  ,"                                                                           "   --   5
-  ,"                                                                           "   --   6
-  ,"                                                                           "   --   7
-  ,"                                                                           "   --   8
-  ,"                                                                           "   --   9
-  ,"                                                                           "   --   10
-  ,"                                                                           "   --   11
-  ,"                                                                           "   --   12
-  ,"                                 .                                         "   --   13
-  ,"                                .(+&.                                      "   --   14
-  ,"                                (MMdW%                                     "   --   15
-  ,"                                .1Q9s(.                                    "   --   16
-  ,"                                .(T9>_<<(.                                 "   --   17
-  ,"                                .(+gIj(JTXo.                               "   --   18
-  ,"                 .T~....      .8jWQdoZMMN/1+-                              "   --   19
-  ,"                  _    1&(_(-,TzdsRkzdMMMN.~                               "   --   20
-  ,"                  :      /'?NKRcagJv<T9dMMN.                               "   --   21
-  ,"                  :     .[ (Xb#tdMNE0NHj~w/<... ``  `                      "   --   22
-  ,"                        .b..d6#%?MMCdMWw/7'J) `  _4C                       "   --   23
-  ,"                        ,#~.d(@{(X+(0N#dx .(R.         `                   "   --   24
-  ,"                        .M(_J<NrJXdZ0MHJb< ~dh                             "   --   25
-  ,"                        dM[!v NCd0dbcMM|N+<(?@N                            "   --   26
-  ,"                        ,MN.\\ NlXOdb$MMb,Nx<<d#!                          "   --   27
-  ,"                         (9! `NlKVdbIMMN; 7h<J`                            "   --   28
-  ,"                             H#lHkX@OdMM@m,.\"=                            "   --   29
-  ,"                            .M#3MZXH?dMMNMb                                "   --   30
-  ,"                           `.M#CMXwM(dNMNHg.                               "   --   31
-  ,"                            JM#CMmkN(cMMMMHL                               "   --   32
-  ,"                            WM#1HNMN;zHNMNHH,                              "   --   33
-  ,"                           .@M@lMNMNL1?NNMNMh                              "   --   34
-  ,"                           .@M@}MNMMW,IdM#MHMh                             "   --   35
-  ,"                           dNN9:dMMMNb(IMMMMMMh.                           "   --   36
-  ,"                        ` dNM5! MMMMNM,(1WMMHMMNm..`   `                   "   --   37
-  ,"                          `!`   ?T\"\"\"\"^  .?THMHT\"!                    "   --   38
-  ,"                                                                           "   --   39
-  ,"                                                                           "]  --   40
---  123456789012345678901234567890123456789012345678901234567890123456789012345
---           1         2         3         4         5         6         7
-
-
+-- ========================================================================
 
 city :: Craphic
 city = fromTexts ' '
@@ -3894,15 +3804,15 @@ city = fromTexts ' '
   ,"bdMNjdkdIdr..MdMHdH ,OI_ - ( _`(dd-(<_?<zzl(<(<vj0??7TTXfzk?:~<(<v0OdXXWX0XZSXXyXXXWXHkWHg"   --   20
   ,"YT#HyJRd0VWU#W9XHUWJJun/.; . _ (?vC?0><jlc>(_-<<jI+>((<+?1v1+-((jkXXXWqWWWWXXWWXHHkWqHggHH"   --   21
   ,"hWuMbg#?OwdRKuHyXOddzz$(J1vrC1>>_._.._:11z>(-(i+JD=711ju+(A-<<<jWWKXWXWHWkHNHHWHHMHHmHH@NH"   --   22
-  ,"MMMMWgMHHWHHMHHHWkWfYTHk+<<<<<<?:++.._(JI+><<??<dfI$++1J76VC<++jkV\"\"\"7THHHMMMNWNNHMHHHNMMH"   --   23
+  ,"MMMMWgMHHWHHMHHHWkWfYTHk+<<<<<<?:++.._(JI+><<??<dfI$++1J76VC<++jkV'''7THHHMMMNWNNHMHHHNMMH"   --   23
   ,"99VOTUWX<<MQkc(gmozJkD~jkknJ.(J-_dv=(r?zzku(>.(>dCC0CXQd>Xm<ukHuWIXbNddkdW#HHXJMHHMMMdMHMM"   --   24
   ,"MMMMHNHXdG&dK0MMHRzdbR:(MMMNr-gk_vz. (jXzZd??jJ<dAOXwHHWIWMz1wUkJoaAzkddwwvM9M#WNMMMMH#MMN"   --   25
   ,"HXMNHMHWdXHd#kNM#HvzH0_(HMNNl-HbTUI+JO&4MtJOz(6<?WykwC7Oms.(jwwdyXWU0WddWXWHHNMHMH#HMMMMMM"   --   26
   ,"NWMM@M#NNTMHdbyMMEwwkZl(HMMMM5++(SXvWOy1C0OIJMHR/Xhgs-_?XHjgHNMMMMMMMHMMNH9VUHMMMMMHHWgqmq"   --   27
   ,"MHMMMNNNHHHMHWHHWWmsXyyzWDTM8<X+XWX-P<r`(HzA.(T9!d&WMh(AHWMMMMMMMMMMMkWNuNmg+WppppbkbHqqqq"   --   28
-  ,"NNMNHHMNMMHNHHHHWW#UVY\"!(% .jAdzXs1++n-<J@I(<v<<+JdWHXXmgHfVWW0WHHBUQmNNgNNMmAXWbbkkbkkkqk"   --   29
+  ,"NNMNHHMNMMHNHHHHWW#UVY'!(% .jAdzXs1++n-<J@I(<v<<+JdWHXXmgHfVWW0WHHBUQmNNgNNMmAXWbbkkbkkkqk"   --   29
   ,"MMHWBHkXMHH9YTVO<jP<<~_.(L(&JVM9MMNNmZq2V8XWkXW0VwIdWkwUwXuXZVzOZ=!`_7>jMMMWWpWXXUVUWkHkHq"   --   30
-  ,"UWkv+1<_Hi-(_(i(_(hJzY\"1j@I7iJW?3udMMR(&dUUXUOAQnxzdHWwkVXOwIz?~~ -.~++XVXIwUUUUOOwUXWUUWH"   --   31
+  ,"UWkv+1<_Hi-(_(i(_(hJzY'1j@I7iJW?3udMMR(&dUUXUOAQnxzdHWwkVXOwIz?~~ -.~++XVXIwUUUUOOwUXWUUWH"   --   31
   ,"                                                                                          "   --   32
   ,"                                                                                          "   --   33
   ,"                                                                                          "   --   34
@@ -4018,7 +3928,7 @@ edgeOfTown = fromTextsA ' ' 'B'
   ,"MNNMNMNNNM#M##HMMMM2~_                        _JWHHW0XuXuXwzXUUV9WkaJ~__:;;;;<;>"   --    6
   ,"MNMNNNN#MMM#MHHMMMM><:                      -(dHVWZX><?+771myzOrrwO<::_:(<?+<+<?"   --    7
   ,"MMMNNNNM###M#HHHf=                         (XWXZXWZ0<_~~:~(M$-__~~.(<<<<<~(J-<<<"   --    8
-  ,"NMNNMMMN###HHM#T\\                         <~(ZXSuUZC<~~:~~~___:~_~_(<1jJZTz==+(<"   --    9
+  ,"NMNNMMMN###HHM#T/                         <~(ZXSuUZC<~~:~~~___:~_~_(<1jJZTz==+(<"   --    9
   ,"NNMNNMNNN#MM##HNs~                         _(XXuVC=z<_~_~:_<~~~:~(JZC<<<<++1=z1z"   --   10
   ,"MMMMNNNMMNM#HMHB3_                         _(VC?????<~~_~__~~~~::::;+<+??<><>>zl"   --   11
   ,"NMMMMMMMMMMN?T<                         >+wOz???1?z1<.(~_~~:~~~~<_;<>>+><>1<1?+="   --   12
@@ -4034,7 +3944,7 @@ edgeOfTown = fromTextsA ' ' 'B'
   ,"HMMMMMMWkR-((<:jz=+<<1Xkc+&zzOZ<jzdWKwWMMMWHR>><><??<-__.~~__~~~_______-___~___-"   --   22
   ,"HMMMNMMHagZCOuSyzuz<><dZjIXWuZ1+vVC4WwdMHWHH#<<;+>+?<_.~_~__~__:_(~__~~_.___~:_-"   --   23
   ,"NHNNMHQkWHHM@mJv7=<:~(wwXwWWfW&vddsZwwX8OdHHk<<><><<>__~~._(-- -..._-.._____.___"   --   24
-  ,"N#N#HHMHHHMHkWWHHpmx-.~?77\"Tv7(WWSrOWXwOwHHWD<><>>>1<.-~~_~~<!_...-_ __._.--._._"   --   25
+  ,"N#N#HHMHHHMHkWWHHpmx-.~?77'Tv7(WWSrOWXwOwHHWD<><>>>1<.-~~_~~<!_...-_ __._.--._._"   --   25
   ,"NN#NNN#MMMHMMHNHWVyZyk>`  `_._~!~~1w0wkXVKXky(<<<?><<..~~_(_-_-.._..`~.__-(2___~"   --   26
   ,"MNNNN####HHHHMHMHbWWkk>_       ~_<-(?wWHkWHW$>><<<;<<_.~____.._(<<__~__~___<___~"   --   27
   ,"NNNNNNNNN###HHHHHHMHHkH&+_____~_<i1+++1OZXWXS;><>;>><.~.._....__.____._________~"   --   28
@@ -4054,7 +3964,7 @@ edgeOfTown = fromTextsA ' ' 'B'
 --           1         2         3         4         5         6         7
 --
 
-
+-- ========================================================================
 
 treasureChest :: Craphic
 treasureChest = fromTextsSGR ' '
