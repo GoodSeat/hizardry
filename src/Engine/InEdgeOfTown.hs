@@ -3,8 +3,9 @@ module Engine.InEdgeOfTown (inEdgeOfTown) where
 import Control.Monad (join)
 import Control.Monad.State (modify, put, gets)
 import Control.Monad.Reader (asks)
-import Data.List (sort, sortOn)
+import Data.List (sort, sortOn, elemIndex)
 import Data.Char (toLower)
+import Data.Maybe (fromJust)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -91,6 +92,7 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                                   ,(Key "s", showListOfCharacters 0)
                                   ,(Key "d", selectDeleteTargetCharacter 0)
                                   ,(Key "n", selectCharacterToChangeName 0)
+                                  ,(Key "r", selectReorderTargetCharacter 0)
                                   ,(Key "q", exitGame)]
   where
     msg = Message $ "^C)reate Character\n"
@@ -248,7 +250,7 @@ makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainin
                    Character.spells = sn, Character.maxmp = maxmp', Character.mp = maxmp' }
       w <- world
       let cmap = allCharacters w
-          midn = maximum $ characterId . fst <$> Map.toList cmap
+          midn = maximum $ 0 : (characterId . fst <$> Map.toList cmap)
           nid  = CharacterID $ midn + 1
       put w { allCharacters = Map.insert nid c' cmap
             , inTarvernMember = sort (nid : inTarvernMember w) }
@@ -333,6 +335,32 @@ changeCharacterName h cid = GameAuto $
     changeName newName = do
         c <- characterByID cid
         updateCharacter cid $ c { Character.name = newName }
+
+selectReorderTargetCharacter :: Int -> GameMachine
+selectReorderTargetCharacter = cmdWithCharacterList ("Change Order", changeOrder)
+
+changeOrder :: GameMachine -> CharacterID -> GameMachine
+changeOrder h cid = GameAuto $ do
+    mx <- length . allCharacters <$> world
+    run $ selectEsc (Message $ "^1~" ++ show mx ++ ")New order   ^L)eave `[`E`S`C`]")
+          $ (Key "l", h) : cmdNums mx (\i -> with [changeOrderTo i] h)
+  where
+    changeOrderTo i = do
+        cs  <- Map.toList . allCharacters <$> world
+        let cis  = fst <$> cs
+            cis' = filter (/= cid) cis
+            cist = filter (== cid) cis
+            cis1 = take (i - 1) cis'
+            cis2 = drop (i - 1) cis'
+            cisn = cis1 ++ cist ++ cis2
+            conv n = CharacterID $ fromJust (elemIndex n cisn) + 1
+            conv2 (a, b) = (conv a, b)
+        w <- world
+        put $ w { party           = conv <$> party w
+                , inTarvernMember = conv <$> inTarvernMember w
+                , inMazeMember    = conv2 <$> inMazeMember w
+                , allCharacters   = Map.fromList (conv2 <$> cs)
+                }
 
 -- -----------------------------------------------------------------------
 
