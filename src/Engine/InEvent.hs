@@ -1,10 +1,11 @@
 module Engine.InEvent
 where
 
-import Control.Monad (when)
+import Control.Monad (when, filterM)
 import Control.Monad.State (modify, gets, forM_)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
+import Data.List (sort)
 import qualified Data.Map as Map
 
 import Data.Maze
@@ -125,16 +126,22 @@ returnToCastle = do
     setLightValue True  0
     setLightValue False 0
 
--- TODO: remove dead/stoned/staned characters etc.
-
     resetEffectInOnlyBattle
 
-    modify $ \w -> w { partyParamDelta = [] }
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterByID p
       updateCharacter p c { Chara.paramDelta = [] }
       updateCharacterWith p whenReturnCastle
+
+    -- remove dead/stoned/staned characters etc.
+    rcis <- flip filterM ps $ fmap mustGotoTemple . characterByID
+
+    modify $ \w -> w {
+        partyParamDelta = []
+      , party           = filter (not . (`elem` rcis)) $ party w
+      , inTarvernMember = sort $ inTarvernMember w ++ rcis
+      }
 
 
 -- | remove effects that is valid in battle only.

@@ -251,8 +251,8 @@ whenReturnCastle :: Object o => o -> o
 whenReturnCastle c = foldl (&) c (whenReturnCastle' <$> statusErrorsOf c) 
   where
     whenReturnCastle' :: Object o => StatusError -> o -> o
-    whenReturnCastle' (Poison n) o = setStatusErrors (filter (/= Poison n) $ statusErrorsOf o) o
-    whenReturnCastle' _ o = o
+    whenReturnCastle' (Poison n) = removeStatusError (Poison n)
+    whenReturnCastle' _          = id
 
 whenToNextTurn :: Object o => Int -> o -> o
 whenToNextTurn n o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf o)
@@ -273,16 +273,19 @@ whenBattleEnd :: Object o => o -> o
 whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c) 
   where
     whenBattleEnd' :: Object o => StatusError -> o -> o
-    whenBattleEnd' Silence o = setStatusErrors (filter (/= Silence) $ statusErrorsOf o) o
-    whenBattleEnd' Fear    o = setStatusErrors (filter (/= Fear) $ statusErrorsOf o) o
-    whenBattleEnd' Sleep   o = setStatusErrors (filter (/= Sleep) $ statusErrorsOf o) o
-    whenBattleEnd' _ o = o
+    whenBattleEnd' Silence = removeStatusError Silence
+    whenBattleEnd' Fear    = removeStatusError Fear
+    whenBattleEnd' Sleep   = removeStatusError Sleep
+    whenBattleEnd' _       = id
 
 hasStatusError :: Object o => o -> StatusError -> Bool
 hasStatusError o = (`elem` statusErrorsOf o)
 
 isCantFight :: Object o => o -> Bool
 isCantFight o = any (hasStatusError o) cantFightStatus
+
+mustGotoTemple :: Object o => o -> Bool
+mustGotoTemple = any (\s -> s >= Dead || s == Paralysis || s == Stoned) . statusErrorsOf
 
 cantFightStatus :: [StatusError]
 cantFightStatus = [ Paralysis

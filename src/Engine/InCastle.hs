@@ -2,7 +2,7 @@ module Engine.InCastle (inCastle) where
 
 import PreludeL
 import Prelude hiding ((!!))
-import Control.Monad.State (put)
+import Control.Monad.State (put, filterM)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -109,7 +109,7 @@ selectStayPlan id = GameAuto $ do
                      ++ "^P)ool Gold\n"
                      ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inAdventure'sInn)
-              ,(Key "p", GameAuto $ poolGoldTo id >> run (selectStayPlan id))
+              ,(Key "p", with [poolGoldTo id] (selectStayPlan id))
               ,(Key "a", sleep id  0   0 1)
               ,(Key "b", sleep id  1  10 7)
               ,(Key "c", sleep id  3  50 7)
@@ -125,7 +125,7 @@ sleep :: CharacterID
 sleep id h g d = GameAuto $ do
     c <- characterByID id 
     if Character.gold c < g then
-      run $ events [Message "not money."] $ selectStayPlan id
+      run $ events [Message "no more money."] $ selectStayPlan id
     else do
       updateCharacterWith id Character.healMp
       run $ selectEsc (MessageTime (-1000) ( Character.name c
@@ -179,7 +179,7 @@ selectShopAction id = GameAuto $ do
                      ++ "^P)ool Gold\n"
                      ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inBoltac'sTradingPost)
-              ,(Key "p", GameAuto $ poolGoldTo id >> run (selectShopAction id))
+              ,(Key "p", with [poolGoldTo id] (selectShopAction id))
               ,(Key "b", buyItem id 0)
               ,(Key "s", sellItem id)
               ,(Key "i", determineItem id)
