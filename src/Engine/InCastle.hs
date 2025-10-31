@@ -23,7 +23,7 @@ inCastle = GameAuto $ do
     run $ selectWhen msg [(Key "g", inGilgamesh'sTarvern, True)
                          ,(Key "a", inAdventure'sInn, notnull)
                          ,(Key "b", inBoltac'sTradingPost, notnull)
--- TODO                  ,(Key "t", inTempleOfCant, notnull)
+                         ,(Key "t", inTempleOfCant, notnull)
                          ,(Key "e", inEdgeOfTown, True)
                          ]
   where
@@ -354,5 +354,59 @@ determine cid pos = GameAuto $ do
 
 -- =======================================================================
 
+inTempleOfCant :: GameMachine
+inTempleOfCant = GameAuto $ do
+    movePlace TempleOfCant
+    cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do 
+              c <- characterByID i
+              run $ if mustGotoTemple c then inTempleOfCant
+                                        else selectCureTarget i 0
+    run $ selectEsc msg $ (Key "l", inCastle) : cmds
+  where
+    msg = Message $ "Who will enter?\n\n"
+                 ++ "^#)Select\n"
+                 ++ "^L)eave `[`E`S`C`]\n"
 
+selectCureTarget :: CharacterID -> Int -> GameMachine
+selectCureTarget id page = GameAuto $ do
+    c   <- characterByID id
+    ids <- filterM (fmap mustGotoTemple . characterByID) . inTarvernMember =<< world
+    if page /= 0 && page * 9 >= length ids then run $ selectCureTarget id 0
+    else if page < 0 then run $ selectCureTarget id ((length ids - 1) `div` 9)
+    else do
+      let ids' = take 9 . drop (page * 9) $ ids
+      cs  <- mapM characterByID ids'
+      let msg = Message $ "Who do you want to help?\n"
+                       ++ "^#)Select  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
+                       ++ unlines (toShow <$> zip [1..] cs)
+          lst = (Key "l", inTempleOfCant)
+              : (Key "n", selectCureTarget id $ page + 1)
+              : (Key "p", selectCureTarget id $ page - 1)
+              : cmdNums (length cs) (\i -> cureCharacter id (ids' !! (i - 1)))
+      run $ selectEsc msg lst
+  where
+    toShow (n, c) = show n ++ ") " ++ Character.name c
+
+cureCharacter :: CharacterID -> CharacterID -> GameMachine
+cureCharacter cid cidDst = GameAuto $ do
+    c   <- characterByID cid
+    cd  <- characterByID cidDst
+    let nam = Character.name c
+        gp  = Character.gold c
+        ss  = statusErrorsOf cd
+        lv  = lvOf cd
+        fee | Ash    `elem` ss                        = 500 * lv
+            | Dead   `elem` ss                        = 250 * lv
+            | Stoned `elem` ss && Paralysis `elem` ss = 250 * lv
+            | Stoned `elem` ss                        = 200 * lv
+            | otherwise                               = 100 * lv
+        msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
+                     ++ "The prayer fee is " ++ show fee ++ " G.P.  ...OK?\n"
+                     ++ "  ^Y)es\n"
+                     ++ "  ^P)ool Gold\n"
+                     ++ "  ^L)eave `[`E`S`C`]\n"
+        lst = (Key "l", events [FlashMessage (-1000) "\n     Get out! You cheap traitor!     \n "] $ selectCureTarget cid 0)
+            : (Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
+            : []
+    run $ selectEsc msg lst
 
