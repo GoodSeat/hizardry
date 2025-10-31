@@ -41,30 +41,39 @@ inGilgamesh'sTarvern = GameAuto $ do
     np <- length . party <$> world
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter inGilgamesh'sTarvern False) (const True)
     run $ selectWhenEsc msg $ (Key "l", inCastle, True)
-                            : (Key "a", selectCharacterAddToParty, np < 6)
+                            : (Key "a", selectCharacterAddToParty 0, np < 6)
                             : (Key "r", selectCharacterRemoveFromParty, np > 0)
                             : (Key "d", GameAuto $ divvyGold >> run inGilgamesh'sTarvern, np > 0)
                             : cmdsInspect
   where
-    msg = Message $ "^A)dd\n"
-                 ++ "^R)emove\n"
-                 ++ "^#)Inspect\n"
+    msg = Message $ "^A)dd Character to Party\n"
+                 ++ "^R)emove Character from Party\n"
+                 ++ "^#)Inspect Character\n"
                  ++ "^D)ivvy Gold\n"
                  ++ "^L)eave `[`E`S`C`]\n"
 
-selectCharacterAddToParty :: GameMachine
-selectCharacterAddToParty = GameAuto $ do
+selectCharacterAddToParty :: Int -> GameMachine
+selectCharacterAddToParty page = GameAuto $ do
     np  <- length . party <$> world
     ids <- inTarvernMember <$> world
-    cs  <- mapM characterByID ids
-    let msg = "^#)Add to Party    ^L)eave `[`E`S`C`]\n\n"
-            ++ unlines (toShow <$> zip [1..] cs)
-    let lst = (Key "l", inGilgamesh'sTarvern)
-            : cmdNums (length ids) (\i -> addParty (ids !! (i - 1)))
-    run $ if np >= 6 || null ids then inGilgamesh'sTarvern
-                                 else selectEsc (Message msg) lst
+    if page /= 0 && page * 9 >= length ids then run $ selectCharacterAddToParty 0
+    else if page < 0 then run $ selectCharacterAddToParty ((length ids - 1) `div` 9)
+    else do
+      let ids' = take 9 . drop (page * 9) $ ids
+      cs  <- mapM characterByID ids'
+      let msg = "^#)Add to Party  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
+              ++ unlines (toShow <$> zip [1..] cs)
+      let lst = (Key "l", inGilgamesh'sTarvern)
+              : (Key "n", selectCharacterAddToParty $ page + 1)
+              : (Key "p", selectCharacterAddToParty $ page - 1)
+              : cmdNums (length cs) (\i ->
+                  if np == 0 && mustGotoTemple (cs !! (i - 1)) then selectCharacterAddToParty page
+                                                               else addParty (ids' !! (i - 1))
+                  )
+      run $ if np >= 6 || null ids then inGilgamesh'sTarvern
+                                   else selectEsc (Message msg) lst
   where
-    addParty id = with [addCharacterToParty id] selectCharacterAddToParty
+    addParty id = with [addCharacterToParty id] (selectCharacterAddToParty page)
     toShow (n, c) = show n ++ ") " ++ Character.name c
 
 selectCharacterRemoveFromParty :: GameMachine
