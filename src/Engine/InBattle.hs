@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module Engine.InBattle (startBattle) where
 
 import Data.List
@@ -315,8 +316,9 @@ act (ByEnemies l e a) next = GameAuto $ do
           Enemy.Breath f attrs   -> do
               ps <- party <$> world
               ts <- castDamageSpell f attrs (Right e') (Left $ toPartyPos <$> [1..length ps])
-              let toMsg t = Message $ (nameOf e ++ " spit out a breath.\n") ++ t
-              run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
+              let toMsg (_, t, d) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
+                                    in if d then toEffect True msg else [(return(), Message msg)]
+              run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
           Enemy.Run              -> do
               en   <- enemyNameOf e'
               updateEnemy e' $ const e' { Enemy.hp = 0 }
@@ -331,7 +333,7 @@ determineActions :: [(CharacterID, Action)]
 determineActions cmds = do
     pcs  <- mapM toPair cmds
     elss <- zip [1..] <$> lastEnemies
-    ecs  <- mapM toEnemyAction $ concatMap (\(l, es) -> zip (repeat l) es) elss
+    ecs  <- mapM toEnemyAction $ concatMap (\(l, es) -> map (l,) es) elss
     return $ snd <$> sortOn fst (pcs ++ ecs)
   where
     toPair :: (CharacterID, Action) -> GameState (Int, BattleAction)

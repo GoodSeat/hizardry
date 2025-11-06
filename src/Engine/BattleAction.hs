@@ -333,19 +333,20 @@ castInBattle :: Verb -> Cast
 castInBattle v n ca (Left cid) dst next = GameAuto $ do
     src <- characterByID cid
     ts  <- ca (Left src) dst
-    let toMsg t = Message $ (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-    run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
+    let toMsg (_, t, d) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+                          in if d then toEffect False msg else [(return(), Message msg)]
+    run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
 castInBattle v n ca (Right e) dst next = GameAuto $ do
     ts <- ca (Right e) dst
-    let toMsg t = Message $ (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-    run $ events (toMsg <$> "" : (snd <$> ts)) (with (fst <$> ts) next)
+    let toMsg (_, t, d) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+                          in if d then toEffect True msg else [(return(), Message msg)]
+    run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
 
 
 type CastAs = (Verb -> Cast) -> Cast
 
 asSpell cast = cast verbForSpell
 asItem  cast = cast verbForItem
-
 
 -- --------------------------------------------------------------------------------
 

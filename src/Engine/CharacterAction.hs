@@ -351,13 +351,13 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.Damage _  -> undefined
       Spell.Cure f ss -> do
         efs <- castCureSpell f ss (Left c) (Left tgt)
-        run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+        run $ with (fst3 <$> efs) (events [ShowStatus cid "done" SingleKey] next)
       Spell.ChangeParam ad term etxt -> do
         efs <- castParamChangeSpell ad term etxt (Left c) (Left tgt)
-        run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+        run $ with (fst3 <$> efs) (events [ShowStatus cid "done" SingleKey] next)
       Spell.AddLight n s -> do
         efs <- castAddLight n s (Left c) (Left tgt)
-        run $ with (fst <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+        run $ with (fst3 <$> efs) (events [ShowStatus cid "done" SingleKey] next)
       Spell.CheckLocation t -> do
         p              <- currentPosition
         (fn, (w,h), m) <- asks ((!! z p) . mazes)
@@ -376,12 +376,11 @@ showMap msg (x,y) next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`
                                    ,(Key "w", showMap msg (x,y+1) next)
                                    ]
 
-
 -- --------------------------------------------------------------------------------
 
-type CastAction = (Either Chara.Character Enemy.Instance  -- ^ src
-                -> Either [PartyPos] [Enemy.Instance]     -- ^ dst (if it is empty, target is party)
-                -> GameState [(GameState (), String)])
+type CastAction = (Either Chara.Character Enemy.Instance     -- ^ src
+                -> Either [PartyPos] [Enemy.Instance]        -- ^ dst (if it is empty, target is party)
+                -> GameState [(GameState (), String, Bool)]) -- ^ effect (effect, message, damage occured)
 
 castCureSpell :: Formula -> [StatusError] -> CastAction
 castCureSpell f ss (Left src) (Left is) = do
@@ -399,7 +398,7 @@ castCureSpell f ss (Left src) (Left is) = do
                     nameOf dst ++ " heal " ++ show (hpOf dst' - hpOf dst) ++ "."
                   else
                     nameOf dst ++ " cured."
-        return [(updateCharacter id dst', msg)]
+        return [(updateCharacter id dst', msg, False)]
     return $ concat ts
 castCureSpell f ss (Right src) (Right is) = do
     ts <- forM is $ \dst -> do
@@ -413,7 +412,7 @@ castCureSpell f ss (Right src) (Right is) = do
                     nameOf dst ++ " heal " ++ show (hpOf dst' - hpOf dst) ++ "."
                   else
                     nameOf dst ++ " cured."
-        return [(updateEnemy dst (const dst'), msg)]
+        return [(updateEnemy dst (const dst'), msg, False)]
     return $ concat ts
 castCureSpell _ _ _ _ = undefined
 
@@ -423,14 +422,14 @@ castParamChangeSpell ad term etxt (Left src) (Left is)
     | null is = do
           prmc <- toParamChange (Left src) (Left src) ad
           return [(modify $ \w -> w { partyParamDelta = Spell.applyChangeParam term prmc (partyParamDelta w) }
-                  , "party " ++ etxt ++ ".")]
+                  , "party " ++ etxt ++ ".", False)]
     | otherwise = concat <$> forM is (\i -> do
           dst  <- characterIDInPartyAt i
           cdst <- characterInPartyAt i
           prmc <- toParamChange (Left src) (Left cdst) ad
           if hpOf cdst == 0 then return []
           else return [(updateCharacter dst $ cdst { Chara.paramDelta = Spell.applyChangeParam term prmc (Chara.paramDelta cdst) }
-                      , nameOf cdst ++ " " ++ etxt ++ ".")]
+                      , nameOf cdst ++ " " ++ etxt ++ ".", False)]
           )
 castParamChangeSpell ad term etxt (Right src) (Right is) = concat <$> forM is (\dst -> do
     prmc <- toParamChange (Right src) (Right dst) ad
@@ -441,7 +440,7 @@ castParamChangeSpell ad term etxt (Right src) (Right is) = concat <$> forM is (\
                                , effectName = effectName org ++ effectName prmc ++ "\n" }
     if hpOf dst == 0 then return []
     else return [(updateEnemy dst $ const dst { Enemy.modParam = p' }
-                , nameOf dst ++ " " ++ etxt ++ ".")]
+                , nameOf dst ++ " " ++ etxt ++ ".", False)]
     )
 
 castDamageSpell :: Formula -> [EffectLabel] -> CastAction
@@ -454,10 +453,11 @@ castDamageSpell f attrs (Left c) (Right es) = do
         d  <- evalWith m f
         d' <- applyVsEffect attrs vs (Left c) (Right e) d
         let e' = damageHp d' e
-        let msg = if d /= 0 && d' == 0 then nameOf e ++ " resisted."
-                                       else nameOf e ++ " takes " ++ show d' ++ "."
-        return $ (updateEnemy e (const e'), msg)
-               : [(return (), msg ++ "\n" ++ nameOf e ++ " is killed.") | Enemy.hp e' <= 0]
+            noDamage = d /= 0 && d' == 0
+        let msg = if noDamage then nameOf e ++ " resisted."
+                              else nameOf e ++ " takes " ++ show d' ++ "."
+        return $ (updateEnemy e (const e'), msg, not noDamage)
+               : [(return (), msg ++ "\n" ++ nameOf e ++ " is killed.", False) | Enemy.hp e' <= 0]
     return $ concat ts
 castDamageSpell f attrs s@(Right e) (Left is) = do
     ts <- forM is $ \i -> do
@@ -469,16 +469,17 @@ castDamageSpell f attrs s@(Right e) (Left is) = do
         d  <- evalWith m f
         d' <- applyVsEffect attrs vs s (Left c)  d
         let c' = damageHp d' c
-        let msg = if d /= 0 && d' == 0 then nameOf c ++ " resisted."
-                                       else nameOf c ++ " takes " ++ show d' ++ "."
+            noDamage = d /= 0 && d' == 0
+        let msg = if noDamage then nameOf c ++ " resisted."
+                              else nameOf c ++ " takes " ++ show d' ++ "."
         cid <- characterIDInPartyAt i
-        return $ (updateCharacter cid c', msg)
-               : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.") | hpOf c' <= 0]
+        return $ (updateCharacter cid c', msg, not noDamage)
+               : [(return (), msg ++ "\n" ++ nameOf c ++ " is killed.", False) | hpOf c' <= 0]
     return $ concat ts
 castDamageSpell f attrs src dst = error $ "castDamageSpell:" ++ show f ++ ", src=" ++ show src ++ ", dst=" ++ show dst
 
 
 castAddLight :: Int -> Bool -> CastAction
-castAddLight n s _ _ = return [(setLightValue s n, "it is brightly lit.")]
+castAddLight n s _ _ = return [(setLightValue s n, "it is brightly lit.", False)]
 
 

@@ -45,6 +45,11 @@ msgDebug t = do
     w <- world
     when (debugMode w) $ put w { debugMessage = t : debugMessage w }
 
+
+fst3 (t1, _, _) = t1
+snd3 (_, t2, _) = t2
+thr3 (_, _, t3) = t3
+
 -- =================================================================================
 
 eval :: Formula -> GameState Int
