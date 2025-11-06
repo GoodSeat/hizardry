@@ -398,13 +398,17 @@ enemyNameOf e = nameOf <$> enemyDefineByID (Enemy.id e)
 
 toEffect :: Bool -> String -> [(GameState(), Event)]
 toEffect fromEnemy msg =
-    let d1  = modify $ \w -> if fromEnemy then w { sceneTrans = sceneTrans w . translate ( 0,  1) }
+    let d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
+                                                 , sceneTrans = sceneTrans w . translate ( 0,  1) }
                                           else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
-        d2  = modify $ \w -> if fromEnemy then w { sceneTrans = sceneTrans w . translate (-1,  0) }
+        d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
+                                                 , sceneTrans = sceneTrans w . translate (-1,  0) }
                                           else w { enemyTrans = enemyTrans w . translate (-1,  0) }
-        d3  = modify $ \w -> if fromEnemy then w { sceneTrans = sceneTrans w . translate ( 2, -1) }
+        d3  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 2, -1)
+                                                 , sceneTrans = sceneTrans w . translate ( 2, -1) }
                                           else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
-        d4  = modify $ \w -> if fromEnemy then w { sceneTrans = id }
+        d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
+                                                 , sceneTrans = id }
                                           else w { enemyTrans = id }
         e1  = (d1, MessageTime (-40) msg Nothing)
         e2  = (d2, MessageTime (-30) msg Nothing)

@@ -183,6 +183,7 @@ main = do
                                 ]
           , sceneTrans      = id
           , enemyTrans      = id
+          , frameTrans      = id
           , eventFlags      = repeat 0
 
           , debugMode       = True -- MEMO:forDebug
@@ -323,7 +324,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
 --        <> t1 location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
           <> t1 statusScene
           <> t1 (debugWindow $ debugMessage w) -- MEMO:forDebug
-          <> t1 frame
+          <> t1 (frameTrans w $ frame)
           <> t1 (enemyTrans w $ enemyScene picOf s (place w))
           <> t1 treasureScene
           <> t1 (picOf picID)

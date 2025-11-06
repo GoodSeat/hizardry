@@ -175,7 +175,6 @@ selectBattleCommand i cmds con = GameAuto $ do
                                     Chara.Run     -> "^R)un\n"
                                     Chara.Parry   -> if Chara.Fight `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
                                     Chara.UseItem -> "^U)se Item\n"
-            snd' (_, s, _) = s
         in run $ selectWhen1 (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
 
 selectFightTarget :: [EnemyLine] -> (Action -> GameMachine) -> GameMachine -> GameMachine
@@ -298,20 +297,21 @@ act (ByEnemies l e a) next = GameAuto $ do
               s' <- spellByID . SpellID =<< eval f
               np <- length . party <$> world
               cp <- randomIn $ toPartyPos <$> [1..np]
-              case s' of Just s  -> do
-                           let tt = Spell.target s
-                           if tt == Spell.OpponentSingle ||
-                              tt == Spell.OpponentGroup  ||
-                              tt == Spell.OpponentAll then
-                              run $ spell' s (Right e') (Left cp) next
-                           else if tt == Spell.AllySingle ||
-                                   tt == Spell.AllyGroup then do
-                              ess <- lastEnemies
-                              el  <- randomIn $ toEnemyLine <$> [1..length ess]
-                              run $ spell' s (Right e') (Right el) next
-                           else
-                              run $ spell' s (Right e') (Right L1) next
-                         Nothing -> run $ asSpell castUnknown "?" (Right e') (Left cp) next
+              case s' of
+                Just s  -> do
+                   let tt = Spell.target s
+                   if tt == Spell.OpponentSingle ||
+                      tt == Spell.OpponentGroup  ||
+                      tt == Spell.OpponentAll then
+                      run $ spell' s (Right e') (Left cp) next
+                   else if tt == Spell.AllySingle ||
+                           tt == Spell.AllyGroup then do
+                      ess <- lastEnemies
+                      el  <- randomIn $ toEnemyLine <$> [1..length ess]
+                      run $ spell' s (Right e') (Right el) next
+                   else
+                      run $ spell' s (Right e') (Right L1) next
+                Nothing -> run $ asSpell castUnknown "?" (Right e') (Left cp) next
 
           Enemy.Breath f attrs   -> do
               ps <- party <$> world
@@ -331,23 +331,21 @@ act (ByEnemies l e a) next = GameAuto $ do
 determineActions :: [(CharacterID, Action)]
                  -> GameState [BattleAction]
 determineActions cmds = do
-    pcs  <- mapM toPair cmds
+    pcs  <- mapM toCharacterAction cmds
     elss <- zip [1..] <$> lastEnemies
     ecs  <- mapM toEnemyAction $ concatMap (\(l, es) -> map (l,) es) elss
     return $ snd <$> sortOn fst (pcs ++ ecs)
   where
-    toPair :: (CharacterID, Action) -> GameState (Int, BattleAction)
-    toPair (id, act) = do
+    toCharacterAction :: (CharacterID, Action) -> GameState (Int, BattleAction)
+    toCharacterAction (id, act) = do
         c   <- characterByID id
         key <- agiBonus . agility =<< paramOf (Left c)
         return (key, ByParties id act)
-
-
-toEnemyAction :: (Int, Enemy.Instance) -> GameState (Int, BattleAction)
-toEnemyAction (l, ei) = do
-    key <- agiBonus . agility =<< paramOf (Right ei)
-    act <- randomIn $ Enemy.actions (Enemy.define ei)
-    return (key, ByEnemies l ei act)
+    toEnemyAction :: (Int, Enemy.Instance) -> GameState (Int, BattleAction)
+    toEnemyAction (l, ei) = do
+        key <- agiBonus . agility =<< paramOf (Right ei)
+        act <- randomIn $ Enemy.actions (Enemy.define ei)
+        return (key, ByEnemies l ei act)
 
 
 agiBonus :: Int -> GameState Int

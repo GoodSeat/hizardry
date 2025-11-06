@@ -36,6 +36,7 @@ data World = World {
 
     , sceneTrans      :: Filter
     , enemyTrans      :: Filter
+    , frameTrans      :: Filter
     , eventFlags      :: [Int] -- ^ global flag for event.
 
     , debugMode       :: !Bool
@@ -68,6 +69,7 @@ data WorldOption = WorldOption {
 --       belows contents are not save target.
 --         * sceneTrans (always restore as "id")
 --         * enemyTrans (always restore as "id")
+--         * frameTrans (always restore as "id")
 --       and when classic mode, belows contents also not target.
 --         * party        (always [])
 --         * place        (always InCastle)
