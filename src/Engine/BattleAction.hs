@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module Engine.BattleAction
 where
 
@@ -9,6 +10,7 @@ import Data.Function ((&))
 import Data.Map hiding (filter, null, foldl, foldl', take, drop)
 import Control.Monad
 import Control.Monad.Reader (asks)
+import Control.Monad.State (modify)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -22,6 +24,7 @@ import qualified Data.Characters as Chara
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
 
+import Control.CUI (translate)
 
 type ActionOfCharacter = CharacterID  -- ^ id of actor.
                       -> EnemyLine    -- ^ number that means target.
@@ -39,8 +42,10 @@ fightOfCharacter id el next = GameAuto $ do
         (h, d, ses) <- fightDamage el c e
         let e' = damageHp d e
         updateEnemy e $ const e'
-        es <- fmap Message <$> fightMessage c e' (h, d, ses)
-        run $ events es next
+        ms <- fightMessage c e' (h, d, ses)
+        let ess = if d == 0 || el /= L1 then (return (),) . Message <$> ms
+                                        else toEffect False (head ms) ++ ((return (),) . Message <$> tail ms)
+        run $ events' ess next
 
 fightDamage :: EnemyLine
             -> Chara.Character
@@ -124,8 +129,10 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
       (h, d, ses) <- fightDamageE n e c dmg sts
       let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
          -- TODO:lv drain
-      es <- fmap Message <$> fightMessageE e c' (h, d, ses)
-      run $ events es (with [updateCharacter (ps !! idc) c'] next)
+      ms <- fightMessageE e c' (h, d, ses)
+      let ess = if d == 0 then (return (),) . Message <$> ms
+                          else toEffect True (head ms) ++ ((return (),) . Message <$> tail ms)
+      run $ events' ess (with [updateCharacter (ps !! idc) c'] next)
 
 fightDamageE :: Int             -- ^ count of attack.
              -> Enemy.Instance  -- ^ attacker enemy.
@@ -256,7 +263,7 @@ spell' :: Spell.Define -> SpellEffect
 spell' def = cast verbForSpell (Spell.name def) def
 
 cast :: Verb -> String -> Spell.Define -> SpellEffect
-cast v name def = let as = \cast -> cast v in case Spell.effect def of
+cast v name def = let as cast = cast v in case Spell.effect def of
     Spell.Damage f  -> case Spell.target def of
       Spell.OpponentSingle -> castToSingle as name (castDamageSpell f $ Spell.attrLabels def)
       Spell.OpponentGroup  -> castToGroup  as name (castDamageSpell f $ Spell.attrLabels def)
@@ -387,3 +394,19 @@ enemyNameOf e = nameOf <$> enemyDefineByID (Enemy.id e)
   where
     nameOf = if Enemy.determined e then Enemy.name else Enemy.nameUndetermined
 
+
+toEffect :: Bool -> String -> [(GameState(), Event)]
+toEffect fromEnemy msg =
+    let d1  = modify $ \w -> if fromEnemy then w { sceneTrans = sceneTrans w . translate ( 0,  1) }
+                                          else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
+        d2  = modify $ \w -> if fromEnemy then w { sceneTrans = sceneTrans w . translate (-1,  0) }
+                                          else w { enemyTrans = enemyTrans w . translate (-1,  0) }
+        d3  = modify $ \w -> if fromEnemy then w { sceneTrans = sceneTrans w . translate ( 2, -1) }
+                                          else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
+        d4  = modify $ \w -> if fromEnemy then w { sceneTrans = id }
+                                          else w { enemyTrans = id }
+        e1  = (d1, MessageTime (-40) msg Nothing)
+        e2  = (d2, MessageTime (-30) msg Nothing)
+        e3  = (d3, MessageTime (-40) msg Nothing)
+        e4  = (d4, Message           msg)
+    in [e1,e2,e3,e4]

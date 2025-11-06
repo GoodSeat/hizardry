@@ -182,6 +182,7 @@ main = do
                                 , (CharacterID 4, testChara4)
                                 ]
           , sceneTrans      = id
+          , enemyTrans      = id
           , eventFlags      = repeat 0
 
           , debugMode       = True -- MEMO:forDebug
@@ -323,10 +324,10 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
           <> t1 statusScene
           <> t1 (debugWindow $ debugMessage w) -- MEMO:forDebug
           <> t1 frame
-          <> t1 (enemyScene picOf s (place w))
+          <> t1 (enemyTrans w $ enemyScene picOf s (place w))
           <> t1 treasureScene
           <> t1 (picOf picID)
-          <> t1 (sceneTrans w (scene (place w) (partyLight w > 0) (partyLight' w > 0) s))
+          <> t1 (sceneTrans w $ scene (place w) (partyLight w > 0) (partyLight' w > 0) s)
   where
     t1    = translate (1, 1)
     ps    = flip Map.lookup (allCharacters w) <$> party w

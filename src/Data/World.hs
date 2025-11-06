@@ -35,6 +35,7 @@ data World = World {
     , allCharacters   :: !Character.DB
 
     , sceneTrans      :: Filter
+    , enemyTrans      :: Filter
     , eventFlags      :: [Int] -- ^ global flag for event.
 
     , debugMode       :: !Bool
@@ -66,6 +67,7 @@ data WorldOption = WorldOption {
 -- TODO!:explicit saving(only in Edge of Town, or Castle. Auto?).
 --       belows contents are not save target.
 --         * sceneTrans (always restore as "id")
+--         * enemyTrans (always restore as "id")
 --       and when classic mode, belows contents also not target.
 --         * party        (always [])
 --         * place        (always InCastle)
