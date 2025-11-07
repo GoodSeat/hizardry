@@ -421,27 +421,30 @@ tryCureCharacter cid cidDst = GameAuto $ do
         ss  = statusErrorsOf cd
         isAsh  = Ash `elem` ss
         isDead = Dead `elem` ss
-    m   <- formulaMapC c
-    succeed <- happens =<< if      Ash  `elem` ss then evalWith m $ parse' "50-age+3*vit"
-                           else if Dead `elem` ss then evalWith m $ parse' "60-age+3*vit"
-                           else return 100
-    when succeed $ updateCharacterWith cidDst $ \c -> c { Character.statusErrors = [] 
-                                                        , Character.hp  = if Character.hp c == 0 then Character.maxhp c   else Character.hp c
-                                                        , Character.age = if Character.hp c == 0 then Character.age c + 1 else Character.age c
-                                                        }
-    when (not succeed && isDead) $ updateCharacterWith cidDst $ \c -> c { Character.statusErrors = [Ash] }
-    when (not succeed && isAsh ) $ do
-        updateCharacterWith cidDst (\c -> c { Character.statusErrors = [Lost] })
-        modify (\w -> w { inTarvernMember = filter (/= cidDst) $ inTarvernMember w })
+    let prob | Ash  `elem` ss = "50-age+3*vit"
+             | Dead `elem` ss = "60-age+3*vit"
+             | otherwise      = "100"
+    run $ parse'D prob "success probability?" (\f -> GameAuto $ do
+        m       <- formulaMapC c
+        succeed <- happens =<< evalWith m f
+        when succeed $ updateCharacterWith cidDst $ \c -> c { Character.statusErrors = [] 
+                                                            , Character.hp  = if Character.hp c == 0 then Character.maxhp c   else Character.hp c
+                                                            , Character.age = if Character.hp c == 0 then Character.age c + 1 else Character.age c
+                                                            }
+        when (not succeed && isDead) $ updateCharacterWith cidDst $ \c -> c { Character.statusErrors = [Ash] }
+        when (not succeed && isAsh ) $ do
+            updateCharacterWith cidDst (\c -> c { Character.statusErrors = [Lost] })
+            modify (\w -> w { inTarvernMember = filter (/= cidDst) $ inTarvernMember w })
 
-    let mg | succeed   = nam ++ " has recovered."
-           | isAsh     = nam ++ " is lost."
-           | isDead    = nam ++ " reduced to ashes."
-           | otherwise = nam ++ " has recovered."
-    let ms  = FlashMessage 1000 <$> ["  MURMUR                          "
-                                    ,"  MURMUR - CHANT                  " 
-                                    ,"  MURMUR - CHANT - PRAY           " 
-                                    ,"  MURMUR - CHANT - PRAY - INVOKE! "]
-        mg' = "  MURMUR - CHANT - PRAY - INVOKE! \n\n    " ++ mg
-    run $ events (ms ++ [FlashMessage (-100000) mg']) $ selectCureTarget cid 0
+        let mg | succeed   = nam ++ " has recovered."
+               | isAsh     = nam ++ " is lost."
+               | isDead    = nam ++ " reduced to ashes."
+               | otherwise = nam ++ " has recovered."
+        let ms  = FlashMessage 1000 <$> [" MURMUR                          "
+                                        ," MURMUR - CHANT                  " 
+                                        ," MURMUR - CHANT - PRAY           " 
+                                        ," MURMUR - CHANT - PRAY - INVOKE! "]
+            mg' = " MURMUR - CHANT - PRAY - INVOKE! \n\n   " ++ mg
+        run $ events (ms ++ [FlashMessage (-100000) mg']) $ selectCureTarget cid 0
+        )
 

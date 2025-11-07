@@ -45,6 +45,12 @@ msgDebug t = do
     w <- world
     when (debugMode w) $ put w { debugMessage = t : debugMessage w }
 
+parse'D :: String -> String -> (Formula -> GameMachine) -> GameMachine
+parse'D s help next = GameAuto $ do
+    w <- world
+    if debugMode w then return (Ask (help ++ "\n orginal:" ++ s ++ "\n (emtpy to use original.)") Nothing
+                               , \(Key s') -> next $ parse' (if null s' then s else s'))
+                   else run $ next (parse' s)
 
 fst3 (t1, _, _) = t1
 snd3 (_, t2, _) = t2
