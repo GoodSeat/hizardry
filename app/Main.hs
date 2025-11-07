@@ -265,7 +265,7 @@ getKey refresh itype = do
         showCursor
         (Key <$> getLine) <* (cursorUp 1 >> clearLine >> hideCursor >> refresh)
     getKey' (WaitClock n)
-      | n > 0     = threadDelay (n * 1000) >> return Clock
+      | n > 0     = race (threadDelay $ n * 1000) ignoreKey >> return Clock
       | otherwise = do
           x <- race (threadDelay $ n * (-1000)) waitKey
           return $ case x of Left  _ -> Clock
@@ -277,6 +277,13 @@ waitKey = do
     buf <- hReady stdin
     if buf then getChar
            else threadDelay 50000 >> waitKey
+
+ignoreKey :: IO ()
+ignoreKey = do
+    hSetBuffering stdin NoBuffering
+    buf <- hReady stdin
+    when buf $ void getChar
+    threadDelay 50000 >> ignoreKey
 
 -- ==========================================================================
 
