@@ -2,7 +2,8 @@ module Engine.InCastle (inCastle) where
 
 import PreludeL
 import Prelude hiding ((!!))
-import Control.Monad.State (put, filterM)
+import Control.Monad (when)
+import Control.Monad.State (put, filterM, modify)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -13,6 +14,7 @@ import Data.World
 import Data.Primitive
 import Data.Bifunctor (bimap)
 import Data.List (sort, sortOn)
+import Data.Formula
 import qualified Data.Characters as Character
 import qualified Data.Items as Item
 
@@ -369,7 +371,6 @@ inTempleOfCant = GameAuto $ do
 
 selectCureTarget :: CharacterID -> Int -> GameMachine
 selectCureTarget id page = GameAuto $ do
-    c   <- characterByID id
     ids <- filterM (fmap mustGotoTemple . characterByID) . inTarvernMember =<< world
     if page /= 0 && page * 9 >= length ids then run $ selectCureTarget id 0
     else if page < 0 then run $ selectCureTarget id ((length ids - 1) `div` 9)
@@ -405,8 +406,42 @@ cureCharacter cid cidDst = GameAuto $ do
                      ++ "  ^Y)es\n"
                      ++ "  ^P)ool Gold\n"
                      ++ "  ^L)eave `[`E`S`C`]\n"
-        lst = (Key "l", events [FlashMessage (-1000) "\n     Get out! You cheap traitor!     \n "] $ selectCureTarget cid 0)
-            : (Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
-            : []
+    canSpent <- canSpentGold cid fee
+    let lst =[(Key "l", selectCureTarget cid 0)
+             ,(Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
+             ,(Key "y", if canSpent then with [spentGold cid fee] $ tryCureCharacter cid cidDst
+                                    else events [FlashMessage (-1000) "\n     Get out! You cheap traitor!     \n "] $ selectCureTarget cid 0)]
     run $ selectEsc msg lst
+
+tryCureCharacter :: CharacterID -> CharacterID -> GameMachine
+tryCureCharacter cid cidDst = GameAuto $ do
+    c   <- characterByID cid
+    cd  <- characterByID cidDst
+    let nam = Character.name cd
+        ss  = statusErrorsOf cd
+        isAsh  = Ash `elem` ss
+        isDead = Dead `elem` ss
+    m   <- formulaMapC c
+    succeed <- happens =<< if      Ash  `elem` ss then evalWith m $ parse' "50-age+3*vit"
+                           else if Dead `elem` ss then evalWith m $ parse' "60-age+3*vit"
+                           else return 100
+    when succeed $ updateCharacterWith cidDst $ \c -> c { Character.statusErrors = [] 
+                                                        , Character.hp  = if Character.hp c == 0 then Character.maxhp c   else Character.hp c
+                                                        , Character.age = if Character.hp c == 0 then Character.age c + 1 else Character.age c
+                                                        }
+    when (not succeed && isDead) $ updateCharacterWith cidDst $ \c -> c { Character.statusErrors = [Ash] }
+    when (not succeed && isAsh ) $ do
+        updateCharacterWith cidDst (\c -> c { Character.statusErrors = [Lost] })
+        modify (\w -> w { inTarvernMember = filter (/= cidDst) $ inTarvernMember w })
+
+    let mg | succeed   = nam ++ " has recovered."
+           | isAsh     = nam ++ " is lost."
+           | isDead    = nam ++ " reduced to ashes."
+           | otherwise = nam ++ " has recovered."
+    let ms  = FlashMessage 1000 <$> ["  MURMUR                          "
+                                    ,"  MURMUR - CHANT                  " 
+                                    ,"  MURMUR - CHANT - PRAY           " 
+                                    ,"  MURMUR - CHANT - PRAY - INVOKE! "]
+        mg' = "  MURMUR - CHANT - PRAY - INVOKE! \n\n    " ++ mg
+    run $ events (ms ++ [FlashMessage (-100000) mg']) $ selectCureTarget cid 0
 

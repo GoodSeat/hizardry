@@ -139,28 +139,24 @@ characterInPartyAt pos = characterByID =<< characterIDInPartyAt pos
 
 
 addCharacterToParty :: CharacterID -> GameState ()
-addCharacterToParty id = do
-    w <- world
-    put $ w { party           = party w ++ [id]
-            , inTarvernMember = filter (/= id) $ inTarvernMember w
-            , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
-            }
+addCharacterToParty id = modify $ \w -> w {
+      party           = party w ++ [id]
+    , inTarvernMember = filter (/= id) $ inTarvernMember w
+    , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
+    }
 
 deleteCharacter :: CharacterID -> GameState ()
-deleteCharacter id = do
-    w <- world
-    put $ w { party           = filter (/= id) $ party w
-            , inTarvernMember = filter (/= id) $ inTarvernMember w
-            , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
-            , allCharacters   = Data.Map.delete id $ allCharacters w
-            }
+deleteCharacter id = modify $ \w -> w {
+      party           = filter (/= id) $ party w
+    , inTarvernMember = filter (/= id) $ inTarvernMember w
+    , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
+    , allCharacters   = Data.Map.delete id $ allCharacters w
+    }
 
 
 
 updateCharacter :: CharacterID -> Chara.Character -> GameState ()
-updateCharacter id c = do
-    w  <- world
-    put $ w { allCharacters = insert id c (allCharacters w) }
+updateCharacter id c = modify $ \w -> w { allCharacters = insert id c (allCharacters w) }
 
 updateCharacterWith :: CharacterID -> (Chara.Character -> Chara.Character) -> GameState ()
 updateCharacterWith id f = do
@@ -185,6 +181,13 @@ divvyGold = do
         gs = fmap (gp+) (replicate su 1 ++ repeat 0)
     forM_ (zip ids gs) $ \(id', g) -> updateCharacterWith id' $ \c -> c { Chara.gold = g }
 
+canSpentGold :: CharacterID -> Int -> GameState Bool
+canSpentGold cid gp = do
+    c <- characterByID cid
+    return $ gp <= Chara.gold c
+
+spentGold :: CharacterID -> Int -> GameState ()
+spentGold cid gp = updateCharacterWith cid $ \c -> c { Chara.gold = Chara.gold c - gp }
 
 equipOf :: Chara.Character -> (Item.Define -> Bool) -> GameState (Maybe Item.Define)
 equipOf c isTarget = do
@@ -530,20 +533,23 @@ formulaMapSBase s = addParamBase "" s empty
 formulaMapSOBase :: TargetSO -> TargetSO -> Map String Int
 formulaMapSOBase s o = addParamBase "o." o . addParamBase "" s $ empty
 
-
-formulaMap1 :: Int -> Int -> Chara.Character -> GameState (Map String Int)
-formulaMap1 i n o = do
+formulaMapC :: Chara.Character -> GameState (Map String Int)
+formulaMapC o = do
      m <- formulaMapS (Left o)
-     return $ insert "order" i
-            . insert "partynum" n
-            . insert "partynum" n
-            . insert "age"     (Chara.age  o)
+     return $ insert "age"     (Chara.age  o)
             . insert "exp"     (Chara.exp  o)
             . insert "gold"    (Chara.gold o)
             . insert "marks"   (Chara.marks o)
             . insert "rips"    (Chara.rips o)
             $ m
 
+formulaMapCP :: Int -> Int -> Chara.Character -> GameState (Map String Int)
+formulaMapCP i n o = do
+     m <- formulaMapC o
+     return $ insert "order" i
+            . insert "partynum" n
+            . insert "partynum" n
+            $ m
 
 addEvFlagToFormulaMap :: Map String Int -> GameState (Map String Int)
 addEvFlagToFormulaMap m = do
