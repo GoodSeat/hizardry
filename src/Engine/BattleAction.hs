@@ -214,7 +214,7 @@ useItemInBattle i (Left cid) dst next = GameAuto $ do
          let next' = with [breakItem bp cid i] next
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
-                       Just edef -> run $ doEvent edef (const next') (const next')
+                       Just edef -> run $ doEvent edef (const next') (const next') (\sdef n -> spell' sdef (Left cid) dst n)
 
 useItemInBattle i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
 
@@ -281,9 +281,16 @@ cast v name def = let as cast = cast v in case Spell.effect def of
       Spell.Party          -> castToNull   as name (castParamChangeSpell ad term etxt)
       _                    -> undefined
 --  Spell.AddStatusError ts -> undefined
-    Spell.AddLight n s -> castToNull as name (castAddLight n s)
+    Spell.AddLight n s     -> castToNull as name (castAddLight n s)
     Spell.CheckLocation _  -> as castUnknown name
---  Spell.Event eid -> undefined
+    Spell.Event eid        -> eventSpell eid
+
+eventSpell :: GameEventID -> SpellEffect
+eventSpell eid s o next = GameAuto $ do
+    evDB  <- asks mazeEvents
+    let e = Map.lookup eid evDB
+    run $ case e of Nothing   -> next
+                    Just edef -> doEvent edef (const next) (const next) (\sdef n -> spell' sdef s o n)
 
 -- --------------------------------------------------------------------------------
 

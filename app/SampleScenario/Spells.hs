@@ -53,6 +53,30 @@ spells = Map.fromList [
         , Spell.infomation = "城への階段からの座標を東、北、高さで示す"
     })
     ,
+    (SpellID 15, Spell.Define {
+          Spell.name       = "te"
+        , Spell.kind       = Spell.M
+        , Spell.lv         = 1
+        , Spell.attrLabels = [EffectLabel "mage"]
+        , Spell.target     = Spell.OpponentAll
+        --, Spell.effect     = Spell.CheckLocation Spell.OnlyCoord
+        , Spell.effect     = Spell.Event (GameEventID 070001)
+        , Spell.enableIn   = [Spell.InBattle]
+        , Spell.infomation = "イベント呪文(in battle)"
+    })
+    ,
+    (SpellID 16, Spell.Define {
+          Spell.name       = "return"
+        , Spell.kind       = Spell.M
+        , Spell.lv         = 1
+        , Spell.attrLabels = [EffectLabel "mage"]
+        , Spell.target     = Spell.Party
+        --, Spell.effect     = Spell.CheckLocation Spell.OnlyCoord
+        , Spell.effect     = Spell.Event (GameEventID 070002)
+        , Spell.enableIn   = [Spell.InCamp]
+        , Spell.infomation = "イベント呪文(in camp)"
+    })
+    ,
     (SpellID 21, Spell.Define {
           Spell.name       = "dilto"
         , Spell.kind       = Spell.M

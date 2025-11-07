@@ -80,6 +80,30 @@ mazeEvents = Map.fromList [
          ]
       )
 
+    -- spell
+    , (GameEventID 070001, 
+         Ev.MessageT 10 "you call me?" (Just $ PictureID 1002)
+      <> Ev.Select "you call me?\n  ^Y)es  ^N)o" (Just $ PictureID 1002)
+         [("n", Ev.MessageT (-15) "good by!" (Just $ PictureID 1002) <> Ev.End)
+         ,("y", Ev.Switch [(Ev.PartyPositionIs [Position E 1 2 0], 
+                            Ev.AsSpell (SpellID 73) <> Ev.MessageT (-15) "how about this spell!?       \n...bye!" (Just $ PictureID 1002)
+                            )
+                          ,(Ev.Otherwise, Ev.MessageT 10 "this position is Invalid..." (Just $ PictureID 1002))]
+          )
+         ]
+       )
+    , (GameEventID 070002, 
+         Ev.MessageT 10 "you call me?" (Just $ PictureID 1002)
+      <> Ev.Select "you call me?\n  ^Y)es  ^N)o" (Just $ PictureID 1002)
+         [("n", Ev.MessageT (-15) "good by!" (Just $ PictureID 1002) <> Ev.End)
+         ,("y", Ev.Switch [(Ev.PartyPositionIs [Position E 1 2 0], 
+                            Ev.MessageT (-15) "how about this spell!?       \n...bye!" (Just $ PictureID 0) <> Ev.ReturnCastle
+                            )
+                          ,(Ev.Otherwise, Ev.MessageT 10 "this position is Invalid..." (Just $ PictureID 1002))]
+          )
+         ]
+       )
+
     -- dance event on (1, 5, 0)
     --         WNWSE->NE
     --    step:123456 78

@@ -77,16 +77,20 @@ isInMazeOnly = containsEvent isInMazeOnly'
 
 type DB = Map.Map GameEventID Define
 
-data Condition = PartyHasItem        ItemID
-               | PartyExistAlignment [Character.Alignment]
-               | LeaderKnowSpell     SpellID
-               | LeaderIsJobOf       [String]
-               | FormulaCheckParty   Formula -- ^ probablity happens(0~100).
-               | FormulaCheckLeader  Formula -- ^ probablity happens(0~100).
+data Condition = PartyHasItem           ItemID Bool -- ^ itemID, must determined
+               | PartyExistAlignment    [Character.Alignment]
+               | PartyNotExistAlignment [Character.Alignment]
+               | PartyPositionIs        [Position]
+               | LeaderKnowSpell        SpellID
+               | AnyOneKnowSpell        SpellID
+               | LeaderIsJobOf          [String]
+               | AnyOneIsJobOf          [String]
+               | FormulaCheckParty      Formula -- ^ probablity happens(0~100).
+               | FormulaCheckLeader     Formula -- ^ probablity happens(0~100).
                | And [Condition]
                | Or  [Condition]
                | Otherwise
 
-data TargetType = Leader | All deriving (Show, Read, Eq)
+data TargetType  = Leader | Any | All deriving (Show, Read, Eq)
 
 

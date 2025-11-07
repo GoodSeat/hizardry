@@ -42,6 +42,7 @@ newtype GameEventID = GameEventID {
 } deriving (Show, Eq, Ord, Read)
 
 
+-- TODO:enable same treatment single picture, multiple picture (overlap).
 newtype PictureID = PictureID {
     pictureID :: Int
 } deriving (Show, Eq, Ord, Read)

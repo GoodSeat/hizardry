@@ -83,6 +83,10 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
                        Just edef -> run $ doEvent edef (const next') (const next')
+                                                  (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
+                                                                spellInCampNoCost sdef src dst (with [breakItem bp cid i] n)
+                                                              else
+                                                                events [ShowStatus cid "can't use it here." SingleKey] n)
 useItemInCamp _ _ _ _ = error "invalid useItemInCamp"
 
 
@@ -320,9 +324,11 @@ spellInCamp src next s (Left dst) = GameAuto $ do
         Just def -> if Spell.InCamp `elem` Spell.enableIn def then
                       run $ spellInCamp' def src dst next
                     else
-                      run $ events [ShowStatus cid "can't cast it hear." SingleKey] next
+                      run $ events [ShowStatus cid "can't cast it here." SingleKey] next
         Nothing  -> run $ events [ShowStatus cid "what?" SingleKey] next
-spellInCamp src next s (Right dst) = error "can't target enemy in spellInCamp"
+spellInCamp src next s (Right dst) = GameAuto $ do
+    cid <- characterIDInPartyAt src
+    run $ events [ShowStatus cid "can't cast it here." SingleKey] next
 
 spellInCamp' :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCamp' def src dst next = GameAuto $ do
@@ -358,6 +364,14 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.AddLight n s -> do
         efs <- castAddLight n s (Left c) (Left tgt)
         run $ with (fst3 <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+      Spell.Event eid -> do
+         edef' <- asks (lookup eid . mazeEvents)
+         run $ case edef' of Nothing   -> next
+                             Just edef -> doEvent edef (const next) (const next)
+                                                  (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
+                                                                spellInCampNoCost sdef src dst n
+                                                              else
+                                                                events [ShowStatus cid "can't use it here." SingleKey] n)
       Spell.CheckLocation t -> do
         p              <- currentPosition
         (fn, (w,h), m) <- asks ((!! z p) . mazes)

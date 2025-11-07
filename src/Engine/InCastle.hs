@@ -419,11 +419,11 @@ tryCureCharacter cid cidDst = GameAuto $ do
     cd  <- characterByID cidDst
     let nam = Character.name cd
         ss  = statusErrorsOf cd
-        isAsh  = Ash `elem` ss
+        isAsh  = Ash  `elem` ss
         isDead = Dead `elem` ss
-    let prob | Ash  `elem` ss = "50-age+3*vit"
-             | Dead `elem` ss = "60-age+3*vit"
-             | otherwise      = "100"
+    let prob | isAsh     = "50-age+3*vit"
+             | isDead    = "60-age+3*vit"
+             | otherwise = "100"
     run $ parse'D prob "success probability?" (\f -> GameAuto $ do
         m       <- formulaMapC c
         succeed <- happens =<< evalWith m f
@@ -436,13 +436,13 @@ tryCureCharacter cid cidDst = GameAuto $ do
             updateCharacterWith cidDst (\c -> c { Character.statusErrors = [Lost] })
             modify (\w -> w { inTarvernMember = filter (/= cidDst) $ inTarvernMember w })
 
-        let mg | succeed   = nam ++ " has recovered."
-               | isAsh     = nam ++ " is lost."
-               | isDead    = nam ++ " reduced to ashes."
-               | otherwise = nam ++ " has recovered."
+        let mg | succeed   = nam ++ " has recovered !!"
+               | isAsh     = nam ++ " is lost..."
+               | isDead    = nam ++ " reduced to ashes..."
+               | otherwise = "no change in " ++ nam ++ "'s condition..."
         let ms  = FlashMessage 1000 <$> [" MURMUR                          "
-                                        ," MURMUR - CHANT                  " 
-                                        ," MURMUR - CHANT - PRAY           " 
+                                        ," MURMUR - CHANT                  "
+                                        ," MURMUR - CHANT - PRAY           "
                                         ," MURMUR - CHANT - PRAY - INVOKE! "]
             mg' = " MURMUR - CHANT - PRAY - INVOKE! \n\n   " ++ mg
         run $ events (ms ++ [FlashMessage (-100000) mg']) $ selectCureTarget cid 0

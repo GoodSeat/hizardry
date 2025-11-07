@@ -18,6 +18,7 @@ import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
 import Data.Primitive
+import qualified Data.Spells as Spell
 import qualified Data.Characters as Chara
 import qualified Data.GameEvent as Ev
 
@@ -75,10 +76,12 @@ enterGrid e probEncount evMoved p = GameAuto $ do
                  if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
                  else fmap (,False) <$> checkEncount c False
                else return Nothing
-    case e of Just edef -> run $ doEvent edef (escapeEvent evMoved) (endEvent evMoved)
+    case e of Just edef -> run $ doEvent edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
               Nothing   -> case encount of
                 Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
                 Just (ei, isRB) -> run $ encountEnemy ei isRB
+  where
+    cantSpelling _ = events [Message "can't spelling at this place."]
               
 
 checkRoomBattle :: Coord -> GameState (Maybe (EnemyID, Bool))

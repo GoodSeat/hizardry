@@ -15,19 +15,29 @@ import Engine.GameAuto
 import Engine.Utils
 import qualified Data.GameEvent as Ev
 import qualified Data.Characters as Chara
+import qualified Data.Spells as Spell
 
 import Control.CUI (translate)
 
 -- =======================================================================
 
-doEvent :: Ev.Define -> (Bool -> GameMachine) -> (Bool -> GameMachine) -> GameMachine
+doEvent :: Ev.Define
+        -> (Bool -> GameMachine)                        -- ^ when Escape Event
+        -> (Bool -> GameMachine)                        -- ^ when End Event
+        -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
+        -> GameMachine
 doEvent = doEventInner True
 
-doEventInner :: Bool -> Ev.Define -> (Bool -> GameMachine) -> (Bool -> GameMachine) -> GameMachine
-doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
+doEventInner :: Bool
+             -> Ev.Define
+             -> (Bool -> GameMachine)                        -- ^ when Escape Event
+             -> (Bool -> GameMachine)                        -- ^ when Escape Event
+             -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
+             -> GameMachine
+doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscape
   where
     candidates :: [(String, Ev.Define)] -> [(Input, GameMachine)]
-    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd) | x <- if m == "" then [""] else lines m])
+    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd spelling) | x <- if m == "" then [""] else lines m])
 
     doEvent' :: Ev.Define -> (Bool -> GameMachine) -> GameMachine
     -- moving
@@ -81,6 +91,11 @@ doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
 
 
     -- others
+    doEvent' (Ev.AsSpell sid) next = GameAuto $ do
+        s' <- spellByID sid
+        run $ case s' of Just s  -> spelling s (next isHidden)
+                         Nothing -> next isHidden
+
     doEvent' (Ev.Reference eid) next = GameAuto $ do
       evDB  <- asks mazeEvents
       case Map.lookup eid evDB of Nothing   -> run $ next isHidden
@@ -88,14 +103,24 @@ doEventInner isHidden edef whenEscape whenEnd = doEvent' edef whenEscape
     doEvent' Ev.End    _ = whenEnd    isHidden
     doEvent' Ev.Escape _ = whenEscape isHidden
     doEvent' (Ev.Events [])        next = next isHidden
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' (Ev.Events es) whenEscape whenEnd
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' (Ev.Events es) whenEscape whenEnd spelling
     doEvent' _ next = undefined
 
 
 matchCondition :: Ev.Condition -> GameState Bool
+matchCondition (Ev.PartyHasItem iid mustIdentified) = do
+    os  <- mapM characterByID . party =<< world
+    let is = concatMap Chara.items os
+    return $ any (\(ItemInf id identified) -> id == iid && (not mustIdentified || identified)) is
+matchCondition (Ev.PartyExistAlignment as) = do
+    os  <- mapM characterByID . party =<< world
+    return $ any (`elem` as) (Chara.alignment <$> os)
+matchCondition (Ev.PartyNotExistAlignment as) = do
+    os  <- mapM characterByID . party =<< world
+    return $ all (`notElem` as) (Chara.alignment <$> os)
+matchCondition (Ev.PartyPositionIs ps) = flip elem ps <$> currentPosition
 matchCondition (Ev.FormulaCheckParty f) = do
-    ps  <- party <$> world
-    os  <- mapM characterByID ps
+    os  <- mapM characterByID . party =<< world
     map <- addEvFlagToFormulaMap Map.empty
     n   <- evalWith map f
     happens n

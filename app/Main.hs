@@ -29,6 +29,7 @@ import qualified SampleScenario.Events as SampleEvents
 import qualified SampleScenario.Jobs as SampleJobs
 import qualified SampleScenario.Racies as SampleRacies
 import qualified SampleScenario.Maze as SampleMaze
+import qualified SampleScenario.PicturesOfPrimitives as SamplePicturesOfPrimitives
 import qualified SampleScenario.PicturesOfEnemies as SamplePicturesOfEnemies
 import qualified SampleScenario.PicturesOfEnemiesUnidentified as SamplePicturesOfEnemiesUnidentified
 
@@ -46,11 +47,15 @@ import qualified SampleScenario.PicturesOfEnemiesUnidentified as SamplePicturesO
 -- * secret door
 -- * other spells
 -- * other events
+-- * config
+-- *   all cure when sleep / when return castle(-> delete INN)
 
 -- * scenario parser, save data parser.
 -- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int
 -- *   zip compression with secret keyword. using another exe? deflate?
 
+encKey :: String
+encKey = ""
 
 main :: IO ()
 main = do
@@ -118,7 +123,7 @@ main = do
 
             , Character.job      = SampleJobs.priest
             , Character.alignment= Character.N
-            , Character.spells   = [SpellID 11, SpellID 13, SpellID 14, 
+            , Character.spells   = [SpellID 11, SpellID 13, SpellID 14, SpellID 15, SpellID 16, 
                                     SpellID 112, SpellID 114 
                                    ]
             , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
@@ -216,7 +221,8 @@ main = do
             , items   = SampleItems.items
             }
 
-    let pic (PictureID id) | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
+    let pic (PictureID id) |    0 <= id && id < 1000 = SamplePicturesOfPrimitives.picOfPrimitive id
+                           | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
                            | 2001 <= id && id < 3000 = SamplePicturesOfEnemiesUnidentified.picOfEnemiesUnidentified id
                            | otherwise               = mempty
     let picOf = maybe mempty pic
