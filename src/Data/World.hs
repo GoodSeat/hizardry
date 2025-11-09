@@ -43,6 +43,56 @@ data World = World {
     , debugMessage    :: ![String]
 } -- deriving (Show)
 
+data InitWorld = InitWorld {
+      initGuideOn         :: !Bool   -- ^ visible guidw window in maze.
+    , initStatusOn        :: !Bool   -- ^ visible status window in maze.
+    , initWorldOption     :: !WorldOption
+
+    , initParty           :: ![CharacterID]
+    , initPlace           :: !Place   -- ^ current party position.
+    , initRoomBattled     :: ![Coord] -- ^ already room battled in current mazing.
+    , initPartyLight      :: !Int     -- ^ last time milwa effect.
+    , initPartyLight'     :: !Int     -- ^ last time super milwa effect.(delete dark zone)
+    , initPartyParamDelta :: ![(Term, ParamChange)]
+
+    , initInTarvernMember :: ![CharacterID]
+    , initInMazeMember    :: ![(CharacterID, Position)]
+    , initShopItems       :: !(Map.Map ItemID Int)
+
+    , initAllCharacters   :: !Character.DB
+} deriving (Show)
+
+initWorld :: InitWorld -> StdGen -> Bool -> World
+initWorld i rnd debugMode = World {
+      randomGen       = rnd
+    , guideOn         = initGuideOn          i
+    , statusOn        = initStatusOn         i
+    , worldOption     = initWorldOption      i
+
+    , party           = initParty            i
+    , place           = initPlace            i
+    , roomBattled     = initRoomBattled      i
+    , partyLight      = initPartyLight       i
+    , partyLight'     = initPartyLight'      i
+    , partyParamDelta = initPartyParamDelta  i
+
+    , visitHitory     = Map.empty
+
+    , inTarvernMember = initInTarvernMember  i
+    , inMazeMember    = initInMazeMember     i
+    , shopItems       = initShopItems        i
+
+    , allCharacters   = initAllCharacters    i
+
+    , sceneTrans      = id
+    , enemyTrans      = id
+    , frameTrans      = id
+    , eventFlags      = repeat 0
+
+    , debugMode       = debugMode
+    , debugMessage    = []
+}
+
 data Place  = InCastle
             | Gilgamesh'sTarvern 
             | Adventure'sInn
@@ -62,7 +112,7 @@ data MiniMapType = Disable | Normal | AlwaysN deriving (Show, Eq, Read)
 data WorldOption = WorldOption {
       effectDumapic :: !Spell.CheckLocationType
     , minimapType   :: !MiniMapType
-    } deriving (Show)
+    } deriving (Show, Read)
 
 
 -- TODO!:explicit saving(only in Edge of Town, or Castle. Auto?).
