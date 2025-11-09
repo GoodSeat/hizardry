@@ -42,10 +42,16 @@ newtype GameEventID = GameEventID {
 } deriving (Show, Eq, Ord, Read)
 
 
--- TODO:enable same treatment single picture, multiple picture (overlap).
 newtype PictureID = PictureID {
     pictureID :: Int
 } deriving (Show, Eq, Ord, Read)
+
+
+-- --------------------------------------------------------------------------
+-- TODO:enable same treatment single picture, multiple picture (overlap).
+data PictureInf = Null | Single PictureID | Trans Int Int PictureID | List [PictureInf]
+  deriving (Show, Eq, Read)
+
 
 -- ==========================================================================
 -- label

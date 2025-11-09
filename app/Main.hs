@@ -39,6 +39,9 @@ import qualified SampleScenario.Home as SampleScenario
 -- * config
 -- *   all cure when sleep / when return castle(-> delete INN)
 
+-- * PictureID -> PictureInf, enable to overlap, translate, etc...
+-- * Event -> more universal. enable define for message of each window, PictureInf, clock Time, etc...
+
 -- * scenario parser, save data parser.
 -- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int
 -- *   zip compression with secret keyword. using another exe? deflate?

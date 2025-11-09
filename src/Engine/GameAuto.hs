@@ -39,9 +39,21 @@ data Event = None
 
            | BattleCommand String
            | SpellCommand  String
+           
            | ShowStatus    CharacterID String InputType -- ^ target position in party, manu message, next input type.
            | ShowMap       String (Int, Int)            -- ^ message, translete
     deriving (Show, Eq)
+
+
+-- TODO:Message ~ SpellCommand is replace by General Display, and intialized by alternative function.
+data Display = Display {
+      messageBox :: !(Maybe String)
+    , commandBox :: !(Maybe String)
+    , flashBox   :: !(Maybe String)
+    , waitTime   :: !(Maybe Int)
+    , picture    :: !(Maybe PictureID) -- TODO:must be PictureInf
+} deriving (Show)
+
 
 data ScenarioOption = ScenarioOption {
       enableEffectDumapic :: [Spell.CheckLocationType]
