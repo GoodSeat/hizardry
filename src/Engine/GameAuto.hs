@@ -39,9 +39,21 @@ data Event = None
 
            | BattleCommand String
            | SpellCommand  String
+           
            | ShowStatus    CharacterID String InputType -- ^ target position in party, manu message, next input type.
            | ShowMap       String (Int, Int)            -- ^ message, translete
     deriving (Show, Eq)
+
+
+-- TODO:Message ~ SpellCommand is replace by General Display, and intialized by alternative function.
+data Display = Display {
+      messageBox :: !(Maybe String)
+    , commandBox :: !(Maybe String)
+    , flashBox   :: !(Maybe String)
+    , waitTime   :: !(Maybe Int)
+    , picture    :: !(Maybe PictureID) -- TODO:must be PictureInf
+} deriving (Show)
+
 
 data ScenarioOption = ScenarioOption {
       enableEffectDumapic :: [Spell.CheckLocationType]
@@ -66,6 +78,39 @@ data Scenario = Scenario {
     , spells         :: !Spell.DB
     , items          :: !Item.DB
     }
+data InitScenario = InitScenario {
+      initScenarioOption :: !ScenarioOption
+    , initRacies         :: ![Race]
+    , initJobs           :: ![Job]
+    , initMazes          :: ![(String, (Int, Int), Maze)]
+    , initEncountMap     :: !(Map.Map Coord (Int, [EnemyID]))
+    , initRoomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
+    , initRoomDefine     :: ![[Coord]]
+    , initEventMap       :: !(Map.Map Coord GameEventID)
+    , initEventMapDir    :: !(Map.Map Position GameEventID)
+    , initMazeEvents     :: !GameEvent.DB
+    , initEnemies        :: !Enemy.DB
+    , initSpells         :: !Spell.DB
+    , initItems          :: !Item.DB
+    }
+
+initScenario :: InitScenario -> GameMachine -> Scenario
+initScenario i home = Scenario {
+      scenarioOption            = initScenarioOption i
+    , scenarioHome              = home
+    , racies                    = initRacies         i
+    , jobs                      = initJobs           i
+    , mazes                     = initMazes          i
+    , encountMap                = initEncountMap     i
+    , roomBattleMap             = initRoomBattleMap  i
+    , roomDefine                = initRoomDefine     i
+    , eventMap                  = initEventMap       i
+    , eventMapDir               = initEventMapDir    i
+    , mazeEvents                = initMazeEvents     i
+    , enemies                   = initEnemies        i
+    , Engine.GameAuto.spells    = initSpells         i
+    , Engine.GameAuto.items     = initItems          i
+}
 
 -- ==========================================================================
 
