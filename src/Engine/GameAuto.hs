@@ -41,7 +41,7 @@ data Display = Display {
     , commandBox :: !(Maybe String)
     , flashBox   :: !(Maybe String)
     , waitTime   :: !(Maybe Int)       -- ^ negative wait time means enable to skip by key input
-    , picture    :: !(Maybe PictureID) -- TODO:must be PictureInf
+    , picture    :: !(Maybe PictureInf)
     , needPhrase :: Bool
 } deriving (Show, Eq)
 
@@ -280,18 +280,18 @@ selectEsc e ns = selectWhenEsc e $ map (\(i, g) -> (i, g, True)) ns
 
 -- --------------------------------------------------------------------------
 
-talk :: String -> Int -> Maybe PictureID -> GameMachine -> GameMachine
-talk msg t picID next = talkSelect msg t picID (\ev -> events [ev] next)
+talk :: String -> Int -> Maybe PictureInf -> GameMachine -> GameMachine
+talk msg t picInf next = talkSelect msg t picInf (\ev -> events [ev] next)
 
 -- | negative time means enable skip.
-talkSelect :: String -> Int -> Maybe PictureID -> (Event -> GameMachine) -> GameMachine
-talkSelect msg t picID lastStep = ac msgs
+talkSelect :: String -> Int -> Maybe PictureInf -> (Event -> GameMachine) -> GameMachine
+talkSelect msg t picInf lastStep = ac msgs
   where
     msgs = reverse $ reverse <$> foldr (\c acc -> (c:head acc):acc) [[]] (reverse msg)
-    lstep = lastStep $ messagePic msg picID
+    lstep = lastStep $ messagePic msg picInf
     ac ms = let nstep = if length ms <= 1 then lstep else ac (tail ms);
                 cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)]
-            in select (messageTime t (head ms) picID) cs
+            in select (messageTime t (head ms) picInf) cs
 
 
 -- ==========================================================================

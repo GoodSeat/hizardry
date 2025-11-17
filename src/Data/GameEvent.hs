@@ -15,15 +15,15 @@ data Define =
             | StairsToLower Coord
 
             -- interactive
-            | Message     String (Maybe PictureID)
-            | MessageTime String (Maybe PictureID) Int
-            | Select      String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
-            | Ask         String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
+            | Message     String (Maybe PictureInf)
+            | MessageTime String (Maybe PictureInf) Int
+            | Select      String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
+            | Ask         String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
 
-            | MessageT     Int String (Maybe PictureID)
-            | MessageTimeT Int String (Maybe PictureID) Int
-            | SelectT      Int String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
-            | AskT         Int String (Maybe PictureID) [(String, Define)] -- ^ using empty text when no match.
+            | MessageT     Int String (Maybe PictureInf)
+            | MessageTimeT Int String (Maybe PictureInf) Int
+            | SelectT      Int String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
+            | AskT         Int String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
 
             -- in battle
             | AsSpell SpellID

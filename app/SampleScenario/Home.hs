@@ -175,9 +175,14 @@ initScenario = return (s, w)
         }
 
 
-pic :: PictureID -> Craphic
-pic (PictureID id) |    0 <= id && id < 1000 = SamplePicturesOfPrimitives.picOfPrimitive id
-                   | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
-                   | 2001 <= id && id < 3000 = SamplePicturesOfEnemiesUnidentified.picOfEnemiesUnidentified id
-                   | otherwise               = mempty
+pic :: PictureInf -> Craphic
+pic Null = mempty
+pic (Single (PictureID id))
+    |    0 <= id && id < 1000 = SamplePicturesOfPrimitives.picOfPrimitive id
+    | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
+    | 2001 <= id && id < 3000 = SamplePicturesOfEnemiesUnidentified.picOfEnemiesUnidentified id
+    | otherwise               = mempty
+pic (Trans dx dy pi) = translate (dx, dy) $ pic pi
+pic (List [])        = mempty
+pic (List (pi:pis))  = pic pi <> pic (List pis)
 

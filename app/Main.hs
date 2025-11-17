@@ -127,7 +127,7 @@ ignoreKey = do
 
 type RenderMethod = Bool -> Craphic -> IO ()
 
-testRender :: RenderMethod -> (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
+testRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> Scenario -> Event -> World -> IO()
 testRender renderMethod picOf s (General (Display m c f t p n)) w = rendering  renderMethod picOf s (toT m) (toT f) (toT c) Nothing p w
 testRender renderMethod picOf s None                            w = testRender renderMethod picOf s (wait 0 Nothing) w
 testRender renderMethod picOf s (ShowStatus cid m _)            w = rendering  renderMethod picOf s m "" ""  (Just cid) Nothing w
@@ -141,16 +141,16 @@ toT Nothing  = ""
 -- --------------------------------------------------------------------------
 
 rendering :: RenderMethod
-          -> (Maybe PictureID -> Craphic)
+          -> (Maybe PictureInf -> Craphic)
           -> Scenario
           -> String -- ^ message on MessageBox
           -> String -- ^ message on FlashMessageBox
           -> String -- ^ message on CommandBox
           -> Maybe CharacterID -- ^ inspection view target.
-          -> Maybe PictureID
+          -> Maybe PictureInf
           -> World
           -> IO()
-rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
+rendering renderMethod picOf s mMsg fMsg cMsg cid' picInf w = do
     setCursorPosition 0 0
     renderMethod (debugMode w)
            $ t1 (if null locationText         then mempty else location locationText)
@@ -159,14 +159,14 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
           <> t1 (if null cMsg                 then mempty else cmdBox cMsg )
           <> t1 (if visibleStatusWindow w && not hideStatus then status s w (catMaybes ps) else mempty)
           <> t1 (if visibleGuideWindow w then guide else mempty)
-          <>    (if null cMsg && null mMsg && isNothing picID then minimapScreen else mempty)
+          <>    (if null cMsg && null mMsg && isNothing picInf then minimapScreen else mempty)
 --        <> t1 location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
           <> t1 statusScene
           <> t1 (debugWindow $ debugMessage w) -- MEMO:forDebug
           <> t1 (frameTrans w $ frame)
           <> t1 (enemyTrans w $ enemyScene picOf s (place w))
           <> t1 treasureScene
-          <> t1 (picOf picID)
+          <> t1 (picOf picInf)
           <> t1 (sceneTrans w $ scene (place w) (partyLight w > 0) (partyLight' w > 0) s)
   where
     t1    = translate (1, 1)
@@ -221,12 +221,12 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picID w = do
                       AlwaysN -> miniMapViewN (place w) (visitHitory w) (6, 6) True s
                             
 
-enemyScene :: (Maybe PictureID -> Craphic) -> Scenario -> Place -> Craphic
+enemyScene :: (Maybe PictureInf -> Craphic) -> Scenario -> Place -> Craphic
 enemyScene picOf s (InBattle _ (es:_)) =
     let e    = head es
         edef = enemies s Map.! Enemy.id e
-    in if Enemy.determined e then picOf (Just $ Enemy.pic edef)
-                             else changeSGR 'B' $ picOf (Just $ Enemy.picUndetermined edef)
+    in if Enemy.determined e then picOf (Just $ Single $ Enemy.pic edef)
+                             else changeSGR 'B' $ picOf (Just $ Single $ Enemy.picUndetermined edef)
 enemyScene _ _ _ = mempty
 
 

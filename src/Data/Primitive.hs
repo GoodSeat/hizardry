@@ -48,8 +48,7 @@ newtype PictureID = PictureID {
 
 
 -- --------------------------------------------------------------------------
--- TODO:enable same treatment single picture, multiple picture (overlap).
-data PictureInf = Null | Single PictureID | Trans Int Int PictureID | List [PictureInf]
+data PictureInf = Null | Single PictureID | Trans Int Int PictureInf | List [PictureInf]
   deriving (Show, Eq, Read)
 
 
