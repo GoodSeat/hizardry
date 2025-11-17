@@ -104,25 +104,23 @@ checkEncount c checkRoomBattle = do
     case es' of Nothing -> return Nothing
                 Just es -> Just <$> randomIn es
 
-
 ouch :: Position -> GameMachine
-ouch p = events' (effect " Ouch !! ") $ select None (moves p)
+ouch p = ouch1
   where
-    effect :: String -> [(GameState(), Event)]
-    effect msg =
-        let d1  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 0,  1)
-                                    , sceneTrans = sceneTrans w . translate ( 0,  1) }
-            d2  = modify $ \w ->  w { frameTrans = frameTrans w . translate (-1,  0)
-                                    , sceneTrans = sceneTrans w . translate (-1,  0) }
-            d3  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 2, -1)
-                                    , sceneTrans = sceneTrans w . translate ( 2, -1) }
-            d4  = modify $ \w ->  w { frameTrans = id 
-                                    , sceneTrans = id }
-            e1  = (d1, flashMessage (-30)  msg)
-            e2  = (d2, flashMessage (-20)  msg)
-            e3  = (d3, flashMessage (-30)  msg)
-            e4  = (d4, flashMessage (-230) msg)
-        in [e1,e2,e3,e4]
+    ouch1 = with [d1] $ select (flashMessage ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
+    ouch2 = with [d2] $ select (flashMessage ( -20) " Ouch !! ") $ (Clock, ouch3) : moves'
+    ouch3 = with [d3] $ select (flashMessage ( -30) " Ouch !! ") $ (Clock, ouch4) : moves'
+    ouch4 = with [d4] $ select (flashMessage (-330) " Ouch !! ") $ moves p
+    moves' = map ((\f (a, b) -> (a, f b)) $ with [d4]) (moves p)
+    d1  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 0,  1)
+                            , sceneTrans = sceneTrans w . translate ( 0,  1) }
+    d2  = modify $ \w ->  w { frameTrans = frameTrans w . translate (-1,  0)
+                            , sceneTrans = sceneTrans w . translate (-1,  0) }
+    d3  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 2, -1)
+                            , sceneTrans = sceneTrans w . translate ( 2, -1) }
+    d4  = modify $ \w ->  w { frameTrans = id 
+                            , sceneTrans = id }
+
 
 flashMoveView :: String -> Event
 flashMoveView = flashMessage (-100)
