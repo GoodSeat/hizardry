@@ -22,6 +22,8 @@ import qualified Data.Spells as Spell
 import qualified Data.Characters as Chara
 import qualified Data.GameEvent as Ev
 
+import Control.CUI (translate)
+
 -- =======================================================================
 -- depends on Scenario.
 
@@ -104,7 +106,23 @@ checkEncount c checkRoomBattle = do
 
 
 ouch :: Position -> GameMachine
-ouch p = select (flashMessage (-500) " Ouch !! ") $ moves p
+ouch p = events' (effect " Ouch !! ") $ select None (moves p)
+  where
+    effect :: String -> [(GameState(), Event)]
+    effect msg =
+        let d1  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 0,  1)
+                                    , sceneTrans = sceneTrans w . translate ( 0,  1) }
+            d2  = modify $ \w ->  w { frameTrans = frameTrans w . translate (-1,  0)
+                                    , sceneTrans = sceneTrans w . translate (-1,  0) }
+            d3  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 2, -1)
+                                    , sceneTrans = sceneTrans w . translate ( 2, -1) }
+            d4  = modify $ \w ->  w { frameTrans = id 
+                                    , sceneTrans = id }
+            e1  = (d1, flashMessage (-30)  msg)
+            e2  = (d2, flashMessage (-20)  msg)
+            e3  = (d3, flashMessage (-30)  msg)
+            e4  = (d4, flashMessage (-230) msg)
+        in [e1,e2,e3,e4]
 
 flashMoveView :: String -> Event
 flashMoveView = flashMessage (-100)
