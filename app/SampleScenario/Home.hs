@@ -10,17 +10,17 @@ import Control.CUI
 import qualified Data.Map as Map
 
 import qualified Data.Characters as Character
-import qualified Data.Spells as Spell
+import qualified Data.Spells     as Spell
 
-import qualified SampleScenario.Spells as SampleSpells
-import qualified SampleScenario.Items as SampleItems
+import qualified SampleScenario.Spells  as SampleSpells
+import qualified SampleScenario.Items   as SampleItems
 import qualified SampleScenario.Enemies as SampleEnemies
-import qualified SampleScenario.Events as SampleEvents
-import qualified SampleScenario.Jobs as SampleJobs
-import qualified SampleScenario.Racies as SampleRacies
-import qualified SampleScenario.Maze as SampleMaze
---import qualified SampleScenario.PicturesOfPrimitives as SamplePicturesOfPrimitives
-import qualified SampleScenario.PicturesOfEnemies as SamplePicturesOfEnemies
+import qualified SampleScenario.Events  as SampleEvents
+import qualified SampleScenario.Jobs    as SampleJobs
+import qualified SampleScenario.Racies  as SampleRacies
+import qualified SampleScenario.Maze    as SampleMaze
+import qualified SampleScenario.PicturesOfPrimitives          as SamplePicturesOfPrimitives
+import qualified SampleScenario.PicturesOfEnemies             as SamplePicturesOfEnemies
 import qualified SampleScenario.PicturesOfEnemiesUnidentified as SamplePicturesOfEnemiesUnidentified
 
 
@@ -175,11 +175,9 @@ initScenario = return (s, w)
         }
 
 
---  let pic (PictureID id) |    0 <= id && id < 1000 = SamplePicturesOfPrimitives.picOfPrimitive id
---                         | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
-
 pic :: PictureID -> Craphic
-pic (PictureID id) | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
+pic (PictureID id) |    0 <= id && id < 1000 = SamplePicturesOfPrimitives.picOfPrimitive id
+                   | 1001 <= id && id < 2000 = SamplePicturesOfEnemies.picOfEnemies id
                    | 2001 <= id && id < 3000 = SamplePicturesOfEnemiesUnidentified.picOfEnemiesUnidentified id
                    | otherwise               = mempty
 
