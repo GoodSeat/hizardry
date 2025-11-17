@@ -81,7 +81,7 @@ enterGrid e probEncount evMoved p = GameAuto $ do
                 Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
                 Just (ei, isRB) -> run $ encountEnemy ei isRB
   where
-    cantSpelling _ = events [Message "can't spelling at this place."]
+    cantSpelling _ = events [message "can't spelling at this place."]
               
 
 checkRoomBattle :: Coord -> GameState (Maybe (EnemyID, Bool))
@@ -104,10 +104,10 @@ checkEncount c checkRoomBattle = do
 
 
 ouch :: Position -> GameMachine
-ouch p = select (FlashMessage (-500) " Ouch !! ") $ moves p
+ouch p = select (flashMessage (-500) " Ouch !! ") $ moves p
 
 flashMoveView :: String -> Event
-flashMoveView = FlashMessage (-100)
+flashMoveView = flashMessage (-100)
 
 moves :: Position -> [(Input, GameMachine)]
 moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
@@ -165,7 +165,7 @@ suspend p = GameAuto $ do
 inspect :: Position -> GameMachine
 inspect p = GameAuto $ do
     movePlace (Camping p "Inspect")
-    run $ selectWhenEsc (Message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
+    run $ selectWhenEsc (message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "s", searchCharacter p, True)
           ]
@@ -176,11 +176,11 @@ searchCharacter p = GameAuto $ do
     let ts = fst <$> filter ((== coordOf p) . (coordOf . snd)) cs
     run $ events msgs (editParty p 0 ts)
   where
-    msgs = [ MessageTime 400 " Searching character     " Nothing
-           , MessageTime 400 " Searching character.    " Nothing
-           , MessageTime 400 " Searching character..   " Nothing
-           , MessageTime 400 " Searching character...  " Nothing
-           , MessageTime 400 " Searching character.... " Nothing
+    msgs = [ messageTime 400 " Searching character     " Nothing
+           , messageTime 400 " Searching character.    " Nothing
+           , messageTime 400 " Searching character..   " Nothing
+           , messageTime 400 " Searching character...  " Nothing
+           , messageTime 400 " Searching character.... " Nothing
            ]
 
 editParty :: Position -> Int -> [CharacterID] -> GameMachine
@@ -194,7 +194,7 @@ editParty p page ts = let mxPage = max 0 ((length ts - 1) `div` 10) in
           cmdAdds = zip (Key <$> (fmap toLower <$> ms))
                         ((\cid -> addToParty p cid ts page) <$> ts')
           msg = if null ns then "\n No body found." else "You found ...\n\n" ++ unlines ns
-      run $ selectEsc (Message $ msg ++ "\n\n" ++
+      run $ selectEsc (message $ msg ++ "\n\n" ++
             "\n======================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")======================\n\n" ++
             "^A~)Add to party  ^#)Remove from party \n" ++ 
             "^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
@@ -254,7 +254,7 @@ openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p "")
     np <- length . party <$> world
-    run $ selectWhenEsc (Message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
+    run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
           ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)

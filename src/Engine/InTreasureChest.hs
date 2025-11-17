@@ -31,7 +31,7 @@ actionForTreasureChest :: TreasureCondition
                        -> GameMachine
 actionForTreasureChest con ps =
     if trap con == Enemy.DropDirectly then getTreasures con
-    else selectEsc (BattleCommand "^I)nspect\n^D)isarm Trap\n^O)pen\n^L)eave `[`E`s`c`]")
+    else selectEsc (battleCommand "^I)nspect\n^D)isarm Trap\n^O)pen\n^L)eave `[`E`s`c`]")
                    [ (Key "l", afterChest con                                       )
                    , (Key "i", inspectTreasureChest ps con                          )
                    , (Key "d", disarmTrap con (actionForTreasureChest con ps)       )
@@ -40,10 +40,10 @@ actionForTreasureChest con ps =
 inspectTreasureChest :: [PartyPos] -> TreasureCondition -> GameMachine
 inspectTreasureChest ps con = GameAuto $ do
     cmds <- cmdNumPartiesWhen $ bimap inspect' (not . isCantFight)
-    run $ selectWhenEsc (Message "^#)Inspect\n^L)eave `[`E`S`C`]") $ (Key "l", actionForTreasureChest con ps, True)
+    run $ selectWhenEsc (message "^#)Inspect\n^L)eave `[`E`S`C`]") $ (Key "l", actionForTreasureChest con ps, True)
                                                                    : cmds
   where
-    inspect' p = if p `elem` ps then events [Message "Already inspected."] $ inspectTreasureChest ps con
+    inspect' p = if p `elem` ps then events [message "Already inspected."] $ inspectTreasureChest ps con
                                 else inspectTreasureChestBy p ps con
 
 inspectTreasureChestBy :: PartyPos -> [PartyPos] -> TreasureCondition -> GameMachine
@@ -54,9 +54,9 @@ inspectTreasureChestBy i ps con = GameAuto $ do
     invokeTrap <- happens =<< evalWith m (parse' "100*(19-agi)/20")
     trap'      <- randomIn [Enemy.NoTrap .. Enemy.Alarm]
     let afterInspect = actionForTreasureChest con $ i:ps
-    run $ if      successed  then events [Message $ inspectMessage (trap con)] afterInspect
+    run $ if      successed  then events [message $ inspectMessage (trap con)] afterInspect
           else if invokeTrap then invokingTrap con i
-          else                    events [Message $ inspectMessage trap'] afterInspect
+          else                    events [message $ inspectMessage trap'] afterInspect
   where
     inspectMessage :: Enemy.Trap -> String
     inspectMessage trap = case trap of Enemy.NoTrap -> "No traps."
@@ -66,10 +66,10 @@ inspectTreasureChestBy i ps con = GameAuto $ do
 disarmTrap :: TreasureCondition -> GameMachine -> GameMachine
 disarmTrap con afterNotDisarm = GameAuto $ do
     cmds <- cmdNumPartiesWhen $ bimap disarm' (not . isCantFight)
-    run $ selectWhenEsc (Message "^#)Disarm\n^L)eave `[`E`S`C`]") $ (Key "l", afterNotDisarm, True)
+    run $ selectWhenEsc (message "^#)Disarm\n^L)eave `[`E`S`C`]") $ (Key "l", afterNotDisarm, True)
                                                                   : cmds
   where
-    disarm' p = GameAuto $ return (Ask "Input trap.\n(Empty to cancel.)" Nothing,
+    disarm' p = GameAuto $ return (ask "Input trap.\n(Empty to cancel.)" Nothing,
                                    \(Key s) -> if null s then afterNotDisarm else tryDisarm con s p afterNotDisarm)
 
 tryDisarm :: TreasureCondition -> String -> PartyPos -> GameMachine -> GameMachine
@@ -80,15 +80,15 @@ tryDisarm con t i afterNotDisarm = GameAuto $ do
     sucessDisarming <- happens =<< evalWith m (Chara.disarmTrapAbility $ Chara.job c)
     invokeTrap      <- happens =<< evalWith m (parse' "100*(20-agi)/20")
     run $ if      not matchTrap   then invokingTrap con i
-          else if sucessDisarming then events [Message "Trap successfully disarmed!"] (getTreasures con)
+          else if sucessDisarming then events [message "Trap successfully disarmed!"] (getTreasures con)
           else if invokeTrap      then invokingTrap con i
-          else                         events [Message "The trap was not disarmed."] afterNotDisarm
+          else                         events [message "The trap was not disarmed."] afterNotDisarm
 
 
 openTreasureChest :: TreasureCondition -> GameMachine -> GameMachine
 openTreasureChest con afterNotOpen = GameAuto $ do
     cmds <- cmdNumPartiesWhen $ bimap open' (not . isCantFight)
-    run $ selectWhenEsc (Message "^#)Open\n^L)eave `[`E`S`C`]") $ (Key "l", afterNotOpen, True)
+    run $ selectWhenEsc (message "^#)Open\n^L)eave `[`E`S`C`]") $ (Key "l", afterNotOpen, True)
                                                                 : cmds
   where
     open' p = tryDisarm con "" p (openTreasureChest con afterNotOpen)
@@ -100,8 +100,8 @@ invokingTrap con i = GameAuto $ do
     (msg, eid') <- effectTrap cid $ trap con
     sortPartyAuto
     case eid' of
-      Nothing  -> run $ events [Message msg] (getTreasures con)
-      Just eid -> run $ events [Message msg] (whenAlarm con eid)
+      Nothing  -> run $ events [message msg] (getTreasures con)
+      Just eid -> run $ events [message msg] (whenAlarm con eid)
 
 
 effectTrap :: CharacterID -> Enemy.Trap -> GameState (String, Maybe EnemyID)
@@ -156,8 +156,8 @@ getTreasures :: TreasureCondition -> GameMachine
 getTreasures con = GameAuto $ do
     np <- length . party <$> world
     let gp   = dropGold con `div` np
-        msg1 = [Message ("Each survivor got " ++ show gp ++ "G.P.") | gp > 0]
-    msg2 <- fmap Message <$> divideItems (dropItems con)
+        msg1 = [message ("Each survivor got " ++ show gp ++ "G.P.") | gp > 0]
+    msg2 <- fmap message <$> divideItems (dropItems con)
     movePlace =<< FindTreasureChest <$> currentPosition <*> pure True
     run $ events (msg2 ++ msg1) (afterChest con)
 

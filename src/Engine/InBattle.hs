@@ -111,7 +111,7 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
     let con = Condition {
       afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
     }
-    run $ events [FlashMessage (-1000) "\n      Encounter!!      \n "]
+    run $ events [flashMessage (-1000) "\n      Encounter!!      \n "]
           (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
@@ -153,14 +153,14 @@ selectBattleCommand i cmds con = GameAuto $ do
                    , next Parry
                    , Chara.Parry `elem` cs')
                   ,( Key "s"
-                   , inputSpell c SpellCommand BattleCommand (\s l -> next $ Spell s l) cancel
+                   , inputSpell c spellCommand battleCommand (\s l -> next $ Spell s l) cancel
                    , Chara.Spell `elem` cs')
                   ,( Key "u"
-                   , selectItem BattleCommand identified
-                       (useItem BattleCommand (\i l -> next $ UseItem i l)) c cancel
+                   , selectItem battleCommand identified
+                       (useItem battleCommand (\i l -> next $ UseItem i l)) c cancel
                    , Chara.UseItem `elem` cs')
                   ,( Key "r"
-                   , events [Message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
+                   , events [message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
                    , Chara.Run `elem` cs')
                   ,( Key "\16128", inspect, True) -- code of "?" ?
                   ,( Key "?", inspect, True)
@@ -175,7 +175,7 @@ selectBattleCommand i cmds con = GameAuto $ do
                                     Chara.Run     -> "^R)un\n"
                                     Chara.Parry   -> if Chara.Fight `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
                                     Chara.UseItem -> "^U)se Item\n"
-        in run $ selectWhen1 (BattleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
+        in run $ selectWhen1 (battleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
 
 selectFightTarget :: [EnemyLine] -> (Action -> GameMachine) -> GameMachine -> GameMachine
 selectFightTarget fts next cancel = GameAuto $ do
@@ -184,14 +184,14 @@ selectFightTarget fts next cancel = GameAuto $ do
         minl = enemyLineToNum $ minimum fts
         maxl = enemyLineToNum $ maximum fts
     run $ if length ess == 1 then next (Fight L1)
-          else selectWhen1 (BattleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")\n\n^L)eave `[`E`S`C`]")
+          else selectWhen1 (battleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")\n\n^L)eave `[`E`S`C`]")
                            (cmds ++ [(Key "l", cancel, True), (Key "\ESC", cancel, True)])
 
 
 confirmBattle :: [(CharacterID, Action)]
               -> Condition
               -> GameMachine
-confirmBattle cmds con = select1 (BattleCommand "Are you OK?\n\n^F)ight`*\n^T)ake Back")
+confirmBattle cmds con = select1 (battleCommand "Are you OK?\n\n^F)ight`*\n^T)ake Back")
                                  [(Key "f", startProgressBattle cmds con)
                                  ,(Key "t", selectBattleCommand 1 [] con)
                                  ]
@@ -246,7 +246,7 @@ wonBattle con = GameAuto $ do
     let e  = gotExps con `div` length ps
         ft = isRoomBattle con && (dropGold con > 0 || not (null $ dropItems con))
     forM_ ps $ flip updateCharacterWith (Chara.getExp e)
-    run $ events [Message $ "Each survivor got " ++ show e ++ " E.P."]
+    run $ events [message $ "Each survivor got " ++ show e ++ " E.P."]
                  (if ft then findTreasureChest con else findTreasures con)
 
 findTreasureChest :: Condition -> GameMachine
@@ -317,12 +317,12 @@ act (ByEnemies l e a) next = GameAuto $ do
               ps <- party <$> world
               ts <- castDamageSpell f attrs (Right e') (Left $ toPartyPos <$> [1..length ps])
               let toMsg (_, t, d) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
-                                    in if d then toEffect True msg else [(return(), Message msg)]
+                                    in if d then toEffect True msg else [(return(), message msg)]
               run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
           Enemy.Run              -> do
               en   <- enemyNameOf e'
               updateEnemy e' $ const e' { Enemy.hp = 0 }
-              run $ events [Message $ en ++ " flees."] next
+              run $ events [message $ en ++ " flees."] next
 
 -- "*** hidden away"
 --  vs = ["tries to ambush"]

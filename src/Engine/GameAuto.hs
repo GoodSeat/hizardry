@@ -1,9 +1,11 @@
+{-# LANGUAGE TupleSections #-}
 module Engine.GameAuto
 where
 
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
+import Data.Maybe (isJust, fromJust)
 import qualified Data.Map as Map
 
 import Data.Primitive
@@ -29,30 +31,85 @@ data InputType = SingleKey
 
 data Event = None
            | Exit
-
-           | Message       String
-           | MessagePic    String (Maybe PictureID)
-           | Ask           String (Maybe PictureID)
-           | MessageTime   Int String (Maybe PictureID) -- ^ negative wait time means enable to skip by key input
-           | Time          Int        (Maybe PictureID) -- ^ negative wait time means enable to skip by key input
-           | FlashMessage  Int String                   -- ^ negative wait time means enable to skip by key input
-
-           | BattleCommand String
-           | SpellCommand  String
-           
-           | ShowStatus    CharacterID String InputType -- ^ target position in party, manu message, next input type.
+           | General       Display
+           | ShowStatus    CharacterID String InputType -- ^ target character ID, manu message, next input type.
            | ShowMap       String (Int, Int)            -- ^ message, translete
     deriving (Show, Eq)
 
-
--- TODO:Message ~ SpellCommand is replace by General Display, and intialized by alternative function.
 data Display = Display {
       messageBox :: !(Maybe String)
     , commandBox :: !(Maybe String)
     , flashBox   :: !(Maybe String)
-    , waitTime   :: !(Maybe Int)
+    , waitTime   :: !(Maybe Int)       -- ^ negative wait time means enable to skip by key input
     , picture    :: !(Maybe PictureID) -- TODO:must be PictureInf
-} deriving (Show)
+    , needPhrase :: Bool
+} deriving (Show, Eq)
+
+message s = General $ Display {
+      messageBox = Just s
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+    }
+messagePic s p = General $ Display {
+      messageBox = Just s
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = p
+    , needPhrase = False
+    }
+ask s p = General $ Display {
+      messageBox = Just s
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = p
+    , needPhrase = True
+    }
+messageTime t s p = General $ Display {
+      messageBox = Just s
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Just t
+    , picture    = p
+    , needPhrase = False
+    }
+wait t p = General $ Display {
+      messageBox = Nothing
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Just t
+    , picture    = p
+    , needPhrase = False
+    }
+flashMessage t s = General $ Display {
+      messageBox = Nothing
+    , commandBox = Nothing
+    , flashBox   = Just s
+    , waitTime   = Just t
+    , picture    = Nothing
+    , needPhrase = False
+    }
+battleCommand s = General $ Display {
+      messageBox = Nothing
+    , commandBox = Just s
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+    }
+spellCommand s = General $ Display {
+      messageBox = Nothing
+    , commandBox = Just s
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = True
+    }
+
 
 
 data ScenarioOption = ScenarioOption {
@@ -170,21 +227,20 @@ stepGame s w g =
     let (res, w') = runGameState s w $ run g
     in case res of
       Left msg         -> let end = GameAuto $ return (Exit, const g)
-                          in (Message msg, w', SingleKey, const end)
+                          in (message msg, w', SingleKey, const end)
       Right (e, next') -> let itype = case e of
-                                       SpellCommand _          -> SequenceKey
-                                       ShowStatus _ _ i'       -> i'
-                                       MessageTime n _ _       -> WaitClock n 
-                                       FlashMessage n _        -> WaitClock n 
-                                       Time n _                -> WaitClock n
-                                       Engine.GameAuto.Ask _ _ -> SequenceKey
-                                       _                       -> SingleKey
+                                        General (Display _ _ _ w _ n)
+                                          | isJust w            -> WaitClock $ fromJust w 
+                                          | n                   -> SequenceKey
+                                          | otherwise           -> SingleKey
+                                        ShowStatus _ _ i'       -> i'
+                                        _                       -> SingleKey
                           in (e, w', itype, next')
 
 -- ==========================================================================
 
 events :: [Event] -> GameMachine -> GameMachine
-events es = events' $ zip (repeat $ return ()) es
+events es = events' $ map (return (),) es
 
 events' :: [(GameState a, Event)] -> GameMachine -> GameMachine
 events' []           next = next
@@ -232,10 +288,10 @@ talkSelect :: String -> Int -> Maybe PictureID -> (Event -> GameMachine) -> Game
 talkSelect msg t picID lastStep = ac msgs
   where
     msgs = reverse $ reverse <$> foldr (\c acc -> (c:head acc):acc) [[]] (reverse msg)
-    lstep = lastStep $ MessagePic msg picID
+    lstep = lastStep $ messagePic msg picID
     ac ms = let nstep = if length ms <= 1 then lstep else ac (tail ms);
                 cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)]
-            in select (MessageTime t (head ms) picID) cs
+            in select (messageTime t (head ms) picID) cs
 
 
 -- ==========================================================================

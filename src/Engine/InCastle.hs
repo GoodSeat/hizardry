@@ -29,7 +29,7 @@ inCastle = GameAuto $ do
                          ,(Key "e", inEdgeOfTown, True)
                          ]
   where
-    msg = Message $ "^G)ilgamesh's Tarvern\n"
+    msg = message $ "^G)ilgamesh's Tarvern\n"
                  ++ "^A)dventure's Inn\n"
                  ++ "^B)oltac's Trading Post\n"
                  ++ "^T)emple of Cant\n"
@@ -48,7 +48,7 @@ inGilgamesh'sTarvern = GameAuto $ do
                             : (Key "d", GameAuto $ divvyGold >> run inGilgamesh'sTarvern, np > 0)
                             : cmdsInspect
   where
-    msg = Message $ "^A)dd Character to Party\n"
+    msg = message $ "^A)dd Character to Party\n"
                  ++ "^R)emove Character from Party\n"
                  ++ "^#)Inspect Character\n"
                  ++ "^D)ivvy Gold\n"
@@ -73,7 +73,7 @@ selectCharacterAddToParty page = GameAuto $ do
                                                                else addParty (ids' !! (i - 1))
                   )
       run $ if np >= 6 || null ids then inGilgamesh'sTarvern
-                                   else selectEsc (Message msg) lst
+                                   else selectEsc (message msg) lst
   where
     addParty id = with [addCharacterToParty id] (selectCharacterAddToParty page)
     toShow (n, c) = show n ++ ") " ++ Character.name c
@@ -84,7 +84,7 @@ selectCharacterRemoveFromParty = GameAuto $ do
     if null cs then run inGilgamesh'sTarvern
     else do
       cmds <- cmdNumPartiesID $ \(_, cid) -> removeParty cid
-      run $ selectEsc (Message "^#)Remove from Party    ^L)eave `[`E`S`C`]") $
+      run $ selectEsc (message "^#)Remove from Party    ^L)eave `[`E`S`C`]") $
                       (Key "l", inGilgamesh'sTarvern) : cmds
   where
     removeParty cid = GameAuto $ do
@@ -101,7 +101,7 @@ inAdventure'sInn = GameAuto $ do
     cmds <- cmdNumPartiesID $ \(_, i) -> selectStayPlan i
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
-    msg = Message $ "Who will stay?\n\n"
+    msg = message $ "Who will stay?\n\n"
                  ++ "^#)Select\n"
                  ++ "^L)eave `[`E`S`C`]\n"
 
@@ -110,7 +110,7 @@ selectStayPlan id = GameAuto $ do
     c <- characterByID id
     let nam = Character.name c
         gp  = Character.gold c
-        msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
+        msg = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
                      ++ "We have:\n"
                      ++ "^A)The Stables        (FREE)\n"
                      ++ "^B)A Cot               10 G.P/Week\n"
@@ -136,10 +136,10 @@ sleep :: CharacterID
 sleep id h g d = GameAuto $ do
     c <- characterByID id 
     if Character.gold c < g then
-      run $ events [Message "no more money."] $ selectStayPlan id
+      run $ events [message "no more money."] $ selectStayPlan id
     else do
       updateCharacterWith id Character.healMp
-      run $ selectEsc (MessageTime (-1000) ( Character.name c
+      run $ selectEsc (messageTime (-1000) ( Character.name c
                                        ++ " is napping. \n\n"
                                        ++ show (Character.name c) ++ " has "
                                        ++ show (Character.gold c) ++ " G.P.\n\n"
@@ -158,12 +158,12 @@ checkLvup id = GameAuto $ do
                     " more E.P.\nto make the next level."
     if Character.exp c >= nextLvExp
       then run $ doLvup id
-      else run $ events [Message nextLvMsg] (selectStayPlan id)
+      else run $ events [message nextLvMsg] (selectStayPlan id)
 
 doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do
     (txt, c') <- lvup =<< characterByID id
-    updateCharacter id c' >> run (events [Message txt] $ selectStayPlan id)
+    updateCharacter id c' >> run (events [message txt] $ selectStayPlan id)
 
 -- =======================================================================
 
@@ -173,7 +173,7 @@ inBoltac'sTradingPost = GameAuto $ do
     cmds <- cmdNumPartiesID $ \(_, i) -> selectShopAction i
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
-    msg = Message $ "Who will enter?\n\n"
+    msg = message $ "Who will enter?\n\n"
                  ++ "^#)Select\n"
                  ++ "^L)eave `[`E`S`C`]\n"
 
@@ -182,7 +182,7 @@ selectShopAction id = GameAuto $ do
     c <- characterByID id
     let nam = Character.name c
         gp  = Character.gold c
-        msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
+        msg = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
                      ++ "We have:\n"
                      ++ "^B)uy\n"
                      ++ "^S)ell\n"
@@ -221,8 +221,8 @@ buyItem cid page = GameAuto $ do
           lst  = "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
                ++ unlines (zipWith (++) ((++") ") . show <$> [1..]) items) ++ "\n"
           cmds = cmdNums (length lstItem')
-               $ buy cid (buyItem cid page) (flip (MessageTime (-1500)) Nothing . (++lst)) . (lstItem' !!) . flip (-) 1
-          msg  = Message $ "Select item to buy. You have " ++ show gp ++ " G.P.\n\n"
+               $ buy cid (buyItem cid page) (flip (messageTime (-1500)) Nothing . (++lst)) . (lstItem' !!) . flip (-) 1
+          msg  = message $ "Select item to buy. You have " ++ show gp ++ " G.P.\n\n"
                         ++ "^N)ext list  ^P)revious list  ^L)eave [Esc]" ++ lst
       run $ selectEsc msg $ (Key "l", selectShopAction cid)
                           : (Key "n", buyItem cid (page + 1))
@@ -266,9 +266,9 @@ sellItem' greet cid = GameAuto $ do
           ps    = Character.numToItemPos <$> take (length items) [0..]
           lst   = "=========================================================\n\n"
                 ++ unlines (zipWith (++) ((++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
-      if greet then run $ events [MessageTime (-1500) ("Thank you so much.\n\n\n" ++ lst) Nothing] $ sellItem cid
+      if greet then run $ events [messageTime (-1500) ("Thank you so much.\n\n\n" ++ lst) Nothing] $ sellItem cid
       else
-        return (Message $ "Select item to sell. You have " ++ show gp ++ " G.P.\n\n"
+        return (message $ "Select item to sell. You have " ++ show gp ++ " G.P.\n\n"
                             ++ "^L)eave [Esc]\n" ++ lst,
                 \(Key s) -> if s == "l" || s == "\ESC" then selectShopAction cid
                             else case Character.itemPosByChar s of
@@ -318,9 +318,9 @@ determineItem' greet cid = GameAuto $ do
         lst   = "=========================================================\n\n"
               ++ unlines (zipWith (++) (("^"++) . (++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
         greet' = if null greet then "Select item to determine. You have " ++ show gp ++ " G.P." else greet
-    if not (null greet) then run $ events [MessageTime (-1500) (greet' ++ "\n\n\n" ++ lst) Nothing] $ determineItem cid
+    if not (null greet) then run $ events [messageTime (-1500) (greet' ++ "\n\n\n" ++ lst) Nothing] $ determineItem cid
     else
-      return (Message $ greet' ++ "\n\n" ++ "^L)eave [Esc]\n" ++ lst,
+      return (message $ greet' ++ "\n\n" ++ "^L)eave [Esc]\n" ++ lst,
               \(Key s) -> if s == "l" || s == "\ESC" then selectShopAction cid
                           else case Character.itemPosByChar s of
                             Nothing -> determineItem cid
@@ -365,7 +365,7 @@ inTempleOfCant = GameAuto $ do
                                         else selectCureTarget i 0
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
-    msg = Message $ "Who will enter?\n\n"
+    msg = message $ "Who will enter?\n\n"
                  ++ "^#)Select\n"
                  ++ "^L)eave `[`E`S`C`]\n"
 
@@ -377,7 +377,7 @@ selectCureTarget id page = GameAuto $ do
     else do
       let ids' = take 9 . drop (page * 9) $ ids
       cs  <- mapM characterByID ids'
-      let msg = Message $ "Who do you want to help?\n"
+      let msg = message $ "Who do you want to help?\n"
                        ++ "^#)Select  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
                        ++ unlines (toShow <$> zip [1..] cs)
           lst = (Key "l", inTempleOfCant)
@@ -401,7 +401,7 @@ cureCharacter cid cidDst = GameAuto $ do
             | Stoned `elem` ss && Paralysis `elem` ss = 250 * lv
             | Stoned `elem` ss                        = 200 * lv
             | otherwise                               = 100 * lv
-        msg = Message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
+        msg = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
                      ++ "The prayer fee is " ++ show fee ++ " G.P.  ...OK?\n"
                      ++ "  ^Y)es\n"
                      ++ "  ^P)ool Gold\n"
@@ -410,7 +410,7 @@ cureCharacter cid cidDst = GameAuto $ do
     let lst =[(Key "l", selectCureTarget cid 0)
              ,(Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
              ,(Key "y", if canSpent then with [spentGold cid fee] $ tryCureCharacter cid cidDst
-                                    else events [FlashMessage (-1000) "\n     Get out! You cheap traitor!     \n "] $ selectCureTarget cid 0)]
+                                    else events [flashMessage (-1000) "\n     Get out! You cheap traitor!     \n "] $ selectCureTarget cid 0)]
     run $ selectEsc msg lst
 
 tryCureCharacter :: CharacterID -> CharacterID -> GameMachine
@@ -440,11 +440,11 @@ tryCureCharacter cid cidDst = GameAuto $ do
                | isAsh     = nam ++ " is lost..."
                | isDead    = nam ++ " reduced to ashes..."
                | otherwise = "no change in " ++ nam ++ "'s condition..."
-        let ms  = FlashMessage 1000 <$> [" MURMUR                          "
+        let ms  = flashMessage 1000 <$> [" MURMUR                          "
                                         ," MURMUR - CHANT                  "
                                         ," MURMUR - CHANT - PRAY           "
                                         ," MURMUR - CHANT - PRAY - INVOKE! "]
             mg' = " MURMUR - CHANT - PRAY - INVOKE! \n\n   " ++ mg
-        run $ events (ms ++ [FlashMessage (-100000) mg']) $ selectCureTarget cid 0
+        run $ events (ms ++ [flashMessage (-100000) mg']) $ selectCureTarget cid 0
         )
 

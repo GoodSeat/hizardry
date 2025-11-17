@@ -128,21 +128,15 @@ ignoreKey = do
 type RenderMethod = Bool -> Craphic -> IO ()
 
 testRender :: RenderMethod -> (Maybe PictureID -> Craphic) -> Scenario -> Event -> World -> IO()
-testRender renderMethod picOf s (Ask m picID)           w = testRender renderMethod picOf s (MessagePic m picID) w
-testRender renderMethod picOf s (MessageTime t m picID) w = testRender renderMethod picOf s (MessagePic m picID) w
-testRender renderMethod picOf s (FlashMessage t m)      w = rendering  renderMethod picOf s "" m "" Nothing Nothing w
-testRender renderMethod picOf s (Message m)             w = testRender renderMethod picOf s (MessagePic m Nothing) w
-testRender renderMethod picOf s (SpellCommand m)        w = testRender renderMethod picOf s (BattleCommand m) w
-testRender renderMethod picOf s None                    w = testRender renderMethod picOf s (Time 0 Nothing) w
-
-testRender renderMethod picOf s (MessagePic m picID)    w = rendering  renderMethod picOf s m "" ""  Nothing  picID w
-testRender renderMethod picOf s (BattleCommand m)       w = rendering  renderMethod picOf s "" "" m  Nothing  Nothing w
-testRender renderMethod picOf s (Time _ picID)          w = rendering  renderMethod picOf s "" "" "" Nothing  picID w
-testRender renderMethod picOf s (ShowStatus cid m _)    w = rendering  renderMethod picOf s m "" ""  (Just cid) Nothing w
-
+testRender renderMethod picOf s (General (Display m c f t p n)) w = rendering  renderMethod picOf s (toT m) (toT f) (toT c) Nothing p w
+testRender renderMethod picOf s None                            w = testRender renderMethod picOf s (wait 0 Nothing) w
+testRender renderMethod picOf s (ShowStatus cid m _)            w = rendering  renderMethod picOf s m "" ""  (Just cid) Nothing w
 testRender renderMethod _ s (ShowMap m trans) w = setCursorPosition 0 0 >> renderMethod (debugMode w) (mapView m (place w) trans (visitHitory w) s)
-
 testRender renderMethod _ _ Exit w = undefined
+
+toT :: Maybe String -> String
+toT (Just s) = s
+toT Nothing  = ""
 
 -- --------------------------------------------------------------------------
 

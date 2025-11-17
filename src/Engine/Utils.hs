@@ -7,7 +7,7 @@ import Prelude hiding ((!!))
 import System.Random
 import Control.Monad.Except
 import Control.Monad.State
-import Control.Monad.Reader
+import Control.Monad.Reader hiding (ask)
 
 import Data.List (find, sort)
 import Data.Map hiding (filter, null, foldl, drop, take)
@@ -48,7 +48,7 @@ msgDebug t = do
 parse'D :: String -> String -> (Formula -> GameMachine) -> GameMachine
 parse'D s help next = GameAuto $ do
     w <- world
-    if debugMode w then return (Ask (help ++ "\n orginal:" ++ s ++ "\n (emtpy to use original.)") Nothing
+    if debugMode w then return (ask (help ++ "\n orginal:" ++ s ++ "\n (emtpy to use original.)") Nothing
                                , \(Key s') -> next $ parse' (if null s' then s else s'))
                    else run $ next (parse' s)
 

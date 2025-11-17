@@ -43,8 +43,8 @@ fightOfCharacter id el next = GameAuto $ do
         let e' = damageHp d e
         updateEnemy e $ const e'
         ms <- fightMessage c e' (h, d, ses)
-        let ess = if d == 0 || el /= L1 then (return (),) . Message <$> ms
-                                        else toEffect False (head ms) ++ ((return (),) . Message <$> tail ms)
+        let ess = if d == 0 || el /= L1 then (return (),) . message <$> ms
+                                        else toEffect False (head ms) ++ ((return (),) . message <$> tail ms)
         run $ events' ess next
 
 fightDamage :: EnemyLine
@@ -130,8 +130,8 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
       let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
          -- TODO:lv drain
       ms <- fightMessageE e c' (h, d, ses)
-      let ess = if d == 0 then (return (),) . Message <$> ms
-                          else toEffect True (head ms) ++ ((return (),) . Message <$> tail ms)
+      let ess = if d == 0 then (return (),) . message <$> ms
+                          else toEffect True (head ms) ++ ((return (),) . message <$> tail ms)
       run $ events' ess (with [updateCharacter (ps !! idc) c'] next)
 
 fightDamageE :: Int             -- ^ count of attack.
@@ -341,12 +341,12 @@ castInBattle v n ca (Left cid) dst next = GameAuto $ do
     src <- characterByID cid
     ts  <- ca (Left src) dst
     let toMsg (_, t, d) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                          in if d then toEffect False msg else [(return(), Message msg)]
+                          in if d then toEffect False msg else [(return(), message msg)]
     run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
 castInBattle v n ca (Right e) dst next = GameAuto $ do
     ts <- ca (Right e) dst
     let toMsg (_, t, d) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                          in if d then toEffect True msg else [(return(), Message msg)]
+                          in if d then toEffect True msg else [(return(), message msg)]
     run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
 
 
@@ -374,7 +374,7 @@ castNoEffect v msg n src _ next = GameAuto $ do
     name <- case src of Left id -> Chara.name <$> characterByID id
                         Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
     let ts      = ["", msg]
-        toMsg t = Message $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+        toMsg t = message $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
 
 
@@ -417,8 +417,8 @@ toEffect fromEnemy msg =
         d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
                                                  , sceneTrans = id }
                                           else w { enemyTrans = id }
-        e1  = (d1, MessageTime (-40) msg Nothing)
-        e2  = (d2, MessageTime (-30) msg Nothing)
-        e3  = (d3, MessageTime (-40) msg Nothing)
-        e4  = (d4, Message           msg)
+        e1  = (d1, messageTime (-40) msg Nothing)
+        e2  = (d2, messageTime (-30) msg Nothing)
+        e3  = (d3, messageTime (-40) msg Nothing)
+        e4  = (d4, message           msg)
     in [e1,e2,e3,e4]

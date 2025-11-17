@@ -27,7 +27,7 @@ inEdgeOfTown = GameAuto $ do
                          ,(Key "c", toCastle, True)
                          ,(Key "q", exitGame, True)]
   where
-    msg = Message $ "^M)aze\n"
+    msg = message $ "^M)aze\n"
                  ++ "^T)raining Grounds\n"
                  ++ "^R)estart an \"OUT\" Party\n"
                  ++ "Return to the ^C)astle\n"
@@ -45,7 +45,7 @@ restartAnOutParty page = GameAuto $ do
     else if page < 0      then run $ restartAnOutParty mxPage
     else if page > mxPage then run $ restartAnOutParty 0
     else do
-      let msg = Message $ unlines (zipWith (++) (('^':) . (++")") <$> ms) (Character.toText 34 . fst <$> ccs)) ++
+      let msg = message $ unlines (zipWith (++) (('^':) . (++")") <$> ms) (Character.toText 34 . fst <$> ccs)) ++
                "\n==========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")=========================\n\n" ++
                "^A‾)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
           ts' = if null ccs then [] else take 10 $ drop (page*10) ccs 
@@ -79,7 +79,7 @@ restart cid = GameAuto $ do
 enteringMaze :: GameMachine
 enteringMaze = with [movePlace EnteringMaze] (events [msg] $ openCamp p)
   where
-    msg = MessageTime (-1500) "\n\n  *** Entering Test Maze... *** \n\n\n" Nothing
+    msg = messageTime (-1500) "\n\n  *** Entering Test Maze... *** \n\n\n" Nothing
     p   = Position { direction = N, x = 0, y = 0, z = 0 }
 
 -- =======================================================================
@@ -95,7 +95,7 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                                   ,(Key "r", selectReorderTargetCharacter 0)
                                   ,(Key "q", exitGame)]
   where
-    msg = Message $ "^C)reate Character\n"
+    msg = message $ "^C)reate Character\n"
                  ++ "^S)how List of Characters\n"
                  ++ "^D)elete Character\n"
                  ++ "^N)ame Change of Character\n"
@@ -107,12 +107,12 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
 
 createNewCharacter :: GameMachine
 createNewCharacter = GameAuto $
-    return (Ask ">Input name of character. \n(Empty to cancel.)" Nothing,
+    return (ask ">Input name of character. \n(Empty to cancel.)" Nothing,
            \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
               if null s then inTrainingGrounds else GameAuto $ do
               isOK <- not <$> existSameName s
               run $ if isOK then selectRace s
-                    else events [Message $ s ++ " is already exist."] createNewCharacter)
+                    else events [message $ s ++ " is already exist."] createNewCharacter)
 
 existSameName :: String -> GameState Bool
 existSameName name = do
@@ -126,7 +126,7 @@ selectRace name = GameAuto $ do
     ks <- asks racies
     let ts  = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.raceName <$> ks)
         cs  = zip (Key <$> (show <$> [1..])) (selectAlignment name <$> ks)
-        msg = Message $ showCharacter name Nothing Nothing Nothing
+        msg = message $ showCharacter name Nothing Nothing Nothing
                      ++ "\n=========================================================\n"
                      ++ ">Select race.(ESC to cancel)\n\n"
                      ++ unlines ts
@@ -138,7 +138,7 @@ selectAlignment name k = select msg [(Key "\ESC", inTrainingGrounds)
                                     ,(Key "n", determineParameter name k Character.N)
                                     ,(Key "e", determineParameter name k Character.E)]
   where
-    msg = Message $ showCharacter name (Just k) Nothing Nothing
+    msg = message $ showCharacter name (Just k) Nothing Nothing
                  ++ "\n=========================================================\n"
                  ++ ">Select alignment. (ESC to cancel)\n\n"
                  ++ "  ^G)ood\n"
@@ -155,7 +155,7 @@ determineParameter' bns aps name k a = GameAuto $ do
     js <- asks (filter (isEnableJob a param) . jobs)
     let ibns = bns + totalParameter aps
         jts  = ("  *)"++) . Character.jobName <$> js
-        msg  = Message $ showCharacter name (Just k) (Just a) Nothing
+        msg  = message $ showCharacter name (Just k) (Just a) Nothing
                       ++ "\n=========================================================\n"
                       ++ ">Select add parameter from bonus. ^R)eset\n\n"
                       ++ "  ^S)trength :" ++ rightTxt 4 (strength param) ++ "\n"
@@ -194,7 +194,7 @@ selectJob aps name k a = GameAuto $ do
     if null js then run $ determineParameter' 0 aps name k a
     else do
       let jts = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.jobName <$> js)
-          msg = Message $ showCharacter name (Just k) (Just a) Nothing
+          msg = message $ showCharacter name (Just k) (Just a) Nothing
                        ++ "\n=========================================================\n"
                        ++ "\n\n" ++ showParameter param
                        ++ "---------------------------------------------------------\n"
@@ -210,7 +210,7 @@ makeCharacter :: Parameter -> String -> Character.Race -> Character.Alignment ->
 makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainingGrounds)
                                             ,(Key "c", inTrainingGrounds)]
   where
-    msg = Message $ showCharacter name (Just k) (Just a) (Just j)
+    msg = message $ showCharacter name (Just k) (Just a) (Just j)
                  ++ "\n=========================================================\n"
                  ++ "\n\n" ++ showParameter param
                  ++ "---------------------------------------------------------\n"
@@ -325,12 +325,12 @@ selectCharacterToChangeName = cmdWithCharacterList ("Change Name", changeCharact
 
 changeCharacterName :: GameMachine -> CharacterID -> GameMachine
 changeCharacterName h cid = GameAuto $
-    return (Ask ">Input name of character. \n(Empty to cancel.)" Nothing,
+    return (ask ">Input name of character. \n(Empty to cancel.)" Nothing,
            \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
               if null s then h else GameAuto $ do
               isOK <- not <$> existSameName s
               run $ if isOK then with [changeName s] h
-                    else events [Message $ s ++ " is already exist."] (changeCharacterName h cid))
+                    else events [message $ s ++ " is already exist."] (changeCharacterName h cid))
   where
     changeName newName = do
         c <- characterByID cid
@@ -378,7 +378,7 @@ cmdWithCharacterList cmd page = GameAuto $ do
     else if null cids then run inTrainingGrounds
     else do
       let cst = zipWith (++) (("^"++) .(++")") . show <$> [1..]) (Character.name . snd <$> cids)
-          msg = Message $ "^N)ext list  ^P)revious list  ^#)" ++ fst cmd ++"  ^L)eave `[`E`s`c`]"
+          msg = message $ "^N)ext list  ^P)revious list  ^#)" ++ fst cmd ++"  ^L)eave `[`E`s`c`]"
                       ++ "\n\n-------------------------(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")--------------------------\n\n"
                       ++ unlines cst
           cmds = cmdNums (length cids) (\i -> (snd cmd) (cmdWithCharacterList cmd page) $ (fst <$> cids) !! (i-1))

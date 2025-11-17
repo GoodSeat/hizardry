@@ -61,15 +61,15 @@ doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscap
         run $ events' (updownEffect p' False) (next False)
 
     -- interactive
-    doEvent' (Ev.Message     msg picID     ) next = events [MessagePic msg picID] (next False)
-    doEvent' (Ev.MessageTime msg picID t   ) next = events [MessageTime t msg picID] (next False)
-    doEvent' (Ev.Select      msg picID ways) next = select (MessagePic msg picID) (candidates ways)
-    doEvent' (Ev.Ask         msg picID ways) next = select (Ask msg picID) (candidates ways)
+    doEvent' (Ev.Message     msg picID     ) next = events [messagePic msg picID] (next False)
+    doEvent' (Ev.MessageTime msg picID t   ) next = events [messageTime t msg picID] (next False)
+    doEvent' (Ev.Select      msg picID ways) next = select (messagePic msg picID) (candidates ways)
+    doEvent' (Ev.Ask         msg picID ways) next = select (ask msg picID) (candidates ways)
 
     doEvent' (Ev.MessageT     dt msg picID     ) next = talk msg dt picID (next False)
-    doEvent' (Ev.MessageTimeT dt msg picID t   ) next = talkSelect msg dt picID $ const (events [MessageTime t msg picID] (next False))
+    doEvent' (Ev.MessageTimeT dt msg picID t   ) next = talkSelect msg dt picID $ const (events [messageTime t msg picID] (next False))
     doEvent' (Ev.SelectT      dt msg picID ways) next = talkSelect msg dt picID (`select` candidates ways)
-    doEvent' (Ev.AskT         dt msg picID ways) next = talkSelect msg dt picID $ const (select (Ask msg picID) (candidates ways))
+    doEvent' (Ev.AskT         dt msg picID ways) next = talkSelect msg dt picID $ const (select (ask msg picID) (candidates ways))
 
     -- in battle
 
@@ -133,9 +133,9 @@ matchCondition Ev.Otherwise = return True
 
 
 updownEffect :: Position -> Bool -> [(GameState (), Event)]
-updownEffect p toUp = replicate c (upStep, Time 150 Nothing)
-                   ++ [(upRest >> movePlace (InMaze p), Time 150 Nothing)]
-                   ++ replicate c (upStep, Time 150 Nothing)
+updownEffect p toUp = replicate c (upStep, wait 150 Nothing)
+                   ++ [(upRest >> movePlace (InMaze p), wait 150 Nothing)]
+                   ++ replicate c (upStep, wait 150 Nothing)
   where
     r = if toUp then 1 else -1
     u = 5 -- translate length by step.
