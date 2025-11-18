@@ -18,6 +18,8 @@ data Position = Position {
 
 -- | coordinate in maze.
 type Coord = (Int, Int, Int)
+type Coord2D = (Int, Int)
+type Size2D  = (Int, Int)
 
 coordOf :: Position -> Coord
 coordOf p = (x p, y p, z p)
@@ -39,9 +41,9 @@ faceOf (Grid (n, e, s, w) _) W = w
           
 
 -- | maze (group of grid).
-type Maze = (Int, Int) -> Grid
+type Maze = Coord2D -> Grid
 
-rotate :: Direction -> (Int, Int) -> Maze -> Maze
+rotate :: Direction -> Size2D -> Maze -> Maze
 rotate N _ m = m
 rotate newN (w, h) m = \(x, y) ->
     let w' = (case newN of Data.Maze.E -> h
@@ -66,7 +68,7 @@ rotatePositionRev newN (w, h) p
                 in Position d' (h - y p - 1) (x p) (z p)
   | otherwise = rotatePosition newN (w, h) p
 
-rotatePosition :: Direction -> (Int, Int) -> Position -> Position
+rotatePosition :: Direction -> Size2D -> Position -> Position
 rotatePosition N _ p = p
 rotatePosition newN (w, h) p
   | newN == S = let d' = case direction p of N -> S
@@ -132,8 +134,8 @@ rotateGrid newN (Grid (fN, fE, fS, fW) ns)
       0  1  2  3
      0123456789012
 -}
-fromText :: [String]   -- ^ text lines to parse.
-         -> (Int, Int) -- ^ size of maze.
+fromText :: [String] -- ^ text lines to parse.
+         -> Size2D   -- ^ size of maze.
          -> Maze
 fromText ls (w, h) (x, y) = Grid (fn, fe, fs, fw) ntc
   where
@@ -200,7 +202,7 @@ noticeFromText (c:cs)
  --  2345
  --   01 
  --
-blockText :: [String] -> (Int, Int) -> [Char]
+blockText :: [String] -> Coord2D -> [Char]
 blockText ls (x, y) = [ (ls' `on` (y * 2 - 2)) `at` (x * 3 - 2)   -- 0
                       , (ls' `on` (y * 2 - 2)) `at` (x * 3 - 1)   -- 1
                       , (ls' `on` (y * 2 - 1)) `at` (x * 3 - 3)   -- 2
@@ -305,7 +307,7 @@ walkForward mz p = if visiblityAt mz p 0 0 F == Passage then Just $ moveForward 
 
 -- ==========================================================================
 
-makeMazeMask :: (Coord -> Bool) -> Char -> Char -> Int -> (Int, Int) -> [String]
+makeMazeMask :: (Coord -> Bool) -> Char -> Char -> Int -> Size2D -> [String]
 makeMazeMask isVisited mask blank z (_, 0) = []
 makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow (h - 1) w ++ makeMazeMask isVisited mask blank z (w, h - 1)
   where
@@ -346,7 +348,7 @@ makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow (h - 1) w ++ makeMa
 
 
 
-showMaze :: (Int, Int) -> Position -> Maze -> [String]
+showMaze :: Size2D -> Position -> Maze -> [String]
 showMaze (_, 0) p _ = []
 showMaze (w, h) p m = showMazeRow (h - 1) w p m ++ showMaze (w, h - 1) p m
 

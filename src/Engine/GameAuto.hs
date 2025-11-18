@@ -125,7 +125,7 @@ data Scenario = Scenario {
     , scenarioHome   :: !GameMachine
     , racies         :: ![Race]
     , jobs           :: ![Job]
-    , mazes          :: ![(String, (Int, Int), Maze)]
+    , mazes          :: Int -> GameState (String, Size2D, Maze)
     , encountMap     :: !(Map.Map Coord (Int, [EnemyID]))
     , roomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
     , roomDefine     :: ![[Coord]]
@@ -140,7 +140,7 @@ data InitScenario = InitScenario {
       initScenarioOption :: !ScenarioOption
     , initRacies         :: ![Race]
     , initJobs           :: ![Job]
-    , initMazes          :: ![(String, (Int, Int), Maze)]
+    , initMazes          :: ![(String, Size2D, Maze)]
     , initEncountMap     :: !(Map.Map Coord (Int, [EnemyID]))
     , initRoomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
     , initRoomDefine     :: ![[Coord]]
@@ -158,7 +158,7 @@ initScenario i home = Scenario {
     , scenarioHome              = home
     , racies                    = initRacies         i
     , jobs                      = initJobs           i
-    , mazes                     = initMazes          i
+    , mazes                     = \z -> pure $ initMazes i !! z 
     , encountMap                = initEncountMap     i
     , roomBattleMap             = initRoomBattleMap  i
     , roomDefine                = initRoomDefine     i

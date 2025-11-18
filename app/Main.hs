@@ -12,9 +12,11 @@ import Control.Monad (void, when)
 
 import Engine.GameAuto
 import Engine.InCastle
+import Engine.Utils
 import Data.Primitive
 import Data.World
 import Data.Formula
+import Data.Maze
 import qualified Data.Enemies as Enemy
 
 import Control.CUI
@@ -54,8 +56,9 @@ main = do
     --gen <- getStdGen
     let gen = mkStdGen 0 
     (is, iw) <- SampleScenario.initScenario
-    let s = initScenario is inCastle 
+    let s'= initScenario is inCastle 
     let w = initWorld iw gen True
+        s = SampleScenario.modScenario s'
 
     let picOf = maybe mempty SampleScenario.pic
 
@@ -128,11 +131,17 @@ ignoreKey = do
 type RenderMethod = Bool -> Craphic -> IO ()
 
 testRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> Scenario -> Event -> World -> IO()
-testRender renderMethod picOf s (General (Display m c f t p n)) w = rendering  renderMethod picOf s (toT m) (toT f) (toT c) Nothing p w
-testRender renderMethod picOf s None                            w = testRender renderMethod picOf s (wait 0 Nothing) w
-testRender renderMethod picOf s (ShowStatus cid m _)            w = rendering  renderMethod picOf s m "" ""  (Just cid) Nothing w
-testRender renderMethod _ s (ShowMap m trans) w = setCursorPosition 0 0 >> renderMethod (debugMode w) (mapView m (place w) trans (visitHitory w) s)
-testRender renderMethod _ _ Exit w = undefined
+testRender rm picOf s (General (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) Nothing p w
+testRender rm picOf s None                            w = testRender rm picOf s (wait 0 Nothing) w
+testRender rm picOf s (ShowStatus cid m _)            w = rendering  rm picOf s m "" ""  (Just cid) Nothing w
+testRender rm _ s (ShowMap m trans)                   w = setCursorPosition 0 0
+                                                       >> rm (debugMode w) (mapView m (place w) trans (visitHitory w) $ mazeInf s w)
+testRender rm _ _ Exit                                w = undefined
+
+mazeInf :: Scenario -> World -> MazeInf
+mazeInf s w = case runGameState s w mazeInf' of (Right m, w') -> m
+  where
+    mazeInf' = currentPosition >>= mazeInfAt . thd3 . coordOf
 
 toT :: Maybe String -> String
 toT (Just s) = s
@@ -150,9 +159,9 @@ rendering :: RenderMethod
           -> Maybe PictureInf
           -> World
           -> IO()
-rendering renderMethod picOf s mMsg fMsg cMsg cid' picInf w = do
+rendering rm picOf s mMsg fMsg cMsg cid' picInf w = do
     setCursorPosition 0 0
-    renderMethod (debugMode w)
+    rm (debugMode w)
            $ t1 (if null locationText         then mempty else location locationText)
           <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox') mMsg')
           <> t1 (if null fMsg                 then mempty else flashMsgBox fMsg)
@@ -167,7 +176,7 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picInf w = do
           <> t1 (enemyTrans w $ enemyScene picOf s (place w))
           <> t1 treasureScene
           <> t1 (picOf picInf)
-          <> t1 (sceneTrans w $ scene (place w) (partyLight w > 0) (partyLight' w > 0) s)
+          <> t1 (sceneTrans w $ scene (place w) (partyLight w > 0) (partyLight' w > 0) (thd3 $ mazeInf s w))
   where
     t1    = translate (1, 1)
     ps    = flip Map.lookup (allCharacters w) <$> party w
@@ -217,8 +226,8 @@ rendering renderMethod picOf s mMsg fMsg cMsg cid' picInf w = do
 
     minimapScreen = case minimapType (worldOption w) of
                       Disable -> mempty
-                      Normal  -> miniMapView  (place w) (visitHitory w) (6, 6) True s
-                      AlwaysN -> miniMapViewN (place w) (visitHitory w) (6, 6) True s
+                      Normal  -> miniMapView  (place w) (visitHitory w) (6, 6) True (mazeInf s w)
+                      AlwaysN -> miniMapViewN (place w) (visitHitory w) (6, 6) True (mazeInf s w)
                             
 
 enemyScene :: (Maybe PictureInf -> Craphic) -> Scenario -> Place -> Craphic

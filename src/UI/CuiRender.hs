@@ -244,15 +244,15 @@ statusViewPlaceHolder =
 scene :: Place
       -> Bool       -- ^ light effect.
       -> Bool       -- ^ super light effect.
-      -> Scenario
+      -> Maze
       -> Craphic
 scene (InMaze p)              onLight superLight = dunsion p onLight superLight True
+scene (InBattle p _)          onLight superLight = dunsion p onLight superLight False
+scene (FindTreasureChest p _) onLight superLight = dunsion p onLight superLight False
 scene (Camping p _)           onLight superLight = do
           msg <- const $ if onLight || superLight then partyStatus "    Light" else mempty
           d   <- dunsion p onLight superLight False
           return $ msg <> d
-scene (InBattle p _)          onLight superLight = dunsion p onLight superLight False
-scene (FindTreasureChest p _) onLight superLight = dunsion p onLight superLight False
 scene InCastle                _       _          = const $ translate (0, 2) city2
 scene InEdgeOfTown            _       _          = const $ translate (0, 2) edgeOfTown
 scene EnteringMaze            onLight superLight = scene InEdgeOfTown onLight superLight
@@ -262,9 +262,11 @@ scene _                       _       _          = const mempty
 
 -- ========================================================================
 
+type MazeInf = (String, Size2D, Maze)
+
 -- mapView
-mapView :: String -> Place -> (Int, Int) -> Map.Map Coord Bool -> Scenario -> Craphic
-mapView msg place (dx, dy) mvt scenario = case place of
+mapView :: String -> Place -> (Int, Int) -> Map.Map Coord Bool -> MazeInf -> Craphic
+mapView msg place (dx, dy) mvt (_, (w, h), m) = case place of
     InMaze   p   -> mapView' p
     Camping  p _ -> mapView' p
     InBattle p _ -> mapView' p
@@ -276,7 +278,6 @@ mapView msg place (dx, dy) mvt scenario = case place of
           translate (windowW `div` 2 - pcx * 3 - 2, windowH `div` 2 - (h - pcy) * 2 + 1))
          (coord <> noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
       where
-        (fn,(w, h), m) = mazes scenario !! z p
         size = (w, h)
         pcx  = if w <= 20 then w `div` 2 else x p
         pcy  = if h <= 16 then h `div` 2 else y p
@@ -304,17 +305,16 @@ miniMapView :: Place
             -> Map.Map Coord Bool
             -> (Int, Int)
             -> Bool
-            -> Scenario
+            -> MazeInf
             -> Craphic
-miniMapView place mvt (viewW, viewH) isTransparent scenario = case place of
+miniMapView place mvt (viewW, viewH) isTransparent (fn, (w, h), m) = case place of
     (InMaze p) ->
-      let (fn,(w, h), m) = mazes scenario !! z p;
-           vw = (viewW - 1) * 3 + 1 + 4;
-           vh = (viewH - 1) * 2 + 1 + 2;
-           size = (w, h);
-           filter    = if isTransparent then addSGR 'c' else id;
-           rectBack  = if isTransparent then Blank      else Draw ' ';
-           blankChar = if isTransparent then ' '        else '*'
+      let vw = (viewW - 1) * 3 + 1 + 4;
+          vh = (viewH - 1) * 2 + 1 + 2;
+          size = (w, h);
+          filter    = if isTransparent then addSGR 'c' else id;
+          rectBack  = if isTransparent then Blank      else Draw ' ';
+          blankChar = if isTransparent then ' '        else '*'
       in filter (text (1, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ")")) <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
                             translate (vw `div` 2 - x p * 3 - 2, vh `div` 2 - (h - y p) * 2 + 1))
@@ -332,26 +332,25 @@ miniMapViewN :: Place
              -> Map.Map Coord Bool
              -> (Int, Int)
              -> Bool
-             -> Scenario
+             -> MazeInf
              -> Craphic
-miniMapViewN place mvt (viewW, viewH) isTransparent scenario = case place of
+miniMapViewN place mvt (viewW, viewH) isTransparent (fn, (w, h), m) = case place of
     (InMaze p) ->
-      let (fn,(w, h), m) = mazes scenario !! z p;
-           vw = (viewW - 1) * 3 + 1 + 4;
-           vh = (viewH - 1) * 2 + 1 + 2;
-           d  = direction p;
-           w' = (case d of Data.Maze.E -> h
-                           Data.Maze.W -> h
-                           _           -> w);
-           h' = (case d of Data.Maze.E -> w
-                           Data.Maze.W -> w
-                           _           -> h);
-           size  = (w,  h );
-           size' = (w', h');
-           p'    = rotatePosition d size p;
-           filter    = if isTransparent then addSGR 'c' else id;
-           rectBack  = if isTransparent then Blank      else Draw ' ';
-           blankChar = if isTransparent then ' '        else '*'
+      let vw = (viewW - 1) * 3 + 1 + 4;
+          vh = (viewH - 1) * 2 + 1 + 2;
+          d  = direction p;
+          w' = (case d of Data.Maze.E -> h
+                          Data.Maze.W -> h
+                          _           -> w);
+          h' = (case d of Data.Maze.E -> w
+                          Data.Maze.W -> w
+                          _           -> h);
+          size  = (w,  h );
+          size' = (w', h');
+          p'    = rotatePosition d size p;
+          filter    = if isTransparent then addSGR 'c' else id;
+          rectBack  = if isTransparent then Blank      else Draw ' ';
+          blankChar = if isTransparent then ' '        else '*'
       in filter (text (1, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")")) <>
          translate (1, 1) ((trim (1, 1) (vw, vh) .
                             translate (vw `div` 2 - x p' * 3 - 2, vh `div` 2 - (h' - y p') * 2 + 1))
@@ -373,12 +372,11 @@ dunsion :: Position
         -> Bool -- ^ light effect.
         -> Bool -- ^ super light effect.
         -> Bool -- ^ show message(for darkzone/in stone) or not.
-        -> Scenario
+        -> Maze
         -> Craphic
-dunsion p onLight superLight msg scenario = addSGR 'B' $ foldl1 mappend $
+dunsion p onLight superLight msg m = addSGR 'B' $ foldl1 mappend $
     (front <$> [(d, s) | d <-ds, s <- ss]) ++ (dark' <$> [(last ds + 1, s) | s <- ss])
   where
-    (_, _, m) = mazes scenario !! z p
     ds = if onLight || superLight then [0..3] else [0..1]
     ss = if onLight || superLight then [0,1,-1,2,-2,3,-3] else [0,1,-1]
     nots0 = noticesInView m p 0 0

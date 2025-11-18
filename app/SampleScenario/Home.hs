@@ -2,6 +2,7 @@ module SampleScenario.Home where
 
 import Engine.GameAuto
 import Engine.InCastle
+import Engine.Utils
 import Data.Primitive
 import Data.World
 import Data.Formula
@@ -66,7 +67,10 @@ initScenario = return (s, w)
           initScenarioOption = option
         , initRacies         = SampleRacies.racies
         , initJobs           = SampleJobs.jobs
-        , initMazes          = [("B1F", (4, 5), SampleMaze.maze1F), ("B2F", (26, 25), SampleMaze.maze2F)]
+        , initMazes          = [
+              ("B1F", ( 4,  5), SampleMaze.maze1F)
+            , ("B2F", (26, 25), SampleMaze.maze2F)
+            ]
         , initEncountMap     = Map.fromList [
               ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
             , ((0, 1, 0), (10, [EnemyID 1, EnemyID 2]))
@@ -173,6 +177,17 @@ initScenario = return (s, w)
                                ,ItemInf (ItemID 104) True
                                ]
         }
+
+modScenario :: Scenario -> Scenario
+modScenario s = s {
+    mazes = \z -> do
+        w <- world
+        return $ if z == 0 && eventFlags w !! 2 == 1 then
+                        ("B1F", ( 4,  5), SampleMaze.maze1F')
+                 else [ ("B1F", ( 4,  5), SampleMaze.maze1F)
+                      , ("B2F", (26, 25), SampleMaze.maze2F)
+                      ] !! z
+    }
 
 
 pic :: PictureInf -> Craphic

@@ -54,7 +54,7 @@ parse'D s help next = GameAuto $ do
 
 fst3 (t1, _, _) = t1
 snd3 (_, t2, _) = t2
-thr3 (_, _, t3) = t3
+thd3 (_, _, t3) = t3
 
 -- =================================================================================
 
@@ -102,13 +102,15 @@ randomsIn n as
 -- General commands.
 -- ---------------------------------------------------------------------------------
 
-mazeAt :: Int -> GameState Maze
-mazeAt z = asks $ g3 . (!!z) . mazes
-  where g3 (_,_,a) = a
+mazeInfAt :: Int -> GameState (String, Size2D, Maze)
+mazeInfAt z = join (asks mazes <*> pure z)
 
-mazeSizeAt :: Int -> GameState (Int, Int)
-mazeSizeAt z = asks $ g2 . (!!z) . mazes
-  where g2 (_,a,_) = a
+mazeAt :: Int -> GameState Maze
+mazeAt = fmap thd3 <$> mazeInfAt
+
+mazeSizeAt :: Int -> GameState Size2D
+mazeSizeAt = fmap snd3 <$> mazeInfAt
+
 
 movePlace :: Place -> GameState ()
 movePlace p = modify $ \w -> w { place = p }
