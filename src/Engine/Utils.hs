@@ -31,6 +31,9 @@ import qualified Data.Items as Item
 world :: GameState World
 world = get
 
+evFlag :: Int -> GameState Int
+evFlag n = (!!n) . eventFlags <$> world
+
 option :: GameState ScenarioOption
 option = asks scenarioOption
 

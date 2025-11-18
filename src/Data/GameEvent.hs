@@ -17,13 +17,13 @@ data Define =
             -- interactive
             | Message     String (Maybe PictureInf)
             | MessageTime String (Maybe PictureInf) Int
-            | Select      String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
-            | Ask         String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
+            | Select      String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | Ask         String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
             | MessageT     Int String (Maybe PictureInf)
             | MessageTimeT Int String (Maybe PictureInf) Int
-            | SelectT      Int String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
-            | AskT         Int String (Maybe PictureInf) [(String, Define)] -- ^ using empty text when no match.
+            | SelectT      Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | AskT         Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
             -- in battle
             | AsSpell SpellID

@@ -75,8 +75,8 @@ mazeEvents = Map.fromList [
                        ,("n",
                            Ev.MessageT (-15) "そうなの?" (Just $ Single $ PictureID 1002) <> Ev.Reference (GameEventID 010103))
                        ])
-         , ("", Ev.MessageT (-15) "それは知らない..." (Just $ Single $ PictureID 1002)
-             <> Ev.Reference (GameEventID 010103))
+         , ("\n", Ev.MessageT (-15) "またいつでも来ると良い!!" (Just $ Single $ PictureID 1002) <> Ev.Reference (GameEventID 010104))
+         , ("", Ev.MessageT (-15) "それは知らない..." (Just $ Single $ PictureID 1002) <> Ev.Reference (GameEventID 010103))
          ]
       )
 

@@ -86,6 +86,7 @@ initScenario = return (s, w)
         , initMazeEvents     = SampleEvents.mazeEvents
         , initEventMap       = SampleEvents.eventMap
         , initEventMapDir    = SampleEvents.eventMapDir
+        , initEventInspect   = Map.empty
         , initEnemies        = SampleEnemies.enemies
         , initSpells         = SampleSpells.spells
         , initItems          = SampleItems.items
@@ -179,14 +180,12 @@ initScenario = return (s, w)
         }
 
 modScenario :: Scenario -> Scenario
-modScenario s = s {
+modScenario s = let org = mazes s in s {
     mazes = \z -> do
-        w <- world
-        return $ if z == 0 && eventFlags w !! 2 == 1 then
-                        ("B1F", ( 4,  5), SampleMaze.maze1F')
-                 else [ ("B1F", ( 4,  5), SampleMaze.maze1F)
-                      , ("B2F", (26, 25), SampleMaze.maze2F)
-                      ] !! z
+        flg2 <- evFlag 2
+        if z == 0 && flg2 == 1
+          then return ("B1F", ( 4,  5), SampleMaze.maze1F')
+          else org z
     }
 
 

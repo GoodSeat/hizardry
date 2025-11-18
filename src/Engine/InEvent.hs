@@ -37,7 +37,8 @@ doEventInner :: Bool
 doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscape
   where
     candidates :: [(String, Ev.Define)] -> [(Input, GameMachine)]
-    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd spelling) | x <- if m == "" then [""] else lines m])
+    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd spelling)
+                                          | x <- if m == "" || m == "\n" then [m] else if m == "\r" then ["\n"] else lines m])
 
     doEvent' :: Ev.Define -> (Bool -> GameMachine) -> GameMachine
     -- moving

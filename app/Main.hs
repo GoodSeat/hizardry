@@ -31,18 +31,13 @@ import qualified SampleScenario.Home as SampleScenario
 -- *   sp
 -- * shop
 -- *   remove cursed item.
--- * temple
--- * training ground
--- * room battle
--- *   treasure chest
--- * secret door
+-- * training ground (job change)
+-- * classic secret door
+-- * inspect surround
 -- * other spells
 -- * other events
 -- * config
 -- *   all cure when sleep / when return castle(-> delete INN)
-
--- * PictureID -> PictureInf, enable to overlap, translate, etc...
--- * Event -> more universal. enable define for message of each window, PictureInf, clock Time, etc...
 
 -- * scenario parser, save data parser.
 -- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int
@@ -104,7 +99,9 @@ getKey refresh itype = do
     getKey' SequenceKey = do
         hSetBuffering stdin LineBuffering
         showCursor
-        (Key <$> getLine) <* (cursorUp 1 >> clearLine >> hideCursor >> refresh)
+        let mod s = let s' = filter (/= '\n') . filter (/= '\r') $ s in if s' == "" then "\n" else s'
+        (Key . mod <$> getLine) <* (cursorUp 1 >> clearLine >> hideCursor >> refresh)
+    
     getKey' (WaitClock n)
       | n > 0     = race (threadDelay $ n * 1000) ignoreKey >> return Clock
       | otherwise = do

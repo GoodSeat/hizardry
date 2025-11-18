@@ -131,6 +131,7 @@ data Scenario = Scenario {
     , roomDefine     :: ![[Coord]]
     , eventMap       :: !(Map.Map Coord GameEventID)
     , eventMapDir    :: !(Map.Map Position GameEventID)
+    , eventInspect   :: !(Map.Map Position GameEventID)
     , mazeEvents     :: !GameEvent.DB
     , enemies        :: !Enemy.DB
     , spells         :: !Spell.DB
@@ -146,6 +147,7 @@ data InitScenario = InitScenario {
     , initRoomDefine     :: ![[Coord]]
     , initEventMap       :: !(Map.Map Coord GameEventID)
     , initEventMapDir    :: !(Map.Map Position GameEventID)
+    , initEventInspect   :: !(Map.Map Position GameEventID)
     , initMazeEvents     :: !GameEvent.DB
     , initEnemies        :: !Enemy.DB
     , initSpells         :: !Spell.DB
@@ -164,6 +166,7 @@ initScenario i home = Scenario {
     , roomDefine                = initRoomDefine     i
     , eventMap                  = initEventMap       i
     , eventMapDir               = initEventMapDir    i
+    , eventInspect              = initEventInspect   i
     , mazeEvents                = initMazeEvents     i
     , enemies                   = initEnemies        i
     , Engine.GameAuto.spells    = initSpells         i
