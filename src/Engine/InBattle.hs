@@ -316,9 +316,9 @@ act (ByEnemies l e a) next = GameAuto $ do
           Enemy.Breath f attrs   -> do
               ps <- party <$> world
               ts <- castDamageSpell f attrs (Right e') (Left $ toPartyPos <$> [1..length ps])
-              let toMsg (_, t, d) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
-                                    in if d then toEffect True msg else [(return(), message msg)]
-              run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
+              let acc (_, t, d) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
+                                  in if d then toEffect True msg else events [message msg] 
+              run $ foldr acc (with (fst3 <$> ts) next) ((undefined, "", False) : ts)
           Enemy.Run              -> do
               en   <- enemyNameOf e'
               updateEnemy e' $ const e' { Enemy.hp = 0 }

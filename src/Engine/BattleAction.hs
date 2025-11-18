@@ -7,7 +7,7 @@ import qualified Data.Map as Map
 import Data.List hiding (lookup)
 import Data.Maybe (fromJust)
 import Data.Function ((&))
-import Data.Map hiding (filter, null, foldl, foldl', take, drop)
+import Data.Map hiding (filter, null, foldl, foldl', foldr, take, drop)
 import Control.Monad
 import Control.Monad.Reader (asks)
 import Control.Monad.State (modify)
@@ -43,9 +43,8 @@ fightOfCharacter id el next = GameAuto $ do
         let e' = damageHp d e
         updateEnemy e $ const e'
         ms <- fightMessage c e' (h, d, ses)
-        let ess = if d == 0 || el /= L1 then (return (),) . message <$> ms
-                                        else toEffect False (head ms) ++ ((return (),) . message <$> tail ms)
-        run $ events' ess next
+        run $ if d == 0 || el /= L1 then events (message <$> ms) next
+                                    else toEffect False (head ms) (events (message <$> tail ms) next)
 
 fightDamage :: EnemyLine
             -> Chara.Character
@@ -130,9 +129,9 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
       let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
          -- TODO:lv drain
       ms <- fightMessageE e c' (h, d, ses)
-      let ess = if d == 0 then (return (),) . message <$> ms
-                          else toEffect True (head ms) ++ ((return (),) . message <$> tail ms)
-      run $ events' ess (with [updateCharacter (ps !! idc) c'] next)
+      let next' = with [updateCharacter (ps !! idc) c'] next
+      run $ if d == 0 then events (message <$> ms) next'
+                      else toEffect True (head ms) (events (message <$> tail ms) next')
 
 fightDamageE :: Int             -- ^ count of attack.
              -> Enemy.Instance  -- ^ attacker enemy.
@@ -340,14 +339,15 @@ castInBattle :: Verb -> Cast
 castInBattle v n ca (Left cid) dst next = GameAuto $ do
     src <- characterByID cid
     ts  <- ca (Left src) dst
-    let toMsg (_, t, d) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                          in if d then toEffect False msg else [(return(), message msg)]
-    run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
+    let acc (_, t, d) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+                        in if d then toEffect False msg else events [message msg] 
+    run $ foldr acc (with (fst3 <$> ts) next) ((undefined, "", False) : ts)
+
 castInBattle v n ca (Right e) dst next = GameAuto $ do
     ts <- ca (Right e) dst
-    let toMsg (_, t, d) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                          in if d then toEffect True msg else [(return(), message msg)]
-    run $ events' (concatMap toMsg $ (undefined, "", False) : ts) (with (fst3 <$> ts) next)
+    let acc (_, t, d) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+                        in if d then toEffect True msg else events [message msg] 
+    run $ foldr acc (with (fst3 <$> ts) next) ((undefined, "", False) : ts)
 
 
 type CastAs = (Verb -> Cast) -> Cast
@@ -403,22 +403,22 @@ enemyNameOf e = nameOf <$> enemyDefineByID (Enemy.id e)
     nameOf = if Enemy.determined e then Enemy.name else Enemy.nameUndetermined
 
 
-toEffect :: Bool -> String -> [(GameState(), Event)]
-toEffect fromEnemy msg =
-    let d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
-                                                 , sceneTrans = sceneTrans w . translate ( 0,  1) }
-                                          else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
-        d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
-                                                 , sceneTrans = sceneTrans w . translate (-1,  0) }
-                                          else w { enemyTrans = enemyTrans w . translate (-1,  0) }
-        d3  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 2, -1)
-                                                 , sceneTrans = sceneTrans w . translate ( 2, -1) }
-                                          else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
-        d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
-                                                 , sceneTrans = id }
-                                          else w { enemyTrans = id }
-        e1  = (d1, messageTime (-40) msg Nothing)
-        e2  = (d2, messageTime (-30) msg Nothing)
-        e3  = (d3, messageTime (-40) msg Nothing)
-        e4  = (d4, message           msg)
-    in [e1,e2,e3,e4]
+toEffect :: Bool -> String -> GameMachine -> GameMachine
+toEffect fromEnemy msg next = e1
+  where
+    d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
+                                             , sceneTrans = sceneTrans w . translate ( 0,  1) }
+                                      else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
+    d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
+                                             , sceneTrans = sceneTrans w . translate (-1,  0) }
+                                      else w { enemyTrans = enemyTrans w . translate (-1,  0) }
+    d3  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 2, -1)
+                                             , sceneTrans = sceneTrans w . translate ( 2, -1) }
+                                      else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
+    d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
+                                             , sceneTrans = id }
+                                      else w { enemyTrans = id }
+    e1  = with [d1] $ select (messageTime (-40) msg Nothing) [(Clock, e2), (AnyKey, with [d4] next)]
+    e2  = with [d2] $ select (messageTime (-30) msg Nothing) [(Clock, e3), (AnyKey, with [d4] next)]
+    e3  = with [d3] $ select (messageTime (-40) msg Nothing) [(Clock, e4), (AnyKey, with [d4] next)]
+    e4  = with [d4] $ events [message msg] next

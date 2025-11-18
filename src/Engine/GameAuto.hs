@@ -20,6 +20,7 @@ import qualified Data.Items as Item
 -- ==========================================================================
 
 data Input = Key String
+           | AnyKey
            | Clock
            | Abort
     deriving (Show, Eq, Read)
@@ -264,6 +265,7 @@ selectWhen' k e ns = selectWhen e ns'
 selectWhen :: Event -> [(Input, GameMachine, Bool)] -> GameMachine
 selectWhen e ns = GameAuto $ return (e, select' ns)
   where
+    select' ((AnyKey, s1, enable):ns) (Key k) = if enable then s1 else select' ns (Key k)
     select' ((i1, s1, enable):ns) i = if i == i1 && enable then s1 else select' ns i
     select' [] (Key s) = if s /= "" then select' ns (Key "")
                                     else selectWhen e ns
