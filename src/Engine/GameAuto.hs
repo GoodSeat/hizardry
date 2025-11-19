@@ -269,10 +269,10 @@ selectWhen :: Event -> [(Input, GameMachine, Bool)] -> GameMachine
 selectWhen e ns = GameAuto $ return (e, select' ns)
   where
     select' ((AnyKey, s1, enable):ns) (Key k) = if enable then s1 else select' ns (Key k)
-    select' ((i1, s1, enable):ns) i = if i == i1 && enable then s1 else select' ns i
-    select' [] (Key s) = if s /= "" then select' ns (Key "")
-                                    else selectWhen e ns
-    select' [] _ = selectWhen e ns
+    select' ((i1, s1, enable):ns) (Key k)     = if i1 `elem` (Key <$> addHiragana k) && enable then s1 else select' ns (Key k)
+    select' ((i1, s1, enable):ns) i           = if i == i1 && enable then s1 else select' ns i
+    select' [] (Key s)                        = if s /= "" then select' ns (Key "") else selectWhen e ns
+    select' [] _                              = selectWhen e ns
 
 select :: Event -> [(Input, GameMachine)] -> GameMachine
 select e ns = selectWhen e $ map (\(i, g) -> (i, g, True)) ns
@@ -282,6 +282,10 @@ select1 e ns = selectWhen1 e $ map (\(i, g) -> (i, g, True)) ns
 
 selectEsc :: Event -> [(Input, GameMachine)] -> GameMachine
 selectEsc e ns = selectWhenEsc e $ map (\(i, g) -> (i, g, True)) ns
+
+-- --------------------------------------------------------------------------
+addHiragana :: String -> [String] -- TODO:if not null s, make Hiragana, and append.
+addHiragana s = [s]
 
 -- --------------------------------------------------------------------------
 

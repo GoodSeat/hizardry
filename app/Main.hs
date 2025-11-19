@@ -68,13 +68,12 @@ main = do
              
     drawCache <- newDrawCache
     let renderMethod = renderWithCache drawCache
-        cmd = getKey (clearCache drawCache)
-    --let renderMethod = render
-    --    cmd = getKey (return ())
+        display      = testRender renderMethod picOf
+        cmd          = getKey (clearCache drawCache)
 
     clearScreen
     hideCursor
-    w' <- run (testRender renderMethod picOf s) cmd s w inCastle
+    w' <- run (display s) cmd s w inCastle
     showCursor
 
     appendFile saveDataPath $ show Abort ++ "\n"
@@ -83,9 +82,12 @@ main = do
 
 saveDataPath = "save.txt"
 
+type DisplayIO = Scenario -> Event -> World -> IO()
+type InputIO   = InputType -> IO Input
+
 -- ==========================================================================
 
-getKey :: IO () -> InputType -> IO Input
+getKey :: IO () -> InputIO
 getKey refresh itype = do
     i <- getKey' itype
     appendFile saveDataPath (show i ++ "\n")
@@ -127,7 +129,7 @@ ignoreKey = do
 
 type RenderMethod = Bool -> Craphic -> IO ()
 
-testRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> Scenario -> Event -> World -> IO()
+testRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> DisplayIO
 testRender rm picOf s (General (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) Nothing p w
 testRender rm picOf s None                            w = testRender rm picOf s (wait 0 Nothing) w
 testRender rm picOf s (ShowStatus cid m _)            w = rendering  rm picOf s m "" ""  (Just cid) Nothing w
