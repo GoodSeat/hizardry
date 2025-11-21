@@ -165,8 +165,11 @@ mazeEvents = Map.fromList [
 
     -- find secret door
     , (GameEventID 03000101, Ev.ChangeEventFlag 2 (parse' "1") <> Ev.Message "Wow!?" Nothing)
-
-    ]
+    , (GameEventID 02010101, Ev.Switch [
+         ( Ev.FormulaCheckParty (parse' "(evf.2=0)*100"), Ev.ChangeEventFlag 2 (parse' "1") <> Ev.Message "You found door." Nothing)
+        ,( Ev.Otherwise, Ev.Message "You found nothing." Nothing)
+      ])
+      ]
 
 eventMap :: Map.Map Coord GameEventID
 eventMap = Map.fromList [

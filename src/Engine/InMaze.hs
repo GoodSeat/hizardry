@@ -184,20 +184,33 @@ inspect p = GameAuto $ do
     run $ selectWhenEsc (message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "s", searchCharacter p, True)
+          ,(Key "i", searchSurroundings p, True)
           ]
+
+searchSurroundings :: Position -> GameMachine
+searchSurroundings p = GameAuto $ do
+    eventMap <- asks eventInspect
+    let foundNothing = events (searchMsgs ++ [message "You found nothing."]) (inspect p)
+    case Map.lookup p eventMap of
+        Nothing -> run foundNothing
+        Just eid -> do
+            evDef <- asks ((Map.! eid) . mazeEvents)
+            let returnToInspect _ = inspect p
+                cantSpelling _ _  = inspect p
+            run $ events searchMsgs (doEvent evDef returnToInspect returnToInspect cantSpelling)
 
 searchCharacter :: Position -> GameMachine
 searchCharacter p = GameAuto $ do
     cs <- gets inMazeMember
     let ts = fst <$> filter ((== coordOf p) . (coordOf . snd)) cs
-    run $ events msgs (editParty p 0 ts)
-  where
-    msgs = [ messageTime 400 " Searching character     " Nothing
-           , messageTime 400 " Searching character.    " Nothing
-           , messageTime 400 " Searching character..   " Nothing
-           , messageTime 400 " Searching character...  " Nothing
-           , messageTime 400 " Searching character.... " Nothing
-           ]
+    run $ events searchMsgs (editParty p 0 ts)
+
+searchMsgs = [ messageTime 400 " Searching.    " Nothing
+             , messageTime 400 " Searching..   " Nothing
+             , messageTime 400 " Searching...  " Nothing
+             , messageTime 400 " Searching.... " Nothing
+             , messageTime 400 " Searching....." Nothing
+             ]
 
 editParty :: Position -> Int -> [CharacterID] -> GameMachine
 editParty p page ts = let mxPage = max 0 ((length ts - 1) `div` 10) in

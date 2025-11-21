@@ -5,6 +5,7 @@ import Engine.InCastle
 import Engine.Utils
 import Data.Primitive
 import Data.World
+import Data.Maze
 import Data.Formula
 import Control.CUI
 
@@ -86,7 +87,7 @@ initScenario = return (s, w)
         , initMazeEvents     = SampleEvents.mazeEvents
         , initEventMap       = SampleEvents.eventMap
         , initEventMapDir    = SampleEvents.eventMapDir
-        , initEventInspect   = Map.empty
+        , initEventInspect   = Map.fromList [ (Position E 2 1 0, GameEventID 02010101) ]
         , initEnemies        = SampleEnemies.enemies
         , initSpells         = SampleSpells.spells
         , initItems          = SampleItems.items
