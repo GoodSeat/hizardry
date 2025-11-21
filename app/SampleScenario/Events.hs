@@ -45,13 +45,13 @@ mazeEvents = Map.fromList [
          ]
        )
     , (GameEventID 010103, Ev.Ask "何について話す？ (say \"bye\" to exit.)" (Just $ Single $ PictureID 1002)
-         [ ("hello\nhi", Ev.MessageT (-15) "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ Single $ PictureID 1002)
+         [ ("hello\nhi\nこんにちは", Ev.MessageT (-15) "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ Single $ PictureID 1002)
                       <> Ev.Reference (GameEventID 010103))
          , ("name" , Ev.MessageT (-15) "名前はまだない。" (Just $ Single $ PictureID 1002)
                   <> Ev.Reference (GameEventID 010103))
          , ("haskell", Ev.MessageT (-15) "Haskellはこの世界を作っている言語だ。\nつまり神の言語だ!!" (Just $ Single $ PictureID 1002)
                     <> Ev.Reference (GameEventID 010103))
-         , ("god\n神", Ev.MessageT (-15) "まぁ私もよく分からず言っている。" (Just $ Single $ PictureID 1002)
+         , ("god\n神\nかみ", Ev.MessageT (-15) "まぁ私もよく分からず言っている。" (Just $ Single $ PictureID 1002)
                     <> Ev.Reference (GameEventID 010103))
          , ("fight", Ev.MessageT (-15) "私は平和主義者だ。\n戦いは好まない。" (Just $ Single $ PictureID 1002)
                   <> Ev.Reference (GameEventID 010103))
@@ -65,7 +65,7 @@ mazeEvents = Map.fromList [
                     <> Ev.Reference (GameEventID 010103))
 
          , ("goodbye\nbye", Ev.MessageT (-15) "またいつでも来ると良い!!" (Just $ Single $ PictureID 1002) <> Ev.Reference (GameEventID 010104))
-         , ("castle" , Ev.SelectT (-15) "なんだ、城に帰りたいのか？\n(^Y/^N)" (Just $ Single $ PictureID 1002)
+         , ("castle\nしろ" , Ev.SelectT (-15) "なんだ、城に帰りたいのか？\n(^Y/^N)" (Just $ Single $ PictureID 1002)
                        [("y",
                             Ev.MessageTimeT (-15) "\nちょっと待っとれ."   (Just $ Single $ PictureID 1002) (500)
                          <> Ev.MessageTime        "\nちょっと待っとれ.."  (Just $ Single $ PictureID 1002) (500)

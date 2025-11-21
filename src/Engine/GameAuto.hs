@@ -16,6 +16,7 @@ import qualified Data.GameEvent as GameEvent
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
+import qualified Data.RomajiToHiragana as R2H
 
 -- ==========================================================================
 
@@ -284,8 +285,10 @@ selectEsc :: Event -> [(Input, GameMachine)] -> GameMachine
 selectEsc e ns = selectWhenEsc e $ map (\(i, g) -> (i, g, True)) ns
 
 -- --------------------------------------------------------------------------
-addHiragana :: String -> [String] -- TODO:if not null s, make Hiragana, and append.
-addHiragana s = [s]
+addHiragana :: String -> [String]
+addHiragana s = case R2H.romajiToHiragana s of
+                  Just h | s /= h -> [s, h]
+                  _               -> [s]
 
 -- --------------------------------------------------------------------------
 
