@@ -48,12 +48,25 @@ executables:
 
 tests:
   hizardry-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main:                HspecRunner.hs
+    source-dirs:         test/hspec
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - hizardry
+    - hspec
+    - doctest
+
+  hizardry-doctest:
+    main:                DocTest.hs
+    source-dirs:         test/doctest
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hizardry
+    - doctest
     - hspec

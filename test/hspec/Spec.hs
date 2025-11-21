@@ -1,10 +1,7 @@
-module Main (main) where
+module Spec (spec) where
 
 import           Data.RomajiToHiragana (romajiToHiragana)
 import           Test.Hspec
-
-main :: IO ()
-main = hspec spec
 
 spec :: Spec
 spec = do

@@ -37,6 +37,13 @@ romajiToHiraganaMap = sortBy (flip (comparing length) `on` fst) $
     , ("wi", "ゐ"), ("we", "ゑ")
     ]
 
+-- | Converts a romaji string to a hiragana string.
+-- Returns 'Nothing' if the input contains unconvertible sequences.
+--
+-- Examples:
+--
+-- >>> romajiToHiragana "x"
+-- Nothing
 romajiToHiragana :: String -> Maybe String
 romajiToHiragana = fmap concat . sequence . convert
   where
