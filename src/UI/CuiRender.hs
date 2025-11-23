@@ -118,22 +118,15 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> textSGR (54, windowH - 6 + n) (show $ hp c) sgrs
                         <> textSGR (61, windowH - 6 + n) (show $ maxhp c) sgrs
 
-statusView :: Scenario -> World -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
-statusView s w msg itemDefOf c =
-    -- If msg starts with a newline, treat it as a custom view (for spell list)
-    if not (null msg) && head msg == '\n'
-      then spellListView
-      else statusDetailView
+statusView :: Scenario -> World -> String -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
+statusView s w msg altContent itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] $ lines msg))
+                                         <> rect (8, 24) (61, 7) (Draw ' ')
+                                         <> if null altContent then statusDetailView else spellListView
   where
-    spellListView =
-        foldl (<>) mempty (fmap toText (zip [1..] (lines (tail msg))))
-        <> rect (6, 4) (65, 22) (Draw ' ')
-      where
-        toText (n, t) = text (8, 5 + n) t
-
+    toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
+    spellListView = foldl (<>) mempty (fmap toText' (zip [1..] $ lines altContent)) <> rect (6, 4) (65, 22) (Draw ' ')
+      where toText' (n, t) = textSGR (8, 4 + n) (toTextMessage t) (toTextSGR t)
     statusDetailView =
-        foldl1 (<>) (fmap toText (zip [1..] ls)) <>
-        rect (8, 24) (61, 7) (Draw ' ') <>
         ( translate (5, 4) $
           fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
@@ -190,13 +183,9 @@ statusView s w msg itemDefOf c =
         (ac', _) = runGameState s w (acOf $ Left c)
         ac = case ac' of Right v -> v
                          _       -> 99
-
         (st', _) = runGameState s w (paramOf $ Left c)
         st = case st' of Right v -> v
                          _       -> emptyParam
-
-        ls = lines msg
-        toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
         items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
                   <$> Character.items c) ++ repeat ""
         equipMarks = me (Character.items c) (Character.equips c)

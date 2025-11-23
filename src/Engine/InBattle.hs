@@ -142,7 +142,7 @@ selectBattleCommand i cmds con = GameAuto $ do
       if isCantFight c then
         run $ next CantMove
       else
-        let inspect = selectEsc (ShowStatus cid "^R)ead Spell   ^L)eave `[`E`S`C`]" SingleKey)
+        let inspect = selectEsc (showStatus cid "^R)ead Spell   ^L)eave `[`E`S`C`]")
                                 [(Key "l", selectBattleCommand i cmds con)
                                 ,(Key "r", readSpell inspect cid)
                                 ]

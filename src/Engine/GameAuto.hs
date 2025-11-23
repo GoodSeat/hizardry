@@ -34,8 +34,8 @@ data InputType = SingleKey
 data Event = None
            | Exit
            | General       Display
-           | ShowStatus    CharacterID String InputType -- ^ target character ID, manu message, next input type.
-           | ShowMap       String (Int, Int)            -- ^ message, translete
+           | ShowStatus    CharacterID Display -- ^ target character ID, manu message, next input type.
+           | ShowMap       String (Int, Int)   -- ^ message, translete
     deriving (Show, Eq)
 
 data Display = Display {
@@ -111,6 +111,39 @@ spellCommand s = General $ Display {
     , picture    = Nothing
     , needPhrase = True
     }
+
+showStatus cid msg = ShowStatus cid $ Display {
+      messageBox = Just msg
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+}
+showStatusAlt cid msg alt = ShowStatus cid $ Display {
+      messageBox = Just msg
+    , commandBox = Just alt
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+}
+showStatusAlt' cid msg alt help = ShowStatus cid $ Display {
+      messageBox = Just msg
+    , commandBox = Just alt
+    , flashBox   = Just help
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+}
+askInStatus cid msg = ShowStatus cid $ Display {
+      messageBox = Just msg
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = True
+}
 
 
 
@@ -235,11 +268,14 @@ stepGame s w g =
                           in (message msg, w', SingleKey, const end)
       Right (e, next') -> let itype = case e of
                                         General (Display _ _ _ w _ n)
-                                          | isJust w            -> WaitClock $ fromJust w 
-                                          | n                   -> SequenceKey
-                                          | otherwise           -> SingleKey
-                                        ShowStatus _ _ i'       -> i'
-                                        _                       -> SingleKey
+                                          | isJust w  -> WaitClock $ fromJust w 
+                                          | n         -> SequenceKey
+                                          | otherwise -> SingleKey
+                                        ShowStatus _ (Display _ _ _ w _ n)
+                                          | isJust w  -> WaitClock $ fromJust w 
+                                          | n         -> SequenceKey
+                                          | otherwise -> SingleKey
+                                        _             -> SingleKey
                           in (e, w', itype, next')
 
 -- ==========================================================================

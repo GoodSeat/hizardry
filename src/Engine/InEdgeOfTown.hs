@@ -302,7 +302,7 @@ showListOfCharacters :: Int -> GameMachine
 showListOfCharacters = cmdWithCharacterList ("Inspect", inspectCharacter)
 
 inspectCharacter :: GameMachine -> CharacterID -> GameMachine
-inspectCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
+inspectCharacter h cid = selectEsc (showStatus cid msg)
                                    [(Key "l", h)
                                    ,(Key "r", readSpell (inspectCharacter h cid) cid)
                                    ]
@@ -313,7 +313,7 @@ selectDeleteTargetCharacter :: Int -> GameMachine
 selectDeleteTargetCharacter = cmdWithCharacterList ("Delete", showDeleteTargetCharacter)
 
 showDeleteTargetCharacter :: GameMachine -> CharacterID -> GameMachine
-showDeleteTargetCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
+showDeleteTargetCharacter h cid = selectEsc (showStatus cid msg)
                                    [(Key "n", h)
                                    ,(Key "y", with [deleteCharacter cid] h)
                                    ]

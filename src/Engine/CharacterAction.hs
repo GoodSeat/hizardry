@@ -36,11 +36,11 @@ inspectCharacter h canSpell i = GameAuto $ do
     c   <- characterInPartyAt i
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter h canSpell) (const True)
     let cancel = inspectCharacter h canSpell i
-        iCast  = flip (ShowStatus cid) SequenceKey
-        sCast  = flip (ShowStatus cid) SingleKey
+        iCast  = askInStatus cid
+        sCast  = showStatus cid
         sItem  = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
         dItem  = sCast
-    run $ selectWhenEsc (ShowStatus cid msg SingleKey)
+    run $ selectWhenEsc (showStatus cid msg)
                       $ (Key "l", h, True)
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
                       : (Key "u", selectItem sItem identified (useItem sCast (useItemInCamp i cancel)) c cancel, True)
@@ -63,13 +63,13 @@ inspectCharacter h canSpell i = GameAuto $ do
 
 readSpell :: GameMachine -> CharacterID -> GameMachine
 readSpell cancel cid = GameAuto $ do
-    c <- characterByID cid
+    c  <- characterByID cid
     ss <- catMaybes <$> mapM spellByID (Chara.spells c)
-    mb <- msgInReadSpell cid Nothing
+    ac <- msgInReadSpell cid Nothing
     let hasMageSpell   = any (\s -> Spell.kind s == Spell.M) ss
         hasPriestSpell = any (\s -> Spell.kind s == Spell.P) ss
-        msg            = "\nSelect spell type: ^M)age Spells ^P)riest Spells ^L)eave `[`E`S`C`]\n" ++ mb
-    run $ selectWhenEsc (ShowStatus cid msg SingleKey)
+        msg            = "Select spell type:\n  ^M)age Spells  ^P)riest Spells  ^L)eave `[`E`S`C`]"
+    run $ selectWhenEsc (showStatusAlt cid msg ac)
                         [ (Key "l", cancel, True)
                         , (Key "m", selectSpellLevel (readSpell cancel cid) cid Spell.M, hasMageSpell)
                         , (Key "p", selectSpellLevel (readSpell cancel cid) cid Spell.P, hasPriestSpell)
@@ -77,12 +77,11 @@ readSpell cancel cid = GameAuto $ do
 
 selectSpellLevel :: GameMachine -> CharacterID -> Spell.Kind -> GameMachine
 selectSpellLevel cancel cid kind = GameAuto $ do
-    mb <- msgInReadSpell cid Nothing
-    let msg = "\nSelect spell level (1-7)  ^L)eave `[`E`S`C`]\n" ++ mb
+    ac <- msgInReadSpell cid Nothing
+    let msg = "Select spell level:\n  ^1~^7)Select Lv  ^L)eave `[`E`S`C`]"
         -- Generate keybindings for levels 1-7
-        levelCmds = [(Key (show lv), showSpellListForInfo cancel cid kind lv) | lv <- [1..7]]
-    run $ selectEsc (ShowStatus cid msg SingleKey)
-                    ( (Key "l", cancel) : levelCmds )
+        levelCmds = [(Key (show lv), showSpellListForInfo (selectSpellLevel cancel cid kind) cid kind lv) | lv <- [1..7]]
+    run $ selectEsc (showStatusAlt cid msg ac) ((Key "l", cancel) : levelCmds)
 
 showSpellListForInfo :: GameMachine -> CharacterID -> Spell.Kind -> Int -> GameMachine
 showSpellListForInfo cancel cid kind level = GameAuto $ do
@@ -93,26 +92,20 @@ showSpellListForInfo cancel cid kind level = GameAuto $ do
         -- Filter spells by the selected kind and level
         filteredSpells = filter (\s -> Spell.kind s == kind && Spell.lv s == level) allLearned
 
-    if null filteredSpells
-        then run $ events [message "\nNo spells learned at this level."] (selectSpellLevel cancel cid kind)
-        else do
-            mb <- msgInReadSpell cid (Just (kind, level))
-            let indexedSpells = zip ['A'..'Z'] filteredSpells
+    if null filteredSpells then run cancel else do
+        ac <- msgInReadSpell cid (Just (kind, level))
+        let indexedSpells = zip ['A'..'Z'] filteredSpells
+            infoCmds = flip fmap indexedSpells $ \(key, spellDef) ->
+              let info = unlines . fmap ((++" ") . (" "++)) . lines $ Spell.information spellDef
+                  -- After showing info, return to this same spell list
+                  nextMachine = if null info
+                                  then showSpellListForInfo cancel cid kind level
+                                  else events [showStatusAlt' cid msg ac info] (showSpellListForInfo cancel cid kind level)
+              in (Key [toLower key], nextMachine)
 
-                infoCmds = flip fmap indexedSpells $ \(key, spellDef) ->
-                  let info = Spell.information spellDef
-                      -- After showing info, return to this same spell list
-                      nextMachine = if null info
-                                      then showSpellListForInfo cancel cid kind level
-                                      else events [flashMessage (-400000) info] (showSpellListForInfo cancel cid kind level)
-                  in (Key [toLower key], nextMachine)
-
-                kindName = if kind == Spell.M then "MAGE" else "PRIEST"
-                msg = "\n ++ ^A~Z) Show Info  ^L)eave `[`E`S`C`]\n" ++ mb
-            
-            -- The 'back' action returns to the level selection screen
-            let backToLevelSelect = selectSpellLevel cancel cid kind
-            run $ selectEsc (ShowStatus cid msg SingleKey) ( (Key "l", backToLevelSelect) : infoCmds )
+            kindName = if kind == Spell.M then "MAGE" else "PRIEST"
+            msg = "Select spell:\n  ^A~^Z)Show Info  ^L)eave `[`E`S`C`]"
+        run $ selectEsc (showStatusAlt cid msg ac) ((Key "l", cancel) : infoCmds)
 
 msgInReadSpell :: CharacterID -> Maybe (Spell.Kind, Int) -> GameState String
 msgInReadSpell cid tgt = do
@@ -135,8 +128,8 @@ msgInReadSpell cid tgt = do
             names lvGroup = if Spell.lv (head lvGroup) == lvl && Spell.kind (head group) == kind then
                 foldl (\acc (a, b) -> acc ++ " ^" ++ (a : ")" ++ b)) "" (zip ['A'..'Z'] (snames lvGroup))
               else
-                intercalate "    " (snames lvGroup)
-            formatLvGroup lvGroup = "  LV " ++ show (Spell.lv (head lvGroup)) ++ ": " ++ names lvGroup
+                "   " ++ intercalate "   " (snames lvGroup)
+            formatLvGroup lvGroup = " LV" ++ show (Spell.lv (head lvGroup)) ++ ": " ++ names lvGroup
         in kindName : fmap formatLvGroup groupedByLv
 
       in "\n" ++ unlines (intercalate [""] (fmap formatGroup groupedByKind))
@@ -151,14 +144,14 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
     c   <- characterInPartyAt src
     def <- itemByID $ Chara.itemAt c i
     case Item.usingEffect def of
-      Nothing                     -> run $ events [ShowStatus cid "no happens." SingleKey] next
+      Nothing                     -> run $ events [showStatus cid "no happens."] next
       Just (Item.EqSpell ids, bp) -> do
          sdef' <- spellByID ids
          case sdef' of
            Just sdef -> if Spell.InCamp `elem` Spell.enableIn sdef then
                           run $ spellInCampNoCost sdef src dst (with [breakItem bp cid i] next)
                         else
-                          run $ events [ShowStatus cid "can't use it here." SingleKey] next
+                          run $ events [showStatus cid "can't use it here."] next
            Nothing   -> error "invalid spellId in useItemInCamp"
       Just (Item.Happens eid, bp) -> do
          let next' = with [breakItem bp cid i] next
@@ -168,7 +161,7 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
                                                   (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
                                                                 spellInCampNoCost sdef src dst (with [breakItem bp cid i] n)
                                                               else
-                                                                events [ShowStatus cid "can't use it here." SingleKey] n)
+                                                                events [showStatus cid "can't use it here."] n)
 useItemInCamp _ _ _ _ = error "invalid useItemInCamp"
 
 
@@ -406,11 +399,11 @@ spellInCamp src next s (Left dst) = GameAuto $ do
         Just def -> if Spell.InCamp `elem` Spell.enableIn def then
                       run $ spellInCamp' def src dst next
                     else
-                      run $ events [ShowStatus cid "can't cast it here." SingleKey] next
-        Nothing  -> run $ events [ShowStatus cid "what?" SingleKey] next
+                      run $ events [showStatus cid "can't cast it here."] next
+        Nothing  -> run $ events [showStatus cid "what?"] next
 spellInCamp src next s (Right dst) = GameAuto $ do
     cid <- characterIDInPartyAt src
-    run $ events [ShowStatus cid "can't cast it here." SingleKey] next
+    run $ events [showStatus cid "can't cast it here."] next
 
 spellInCamp' :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCamp' def src dst next = GameAuto $ do
@@ -419,9 +412,9 @@ spellInCamp' def src dst next = GameAuto $ do
     know <- knowSpell' c def
     can  <- canSpell'  c def
     if      not know then
-      run $ events [ShowStatus cid "you can't casting it." SingleKey] next
+      run $ events [showStatus cid "you can't casting it."] next
     else if not can  then
-      run $ events [ShowStatus cid "no more MP." SingleKey] next
+      run $ events [showStatus cid "no more MP."] next
     else do
       join $ updateCharacter <$> characterIDInPartyAt src <*> costSpell' c def
       run $ spellInCampNoCost def src dst next
@@ -439,13 +432,13 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.Damage _  -> undefined
       Spell.Cure f ss -> do
         efs <- castCureSpell f ss (Left c) (Left tgt)
-        run $ with (fst3 <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+        run $ with (fst3 <$> efs) (events [showStatus cid "done"] next)
       Spell.ChangeParam ad term etxt -> do
         efs <- castParamChangeSpell ad term etxt (Left c) (Left tgt)
-        run $ with (fst3 <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+        run $ with (fst3 <$> efs) (events [showStatus cid "done"] next)
       Spell.AddLight n s -> do
         efs <- castAddLight n s (Left c) (Left tgt)
-        run $ with (fst3 <$> efs) (events [ShowStatus cid "done" SingleKey] next)
+        run $ with (fst3 <$> efs) (events [showStatus cid "done"] next)
       Spell.Event eid -> do
          edef' <- asks (lookup eid . mazeEvents)
          run $ case edef' of Nothing   -> next
@@ -453,15 +446,15 @@ spellInCampNoCost def src dst next = GameAuto $ do
                                                   (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
                                                                 spellInCampNoCost sdef src dst n
                                                               else
-                                                                events [ShowStatus cid "can't use it here." SingleKey] n)
+                                                                events [showStatus cid "can't use it here."] n)
       Spell.CheckLocation t -> do
         p              <- currentPosition
         (fn, (w,h), m) <- mazeInfAt $ z p
         let msg = "you are at " ++ fn ++ "(" ++ show (x p) ++ ", " ++ show (y p) ++ ": " ++ show (direction p) ++ ")."
         run $ case t of
-          Spell.OnlyCoord -> events [ ShowStatus cid msg SingleKey
-                                    , ShowStatus cid "done" SingleKey] next
-          Spell.ViewMap   -> showMap msg (0, 0) $ events [ShowStatus cid "done" SingleKey] next
+          Spell.OnlyCoord -> events [ showStatus cid msg
+                                    , showStatus cid "done"] next
+          Spell.ViewMap   -> showMap msg (0, 0) $ events [showStatus cid "done"] next
 
 showMap :: String -> (Int, Int) -> GameMachine -> GameMachine
 showMap msg (x,y) next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]") (x,y))
