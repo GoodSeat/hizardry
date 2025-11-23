@@ -47,7 +47,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "t", selectTradeItem dItem i cancel, True)
                       : (Key "e", equip           dItem i c cancel, True)
 -- TODO               : (Key "i", identifyItem    dItem i c cancel, canIdentify)
-                      : (Key "r", readSpell cancel i, True)
+                      : (Key "r", readSpell cancel cid, True)
                       : (Key "g", with [msgDebug $ show (Chara.spells c)] cancel, True)
                       : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
                       : cmdsInspect
@@ -60,14 +60,11 @@ inspectCharacter h canSpell i = GameAuto $ do
             "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup       \n" ++
             "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave `[`E`S`C`]"
 
-readSpell :: GameMachine -> PartyPos -> GameMachine
-readSpell cancel i = GameAuto $ do
-    cid  <- characterIDInPartyAt i
-    c    <- characterInPartyAt i
-
+readSpell :: GameMachine -> CharacterID -> GameMachine
+readSpell cancel cid = GameAuto $ do
+    c <- characterByID cid
     spellDB <- asks spells
     let learnedSpells = catMaybes $ flip lookup spellDB <$> Chara.spells c
-
     let formattedSpells = if null learnedSpells
             then "\nNo spells learned."
             else

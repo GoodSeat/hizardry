@@ -10,7 +10,7 @@ import Control.Monad.State
 import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
-import Engine.CharacterAction (inputSpell, selectItem, useItem, castDamageSpell)
+import Engine.CharacterAction (inputSpell, selectItem, useItem, castDamageSpell, readSpell)
 import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), getTreasures)
 import Data.World
 import Data.Primitive
@@ -144,7 +144,7 @@ selectBattleCommand i cmds con = GameAuto $ do
       else
         let inspect = selectEsc (ShowStatus cid "^R)ead Spell   ^L)eave `[`E`S`C`]" SingleKey)
                                 [(Key "l", selectBattleCommand i cmds con)
--- TODO                         ,(Key "r", readSpell cid inspect)
+                                ,(Key "r", readSpell inspect cid)
                                 ]
             cms = [( Key "f"
                    , selectFightTarget fts next cancel

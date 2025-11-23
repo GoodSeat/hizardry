@@ -11,6 +11,7 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InMaze
+import Engine.CharacterAction (readSpell)
 import Data.World
 import Data.Maze
 import Data.Primitive
@@ -303,7 +304,7 @@ showListOfCharacters = cmdWithCharacterList ("Inspect", inspectCharacter)
 inspectCharacter :: GameMachine -> CharacterID -> GameMachine
 inspectCharacter h cid = selectEsc (ShowStatus cid msg SingleKey)
                                    [(Key "l", h)
--- TODO                            ,(Key "r", readSpell cid)
+                                   ,(Key "r", readSpell (inspectCharacter h cid) cid)
                                    ]
   where
     msg = "^R)ead Spell   ^L)eave `[`E`S`C`]"
