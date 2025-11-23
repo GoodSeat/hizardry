@@ -35,6 +35,8 @@ romajiToHiraganaMap = sortBy (flip (comparing length) `on` fst) $
     , ("rya", "りゃ"), ("ryu", "りゅ"), ("ryo", "りょ")
     , ("jya", "じゃ"), ("jyu", "じゅ"), ("jyo", "じょ")
     , ("wi", "ゐ"), ("we", "ゑ")
+    , ("xya", "ゃ"), ("xyu", "ゅ"), ("xyo", "ょ")
+    , ("lya", "ゃ"), ("lyu", "ゅ"), ("lyo", "ょ")
     ]
 
 -- | Converts a romaji string to a hiragana string.
