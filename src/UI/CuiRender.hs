@@ -120,10 +120,22 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
 
 statusView :: Scenario -> World -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
 statusView s w msg itemDefOf c =
-    foldl1 (<>) (fmap toText (zip [1..] ls)) <>
-    rect (8, 24) (61, 7) (Draw ' ') <>
-    ( translate (5, 4) $
-      fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
+    -- If msg starts with a newline, treat it as a custom view (for spell list)
+    if not (null msg) && head msg == '\n'
+      then spellListView
+      else statusDetailView
+  where
+    spellListView =
+        foldl (<>) mempty (fmap toText (zip [1..] (lines (tail msg))))
+        <> rect (6, 4) (65, 22) (Draw ' ')
+      where
+        toText (n, t) = text (8, 5 + n) t
+
+    statusDetailView =
+        foldl1 (<>) (fmap toText (zip [1..] ls)) <>
+        rect (8, 24) (61, 7) (Draw ' ') <>
+        ( translate (5, 4) $
+          fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
                     . replaceText "[STR]"   (show $ strength st)     (Right 3)
                     . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
@@ -174,26 +186,26 @@ statusView s w msg itemDefOf c =
                     . replaceText "I)#"  ("I)" ++ equipMarks !! 8) (Left 3)
                     . replaceText "J)#"  ("J)" ++ equipMarks !! 9) (Left 3)
                     $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
-  where
-    (ac', _) = runGameState s w (acOf $ Left c)
-    ac = case ac' of Right v -> v
-                     _       -> 99
+      where
+        (ac', _) = runGameState s w (acOf $ Left c)
+        ac = case ac' of Right v -> v
+                         _       -> 99
 
-    (st', _) = runGameState s w (paramOf $ Left c)
-    st = case st' of Right v -> v
-                     _       -> emptyParam
+        (st', _) = runGameState s w (paramOf $ Left c)
+        st = case st' of Right v -> v
+                         _       -> emptyParam
 
-    ls = lines msg
-    toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
-    items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
-              <$> Character.items c) ++ repeat ""
-    equipMarks = me (Character.items c) (Character.equips c)
-      where me (i@(ItemInf id identified):is) eqs 
-                | i `elem` eqs                                            = "*" : me is (filter (/=i) eqs)
-                | identified && not (c `Character.canEquip` itemDefOf id) = "#" : me is eqs
-                | otherwise                                               = " " : me is eqs
-            me _ [] = repeat " "
-            me [] _ = undefined
+        ls = lines msg
+        toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
+        items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
+                  <$> Character.items c) ++ repeat ""
+        equipMarks = me (Character.items c) (Character.equips c)
+          where me (i@(ItemInf id identified):is) eqs
+                    | i `elem` eqs                                            = "*" : me is (filter (/=i) eqs)
+                    | identified && not (c `Character.canEquip` itemDefOf id) = "#" : me is eqs
+                    | otherwise                                               = " " : me is eqs
+                me _ [] = repeat " "
+                me [] _ = undefined
 
 
 replaceText :: String -> String -> Either Int Int -> [String] -> [String]

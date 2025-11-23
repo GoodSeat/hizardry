@@ -11,7 +11,7 @@ import Data.Formula
 
 type Name = String
 
-data Kind = M | P deriving (Show, Eq, Read)
+data Kind = M | P deriving (Show, Eq, Read, Ord)
 
 data Define = Define {
       name       :: !Name          -- ^ name of spell.

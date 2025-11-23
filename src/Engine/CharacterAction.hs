@@ -5,10 +5,11 @@ where
 import Prelude hiding (lookup)
 import Control.Monad (when, join, forM, forM_)
 import Control.Monad.Reader (asks)
-import Control.Monad.State (modify)
+import Control.Monad.State (gets, modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
-import Data.Function ((&))
-import Data.List (isInfixOf)
+import Data.Function ((&), on)
+import Data.List (isInfixOf, unlines, sortBy, groupBy, intercalate)
+import Data.Maybe (catMaybes)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -46,8 +47,8 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "t", selectTradeItem dItem i cancel, True)
                       : (Key "e", equip           dItem i c cancel, True)
 -- TODO               : (Key "i", identifyItem    dItem i c cancel, canIdentify)
--- TODO               : (Key "r", readSpell       dItem i c cancel, True)
-                      : (Key "r", with [msgDebug $ show (Chara.spells c)] cancel, True)
+                      : (Key "r", readSpell cancel i, True)
+                      : (Key "g", with [msgDebug $ show (Chara.spells c)] cancel, True)
                       : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
                       : cmdsInspect
   where
@@ -58,6 +59,37 @@ inspectCharacter h canSpell i = GameAuto $ do
           else
             "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup       \n" ++
             "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave `[`E`S`C`]"
+
+readSpell :: GameMachine -> PartyPos -> GameMachine
+readSpell cancel i = GameAuto $ do
+    cid  <- characterIDInPartyAt i
+    c    <- characterInPartyAt i
+
+    spellDB <- asks spells
+    let learnedSpells = catMaybes $ flip lookup spellDB <$> Chara.spells c
+
+    let formattedSpells = if null learnedSpells
+            then "\nNo spells learned."
+            else
+                let
+                    -- Sort by kind (Mage/Priest) then by level
+                    sortedSpells = sortBy (compare `on` (\s -> (Spell.kind s, Spell.lv s))) learnedSpells
+                    -- Group by kind
+                    groupedByKind = groupBy ((==) `on` Spell.kind) sortedSpells
+
+                    formatGroup group =
+                      let kindName = if Spell.kind (head group) == Spell.M then "MAGE SPELLS" else "PRIEST SPELLS"
+                          -- Group by level within the kind
+                          groupedByLv = groupBy ((==) `on` Spell.lv) group
+                          formatLvGroup lvGroup =
+                              "  LV " ++ show (Spell.lv (head lvGroup)) ++ ": " ++
+                              intercalate ", " (fmap Spell.name lvGroup)
+                      in kindName : fmap formatLvGroup groupedByLv
+
+                in "\n" ++ unlines (intercalate [""] (fmap formatGroup groupedByKind))
+
+    run $ selectEsc (ShowStatus cid formattedSpells SingleKey)
+                    [(Key "l", cancel)]
 
 -- =================================================================================
 -- for item.
