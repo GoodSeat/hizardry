@@ -14,14 +14,14 @@ type Name = String
 data Kind = M | P deriving (Show, Eq, Read, Ord)
 
 data Define = Define {
-      name       :: !Name          -- ^ name of spell.
-    , kind       :: !Kind          -- ^ kind of spell.
-    , lv         :: !Int           -- ^ level of spell.
-    , attrLabels :: ![EffectLabel] -- ^ attribute of spell.
-    , target     :: !TargetType    -- ^ type of target.
-    , effect     :: !Effect        -- ^ type of effect.
-    , enableIn   :: ![CastPlace]   -- ^ place enable to cast.
-    , infomation :: !String        -- ^ infomation of spell.
+      name        :: !Name          -- ^ name of spell.
+    , kind        :: !Kind          -- ^ kind of spell.
+    , lv          :: !Int           -- ^ level of spell.
+    , attrLabels  :: ![EffectLabel] -- ^ attribute of spell.
+    , target      :: !TargetType    -- ^ type of target.
+    , effect      :: !Effect        -- ^ type of effect.
+    , enableIn    :: ![CastPlace]   -- ^ place enable to cast.
+    , information :: !String        -- ^ infomation of spell.
 } deriving (Show, Eq, Read)
 
 data CastPlace = InCamp

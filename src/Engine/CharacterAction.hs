@@ -19,6 +19,7 @@ import Data.World
 import Data.Maze
 import Data.Formula
 import Data.Bifunctor (bimap)
+import Data.Char (toLower)
 import qualified Data.Characters as Chara
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
@@ -63,30 +64,82 @@ inspectCharacter h canSpell i = GameAuto $ do
 readSpell :: GameMachine -> CharacterID -> GameMachine
 readSpell cancel cid = GameAuto $ do
     c <- characterByID cid
+    ss <- catMaybes <$> mapM spellByID (Chara.spells c)
+    mb <- msgInReadSpell cid Nothing
+    let hasMageSpell   = any (\s -> Spell.kind s == Spell.M) ss
+        hasPriestSpell = any (\s -> Spell.kind s == Spell.P) ss
+        msg            = "\nSelect spell type: ^M)age Spells ^P)riest Spells ^L)eave `[`E`S`C`]\n" ++ mb
+    run $ selectWhenEsc (ShowStatus cid msg SingleKey)
+                        [ (Key "l", cancel, True)
+                        , (Key "m", selectSpellLevel (readSpell cancel cid) cid Spell.M, hasMageSpell)
+                        , (Key "p", selectSpellLevel (readSpell cancel cid) cid Spell.P, hasPriestSpell)
+                        ]
+
+selectSpellLevel :: GameMachine -> CharacterID -> Spell.Kind -> GameMachine
+selectSpellLevel cancel cid kind = GameAuto $ do
+    mb <- msgInReadSpell cid Nothing
+    let msg = "\nSelect spell level (1-7)  ^L)eave `[`E`S`C`]\n" ++ mb
+        -- Generate keybindings for levels 1-7
+        levelCmds = [(Key (show lv), showSpellListForInfo cancel cid kind lv) | lv <- [1..7]]
+    run $ selectEsc (ShowStatus cid msg SingleKey)
+                    ( (Key "l", cancel) : levelCmds )
+
+showSpellListForInfo :: GameMachine -> CharacterID -> Spell.Kind -> Int -> GameMachine
+showSpellListForInfo cancel cid kind level = GameAuto $ do
+    c <- characterByID cid
+    spellDB <- asks spells
+    let sids = Chara.spells c
+        allLearned = catMaybes $ flip lookup spellDB <$> sids
+        -- Filter spells by the selected kind and level
+        filteredSpells = filter (\s -> Spell.kind s == kind && Spell.lv s == level) allLearned
+
+    if null filteredSpells
+        then run $ events [message "\nNo spells learned at this level."] (selectSpellLevel cancel cid kind)
+        else do
+            mb <- msgInReadSpell cid (Just (kind, level))
+            let indexedSpells = zip ['A'..'Z'] filteredSpells
+
+                infoCmds = flip fmap indexedSpells $ \(key, spellDef) ->
+                  let info = Spell.information spellDef
+                      -- After showing info, return to this same spell list
+                      nextMachine = if null info
+                                      then showSpellListForInfo cancel cid kind level
+                                      else events [flashMessage (-400000) info] (showSpellListForInfo cancel cid kind level)
+                  in (Key [toLower key], nextMachine)
+
+                kindName = if kind == Spell.M then "MAGE" else "PRIEST"
+                msg = "\n ++ ^A~Z) Show Info  ^L)eave `[`E`S`C`]\n" ++ mb
+            
+            -- The 'back' action returns to the level selection screen
+            let backToLevelSelect = selectSpellLevel cancel cid kind
+            run $ selectEsc (ShowStatus cid msg SingleKey) ( (Key "l", backToLevelSelect) : infoCmds )
+
+msgInReadSpell :: CharacterID -> Maybe (Spell.Kind, Int) -> GameState String
+msgInReadSpell cid tgt = do
+    c       <- characterByID cid
     spellDB <- asks spells
     let learnedSpells = catMaybes $ flip lookup spellDB <$> Chara.spells c
-    let formattedSpells = if null learnedSpells
-            then "\nNo spells learned."
-            else
-                let
-                    -- Sort by kind (Mage/Priest) then by level
-                    sortedSpells = sortBy (compare `on` (\s -> (Spell.kind s, Spell.lv s))) learnedSpells
-                    -- Group by kind
-                    groupedByKind = groupBy ((==) `on` Spell.kind) sortedSpells
+        (kind, lvl) = case tgt of Nothing     -> (Spell.M, 0)
+                                  Just (k, l) -> (k, l)
+    return $ if null learnedSpells then "\nNo spells learned." else let
+      -- Sort by kind (Mage/Priest) then by level
+      sortedSpells = sortBy (compare `on` (\s -> (Spell.kind s, Spell.lv s))) learnedSpells
+      -- Group by kind
+      groupedByKind = groupBy ((==) `on` Spell.kind) sortedSpells
 
-                    formatGroup group =
-                      let kindName = if Spell.kind (head group) == Spell.M then "MAGE SPELLS" else "PRIEST SPELLS"
-                          -- Group by level within the kind
-                          groupedByLv = groupBy ((==) `on` Spell.lv) group
-                          formatLvGroup lvGroup =
-                              "  LV " ++ show (Spell.lv (head lvGroup)) ++ ": " ++
-                              intercalate ", " (fmap Spell.name lvGroup)
-                      in kindName : fmap formatLvGroup groupedByLv
+      formatGroup group =
+        let kindName = if Spell.kind (head group) == Spell.M then "MAGE SPELLS" else "PRIEST SPELLS"
+            -- Group by level within the kind
+            groupedByLv = groupBy ((==) `on` Spell.lv) group
+            snames = fmap Spell.name
+            names lvGroup = if Spell.lv (head lvGroup) == lvl && Spell.kind (head group) == kind then
+                foldl (\acc (a, b) -> acc ++ " ^" ++ (a : ")" ++ b)) "" (zip ['A'..'Z'] (snames lvGroup))
+              else
+                intercalate "    " (snames lvGroup)
+            formatLvGroup lvGroup = "  LV " ++ show (Spell.lv (head lvGroup)) ++ ": " ++ names lvGroup
+        in kindName : fmap formatLvGroup groupedByLv
 
-                in "\n" ++ unlines (intercalate [""] (fmap formatGroup groupedByKind))
-
-    run $ selectEsc (ShowStatus cid formattedSpells SingleKey)
-                    [(Key "l", cancel)]
+      in "\n" ++ unlines (intercalate [""] (fmap formatGroup groupedByKind))
 
 -- =================================================================================
 -- for item.
