@@ -67,7 +67,7 @@ main = do
     (is, iw) <- SampleScenario.initScenario
     let s'= initScenario is inCastle 
     let w = initWorld iw gen True
-        s = SampleScenario.modScenario s'
+        s = SampleScenario.modScenario s' -- TODO:WIP
 
     let picOf = maybe mempty SampleScenario.pic
 

@@ -21,7 +21,7 @@ data Instance = Instance {
     , statusErrors  :: ![StatusError]
     , maybeDropItem :: !Bool
     , modParam      :: !ParamChange
-} deriving (Show)
+} deriving (Show, Read)
 
 instance Eq Instance where
   e1 == e2 = (noID e1 == noID e2)
@@ -58,7 +58,7 @@ data Define = Define {
     , enableRun         :: !Bool
     , trapCandidate     :: ![Trap]
 
-} deriving (Show, Eq)
+} deriving (Show, Eq, Read)
 
 instance Object Instance where
   nameOf            = name . define
@@ -84,7 +84,7 @@ data Action = Fight Int     -- ^ count of attack.
             | Spelling Formula -- ^ spel id.
             | Breath Formula [EffectLabel] -- ^ damage.
             | Run
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data Trap = DropDirectly
           | NoTrap
@@ -97,7 +97,7 @@ data Trap = DropDirectly
           | MageBlaster
           | PriestBlaster
           | Alarm
-    deriving (Show, Eq, Enum)
+    deriving (Show, Eq, Enum, Read)
 
 -- | data base of enemies.
 type DB = Map.Map EnemyID Define

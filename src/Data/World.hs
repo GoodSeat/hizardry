@@ -3,6 +3,10 @@ where
 
 import System.Random
 import qualified Data.Map as Map
+import System.IO.Error (tryIOError)
+import Text.Read (readMaybe)
+import Data.List (isPrefixOf, isSuffixOf, dropWhileEnd)
+import Data.Char (isSpace)
 
 import Data.Primitive
 import Data.Maze
@@ -105,7 +109,7 @@ data Place  = InCastle
             | InBattle          Position [[Enemy.Instance]]
             | FindTreasureChest Position Bool -- ^ chest is opend.
             | Camping           Position String -- ^ title
-    deriving (Show, Eq)
+    deriving (Show, Eq, Read)
 
 data MiniMapType = Disable | Normal | AlwaysN deriving (Show, Eq, Read)
       
@@ -182,5 +186,81 @@ saveWorld w path = do
 
 
 loadWorld :: FilePath -> IO (Either String World)
-loadWorld = undefined
+loadWorld path = do
+    contentResult <- tryIOError (readFile path)
+    case contentResult of
+        Left  e -> return $ Left ("Failed to read save file: " ++ show e)
+        Right c -> return $ buildWorld (lines c)
+
+buildWorld :: [String] -> Either String World
+buildWorld ls = do
+    let sections = parseSections ls
+    
+    rGenInt      <- readSection sections "randomGen"
+    guide        <- readSection sections "guideOn"
+    status       <- readSection sections "statusOn"
+    option       <- readSection sections "worldOption"
+    pParty       <- readSection sections "party"
+    pPlace       <- readSection sections "place"
+    pRoomBattled <- readSection sections "roomBattled"
+    pLight       <- readSection sections "partyLight"
+    pLight'      <- readSection sections "partyLight'"
+    pDelta       <- readSection sections "partyParamDelta"
+    pVisit       <- readSection sections "visitHitory"
+    pTarvern     <- readSection sections "inTarvernMember"
+    pMaze        <- readSection sections "inMazeMember"
+    pShop        <- readSection sections "shopItems"
+    pChars       <- readSection sections "allCharacters"
+    pFlags       <- readSection sections "eventFlags"
+    pDebug       <- readSection sections "debugMode"
+
+    return World {
+        randomGen       = mkStdGen rGenInt,
+        guideOn         = guide,
+        statusOn        = status,
+        worldOption     = option,
+        party           = pParty,
+        place           = pPlace,
+        roomBattled     = pRoomBattled,
+        partyLight      = pLight,
+        partyLight'     = pLight',
+        partyParamDelta = pDelta,
+        visitHitory     = pVisit,
+        inTarvernMember = pTarvern,
+        inMazeMember    = pMaze,
+        shopItems       = pShop,
+        allCharacters   = pChars,
+        eventFlags      = pFlags,
+        debugMode       = pDebug,
+        sceneTrans      = id,
+        enemyTrans      = id,
+        frameTrans      = id,
+        debugMessage    = []
+    }
+
+parseSections :: [String] -> Map.Map String String
+parseSections = go Nothing []
+  where
+    go _ currentContent [] = maybe Map.empty (\(name, _) -> Map.singleton name (unlines $ reverse currentContent)) Nothing
+    go mCurrentSection currentContent (l:ls) =
+        if "### " `isPrefixOf` l && " ###" `isSuffixOf` l
+            then
+                let newSectionName = take (length l - 8) $ drop 5 l
+                    currentMap = case mCurrentSection of
+                        Nothing -> Map.empty
+                        Just (name, _) -> Map.singleton name (unlines $ reverse currentContent)
+                in Map.union currentMap (go (Just (newSectionName, [])) [] ls)
+            else go mCurrentSection (l:currentContent) ls
+
+readSection :: Read a => Map.Map String String -> String -> Either String a
+readSection sections key = do
+    contentStr <- Map.lookup key sections `orError` ("Save data corrupted: missing section " ++ key)
+    readMaybe (trim contentStr) `orError` ("Save data corrupted: cannot parse section " ++ key)
+  where
+    trim :: String -> String
+    trim = dropWhileEnd isSpace . dropWhile isSpace
+    orError :: Maybe a -> String -> Either String a
+    orError Nothing  msg = Left msg
+    orError (Just a) _   = Right a
+
 

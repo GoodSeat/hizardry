@@ -35,7 +35,7 @@ data Character = Character {
     , spells       :: ![SpellID]      -- ^ learned spells.
     , mp           :: !([Int], [Int]) -- ^ MP
     , maxmp        :: !([Int], [Int]) -- ^ MaxMP
-} deriving (Show, Eq)
+} deriving (Show, Eq, Read)
 
 instance Object Character where
   nameOf          = name
@@ -59,7 +59,7 @@ data Race = Race {
     , initialParam :: !Parameter
     , maxParam     :: !Parameter
     , initialBonus :: !Formula
-} deriving (Show, Eq)
+} deriving (Show, Eq, Read)
 
 
 -- | data base of character.
