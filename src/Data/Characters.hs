@@ -180,6 +180,7 @@ data BattleCommand = Fight
                    | Hide
                    | Ambush
                    | Run
+                   | Dispell
                    | Parry
                    | UseItem
     deriving (Show, Eq, Read)

@@ -172,6 +172,7 @@ selectBattleCommand i cmds con = GameAuto $ do
                                     Chara.Spell   -> "^S)pell\n"
                                     Chara.Hide    -> "^H)ide\n"
                                     Chara.Ambush  -> "^A)mbush\n"
+                                    Chara.Dispell -> "^D)ispell\n"
                                     Chara.Run     -> "^R)un\n"
                                     Chara.Parry   -> if Chara.Fight `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
                                     Chara.UseItem -> "^U)se Item\n"

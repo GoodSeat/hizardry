@@ -33,7 +33,6 @@ import qualified SampleScenario.Home as SampleScenario
 -- *   remove cursed item.
 -- * training ground (job change)
 -- * classic secret door
--- * inspect surround
 -- * other spells
 -- * other events
 -- * config
