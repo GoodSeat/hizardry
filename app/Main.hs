@@ -9,6 +9,8 @@ import Data.Maybe (maybe, catMaybes, isJust, isNothing, fromJust)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void, when)
+import Data.Char (ord, chr)
+import Data.Bits (xor)
 
 import Engine.GameAuto
 import Engine.InCastle
@@ -17,6 +19,7 @@ import Data.Primitive
 import Data.World
 import Data.Formula
 import Data.Maze
+import Data.IORef
 import qualified Data.Enemies as Enemy
 
 import Control.CUI
@@ -43,7 +46,19 @@ import qualified SampleScenario.Home as SampleScenario
 -- *   zip compression with secret keyword. using another exe? deflate?
 
 encKey :: String
-encKey = ""
+encKey = "hizardry-secret-key"
+
+saveDataPath = "rtsd.iks" -- path of "real time save data(input keys)"
+
+crypt :: IORef Int -> String -> String -> IO String
+crypt indx key text = do
+    n <- readIORef indx
+    modifyIORef indx (+ length text)
+    return $ crypt' (drop n $ cycle key) text
+
+crypt' :: String -> String -> String
+crypt' key text = zipWith (\c k -> chr $ ord c `xor` ord k) text (cycle key)
+
 
 main :: IO ()
 main = do
@@ -57,39 +72,39 @@ main = do
     let picOf = maybe mempty SampleScenario.pic
 
     existSaveData <- doesFileExist saveDataPath
+    indx <- newIORef 0
     
     run <- if not existSaveData then return runGame
            else do
-             ls <- lines <$> readFile saveDataPath
-             let is  = read <$> ls
+             c  <- readFile saveDataPath
+             ls <- lines <$> crypt indx encKey c
+             let is  = read <$> filter (not . null) ls
                  is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
              return $ loadGame (reverse is')
              
     drawCache <- newDrawCache
     let renderMethod = renderWithCache drawCache
         display      = testRender renderMethod picOf
-        cmd          = getKey (clearCache drawCache)
+        cmd          = getKey indx (clearCache drawCache)
 
     clearScreen
     hideCursor
     w' <- run (display s) cmd s w inCastle
     showCursor
 
-    appendFile saveDataPath $ show Abort ++ "\n"
+    appendFile saveDataPath =<< crypt indx encKey (show Abort ++ "\n")
     void $ saveWorld w' "world.dat"
 
-
-saveDataPath = "save.txt"
 
 type DisplayIO = Scenario -> Event -> World -> IO()
 type InputIO   = InputType -> IO Input
 
 -- ==========================================================================
 
-getKey :: IO () -> InputIO
-getKey refresh itype = do
+getKey :: IORef Int -> IO () -> InputIO
+getKey indx refresh itype = do
     i <- getKey' itype
-    appendFile saveDataPath (show i ++ "\n")
+    appendFile saveDataPath =<< crypt indx encKey (show i ++ "\n")
     return i
   where
     getKey' SingleKey = do
@@ -102,7 +117,6 @@ getKey refresh itype = do
         showCursor
         let mod s = let s' = filter (/= '\n') . filter (/= '\r') $ s in if s' == "" then "\n" else s'
         (Key . mod <$> getLine) <* (cursorUp 1 >> clearLine >> hideCursor >> refresh)
-    
     getKey' (WaitClock n)
       | n > 0     = race (threadDelay $ n * 1000) ignoreKey >> return Clock
       | otherwise = do
