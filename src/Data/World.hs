@@ -112,11 +112,11 @@ data Place  = InCastle
     deriving (Show, Eq, Read)
 
 data MiniMapType = Disable | Normal | AlwaysN deriving (Show, Eq, Read)
-      
+
 data WorldOption = WorldOption {
       effectDumapic :: !Spell.CheckLocationType
     , minimapType   :: !MiniMapType
-    } deriving (Show, Read)
+    } deriving (Eq, Show, Read)
 
 
 -- TODO!:explicit saving(only in Edge of Town, or Castle. Auto?).
@@ -239,18 +239,17 @@ buildWorld ls = do
     }
 
 parseSections :: [String] -> Map.Map String String
-parseSections = go Nothing []
+parseSections ls = Map.fromList $ mapMaybe processGroup (groupBy (\_ b -> not $ isHeader b) ls)
   where
-    go _ currentContent [] = maybe Map.empty (\(name, _) -> Map.singleton name (unlines $ reverse currentContent)) Nothing
-    go mCurrentSection currentContent (l:ls) =
-        if "### " `isPrefixOf` l && " ###" `isSuffixOf` l
-            then
-                let newSectionName = take (length l - 8) $ drop 5 l
-                    currentMap = case mCurrentSection of
-                        Nothing -> Map.empty
-                        Just (name, _) -> Map.singleton name (unlines $ reverse currentContent)
-                in Map.union currentMap (go (Just (newSectionName, [])) [] ls)
-            else go mCurrentSection (l:currentContent) ls
+    isHeader :: String -> Bool
+    isHeader l = "### " `isPrefixOf` l && " ###" `isSuffixOf` l
+    processGroup :: [String] -> Maybe (String, String)
+    processGroup [] = Nothing
+    processGroup (header:content) =
+      if isHeader header then 
+        let sectionName = take (length header - 8) $ drop 4 header
+        in Just (sectionName, unlines content)
+      else Nothing
 
 readSection :: Read a => Map.Map String String -> String -> Either String a
 readSection sections key = do

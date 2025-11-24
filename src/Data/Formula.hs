@@ -87,10 +87,20 @@ data Formula = Value Int
              | MaxOf Formula Formula
   deriving Eq
 
+-- $
+-- >>> let f1 = parse' "1d10+lv/2"
+-- >>> read (show f1) == f1
+-- True
+--
+-- >>> let f2 = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
+-- >>> read (show f2) == f2
+-- True
+
+
 instance Show Formula where
     show (Value n)       = show n
     show (Operate o n m) = "(" ++ show n ++ show o ++ show m ++ ")"
-    show (Variable v)    = show v
+    show (Variable v)    = v
     show (Dice n m)      = show n ++ "d" ++ show m
     show (MinOf n m)     = "min(" ++ show n ++ "," ++ show m ++ ")"
     show (MaxOf n m)     = "max(" ++ show n ++ "," ++ show m ++ ")"
