@@ -5,8 +5,9 @@ import System.Random
 import qualified Data.Map as Map
 import System.IO.Error (tryIOError)
 import Text.Read (readMaybe)
-import Data.List (isPrefixOf, isSuffixOf, dropWhileEnd)
+import Data.List (isPrefixOf, isSuffixOf, dropWhileEnd, groupBy)
 import Data.Char (isSpace)
+import Data.Maybe (mapMaybe)
 
 import Data.Primitive
 import Data.Maze
