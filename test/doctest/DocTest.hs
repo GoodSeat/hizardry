@@ -5,4 +5,4 @@ import System.IO
 
 main :: IO ()
 main = do
-  doctest ["src/Data/RomajiToHiragana.hs"]
+  doctest ["src/Data/RomajiToHiragana.hs", "src/Data/Formula.hs"]
