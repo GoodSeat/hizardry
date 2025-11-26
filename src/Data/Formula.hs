@@ -95,13 +95,24 @@ data Formula = Value Int
 -- >>> let f2 = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
 -- >>> read (show f2) == f2
 -- True
-
-
+--
+-- >>> let f2' = parse' "min(60,((((4+1d5)+(max(0,(1d10-9))*10))+(max(0,(1d100-99))*20))+(max(0,(1d1000-999))*30)))"
+-- >>> read (show f2') == f2'
+-- True
+--
+-- >>> let f2'' = parse' "(lv)d10 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
+-- >>> read (show f2'') == f2''
+-- True
+--
+-- >>> let f3 = parse' "1d10+lv/2"
+-- >>> let f4 = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
+-- >>> read (show [f3, f4]) == [f3, f4]
+-- True
 instance Show Formula where
     show (Value n)       = show n
     show (Operate o n m) = "(" ++ show n ++ show o ++ show m ++ ")"
     show (Variable v)    = v
-    show (Dice n m)      = show n ++ "d" ++ show m
+    show (Dice n m)      = "(" ++ show n ++ ")d(" ++ show m ++ ")"
     show (MinOf n m)     = "min(" ++ show n ++ "," ++ show m ++ ")"
     show (MaxOf n m)     = "max(" ++ show n ++ "," ++ show m ++ ")"
 
@@ -113,6 +124,7 @@ instance Read Formula where
       where
         takeNextComma (',':_)  0 = []
         takeNextComma (']':_)  _ = []
+        takeNextComma ('}':_)  _ = []
         takeNextComma ('(':cs) n = '(' : takeNextComma cs (n + 1)
         takeNextComma (')':cs) n = ')' : takeNextComma cs (n - 1)
         takeNextComma (c:cs)   n =  c  : takeNextComma cs n
