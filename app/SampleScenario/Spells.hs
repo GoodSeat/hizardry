@@ -503,8 +503,8 @@ spells = Map.fromList [
         , Spell.kind        = Spell.P
         , Spell.lv          = 5
         , Spell.attrLabels  = [EffectLabel "priest"]
-        , Spell.target      = Spell.OpponentSingle
-        , Spell.effect      = Spell.Resurrection (read "70") [(Dead, read "1")]
+        , Spell.target      = Spell.AllySingle
+        , Spell.effect      = Spell.Resurrection (read "1") [(Dead, read "(o.vit+1)*4")]
         , Spell.enableIn    = [Spell.InCamp]
         , Spell.information = "死んだ味方1人をHP1で蘇生させる"
     })
@@ -580,8 +580,8 @@ spells = Map.fromList [
         , Spell.kind        = Spell.P
         , Spell.lv          = 7
         , Spell.attrLabels  = [EffectLabel "priest"]
-        , Spell.target      = Spell.OpponentSingle
-        , Spell.effect      = Spell.Resurrection (read "80") [(Dead, read "99999999"), (Ash, read "99999999")]
+        , Spell.target      = Spell.AllySingle
+        , Spell.effect      = Spell.Resurrection (read "o.maxhp") [(Dead, read "(o.vit+1)*4"), (Ash, read "(o.vit+1)*4")]
         , Spell.enableIn    = [Spell.InCamp]
         , Spell.information = "死または灰の味方1人をHPフルで蘇生させる"
     })

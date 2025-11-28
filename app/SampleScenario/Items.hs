@@ -18,6 +18,7 @@ items = Map.fromList [
         , Item.valueInShop      = 0
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 0
     })
     ,
     (ItemID 1, Item.Define {
@@ -31,6 +32,7 @@ items = Map.fromList [
         , Item.valueInShop      = 100
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 1
     })
     ,
     (ItemID 2, Item.Define {
@@ -44,6 +46,7 @@ items = Map.fromList [
         , Item.valueInShop      = 200
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 1
     })
     ,
     (ItemID 3, Item.Define {
@@ -57,6 +60,7 @@ items = Map.fromList [
         , Item.valueInShop      = 500
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 1
     })
     ,
     (ItemID 4, Item.Define {
@@ -70,6 +74,7 @@ items = Map.fromList [
         , Item.valueInShop      = 100
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 1
     })
     ,
     (ItemID 5, Item.Define {
@@ -83,6 +88,7 @@ items = Map.fromList [
         , Item.valueInShop      = 100
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 1
     })
     ,
     (ItemID 11, Item.Define {
@@ -113,6 +119,7 @@ items = Map.fromList [
         , Item.valueInShop      = 500
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 12, Item.Define {
@@ -134,6 +141,7 @@ items = Map.fromList [
         , Item.valueInShop      = 500
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 13, Item.Define {
@@ -155,6 +163,7 @@ items = Map.fromList [
         , Item.valueInShop      = 300
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 14, Item.Define {
@@ -176,6 +185,7 @@ items = Map.fromList [
         , Item.valueInShop      = 300
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 15, Item.Define {
@@ -197,6 +207,7 @@ items = Map.fromList [
         , Item.valueInShop      = 300
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 16, Item.Define {
@@ -218,6 +229,7 @@ items = Map.fromList [
         , Item.valueInShop      = 300
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 17, Item.Define {
@@ -239,6 +251,7 @@ items = Map.fromList [
         , Item.valueInShop      = 300
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 103, Item.Define {
@@ -269,6 +282,7 @@ items = Map.fromList [
         , Item.valueInShop      = 4000
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 2
     })
     ,
     (ItemID 104, Item.Define {
@@ -299,5 +313,6 @@ items = Map.fromList [
         , Item.valueInShop      = 4000
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
+        , Item.itemLv           = 3
     })
     ]

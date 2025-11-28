@@ -20,6 +20,7 @@ data Define = Define {
     , valueInShop      :: Int
     , enableToEquip    :: UserType
     , enableToUse      :: UserType
+    , itemLv           :: Int
 } deriving (Show, Eq, Read)
 
 
