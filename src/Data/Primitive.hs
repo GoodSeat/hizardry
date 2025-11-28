@@ -48,7 +48,13 @@ newtype PictureID = PictureID {
 
 
 -- --------------------------------------------------------------------------
-data PictureInf = Null | Single PictureID | Trans Int Int PictureInf | List [PictureInf]
+data PictureInf = Null
+                | Single PictureID
+                | Trans  Int Int PictureInf
+                | Xor    PictureInf PictureInf
+                | Clip   PictureInf PictureInf
+                | Diff   PictureInf PictureInf
+                | List   [PictureInf]
   deriving (Show, Eq, Read)
 
 

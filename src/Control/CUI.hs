@@ -241,6 +241,21 @@ addSGR sgrs v = Craphic $ \(x, y) -> let o = at v (x, y) in
   where
     s = fromMaybe [Reset] (toSGR sgrs)
 
+
+xor  :: Craphic -> Craphic -> Craphic
+xor c1 c2 = Craphic $ \(x, y) -> let d1 = at c1 (x, y); d2 = at c2 (x, y)
+                                 in if      d1 == Blank && d2 /= Blank then d2
+                                    else if d1 /= Blank && d2 == Blank then d1
+                                    else  Blank
+
+clip :: Craphic -> Craphic -> Craphic
+clip c1 c2 = Craphic $ \(x, y) -> let d1 = at c1 (x, y); d2 = at c2 (x, y)
+                                  in if d2 == Blank then Blank else d1
+
+diff :: Craphic -> Craphic -> Craphic
+diff c1 c2 = Craphic $ \(x, y) -> let d1 = at c1 (x, y); d2 = at c2 (x, y)
+                                  in if d2 /= Blank then Blank else d1
+
 -- ========================================================================
 -- | length of string.(count non-half character as 2)
 len :: String -> Int

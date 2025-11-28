@@ -10,7 +10,7 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void, when)
 import Data.Char (ord, chr)
-import Data.Bits (xor)
+import qualified Data.Bits as Bits
 
 import Engine.GameAuto
 import Engine.InCastle
@@ -57,7 +57,7 @@ crypt indx key text = do
     return $ crypt' (drop n $ cycle key) text
 
 crypt' :: String -> String -> String
-crypt' key text = zipWith (\c k -> chr $ ord c `xor` ord k) text (cycle key)
+crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key)
 
 
 main :: IO ()

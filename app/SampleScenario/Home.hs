@@ -198,6 +198,9 @@ pic (Single (PictureID id))
     | 2001 <= id && id < 3000 = SamplePicturesOfEnemiesUnidentified.picOfEnemiesUnidentified id
     | otherwise               = mempty
 pic (Trans dx dy pi) = translate (dx, dy) $ pic pi
+pic (Xor  p1 p2)     = xor  (pic p1) (pic p2)
+pic (Clip p1 p2)     = clip (pic p1) (pic p2)
+pic (Diff p1 p2)     = diff (pic p1) (pic p2)
 pic (List [])        = mempty
 pic (List (pi:pis))  = pic pi <> pic (List pis)
 
