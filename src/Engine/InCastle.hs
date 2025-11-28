@@ -45,7 +45,7 @@ inGilgamesh'sTarvern = GameAuto $ do
     run $ selectWhenEsc msg $ (Key "l", inCastle, True)
                             : (Key "a", selectCharacterAddToParty 0, np < 6)
                             : (Key "r", selectCharacterRemoveFromParty, np > 0)
-                            : (Key "d", GameAuto $ divvyGold >> run inGilgamesh'sTarvern, np > 0)
+                            : (Key "d", with [divvyGold] inGilgamesh'sTarvern, np > 0)
                             : cmdsInspect
   where
     msg = message $ "^A)dd Character to Party\n"
@@ -163,7 +163,7 @@ checkLvup id = GameAuto $ do
 doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do
     (txt, c') <- lvup =<< characterByID id
-    updateCharacter id c' >> run (events [message txt] $ selectStayPlan id)
+    run $ with [updateCharacter id c'] (events [message txt] $ selectStayPlan id)
 
 -- =======================================================================
 

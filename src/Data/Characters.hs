@@ -80,6 +80,7 @@ data Job = Job {
     , fightTryCount        :: !Formula
     , fightHitBonus        :: !Formula
     , baseAC               :: !Formula
+    , identifyItemChance   :: !(Maybe Formula) -- chance for identify item. variable of "itemLv" means target item Level.
     , lvupExps             ::  [Int]   -- need exp to next Lv.
     , hpFormula            :: !Formula -- use determine HP when Lvup.
     , mpFormula            :: !([Formula], [Formula]) -- use determine MP when Lvup.(variable of "mlv" means target magic lv(1~7).)
