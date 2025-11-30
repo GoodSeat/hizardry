@@ -9,7 +9,7 @@ import Control.Monad.State (gets, modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
 import Data.Function ((&), on)
 import Data.List (isInfixOf, unlines, sortBy, groupBy, intercalate)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isJust)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -35,11 +35,29 @@ inspectCharacter h canSpell i = GameAuto $ do
     cid <- characterIDInPartyAt i
     c   <- characterInPartyAt i
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter h canSpell) (const True)
-    let cancel = inspectCharacter h canSpell i
+    let job = Chara.job c
+        canIdentify = isJust (Chara.identifyItemChance (Chara.job c))
+        cancel = inspectCharacter h canSpell i
         iCast  = askInStatus cid
         sCast  = showStatus cid
         sItem  = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
         dItem  = sCast
+        msg   
+         | canSpell && not canIdentify =
+                   "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
+                   "^R)ead Spell   ^S)pell        ^P)ool Money             \n" ++
+                   "^#)Inspect     ^L)eave `[`E`S`C`]                         "
+         | not canSpell && not canIdentify =
+                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
+                   "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave `[`E`S`C`]"
+         | canSpell && canIdentify =
+                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
+                   "^R)ead Spell   ^S)pell        ^P)ool Money   ^I)dentify\n" ++
+                   "^#)Inspect     ^L)eave `[`E`S`C`]                         "
+         | otherwise =
+                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
+                   "^R)ead Spell   ^P)ool Money   ^I)dentify               \n" ++
+                   "^#)Inspect     ^L)eave `[`E`S`C`]"
     run $ selectWhenEsc (showStatus cid msg)
                       $ (Key "l", h, True)
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
@@ -47,19 +65,56 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "d", selectDropItem dItem i c cancel, True)
                       : (Key "t", selectTradeItem dItem i cancel, True)
                       : (Key "e", equip           dItem i c cancel, True)
--- TODO               : (Key "i", identifyItem    dItem i c cancel, canIdentify)
+                      : (Key "i", identifyItem    dItem i c cancel, canIdentify)
                       : (Key "r", readSpell cancel cid, True)
                       : (Key "g", with [msgDebug $ show (Chara.spells c)] cancel, True)
                       : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
                       : cmdsInspect
-  where
-    msg = if canSpell then
-            "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
-            "^R)ead Spell   ^S)pell        ^P)ool Money            \n" ++
-            "^#)Inspect     ^L)eave `[`E`S`C`]                         "
+
+identifyItem :: (String -> Event)
+             -> PartyPos
+             -> Chara.Character
+             -> GameMachine
+             -> GameMachine
+identifyItem msgForSelect src c cancel = GameAuto $ do
+    cid <- characterIDInPartyAt src
+    let unidentifiedItems = filter (not . identified) (Chara.items c)
+    run $ if null unidentifiedItems then
+            events [msgForSelect "No unidentified items."] cancel
           else
-            "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup       \n" ++
-            "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave `[`E`S`C`]"
+            selectItem (const $ msgForSelect $ "Select target item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]") (not . identified) (doIdentifyItem cid cancel) c cancel
+
+doIdentifyItem :: CharacterID
+               -> GameMachine
+               -> Chara.Character
+               -> Chara.ItemPos
+               -> GameMachine
+               -> GameMachine
+doIdentifyItem cid cancel _ i _ = GameAuto $ do
+    c   <- characterByID cid
+    job <- Chara.job <$> characterByID cid
+    let inf = Chara.itemInfAt c i
+    itemDef <- itemByID (itemID inf)
+    let charLv = Chara.lv c
+    let ilv = Item.itemLv itemDef
+    case Chara.identifyItemChance job of
+        Nothing -> run $ events [showStatus cid "You cannot identify items."] cancel
+        Just formula -> do
+            m <- formulaMapSO (Left c) (Left c) -- self-targeting for formula evaluation
+            successChance <- evalWith (insert "itemLv" ilv m) formula
+            roll <- happens successChance
+            if roll then do
+                let newInf = inf { identified = True }
+                updateCharacter cid (c { Chara.items = replaceItemAt (Chara.items c) i newInf })
+                run $ events [showStatus cid "Identified."] cancel
+            else do
+                run $ events [showStatus cid "Identification failed."] cancel
+
+replaceItemAt :: [ItemInf] -> Chara.ItemPos -> ItemInf -> [ItemInf]
+replaceItemAt items pos newInf =
+    let idx = Chara.itemPosToNum pos
+    in take idx items ++ [newInf] ++ drop (idx + 1) items
+
 
 readSpell :: GameMachine -> CharacterID -> GameMachine
 readSpell cancel cid = GameAuto $ do

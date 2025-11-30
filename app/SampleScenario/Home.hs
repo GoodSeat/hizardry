@@ -44,7 +44,7 @@ initScenario = return (s, w)
         , initPartyParamDelta = []
 
         , initInTarvernMember = [
-              CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4
+              CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4, CharacterID 5
             ]
         , initInMazeMember    = []
         , initShopItems       = Map.fromList [
@@ -58,6 +58,7 @@ initScenario = return (s, w)
             , (CharacterID 2, testChara2)
             , (CharacterID 3, testChara3)
             , (CharacterID 4, testChara4)
+            , (CharacterID 5, testChara5)
             ]
         }
     option = ScenarioOption {
@@ -176,6 +177,23 @@ initScenario = return (s, w)
         , Character.items    = [ItemInf (ItemID 2) True
                                ,ItemInf (ItemID 2) False
                                ,ItemInf (ItemID 103) True
+                               ,ItemInf (ItemID 104) True
+                               ]
+        }
+    testChara5 = testChara1 {
+          Character.name     = "BIS1"
+        , Character.hp       = 104
+        , Character.maxhp    = 108
+        , Character.lv       = 5
+        , Character.statusErrors = []
+        , Character.paramDelta = []
+
+        , Character.job      = SampleJobs.bishop
+        , Character.alignment= Character.G
+        , Character.spells   = []
+        , Character.items    = [ItemInf (ItemID 2) True
+                               ,ItemInf (ItemID 2) False
+                               ,ItemInf (ItemID 103) False
                                ,ItemInf (ItemID 104) True
                                ]
         }
