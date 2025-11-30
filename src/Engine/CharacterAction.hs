@@ -108,7 +108,7 @@ doIdentifyItem cid cancel _ i _ = GameAuto $ do
                 updateCharacter cid (c { Chara.items = replaceItemAt (Chara.items c) i newInf })
                 run $ events [showStatus cid "Identified."] cancel
             else do
-                run $ events [showStatus cid "Identification failed."] cancel
+                run $ events [showStatus cid "Identification failed."] cancel -- TODO:maybe fear, or cursed equip.
 
 replaceItemAt :: [ItemInf] -> Chara.ItemPos -> ItemInf -> [ItemInf]
 replaceItemAt items pos newInf =

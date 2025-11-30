@@ -38,6 +38,7 @@ data World = World {
     , shopItems       :: !(Map.Map ItemID Int)
 
     , allCharacters   :: !Character.DB
+    , globalTime      :: !Int
 
     , sceneTrans      :: Filter
     , enemyTrans      :: Filter
@@ -88,6 +89,7 @@ initWorld i rnd debugMode = World {
     , shopItems       = initShopItems        i
 
     , allCharacters   = initAllCharacters    i
+    , globalTime      = 0
 
     , sceneTrans      = id
     , enemyTrans      = id
@@ -177,6 +179,8 @@ saveWorld w path = do
 
       , "### allCharacters ###"
       , show $ allCharacters   w
+      , "### globalTime ###"
+      , show $ globalTime   w
 
       , "### eventFlags ###"
       , show $ take 100000 (eventFlags w)
@@ -212,6 +216,7 @@ buildWorld ls = do
     pMaze        <- readSection sections "inMazeMember"
     pShop        <- readSection sections "shopItems"
     pChars       <- readSection sections "allCharacters"
+    gTime        <- readSection sections "globalTime"
     pFlags       <- readSection sections "eventFlags"
     pDebug       <- readSection sections "debugMode"
 
@@ -231,6 +236,7 @@ buildWorld ls = do
         inMazeMember    = pMaze,
         shopItems       = pShop,
         allCharacters   = pChars,
+        globalTime      = gTime,
         eventFlags      = pFlags,
         debugMode       = pDebug,
         sceneTrans      = id,

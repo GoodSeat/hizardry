@@ -142,6 +142,8 @@ moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
           ]
   where
     goStraight p f = GameAuto $ do
+        w <- world
+        modify $ \w -> w { globalTime = globalTime w + 1 }
         lab <- mazeAt $ z p
         case f lab p of
           Nothing -> run $ ouch p

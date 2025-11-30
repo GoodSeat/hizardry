@@ -348,7 +348,7 @@ spells = Map.fromList [
         , Spell.lv          = 2
         , Spell.attrLabels  = [EffectLabel "priest", EffectLabel "fear"]
         , Spell.target      = Spell.OpponentGroup
-        , Spell.effect      = Spell.AddStatusError [(Fear, read "min(60,(lv-o.lv)*10+30)", "")]
+        , Spell.effect      = Spell.AddStatusError [(Fear 3, read "min(60,(lv-o.lv)*10+30)", "")]
         , Spell.enableIn    = [Spell.InBattle]
         , Spell.information = "敵1グループの行動を止める(凝固)"
     })
@@ -537,7 +537,7 @@ spells = Map.fromList [
         , Spell.lv          = 6
         , Spell.attrLabels  = [EffectLabel "priest"]
         , Spell.target      = Spell.AllySingle
-        , Spell.effect      = Spell.Cure (read "9999999") $ [Silence, Paralysis, Stoned, Fear, Sleep] ++ (Poison <$> [1..100])
+        , Spell.effect      = Spell.Cure (read "9999999") $ [Silence, Paralysis, Stoned, Sleep, Poison 0, Fear 0]
         , Spell.enableIn    = [Spell.InCamp, Spell.InBattle]
         , Spell.information = "味方1人のHPを全回復し、死・灰・ロスト以外を全て治療する"
     })

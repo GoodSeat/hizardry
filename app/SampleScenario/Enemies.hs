@@ -105,7 +105,7 @@ enemies = Map.fromList [
         , Enemy.attrLabels        = [EnemyLabel "undead"]
 
         , Enemy.actions           = [Enemy.Fight 2 (parse' "1d2+1") (parse' "1d3")
-                                     [(read "lv*20-o.lv", Fear,  [EffectLabel "fear"])
+                                     [(read "lv*20-o.lv", Fear 2,  [EffectLabel "fear"])
                                      ,(read "lv*20-o.lv", Poison 1,  [EffectLabel "poison"] )]
                                     ,Enemy.Spelling (parse' "11")
                                     --,Enemy.Spelling (parse' "21")

@@ -4,7 +4,7 @@ where
 import Data.Formula
 
 import GHC.Stack (HasCallStack)
-import Data.List (delete, find)
+import Data.List (find)
 import Data.Char (ord)
 import Data.Function ((&))
 
@@ -76,7 +76,7 @@ data StatusError = Silence
                  | Paralysis
                  | Stoned
                  | Poison Int
-                 | Fear
+                 | Fear Int   -- valid time
                  | Sleep
                  | Drain Int
                  | Dead
@@ -243,7 +243,7 @@ addStatusError s o = let o' = if s >= Dead && hpOf o > 0 then setHp 0 o else o
                      in setStatusErrors (s : statusErrorsOf (removeStatusError s o')) o'
 
 removeStatusError :: Object o => StatusError -> o -> o
-removeStatusError s o = setStatusErrors (delete s $ statusErrorsOf o) o
+removeStatusError s o = setStatusErrors (filter (not . areSameStatusError s) $ statusErrorsOf o) o
 
 addPoison :: Object o => Int -> o -> o
 addPoison d s = let ss = statusErrorsOf s in
@@ -272,6 +272,7 @@ whenToNextTurn n o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf o)
     whenToNextTurn' :: Object o => Int -> StatusError -> o -> o
     whenToNextTurn' _ (Poison n) o = setHp (hpOf o - n) o
     whenToNextTurn' n (Sleep   ) o = if n < 50 then o else removeStatusError Sleep o
+    whenToNextTurn' _ (Fear   t) o = (if t > 1 then addStatusError (Fear $ t - 1) else id) $ removeStatusError (Fear t) o
     whenToNextTurn' _ _ o = o
 
 whenWalking :: Object o => o -> o
@@ -279,6 +280,7 @@ whenWalking c = foldl (&) c (whenWalking' <$> statusErrorsOf c)
   where
     whenWalking' :: Object o => StatusError -> o -> o
     whenWalking' (Poison n) o = setHp (hpOf o - n) o
+    whenWalking' (Fear   t) o = (if t > 1 then addStatusError (Fear $ t - 1) else id) $ removeStatusError (Fear t) o
     whenWalking' _ o = o
 
 whenBattleEnd :: Object o => o -> o
@@ -286,12 +288,16 @@ whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c)
   where
     whenBattleEnd' :: Object o => StatusError -> o -> o
     whenBattleEnd' Silence = removeStatusError Silence
-    whenBattleEnd' Fear    = removeStatusError Fear
     whenBattleEnd' Sleep   = removeStatusError Sleep
     whenBattleEnd' _       = id
 
+areSameStatusError :: StatusError -> StatusError -> Bool
+areSameStatusError (Poison _) (Poison _) = True
+areSameStatusError (Fear _) (Fear _)     = True
+areSameStatusError s1 s2                 = s1 == s2
+
 hasStatusError :: Object o => o -> StatusError -> Bool
-hasStatusError o = (`elem` statusErrorsOf o)
+hasStatusError o s = any (areSameStatusError s) (statusErrorsOf o)
 
 isCantFight :: Object o => o -> Bool
 isCantFight o = any (hasStatusError o) cantFightStatus
@@ -302,7 +308,7 @@ mustGotoTemple = any (\s -> s >= Dead || s == Paralysis || s == Stoned) . status
 cantFightStatus :: [StatusError]
 cantFightStatus = [ Paralysis
                   , Stoned
-                  , Fear
+                  , Fear 0
                   , Sleep
                   , Dead
                   , Ash
@@ -312,7 +318,7 @@ cantSpellStatus :: [StatusError]
 cantSpellStatus = [ Silence
                   , Paralysis
                   , Stoned
-                  , Fear
+                  , Fear 0
                   , Sleep
                   , Dead
                   , Ash

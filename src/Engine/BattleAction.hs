@@ -240,7 +240,7 @@ spell s src dst next = GameAuto $ do
             know <- knowSpell' c def
             can  <- canSpell'  c def
             let isSilence = c `hasStatusError` Silence
-                isFear    = c `hasStatusError` Fear
+                isFear    = c `hasStatusError` Fear 0
             run $ if      not know  then asSpell castUnknown s src dst next
                   else if not can   then asSpell castNoMP    s src dst next
                   else if isSilence then asSpell castButSilent s src dst next
@@ -248,7 +248,7 @@ spell s src dst next = GameAuto $ do
                   else                   with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
           Right e -> do
             let isSilence = e `hasStatusError` Silence
-                isFear    = e `hasStatusError` Fear
+                isFear    = e `hasStatusError` Fear 0
             run $ if      isSilence then asSpell castButSilent s src dst next
                   else if isFear    then asSpell castButFear   s src dst next
                   else                   spell' def src dst next

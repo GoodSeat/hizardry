@@ -135,7 +135,7 @@ selectBattleCommand i cmds con = GameAuto $ do
           fts = filter (`elem` els) $ if i <= 3 then Item.targetF wep else Item.targetB wep
           cs  = Chara.enableBattleCommands $ Chara.job c
           cs' = filter (if null fts then (/= Chara.Fight) else const True)
-              . filter (if any (`elem` cantSpellStatus) (statusErrorsOf c) then (/= Chara.Spell) else const True)
+              . filter (if any (hasStatusError c) cantSpellStatus then (/= Chara.Spell) else const True)
               $ cs
       let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
           cancel = selectBattleCommand i cmds con
@@ -208,6 +208,9 @@ nextTurn con = GameAuto $ do
       updateCharacter cid $ whenToNextTurn r c
     sortPartyAutoWith (defaultOrder con)
     -- TODO!:if all character dead, move to gameover.
+
+    w <- world
+    modify $ \w -> w { globalTime = globalTime w + 1 }
 
     -- update enemy condition.
     ess1 <- lastEnemies
