@@ -34,6 +34,8 @@ data Action = Fight EnemyLine
             | CantMove
     deriving (Show, Eq)
 
+data Surprise = PartySurprise | EnemySurprise | NoSurprise deriving (Eq)
+
 data Condition = Condition {
       afterWin     :: GameMachine
     , afterRun     :: GameMachine
@@ -89,13 +91,13 @@ tryDetermineEnemies = mapM $ \es -> do
 
 -- ==========================================================================
 startBattle :: EnemyID                    -- ^ encounted enemy.
-            -> Bool                       -- ^ is room battle or not. 
+            -> Bool                       -- ^ is room battle or not.
             -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
             -> GameMachine
 startBattle eid isRB gms = startBattle' eid isRB gms 0 []
 
 startBattle' :: EnemyID                    -- ^ encounted enemy.
-             -> Bool                       -- ^ is room battle or not. 
+             -> Bool                       -- ^ is room battle or not.
              -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
              -> Int                        -- ^ pre gained gold.
              -> [Int]                      -- ^ pre gained items.
@@ -103,16 +105,35 @@ startBattle' :: EnemyID                    -- ^ encounted enemy.
 startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
     es <- decideEnemyInstance eid
     ps <- party <$> world
-    -- TODO:maybe enemies (or parties) suprised you.
     -- TODO:maybe friendly enemy.
     -- A friendly group of ****.
     -- They hail you in welcome!
     --   ^A)ttack!  ^L)eave in Peace
+    moveToBattle es
+
+    surprise <- do
+        r <- randomNext 0 99
+        let partySurpriseProb = 32 - length ps * 2
+            enemySurpriseProb = 22 - length ps
+        return $ if      r < partySurpriseProb                     then PartySurprise
+                 else if r < partySurpriseProb + enemySurpriseProb then EnemySurprise
+                 else                                                   NoSurprise
+
     let con = Condition {
       afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
     }
-    run $ events [flashMessage (-1000) "\n      Encounter!!      \n "]
-          (GameAuto $ moveToBattle es >> run (selectBattleCommand 1 [] con))
+
+    case surprise of
+        PartySurprise ->
+            run $ events [flashMessage (-1000) "\n      The monsters are unaware of you.      \n "]
+                         (selectBattleCommand 1 [] con (Just PartySurprise))
+        EnemySurprise -> do
+            actions <- determineActions [] (Just EnemySurprise)
+            run $ events [flashMessage (-1000) "\n      The monsters surprised you!      \n "]
+                         (nextProgressBattle actions con)
+        NoSurprise ->
+            run $ events [flashMessage (-1000) "\n      Encounter!!      \n "]
+                         (selectBattleCommand 1 [] con (Just NoSurprise))
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
 moveToBattle es = movePlace =<< InBattle <$> currentPosition <*> pure es
@@ -121,11 +142,12 @@ moveToBattle es = movePlace =<< InBattle <$> currentPosition <*> pure es
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> [(CharacterID, Action)]
                     -> Condition
+                    -> Maybe Surprise
                     -> GameMachine
-selectBattleCommand i cmds con = GameAuto $ do
+selectBattleCommand i cmds con surprise = GameAuto $ do
     p   <- party <$> world
     if length p < i then
-      run $ confirmBattle cmds con
+      run $ confirmBattle cmds con surprise
     else do
       let cid = p !! (i - 1)
       c   <- characterByID cid
@@ -137,13 +159,13 @@ selectBattleCommand i cmds con = GameAuto $ do
           cs' = filter (if null fts then (/= Chara.Fight) else const True)
               . filter (if any (hasStatusError c) cantSpellStatus then (/= Chara.Spell) else const True)
               $ cs
-      let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con
-          cancel = selectBattleCommand i cmds con
+      let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
+          cancel = selectBattleCommand i cmds con surprise
       if isCantFight c then
         run $ next CantMove
       else
         let inspect = selectEsc (showStatus cid "^R)ead Spell   ^L)eave `[`E`S`C`]")
-                                [(Key "l", selectBattleCommand i cmds con)
+                                [(Key "l", selectBattleCommand i cmds con surprise)
                                 ,(Key "r", readSpell inspect cid)
                                 ]
             cms = [( Key "f"
@@ -165,7 +187,7 @@ selectBattleCommand i cmds con = GameAuto $ do
                   ,( Key "\16128", inspect, True) -- code of "?" ?
                   ,( Key "?", inspect, True)
                   ,( Key "\ESC"
-                   , events [None] (selectBattleCommand i cmds con)
+                   , events [None] (selectBattleCommand i cmds con surprise)
                    , True)
                   ]
             toMsg cmd = case cmd of Chara.Fight   -> "^F)ight`*\n"
@@ -191,10 +213,11 @@ selectFightTarget fts next cancel = GameAuto $ do
 
 confirmBattle :: [(CharacterID, Action)]
               -> Condition
+              -> Maybe Surprise
               -> GameMachine
-confirmBattle cmds con = select1 (battleCommand "Are you OK?\n\n^F)ight`*\n^T)ake Back")
-                                 [(Key "f", startProgressBattle cmds con)
-                                 ,(Key "t", selectBattleCommand 1 [] con)
+confirmBattle cmds con surprise = select1 (battleCommand "Are you OK?\n\n^F)ight`*\n^T)ake Back")
+                                 [(Key "f", startProgressBattle cmds con surprise)
+                                 ,(Key "t", selectBattleCommand 1 [] con surprise)
                                  ]
 
 -- ==========================================================================
@@ -225,7 +248,7 @@ nextTurn con = GameAuto $ do
             ) <$> lastEnemies
     ess' <- tryDetermineEnemies ess
     moveToBattle ess'
-    run $ (if null ess' then wonBattle else selectBattleCommand 1 []) con'
+    run $ (if null ess' then wonBattle else flip (selectBattleCommand 1 []) Nothing) con'
 
 updateCondition :: Condition -> GameState Condition
 updateCondition con = do
@@ -268,8 +291,9 @@ findTreasures con = getTreasures $ TreasureCondition (afterWin con) (dropGold co
 -- ==========================================================================
 startProgressBattle :: [(CharacterID, Action)]
                     -> Condition
+                    -> Maybe Surprise
                     -> GameMachine
-startProgressBattle cmds con = GameAuto $ run =<< nextProgressBattle <$> determineActions cmds <*> pure con
+startProgressBattle cmds con surprise = GameAuto $ run =<< nextProgressBattle <$> determineActions cmds surprise <*> pure con
 
 
 nextProgressBattle :: [BattleAction]
@@ -333,11 +357,17 @@ act (ByEnemies l e a) next = GameAuto $ do
 
 -- ==========================================================================
 determineActions :: [(CharacterID, Action)]
+                 -> Maybe Surprise
                  -> GameState [BattleAction]
-determineActions cmds = do
-    pcs  <- mapM toCharacterAction cmds
-    elss <- zip [1..] <$> lastEnemies
-    ecs  <- mapM toEnemyAction $ concatMap (\(l, es) -> map (l,) es) elss
+determineActions cmds surprise = do
+    pcs <- case surprise of
+        Just EnemySurprise -> return []
+        _                  -> mapM toCharacterAction cmds
+    ecs <- case surprise of
+        Just PartySurprise -> return []
+        _                  -> do
+            elss <- zip [1..] <$> lastEnemies
+            concat <$> mapM (toEnemyAction surprise) (concatMap (\(l, es) -> map (l,) es) elss)
     return $ snd <$> sortOn fst (pcs ++ ecs)
   where
     toCharacterAction :: (CharacterID, Action) -> GameState (Int, BattleAction)
@@ -345,12 +375,20 @@ determineActions cmds = do
         c   <- characterByID id
         key <- agiBonus . agility =<< paramOf (Left c)
         return (key, ByParties id act)
-    toEnemyAction :: (Int, Enemy.Instance) -> GameState (Int, BattleAction)
-    toEnemyAction (l, ei) = do
+    toEnemyAction :: Maybe Surprise -> (Int, Enemy.Instance) -> GameState [(Int, BattleAction)]
+    toEnemyAction surprise (l, ei) = do
         key <- agiBonus . agility =<< paramOf (Right ei)
-        act <- randomIn $ Enemy.actions (Enemy.define ei)
-        return (key, ByEnemies l ei act)
-
+        let possibleActions = Enemy.actions (Enemy.define ei)
+            actions' = case surprise of
+                Just EnemySurprise -> filter (not . isSpellAction) possibleActions
+                _                  -> possibleActions
+        if null actions' then return []
+        else do
+            act <- randomIn actions'
+            return [(key, ByEnemies l ei act)]
+    isSpellAction :: Enemy.Action -> Bool
+    isSpellAction (Enemy.Spelling _) = True
+    isSpellAction _                  = False
 
 agiBonus :: Int -> GameState Int
 agiBonus agi = do
@@ -367,3 +405,4 @@ agiBonus agi = do
               | otherwise = -4
 
 -- ==========================================================================
+
