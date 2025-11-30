@@ -105,35 +105,35 @@ startBattle' :: EnemyID                    -- ^ encounted enemy.
 startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
     es <- decideEnemyInstance eid
     ps <- party <$> world
-    -- TODO:maybe friendly enemy.
-    -- A friendly group of ****.
-    -- They hail you in welcome!
-    --   ^A)ttack!  ^L)eave in Peace
-    moveToBattle es
-
-    surprise <- do
+    isFriendly <- happens $ (Enemy.friendlyProb . Enemy.define . head . head) es
+    surprise   <- if isFriendly then return NoSurprise else do
         r <- randomNext 0 99
         let partySurpriseProb = 32 - length ps * 2
             enemySurpriseProb = 22 - length ps
         return $ if      r < partySurpriseProb                     then PartySurprise
                  else if r < partySurpriseProb + enemySurpriseProb then EnemySurprise
                  else                                                   NoSurprise
+    let msg = flashMessage (-1000) "\n      Encounter!!      \n "
+        con = Condition {
+                afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
+              }
+    run $ case surprise of
+        PartySurprise -> events [msg, flashMessage (-3000) "\n      The monsters are unaware of you.      \n "]
+                         (with [moveToBattle es] $ selectBattleCommand 1 [] con (Just PartySurprise))
+        EnemySurprise -> events [msg, flashMessage (-3000) "\n      The monsters surprised you!      \n "]
+                         (with [moveToBattle es] $ startProgressBattle [] con (Just EnemySurprise))
+        NoSurprise    -> events [msg]
+                         (startBattleMaybeFriendly isFriendly es con g1)
 
-    let con = Condition {
-      afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
-    }
-
-    case surprise of
-        PartySurprise ->
-            run $ events [flashMessage (-1000) "\n      The monsters are unaware of you.      \n "]
-                         (selectBattleCommand 1 [] con (Just PartySurprise))
-        EnemySurprise -> do
-            actions <- determineActions [] (Just EnemySurprise)
-            run $ events [flashMessage (-1000) "\n      The monsters surprised you!      \n "]
-                         (nextProgressBattle actions con)
-        NoSurprise ->
-            run $ events [flashMessage (-1000) "\n      Encounter!!      \n "]
-                         (selectBattleCommand 1 [] con (Just NoSurprise))
+startBattleMaybeFriendly :: Bool -> [[Enemy.Instance]] -> Condition -> GameMachine -> GameMachine
+startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else
+    select (message msg) [(Key "a", core), (Key "l", whenLeave)] 
+  where
+    enemyName = (Enemy.name . Enemy.define . head . head) es
+    msg       = "A friendly group of " ++ enemyName ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
+    core      = with [moveToBattle es] $ selectBattleCommand 1 [] con (Just NoSurprise)
+  
+    
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
 moveToBattle es = movePlace =<< InBattle <$> currentPosition <*> pure es
@@ -158,6 +158,7 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
           cs  = Chara.enableBattleCommands $ Chara.job c
           cs' = filter (if null fts then (/= Chara.Fight) else const True)
               . filter (if any (hasStatusError c) cantSpellStatus then (/= Chara.Spell) else const True)
+              . filter (if surprise == Just PartySurprise then (/= Chara.Spell) else const True)
               $ cs
       let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
           cancel = selectBattleCommand i cmds con surprise
