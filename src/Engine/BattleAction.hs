@@ -14,7 +14,7 @@ import Control.Monad.State (modify)
 
 import Engine.GameAuto
 import Engine.Utils
-import Engine.CharacterAction (CastAction, castCureSpell, castParamChangeSpell, castDamageSpell, castAddLight, breakItem)
+import Engine.CharacterAction (CastAction, castCureSpell, castParamChangeSpell, castDamageSpell, castAddLight, breakItem, castResurrectionSpell)
 import Engine.InEvent (setLightValue, doEvent)
 import Data.World
 import Data.Formula
@@ -273,7 +273,11 @@ cast v name def = let as cast = cast v in case Spell.effect def of
       Spell.AllyAll        -> castToAll    as name (castCureSpell f ss)
       Spell.Party          -> castToAll    as name (castCureSpell f ss)
       _                    -> undefined
---  Spell.Resurrection hp ts -> undefined
+    Spell.Resurrection hp ts -> case Spell.target def of
+      Spell.AllySingle     -> castToSingle as name (castResurrectionSpell hp ts)
+      Spell.AllyAll        -> castToAll    as name (castResurrectionSpell hp ts)
+      Spell.Party          -> castToAll    as name (castResurrectionSpell hp ts)
+      _                    -> undefined
     Spell.ChangeParam ad term etxt -> case Spell.target def of
       Spell.AllySingle     -> castToSingle as name (castParamChangeSpell ad term etxt)
       Spell.AllyAll        -> castToAll    as name (castParamChangeSpell ad term etxt)

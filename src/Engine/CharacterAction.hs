@@ -433,6 +433,10 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.Cure f ss -> do
         efs <- castCureSpell f ss (Left c) (Left tgt)
         run $ with (fst3 <$> efs) (events [showStatus cid "done"] next)
+      Spell.Resurrection hp ts -> do
+        efs <- castResurrectionSpell hp ts (Left c) (Left tgt)
+        let msgs = snd3 <$> efs
+        run $ with (fst3 <$> efs) (events [showStatus cid (unlines msgs)] next)
       Spell.ChangeParam ad term etxt -> do
         efs <- castParamChangeSpell ad term etxt (Left c) (Left tgt)
         run $ with (fst3 <$> efs) (events [showStatus cid "done"] next)
@@ -504,6 +508,30 @@ castCureSpell f ss (Right src) (Right is) = do
         return [(updateEnemy dst (const dst'), msg, False)]
     return $ concat ts
 castCureSpell _ _ _ _ = undefined
+
+
+castResurrectionSpell :: Formula -> [(StatusError, Formula)] -> CastAction
+castResurrectionSpell hpF sesF (Left src) (Left is) = do
+    ts <- forM is $ \i -> do
+      dst <- characterInPartyAt i
+      id  <- characterIDInPartyAt i
+      let ssc = statusErrorsOf dst
+          targetSes = filter ((`elem` ssc) . fst) sesF
+      if      Lost `elem` ssc then return [(return (), nameOf dst ++ " has been lost.", False)]
+      else if null targetSes then return [(return (), "no happens.", False)]
+      else do
+        let (_, probF) = head targetSes
+        m       <- formulaMapSO (Left src) (Left dst)
+        prob    <- evalWith m probF
+        success <- happens prob
+        if success then do
+            hp <- evalWith m hpF
+            let dst' = setHp hp (removeStatusError Dead $ removeStatusError Ash dst)
+            return [(updateCharacter id dst', nameOf dst ++ " has been resurrected.", False)]
+        else
+            return [(return (), nameOf dst ++ " could not be resurrected.", False)]
+    return $ concat ts
+castResurrectionSpell _ _ _ _ = undefined
 
 
 castParamChangeSpell :: AdParam -> Term -> String -> CastAction
