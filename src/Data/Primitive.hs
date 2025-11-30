@@ -78,6 +78,8 @@ data StatusError = Silence
                  | Poison Int
                  | Fear Int   -- valid time
                  | Sleep
+                 | Hidden
+                 | Found
                  | Drain Int
                  | Dead
                  | Ash
@@ -265,15 +267,24 @@ whenReturnCastle c = foldl (&) c (whenReturnCastle' <$> statusErrorsOf c)
     whenReturnCastle' :: Object o => StatusError -> o -> o
     whenReturnCastle' (Poison n) = removeStatusError (Poison n)
     whenReturnCastle' (Fear   n) = removeStatusError (Fear   n)
+    whenReturnCastle' Sleep      = removeStatusError Sleep
+    whenReturnCastle' Hidden     = removeStatusError Hidden
+    whenReturnCastle' Found      = removeStatusError Found
     whenReturnCastle' _          = id
 
-whenToNextTurn :: Object o => Int -> o -> o
-whenToNextTurn n o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf o)
+whenToNextTurn :: Object o
+               => Int    -- ^ random integer 1~100
+               -> Int    -- ^ count of last enemies
+               -> Parameter
+               -> o
+               -> o
+whenToNextTurn n ne param o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf o)
   where
     whenToNextTurn' :: Object o => Int -> StatusError -> o -> o
     whenToNextTurn' _ (Poison n) o = setHp (hpOf o - n) o
     whenToNextTurn' n (Sleep   ) o = if n < 50 then o else removeStatusError Sleep o
     whenToNextTurn' _ (Fear   t) o = (if t > 1 then addStatusError (Fear $ t - 1) else id) $ removeStatusError (Fear t) o
+    whenToNextTurn' n (Hidden  ) o = (if n + 2*ne - 2*agility param > 50 then addStatusError Found . removeStatusError Hidden else id) o
     whenToNextTurn' _ _ o = o
 
 whenWalking :: Object o => o -> o
@@ -290,6 +301,8 @@ whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c)
     whenBattleEnd' :: Object o => StatusError -> o -> o
     whenBattleEnd' Silence = removeStatusError Silence
     whenBattleEnd' Sleep   = removeStatusError Sleep
+    whenBattleEnd' Hidden  = removeStatusError Hidden
+    whenBattleEnd' Found   = removeStatusError Found
     whenBattleEnd' _       = id
 
 areSameStatusError :: StatusError -> StatusError -> Bool

@@ -31,7 +31,7 @@ doEvent = doEventInner True
 doEventInner :: Bool
              -> Ev.Define
              -> (Bool -> GameMachine)                        -- ^ when Escape Event
-             -> (Bool -> GameMachine)                        -- ^ when Escape Event
+             -> (Bool -> GameMachine)                        -- ^ when End Event
              -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
              -> GameMachine
 doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscape

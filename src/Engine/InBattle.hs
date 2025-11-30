@@ -27,7 +27,8 @@ data BattleAction = ByParties CharacterID Action
 data Action = Fight EnemyLine
             | Spell String SpellTarget
             | Hide
-            | Ambush Int
+            | Ambush EnemyLine
+--          | Dispell EnemyLine    -- TODO:not implement
             | Run
             | Parry
             | UseItem Chara.ItemPos SpellTarget
@@ -158,6 +159,9 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
           cs  = Chara.enableBattleCommands $ Chara.job c
           cs' = filter (if null fts then (/= Chara.Fight) else const True)
               . filter (if any (hasStatusError c) cantSpellStatus then (/= Chara.Spell) else const True)
+              . filter (if not (hasStatusError c Hidden) then (/= Chara.Ambush) else const True)
+              . filter (if hasStatusError c Hidden then (/= Chara.Hide) else const True)
+              . filter (if hasStatusError c Found  then (`notElem` [Chara.Hide, Chara.Ambush]) else const True)
               . filter (if surprise == Just PartySurprise then (/= Chara.Spell) else const True)
               $ cs
       let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
@@ -175,6 +179,12 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                   ,( Key "p"
                    , next Parry
                    , Chara.Parry `elem` cs')
+                  ,( Key "h"
+                   , next Hide
+                   , Chara.Hide `elem` cs')
+                  ,( Key "a"
+                   , selectFightTarget fts next cancel
+                   , Chara.Ambush `elem` cs')
                   ,( Key "s"
                    , inputSpell c spellCommand battleCommand (\s l -> next $ Spell s l) cancel
                    , Chara.Spell `elem` cs')
@@ -225,22 +235,15 @@ confirmBattle cmds con surprise = select1 (battleCommand "Are you OK?\n\n^F)ight
 
 nextTurn :: Condition -> GameMachine
 nextTurn con = GameAuto $ do
-    ps <- party <$> world
-    forM_ ps $ \cid -> do
-      c <- characterByID cid
-      r <- randomNext 0 100
-      updateCharacter cid $ whenToNextTurn r c
-    sortPartyAutoWith (defaultOrder con)
-    -- TODO!:if all character dead, move to gameover.
-
     w <- world
     modify $ \w -> w { globalTime = globalTime w + 1 }
 
     -- update enemy condition.
     ess1 <- lastEnemies
     forM_ ess1 $ \es -> forM_ es $ \e -> do
-      r <- randomNext 0 100
-      when (Enemy.hp e > 0) $ updateEnemy e (damageHp (-(Enemy.healPerTurn $ Enemy.define e)) . whenToNextTurn r)
+      r     <- randomNext 0 100
+      param <- paramOf (Right e)
+      when (Enemy.hp e > 0) $ updateEnemy e (damageHp (-(Enemy.healPerTurn $ Enemy.define e)) . whenToNextTurn r 0 param)
 
     con' <- updateCondition con
     ess  <- execState (do
@@ -248,8 +251,25 @@ nextTurn con = GameAuto $ do
                 modify $ filter (not . null)                  -- remove null line.
             ) <$> lastEnemies
     ess' <- tryDetermineEnemies ess
+
+    ps <- party <$> world
+    fcs <- flip filterM ps $ \cid -> do
+      c     <- characterByID cid
+      r     <- randomNext 1 100
+      param <- paramOf (Left c)
+      updateCharacter cid $ whenToNextTurn r (sum $ length <$> ess') param c
+      c'    <- characterByID cid
+      return $ hasStatusError c Found /= hasStatusError c' Found
+
+    msgs <- forM fcs $ \cid -> do
+      c <- characterByID cid
+      return $ message (nameOf c ++ " was found by enemies.")
+
+    sortPartyAutoWith (defaultOrder con)
+    -- TODO!:if all character dead, move to gameover.
+
     moveToBattle ess'
-    run $ (if null ess' then wonBattle else flip (selectBattleCommand 1 []) Nothing) con'
+    run $ if null ess' then wonBattle con' else events msgs (selectBattleCommand 1 [] con' Nothing)
 
 updateCondition :: Condition -> GameState Condition
 updateCondition con = do
@@ -313,7 +333,8 @@ act (ByParties id a) next = GameAuto $ do
         Run         -> run next
         CantMove    -> run next
         UseItem i l -> run $ useItemInBattle i (Left id) l next
-        _           -> undefined
+        Hide        -> run $ hideOfCharacter id next
+        Ambush l    -> run $ ambushOfCharacter id l next
 act (ByEnemies l e a) next = GameAuto $ do
     e_ <- currentEnemyByNo $ Enemy.noID e
     case e_ of
@@ -353,8 +374,6 @@ act (ByEnemies l e a) next = GameAuto $ do
               updateEnemy e' $ const e' { Enemy.hp = 0 }
               run $ events [message $ en ++ " flees."] next
 
--- "*** hidden away"
---  vs = ["tries to ambush"]
 
 -- ==========================================================================
 determineActions :: [(CharacterID, Action)]

@@ -48,7 +48,7 @@ fightOfCharacter id el next = GameAuto $ do
       Nothing -> run next
       Just e  -> do
         c           <- characterByID id
-        (h, d, ses) <- fightDamage el c e
+        (h, d, ses) <- fightDamage el c e 0
         let e' = damageHp d e
         updateEnemy e $ const e'
         ms <- fightMessage c e' (h, d, ses)
@@ -58,8 +58,9 @@ fightOfCharacter id el next = GameAuto $ do
 fightDamage :: EnemyLine
             -> Chara.Character
             -> Enemy.Instance
+            -> Int
             -> GameState (Int, Int, [StatusError])
-fightDamage el c e = do
+fightDamage el c e hitBonus = do
     wattr <- weaponAttrOf c
     m     <- formulaMapSO (Left c) (Right e)
     eats  <- allValidEquipAttrs c
@@ -75,7 +76,7 @@ fightDamage el c e = do
         strBonus | str >= 16 = str - 15
                  | str < 6   = str - 6
                  | otherwise = 0
-        hitSkill = jobBonus + strBonus + stBonus
+        hitSkill = jobBonus + strBonus + stBonus + hitBonus
         atSkill  = max (min (acE + hitSkill - 3 * enemyLineToNum el) 19) 1
         damageF  = Item.damage wattr
     rs <- replicateM tryCount $ do
@@ -118,6 +119,42 @@ weaponAttrOf c = do
         case Item.equipType def of Just (Item.Weapon _ w) -> return w
                                    _                      -> err $ "invalid weaponAttrOf for " ++ show c ++ "."
 
+hideOfCharacter :: CharacterID -> GameMachine -> GameMachine
+hideOfCharacter cid next = GameAuto $ do
+    c     <- characterByID cid
+    param <- paramOf (Left c)
+    couldHide <- happens $ 50 + agility param
+    if couldHide then do
+        updateCharacter cid (addStatusError Hidden c)
+        run $ events [message $ Chara.name c ++ " has hidden in the shadows."] next
+    else
+        run $ events [message $ Chara.name c ++ " tried to hide, but couldn't."] next
+
+ambushOfCharacter :: ActionOfCharacter
+ambushOfCharacter id el next = GameAuto $ do
+    e1 <- aliveEnemyLineHead el
+    case e1 of
+      Nothing -> run next
+      Just e  -> do
+        c           <- characterByID id
+        (h, d, ses) <- fightDamage el c e 2
+        let e' = damageHp d e
+        updateEnemy e $ const e'
+        ms <- ambushMessage c e' (h, d, ses)
+        run $ if d == 0 || el /= L1 then events (message <$> ms) next
+                                    else toEffect False (head ms) (events (message <$> tail ms) next)
+
+ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
+ambushMessage c e (h, d, ses) = do
+    en  <- enemyNameOf e
+    v   <- randomIn vs
+    let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
+    let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
+    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
+             else (en ++) . statusErrorMessage <$> sort ses
+    return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
+  where
+    vs = ["tries to ambush"]
 
 -- ================================================================================
 
@@ -130,17 +167,31 @@ fightOfEnemy :: Enemy.Instance                          -- ^ attacker enemy.
              -> GameMachine                             -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     ps   <- party <$> world
-    idc  <- flip mod (length ps) <$> eval tgt
-    c    <- characterByID (ps !! idc)
-    if hpOf c == 0 then run next
+
+    valid_targets_cid <- filterM (\cid -> do
+        c <- characterByID cid
+        return $ hpOf c > 0 && not (c `hasStatusError` Hidden)
+      ) ps
+
+    if null valid_targets_cid then run next
     else do
-      (h, d, ses) <- fightDamageE n e c dmg sts
-      let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
-         -- TODO:lv drain
-      ms <- fightMessageE e c' (h, d, ses)
-      let next' = with [updateCharacter (ps !! idc) c'] next
-      run $ if d == 0 then events (message <$> ms) next'
-                      else toEffect True (head ms) (events (message <$> tail ms) next')
+      preferred_idc_raw <- eval tgt
+      let preferred_cid = ps !! (preferred_idc_raw `mod` length ps)
+
+      target_cid <- if preferred_cid `elem` valid_targets_cid
+                       then return preferred_cid
+                       else randomIn valid_targets_cid
+
+      c <- characterByID target_cid
+      if hpOf c == 0 then run next
+      else do
+        (h, d, ses) <- fightDamageE n e c dmg sts
+        let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
+          -- TODO:lv drain
+        ms <- fightMessageE e c' (h, d, ses)
+        let next' = with [updateCharacter target_cid c'] next
+        run $ if d == 0 then events (message <$> ms) next'
+                        else toEffect True (head ms) (events (message <$> tail ms) next')
 
 fightDamageE :: Int             -- ^ count of attack.
              -> Enemy.Instance  -- ^ attacker enemy.
