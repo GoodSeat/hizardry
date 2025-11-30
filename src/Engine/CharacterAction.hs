@@ -534,6 +534,50 @@ castResurrectionSpell hpF sesF (Left src) (Left is) = do
 castResurrectionSpell _ _ _ _ = undefined
 
 
+castAddStatusErrorSpell :: [(StatusError, Formula, String)] -> CastAction
+castAddStatusErrorSpell ses (Left src) (Right es) = concat <$> forM es (\e -> do
+    if Enemy.hp e <= 0 then return []
+    else do
+        m <- formulaMapSO (Left src) (Right e)
+        results <- forM ses $ \(se, prob, msg) -> do
+            p <- evalWith m prob
+            resist <- resistStatusError m se (Enemy.resistError $ Enemy.define e)
+            success <- (&&) <$> happens p <*> pure (not resist)
+            if success then do
+                let e' = addStatusError se e
+                let message = if msg == ""
+                                then nameOf e ++ statusErrorMessage se
+                                else nameOf e ++ " " ++ msg
+                return [(updateEnemy e (const e'), message, False)]
+            else
+                return [(return (), nameOf e ++ " resisted.", False)]
+        return $ concat results
+    )
+castAddStatusErrorSpell ses (Right src) (Left cs) = concat <$> forM cs (\i -> do
+    c <- characterInPartyAt i
+    if Chara.hp c <= 0 then return []
+    else do
+        cid <- characterIDInPartyAt i
+        m <- formulaMapSO (Right src) (Left c)
+        results <- forM ses $ \(se, prob, msg) -> do
+            eats <- allValidEquipAttrs c
+            p <- evalWith m prob
+            resist <- resistStatusError m se (concatMap Item.resistError eats)
+            success <- (&&) <$> happens p <*> pure (not resist)
+            if success then do
+                let c' = addStatusError se c
+                let message = if msg == ""
+                                then nameOf c ++ statusErrorMessage se
+                                else nameOf c ++ " " ++ msg
+                return [(updateCharacter cid c', message, False)]
+            else
+                return [(return (), nameOf c ++ " resisted.", False)]
+        return $ concat results
+    )
+castAddStatusErrorSpell _ _ _ = undefined
+
+
+
 castParamChangeSpell :: AdParam -> Term -> String -> CastAction
 castParamChangeSpell ad term etxt (Left src) (Left is)
     | null is = do

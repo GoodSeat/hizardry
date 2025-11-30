@@ -1,6 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module Engine.Utils
-where
+module Engine.Utils where
 
 import PreludeL
 import Prelude hiding ((!!))
@@ -23,6 +22,18 @@ import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
 
+
+statusErrorMessage :: StatusError -> String
+statusErrorMessage Silence    = " become unable to speak !"
+statusErrorMessage Paralysis  = " is paralyzed !"
+statusErrorMessage Stoned     = " become petrified !"
+statusErrorMessage (Poison _) = " is poisoned !"
+statusErrorMessage Fear       = " is horrified !"
+statusErrorMessage Sleep      = " is fell asleep !"
+statusErrorMessage (Drain n)  = " is drained " ++ show n ++ " Level !"
+statusErrorMessage Dead       = " is decapitated !"
+statusErrorMessage Ash        = " became to ash !"
+statusErrorMessage Lost       = " is losted !"
 
 -- =================================================================================
 -- General

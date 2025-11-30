@@ -1,4 +1,3 @@
-
 {-# LANGUAGE OverloadedStrings #-}
 module Engine.CharacterActionSpec (spec) where
 
@@ -14,10 +13,13 @@ import Engine.GameAuto (GameState, Scenario(..), ScenarioOption(..), InitScenari
 import Data.World
 import Data.Primitive
 import Data.Formula (Formula, parse')
+import Data.Maze (Direction(..), Position(..))
 import qualified Data.Characters as Chara
+import qualified Data.Enemies as Enemy -- Added
 import qualified Data.Items as Item
 import qualified Data.Spells as Spell
-import Engine.CharacterAction (castResurrectionSpell)
+import Engine.CharacterAction (castResurrectionSpell, castAddStatusErrorSpell) -- Added castAddStatusErrorSpell
+import Engine.Utils (statusErrorMessage) -- Added
 
 -- Helper function to run GameState in tests
 runGame :: GameState a -> Scenario -> World -> (Either String a, World)
@@ -54,6 +56,56 @@ testJob = Chara.Job {
 mockGameMachine :: GameMachine
 mockGameMachine = error "mockGameMachine should not be evaluated"
 
+testEnemyDefine :: Enemy.Define
+testEnemyDefine = Enemy.Define {
+      Enemy.name              = "TestGoblin"
+    , Enemy.nameUndetermined  = "Unknown"
+    , Enemy.pic               = PictureID 0
+    , Enemy.picUndetermined   = PictureID 0
+    , Enemy.lv                = 1
+    , Enemy.hpFormula         = parse' "10"
+    , Enemy.param             = Parameter { strength = 5, iq = 5, piety = 5, vitality = 5, agility = 5, luck = 5 }
+    , Enemy.ac                = 10
+    , Enemy.exp               = 10
+    , Enemy.friendlyProb      = 0
+    , Enemy.numOfOccurrences  = parse' "1"
+    , Enemy.healPerTurn       = 0
+    , Enemy.moveFrontProb     = 0
+    , Enemy.resistError       = [] -- No resistance for default test
+    , Enemy.vsEffectLabels    = []
+    , Enemy.attrLabels        = []
+    , Enemy.actions           = []
+    , Enemy.dropItem          = []
+    , Enemy.dropGold          = parse' "0"
+    , Enemy.withBackProb      = 0
+    , Enemy.backEnemyID       = parse' "0"
+    , Enemy.enableRun         = True
+    , Enemy.trapCandidate     = []
+    }
+
+testEnemyInstance :: Enemy.Instance
+testEnemyInstance = Enemy.Instance {
+      Enemy.id            = EnemyID 1
+    , Enemy.define        = testEnemyDefine
+    , Enemy.noID          = 1
+    , Enemy.determined    = True
+    , Enemy.hp            = 10
+    , Enemy.maxhp         = 10
+    , Enemy.statusErrors  = []
+    , Enemy.maybeDropItem = False
+    , Enemy.modParam      = emptyParamChange
+}
+
+resistantEnemyDefine :: Enemy.Define
+resistantEnemyDefine = testEnemyDefine
+    { Enemy.resistError = [(Sleep, parse' "100")] -- 100% resistance to Sleep
+    }
+
+resistantEnemyInstance :: Enemy.Instance
+resistantEnemyInstance = testEnemyInstance
+    { Enemy.define = resistantEnemyDefine
+    }
+
 testScenario :: Scenario
 testScenario = initScenario (InitScenario {
       initScenarioOption = ScenarioOption [] []
@@ -67,7 +119,7 @@ testScenario = initScenario (InitScenario {
     , initEventMapDir    = Map.empty
     , initEventInspect   = Map.empty
     , initMazeEvents     = Map.empty
-    , initEnemies        = Map.empty
+    , initEnemies        = Map.fromList [(EnemyID 1, testEnemyDefine), (EnemyID 2, resistantEnemyDefine)] -- Added resistant enemy
     , initSpells         = Map.empty
     , initItems          = Map.empty
     }) mockGameMachine
@@ -96,9 +148,9 @@ initialWorld = World {
       randomGen = mkStdGen 42
     , guideOn = False, statusOn = False
     , worldOption = WorldOption Spell.OnlyCoord Normal
-    , allCharacters = Map.fromList [(CharacterID 1, initialCaster), (CharacterID 2, deadTarget)] -- Modified
-    , party = [CharacterID 1, CharacterID 2] -- Modified
-    , place = InCastle
+    , allCharacters = Map.fromList [(CharacterID 1, initialCaster), (CharacterID 2, deadTarget)]
+    , party = [CharacterID 1, CharacterID 2]
+    , place = InBattle (Position N 0 0 0) [[testEnemyInstance, resistantEnemyInstance]] -- Set place to InBattle with enemies
     , roomBattled = []
     , partyLight = 0, partyLight' = 0
     , partyParamDelta = []
@@ -127,7 +179,7 @@ spec = describe "castResurrectionSpell" $ do
             
             (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorld
 
-            let finalTarget = fromJust $ Map.lookup (CharacterID 2) (allCharacters finalWorldAfterUpdate) -- Modified
+            let finalTarget = fromJust $ Map.lookup (CharacterID 2) (allCharacters finalWorldAfterUpdate)
 
             msg `shouldBe` "Target has been resurrected."
             Chara.hp finalTarget `shouldBe` 10
@@ -144,9 +196,64 @@ spec = describe "castResurrectionSpell" $ do
             
             (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorld
 
-            let finalTarget = fromJust $ Map.lookup (CharacterID 2) (allCharacters finalWorldAfterUpdate) -- Modified
+            let finalTarget = fromJust $ Map.lookup (CharacterID 2) (allCharacters finalWorldAfterUpdate)
 
             msg `shouldBe` "Target could not be resurrected."
             Chara.hp finalTarget `shouldBe` 0
             Chara.statusErrors finalTarget `shouldBe` [Dead]
 
+    describe "castAddStatusErrorSpell" $ do
+        let caster = Left initialCaster
+            targetEnemyInstance = testEnemyInstance
+            resistantTargetEnemyInstance = resistantEnemyInstance
+
+        context "with 100% success rate" $ do
+            it "applies status effect to enemy" $ do
+                let addStatusEffectInfo = [(Sleep, parse' "100", "")]
+                    action = castAddStatusErrorSpell addStatusEffectInfo caster (Right [targetEnemyInstance])
+
+                (Right results, _) <- return $ runGame action testScenario initialWorld
+                let (updateAction, msg, _) = head results
+
+                -- To get the updated enemy instance, we need to run the update action within the context
+                -- of the world *after* the spell is cast.
+                let initialWorldWithTargetEnemy = initialWorld { place = InBattle (Position N 0 0 0) [[targetEnemyInstance]] }
+                
+                (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorldWithTargetEnemy
+
+                let updatedEnemy = case place finalWorldAfterUpdate of InBattle _ e -> head (head e); _ -> error "Not in battle"
+
+                msg `shouldBe` Enemy.name (Enemy.define targetEnemyInstance) ++ statusErrorMessage Sleep
+                Enemy.statusErrors updatedEnemy `shouldBe` [Sleep]
+
+            it "does not apply status effect to resistant enemy" $ do
+                let addStatusEffectInfo = [(Sleep, parse' "100", "")]
+                    action = castAddStatusErrorSpell addStatusEffectInfo caster (Right [resistantTargetEnemyInstance])
+
+                (Right results, _) <- return $ runGame action testScenario initialWorld
+                let (updateAction, msg, _) = head results
+
+                -- World setup for resistant enemy
+                let initialWorldWithResistantEnemy = initialWorld { place = InBattle (Position N 0 0 0) [[resistantTargetEnemyInstance]] }
+                (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorldWithResistantEnemy
+
+                let updatedEnemy = case place finalWorldAfterUpdate of InBattle _ e -> head (head e); _ -> error "Not in battle"
+
+                msg `shouldBe` Enemy.name (Enemy.define resistantTargetEnemyInstance) ++ " resisted."
+                Enemy.statusErrors updatedEnemy `shouldBe` []
+
+        context "with 0% success rate" $ do
+            it "does not apply status effect to enemy" $ do
+                let addStatusEffectInfo = [(Sleep, parse' "0", "")]
+                    action = castAddStatusErrorSpell addStatusEffectInfo caster (Right [targetEnemyInstance])
+
+                (Right results, _) <- return $ runGame action testScenario initialWorld
+                let (updateAction, msg, _) = head results
+                
+                let initialWorldWithTargetEnemy = initialWorld { place = InBattle (Position N 0 0 0) [[targetEnemyInstance]] }
+                (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorldWithTargetEnemy
+
+                let updatedEnemy = case place finalWorldAfterUpdate of InBattle _ e -> head (head e); _ -> error "Not in battle"
+
+                msg `shouldBe` Enemy.name (Enemy.define targetEnemyInstance) ++ " resisted." -- Expected message for failure
+                Enemy.statusErrors updatedEnemy `shouldBe` []

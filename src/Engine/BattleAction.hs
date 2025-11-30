@@ -14,7 +14,16 @@ import Control.Monad.State (modify)
 
 import Engine.GameAuto
 import Engine.Utils
-import Engine.CharacterAction (CastAction, castCureSpell, castParamChangeSpell, castDamageSpell, castAddLight, breakItem, castResurrectionSpell)
+import Engine.CharacterAction (
+      CastAction
+    , castCureSpell
+    , castParamChangeSpell
+    , castDamageSpell
+    , castAddLight
+    , castResurrectionSpell
+    , castAddStatusErrorSpell
+    , breakItem
+    )
 import Engine.InEvent (setLightValue, doEvent)
 import Data.World
 import Data.Formula
@@ -181,18 +190,6 @@ fightMessageE e c (h, d, ses) = do
     vs = ["charges at", "claws at"]
 
 
-statusErrorMessage :: StatusError -> String
-statusErrorMessage Silence    = " become unable to speak !"
-statusErrorMessage Paralysis  = " is paralyzed !"
-statusErrorMessage Stoned     = " become petrified !"
-statusErrorMessage (Poison _) = " is poisoned !"
-statusErrorMessage Fear       = " is horrified !"
-statusErrorMessage Sleep      = " is fell asleep !"
-statusErrorMessage (Drain n)  = " is drained " ++ show n ++ " Level !"
-statusErrorMessage Dead       = " is decapitated !"
-statusErrorMessage Ash        = " became to ash !"
-statusErrorMessage Lost       = " is losted !"
-
 -- ================================================================================
 
 verbForItem  = "uses"
@@ -283,7 +280,11 @@ cast v name def = let as cast = cast v in case Spell.effect def of
       Spell.AllyAll        -> castToAll    as name (castParamChangeSpell ad term etxt)
       Spell.Party          -> castToNull   as name (castParamChangeSpell ad term etxt)
       _                    -> undefined
---  Spell.AddStatusError ts -> undefined
+    Spell.AddStatusError ts -> case Spell.target def of
+      Spell.OpponentSingle -> castToSingle as name (castAddStatusErrorSpell ts)
+      Spell.OpponentGroup  -> castToGroup  as name (castAddStatusErrorSpell ts)
+      Spell.OpponentAll    -> castToAll    as name (castAddStatusErrorSpell ts)
+      _                    -> undefined
     Spell.AddLight n s     -> castToNull as name (castAddLight n s)
     Spell.CheckLocation _  -> as castUnknown name
     Spell.Event eid        -> eventSpell eid
