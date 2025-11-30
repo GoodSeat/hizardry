@@ -264,6 +264,7 @@ whenReturnCastle c = foldl (&) c (whenReturnCastle' <$> statusErrorsOf c)
   where
     whenReturnCastle' :: Object o => StatusError -> o -> o
     whenReturnCastle' (Poison n) = removeStatusError (Poison n)
+    whenReturnCastle' (Fear   n) = removeStatusError (Fear   n)
     whenReturnCastle' _          = id
 
 whenToNextTurn :: Object o => Int -> o -> o

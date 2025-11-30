@@ -102,14 +102,13 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
     toStatusLine (n, c) = let (ac', _) = runGameState s w (acOf $ Left c);
                               ac = case ac' of Right v -> v
                                                _       -> 99
-                              isPoison (Poison _) = True
-                              isPoison _          = False
                               sgr
                                 | Ash       `elem` statusErrors c = 'w'
                                 | Dead      `elem` statusErrors c = 'r'
                                 | Paralysis `elem` statusErrors c = 'm'
                                 | Sleep     `elem` statusErrors c = 'y'
-                                | any isPoison (statusErrors c)   = 'g'
+                                | hasStatusError c (Poison 0)     = 'g'
+                                | hasStatusError c (Fear 0)       = 'g'
                                 | otherwise                       = ' '
                               sgrs = replicate windowH sgr
                         in textSGR (6,  windowH - 6 + n) (show n ++ "  " ++ name c) sgrs

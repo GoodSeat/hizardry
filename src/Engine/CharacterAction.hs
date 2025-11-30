@@ -36,7 +36,7 @@ inspectCharacter h canSpell i = GameAuto $ do
     c   <- characterInPartyAt i
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter h canSpell) (const True)
     let job = Chara.job c
-        canIdentify = isJust (Chara.identifyItemChance (Chara.job c))
+        canIdentify = isJust (Chara.identifyItemChance (Chara.job c)) && not (hasStatusError c $ Fear 0)
         cancel = inspectCharacter h canSpell i
         iCast  = askInStatus cid
         sCast  = showStatus cid
@@ -82,7 +82,8 @@ identifyItem msgForSelect src c cancel = GameAuto $ do
     run $ if null unidentifiedItems then
             events [msgForSelect "No unidentified items."] cancel
           else
-            selectItem (const $ msgForSelect $ "Select target item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]") (not . identified) (doIdentifyItem cid cancel) c cancel
+            selectItem (const $ msgForSelect $ "Select target item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
+                       (not . identified) (doIdentifyItem cid cancel) c cancel
 
 doIdentifyItem :: CharacterID
                -> GameMachine
@@ -108,7 +109,13 @@ doIdentifyItem cid cancel _ i _ = GameAuto $ do
                 updateCharacter cid (c { Chara.items = replaceItemAt (Chara.items c) i newInf })
                 run $ events [showStatus cid "Identified."] cancel
             else do
-                run $ events [showStatus cid "Identification failed."] cancel -- TODO:maybe fear, or cursed equip.
+                beFear <- happens 20
+                if not beFear then
+                    run $ events [showStatus cid "Identification failed."] cancel
+                else do
+                    updateCharacterWith cid $ addStatusError (Fear 30)
+                    run $ events [showStatus cid "Ooops! you touch item!"] cancel
+
 
 replaceItemAt :: [ItemInf] -> Chara.ItemPos -> ItemInf -> [ItemInf]
 replaceItemAt items pos newInf =
