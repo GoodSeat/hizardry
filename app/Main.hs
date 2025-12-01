@@ -16,6 +16,7 @@ import Engine.GameAuto
 import Engine.InCastle
 import Engine.Utils
 import Data.Primitive
+import Data.Characters (ItemPos(..))
 import Data.World
 import Data.Formula
 import Data.Maze
@@ -167,7 +168,7 @@ rendering :: RenderMethod
           -> String -- ^ message on MessageBox
           -> String -- ^ message on FlashMessageBox
           -> String -- ^ message on CommandBox
-          -> Maybe (CharacterID, Maybe [Int]) -- ^ inspection view target, valid item indecies.
+          -> Maybe (CharacterID, Maybe [ItemPos]) -- ^ inspection view target, valid item indecies.
           -> Maybe PictureInf
           -> World
           -> IO()

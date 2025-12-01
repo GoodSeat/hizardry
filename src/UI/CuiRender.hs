@@ -119,12 +119,12 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> textSGR (70, windowH - 6 + n) (if isLvUp c then "@" else "") sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
-statusView :: Scenario -> World -> String -> String -> Maybe [Int] -> (ItemID -> Item.Define)  -> Character -> Craphic
+statusView :: Scenario -> World -> String -> String -> Maybe [ItemPos] -> (ItemID -> Item.Define)  -> Character -> Craphic
 statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] $ lines msg))
                                              <> rect (8, 24) (61, 7) (Draw ' ')
                                              <> if null altContent then statusDetailView else spellListView
   where
-    his' = case his of Nothing -> [0..10]
+    his' = case his of Nothing -> numToItemPos <$> [0..9]
                        Just hs -> hs
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     spellListView = foldl (<>) mempty (fmap toText' (zip [1..] $ lines altContent)) <> rect (6, 4) (65, 22) (Draw ' ')
@@ -171,16 +171,16 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
                      . replaceText "[Item8]"  (itemN 7) (Left inMax)
                      . replaceText "[Item9]"  (itemN 8) (Left inMax)
                      . replaceText "[Item0]"  (itemN 9) (Left inMax)
-                     . replaceText "A)#" ((if 0 `elem` his' then "A)" else "  ") ++ equipMarks !! 0) (Left 3)
-                     . replaceText "B)#" ((if 1 `elem` his' then "B)" else "  ") ++ equipMarks !! 1) (Left 3)
-                     . replaceText "C)#" ((if 2 `elem` his' then "C)" else "  ") ++ equipMarks !! 2) (Left 3)
-                     . replaceText "D)#" ((if 3 `elem` his' then "D)" else "  ") ++ equipMarks !! 3) (Left 3)
-                     . replaceText "E)#" ((if 4 `elem` his' then "E)" else "  ") ++ equipMarks !! 4) (Left 3)
-                     . replaceText "F)#" ((if 5 `elem` his' then "F)" else "  ") ++ equipMarks !! 5) (Left 3)
-                     . replaceText "G)#" ((if 6 `elem` his' then "G)" else "  ") ++ equipMarks !! 6) (Left 3)
-                     . replaceText "H)#" ((if 7 `elem` his' then "H)" else "  ") ++ equipMarks !! 7) (Left 3)
-                     . replaceText "I)#" ((if 8 `elem` his' then "I)" else "  ") ++ equipMarks !! 8) (Left 3)
-                     . replaceText "J)#" ((if 9 `elem` his' then "J)" else "  ") ++ equipMarks !! 9) (Left 3)
+                     . replaceText "A)#" ((if ItemA `elem` his' then "A)" else "  ") ++ equipMarks !! 0) (Left 3)
+                     . replaceText "B)#" ((if ItemB `elem` his' then "B)" else "  ") ++ equipMarks !! 1) (Left 3)
+                     . replaceText "C)#" ((if ItemC `elem` his' then "C)" else "  ") ++ equipMarks !! 2) (Left 3)
+                     . replaceText "D)#" ((if ItemD `elem` his' then "D)" else "  ") ++ equipMarks !! 3) (Left 3)
+                     . replaceText "E)#" ((if ItemE `elem` his' then "E)" else "  ") ++ equipMarks !! 4) (Left 3)
+                     . replaceText "F)#" ((if ItemF `elem` his' then "F)" else "  ") ++ equipMarks !! 5) (Left 3)
+                     . replaceText "G)#" ((if ItemG `elem` his' then "G)" else "  ") ++ equipMarks !! 6) (Left 3)
+                     . replaceText "H)#" ((if ItemH `elem` his' then "H)" else "  ") ++ equipMarks !! 7) (Left 3)
+                     . replaceText "I)#" ((if ItemI `elem` his' then "I)" else "  ") ++ equipMarks !! 8) (Left 3)
+                     . replaceText "J)#" ((if ItemJ `elem` his' then "J)" else "  ") ++ equipMarks !! 9) (Left 3)
                      $ statusViewPlaceHolder
       where
         (ac', _) = runGameState s w (acOf $ Left c)
@@ -192,7 +192,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
         inMax = 24 -- maximum length of item name
         items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
                   <$> Character.items c) ++ repeat ""
-        itemN n = let nam = lenCut inMax (items' !! n) in if n `elem` his' then nam else '`' : intersperse '`' (nam ++ replicate (inMax - len nam) ' ')
+        itemN n = let nam = lenCut inMax (items' !! n) in if numToItemPos n `elem` his' then nam else '`' : intersperse '`' (nam ++ replicate (inMax - len nam) ' ')
         equipMarks = me (Character.items c) (Character.equips c)
           where me (i@(ItemInf id identified):is) eqs
                     | i `elem` eqs                                            = "*" : me is (filter (/=i) eqs)

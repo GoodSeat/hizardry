@@ -34,7 +34,7 @@ data InputType = SingleKey
 data Event = None
            | Exit
            | General       Display
-           | ShowStatus    CharacterID (Maybe [Int]) Display  -- ^ target character ID, highlight items, display.
+           | ShowStatus    CharacterID (Maybe [ItemPos]) Display  -- ^ target character ID, highlight items, display.
            | ShowMap       String (Int, Int)   -- ^ message, translete
     deriving (Show, Eq)
 

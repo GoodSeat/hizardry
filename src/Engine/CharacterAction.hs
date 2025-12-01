@@ -358,7 +358,7 @@ textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . Chara.numToItemPos) (leng
 -- =================================================================================
 -- for equipment.
 -- ---------------------------------------------------------------------------------
-equip :: ([Int] -> String -> Event)
+equip :: ([Chara.ItemPos] -> String -> Event)
       -> PartyPos
       -> Chara.Character
       -> GameMachine
@@ -372,7 +372,7 @@ equip msgForSelect src c = equip' msgForSelect src c [(Item.isWeapon, "weapon")
                                                      ]
 -- TODO:cursed item.
 -- TODO:sp item.
-equip' :: ([Int] -> String -> Event)
+equip' :: ([Chara.ItemPos] -> String -> Event)
        -> PartyPos
        -> Chara.Character
        -> [(Item.Define -> Bool, String)]
@@ -380,7 +380,7 @@ equip' :: ([Int] -> String -> Event)
        -> GameMachine
 equip' _ _ _ [] next = next
 equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
-    let ids = (\(a, b) -> (a, itemID b)) <$> filter (identified . snd) (zip [0..] $ Chara.items c)
+    let ids = (\(a, b) -> (a, itemID b)) <$> filter (identified . snd) (zip (Chara.numToItemPos <$> [0..9]) $ Chara.items c)
     items <- mapM itemByID (snd <$> ids)
     let idset = zipWith (\(a, b) c -> (a, b, c)) ids items
         tgts  = filter (Chara.canEquip c . thd3) . filter (isTarget . thd3) $ idset
