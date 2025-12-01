@@ -173,6 +173,14 @@ numToItemPos 8 = ItemI
 numToItemPos 9 = ItemJ
 numToItemPos _ = error "invalid posToItemChar"
 
+equipPoss :: Character -> [ItemPos]
+equipPoss c = me 0 (items c) (equips c)
+  where me pos (i@(ItemInf id identified):is) eqs
+            | i `elem` eqs  = numToItemPos pos : me (pos + 1) is (filter (/=i) eqs)
+            | otherwise     = me (pos + 1) is eqs
+        me _ _ [] = []
+        me _ [] _ = undefined
+
 -- =================================================================================
 
 data BattleCommand = Fight

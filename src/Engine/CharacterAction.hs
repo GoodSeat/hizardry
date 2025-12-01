@@ -322,8 +322,7 @@ selectTradeItem msgForSelect src cancel = GameAuto $ do
     trade :: CharacterID -> Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     trade dst c i cancel = GameAuto $ do
         let inf = Chara.itemInfAt c i
-        dropItem src i
-        gainItem dst inf
+        when (i `notElem` Chara.equipPoss c) $ dropItem src i >> gainItem dst inf
         run $ tradeTo dst
         
 
