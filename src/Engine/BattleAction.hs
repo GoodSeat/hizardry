@@ -105,7 +105,7 @@ fightMessage c e (h, d, ses) = do
     let en = nameOf e
     let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
+    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."] --TODO:marks++
              else (en ++) . statusErrorMessage <$> sort ses
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where

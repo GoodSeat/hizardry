@@ -610,7 +610,7 @@ castAddStatusErrorSpell ses (Left src) (Right es) = concat <$> forM es (\e -> do
                 let message = if msg == ""
                                 then nameOf e ++ statusErrorMessage se
                                 else nameOf e ++ " " ++ msg
-                return [(updateEnemy e (const e'), message, False)]
+                return [(updateEnemy e (const e'), message, False)] -- TODO:maybe marks++
             else
                 return [(return (), nameOf e ++ " resisted.", False)]
         return $ concat results
@@ -680,7 +680,7 @@ castDamageSpell f attrs (Left c) (Right es) = do
         let msg = if noDamage then nameOf e ++ " resisted."
                               else nameOf e ++ " takes " ++ show d' ++ "."
         return $ (updateEnemy e (const e'), msg, not noDamage)
-               : [(return (), msg ++ "\n" ++ nameOf e ++ " is killed.", False) | Enemy.hp e' <= 0]
+               : [(return (), msg ++ "\n" ++ nameOf e ++ " is killed.", False) | Enemy.hp e' <= 0] -- TODO:marks++
     return $ concat ts
 castDamageSpell f attrs s@(Right e) (Left is) = do
     ts <- forM is $ \i -> do
