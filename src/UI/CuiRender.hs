@@ -124,7 +124,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
                                              <> rect (8, 24) (61, 7) (Draw ' ')
                                              <> if null altContent then statusDetailView else spellListView
   where
-    his' = case his of Nothing -> numToItemPos <$> [0..9]
+    his' = case his of Nothing -> toEnum <$> [0..9]
                        Just hs -> hs
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     spellListView = foldl (<>) mempty (fmap toText' (zip [1..] $ lines altContent)) <> rect (6, 4) (65, 22) (Draw ' ')
@@ -192,7 +192,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
         inMax = 24 -- maximum length of item name
         items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
                   <$> Character.items c) ++ repeat ""
-        itemN n = let nam = lenCut inMax (items' !! n) in if numToItemPos n `elem` his' then nam else '`' : intersperse '`' (nam ++ replicate (inMax - len nam) ' ')
+        itemN n = let nam = lenCut inMax (items' !! n) in if toEnum n `elem` his' then nam else '`' : intersperse '`' (nam ++ replicate (inMax - len nam) ' ')
         equipMarks = me (Character.items c) (Character.equips c)
           where me (i@(ItemInf id identified):is) eqs
                     | i `elem` eqs                                            = "*" : me is (filter (/=i) eqs)

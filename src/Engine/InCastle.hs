@@ -266,7 +266,7 @@ sellItem' greet cid = GameAuto $ do
       ns <- mapM sellName is
       vs <- mapM sellValue is
       let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightTxt 10 <$> vs)
-          ps    = Character.numToItemPos <$> take (length items) [0..]
+          ps    = toEnum <$> take (length items) [0..]
           lst   = "=========================================================\n\n"
                 ++ unlines (zipWith (++) ((++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
       if greet then run $ events [messageTime (-1500) ("Thank you so much.\n\n\n" ++ lst) Nothing] $ sellItem cid
@@ -292,7 +292,7 @@ sell cid pos = do
     let idItem = Character.itemAt c pos
         is = Character.items c
         gp = Character.gold c
-        n  = Character.itemPosToNum pos
+        n  = fromEnum pos
     v <- sellValue $ is !! n
     let is' = take n is ++ drop (n + 1) is
         gp' = gp + v
@@ -317,7 +317,7 @@ determineItem' greet cid = GameAuto $ do
     ns <- mapM sellName is
     vs <- mapM determineValueTxt is
     let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightString 10 <$> vs)
-        ps    = Character.numToItemPos <$> take (length items) [0..]
+        ps    = toEnum <$> take (length items) [0..]
         lst   = "=========================================================\n\n"
               ++ unlines (zipWith (++) (("^"++) . (++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
         greet' = if null greet then "Select item to determine. You have " ++ show gp ++ " G.P." else greet
@@ -345,7 +345,7 @@ determine cid pos = GameAuto $ do
     c <- characterByID cid
     let is   = Character.items c
         gp   = Character.gold c
-        n    = Character.itemPosToNum pos
+        n    = fromEnum pos
         item = is !! n
     v <- determineValue $ is !! n
     if      v > gp          then run $ determineItem' "you are poor." cid

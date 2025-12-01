@@ -112,13 +112,13 @@ data ItemPos = ItemA
              | ItemH
              | ItemI
              | ItemJ
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Enum)
 
 itemInfAt :: Character -> ItemPos -> ItemInf
-itemInfAt c pos = items c !! itemPosToNum pos
+itemInfAt c pos = items c !! fromEnum pos
 
 itemAt :: Character -> ItemPos -> ItemID
-itemAt c pos = itemID $ items c !! itemPosToNum pos
+itemAt c pos = itemID $ items c !! fromEnum pos
 
 hasMaxCountItem :: Character -> Bool
 hasMaxCountItem c = length (items c) >= 10
@@ -136,18 +136,6 @@ itemPosByChar "i" = Just ItemI
 itemPosByChar "j" = Just ItemJ
 itemPosByChar _   = Nothing
 
-itemPosToNum :: ItemPos -> Int
-itemPosToNum ItemA = 0
-itemPosToNum ItemB = 1
-itemPosToNum ItemC = 2
-itemPosToNum ItemD = 3
-itemPosToNum ItemE = 4
-itemPosToNum ItemF = 5
-itemPosToNum ItemG = 6
-itemPosToNum ItemH = 7
-itemPosToNum ItemI = 8
-itemPosToNum ItemJ = 9
-
 itemPosToText :: ItemPos -> String
 itemPosToText ItemA = "A"
 itemPosToText ItemB = "B"
@@ -160,23 +148,10 @@ itemPosToText ItemH = "H"
 itemPosToText ItemI = "I"
 itemPosToText ItemJ = "J"
 
-numToItemPos :: Int -> ItemPos
-numToItemPos 0 = ItemA
-numToItemPos 1 = ItemB
-numToItemPos 2 = ItemC
-numToItemPos 3 = ItemD
-numToItemPos 4 = ItemE
-numToItemPos 5 = ItemF
-numToItemPos 6 = ItemG
-numToItemPos 7 = ItemH
-numToItemPos 8 = ItemI
-numToItemPos 9 = ItemJ
-numToItemPos _ = error "invalid posToItemChar"
-
 equipPoss :: Character -> [ItemPos]
 equipPoss c = me 0 (items c) (equips c)
   where me pos (i@(ItemInf id identified):is) eqs
-            | i `elem` eqs  = numToItemPos pos : me (pos + 1) is (filter (/=i) eqs)
+            | i `elem` eqs  = toEnum pos : me (pos + 1) is (filter (/=i) eqs)
             | otherwise     = me (pos + 1) is eqs
         me _ _ [] = []
         me _ [] _ = undefined

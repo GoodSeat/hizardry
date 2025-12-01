@@ -64,7 +64,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
                       : (Key "u", selectItem sItem identified (useItem sCast (useItemInCamp i cancel)) c cancel, True)
                       : (Key "d", selectDropItem dItem i c cancel, True)
-                      : (Key "t", selectTradeItem dItem i cancel, True)
+                      : (Key "t", selectTradeItem eItem i cancel, True)
                       : (Key "e", equip           eItem i c cancel, True)
                       : (Key "i", identifyItem    dItem i c cancel, canIdentify)
                       : (Key "r", readSpell cancel cid, True)
@@ -120,7 +120,7 @@ doIdentifyItem cid cancel _ i _ = GameAuto $ do
 
 replaceItemAt :: [ItemInf] -> Chara.ItemPos -> ItemInf -> [ItemInf]
 replaceItemAt items pos newInf =
-    let idx = Chara.itemPosToNum pos
+    let idx = fromEnum pos
     in take idx items ++ [newInf] ++ drop (idx + 1) items
 
 
@@ -247,7 +247,7 @@ selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
     is <- asks items
     let nameOf id = Item.name (is ! id)
         its = Chara.items c
-        cs  = filter (isTarget . snd) (zip (Chara.numToItemPos <$> [0..]) its)
+        cs  = filter (isTarget . snd) (zip (toEnum <$> [0..]) its)
         msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
     return (msgForSelect $
               "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n"
@@ -300,7 +300,7 @@ selectDropItem msgForSelect src c =
 
 
 
-selectTradeItem :: (String -> Event)
+selectTradeItem :: ([Chara.ItemPos] -> String -> Event)
                 -> PartyPos
                 -> GameMachine
                 -> GameMachine
@@ -309,13 +309,14 @@ selectTradeItem msgForSelect src cancel = GameAuto $ do
     c    <- characterByID =<< characterIDInPartyAt src
     cmds <- cmdNumPartiesID (\(i, cid) -> tradeTo cid)
     run $ if null (Chara.items c) then cancel
-          else selectEsc (msgForSelect $ "Select target character(^1~^" ++ show (length ps) ++ ").\n^L)eave `[`E`S`C`]")
+          else selectEsc (msgForSelect [(Chara.ItemA)..(Chara.ItemJ)] $ "Select target character(^1~^" ++ show (length ps) ++ ").\n^L)eave `[`E`S`C`]")
                          ((Key "l", cancel) : cmds)
   where
+    canPoss c = filter (`notElem` Chara.equipPoss c) [(Chara.ItemA)..(Chara.ItemJ)]
     tradeTo dst = GameAuto $ do
         c'   <- characterByID =<< characterIDInPartyAt src
         cdst <- characterByID dst
-        let msg = const $ msgForSelect $ "Select item to trade to " ++ Chara.name cdst ++ "(" ++ textItemCandidate c' ++ ").\n^L)eave `[`E`S`C`]"
+        let msg = const $ msgForSelect (canPoss c') $ "Select item to trade to " ++ Chara.name cdst ++ "(" ++ textItemCandidate c' ++ ").\n^L)eave `[`E`S`C`]"
         run $ if      null (Chara.items c')      then cancel
               else if Chara.hasMaxCountItem cdst then selectTradeItem msgForSelect src cancel
                                                  else selectItem msg (const True) (trade dst) c' cancel
@@ -334,7 +335,7 @@ breakItem (prob, to) cid i = do
     when broken $ do
       p <- characterByID cid
       let is = Chara.items p
-          ix = Chara.itemPosToNum i
+          ix = fromEnum i
           is' = case to of Item.Lost        -> take ix is ++ drop (ix + 1) is
                            Item.ChangeTo i' -> take ix is ++ [i'] ++ drop (ix + 1) is
       updateCharacter cid (p { Chara.items = is' })
@@ -352,7 +353,7 @@ gainItem cid inf = do
 
 
 textItemCandidate :: Chara.Character -> String
-textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . Chara.numToItemPos) (length (Chara.items c) - 1)
+textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . toEnum) (length (Chara.items c) - 1)
 
 
 -- =================================================================================
@@ -380,7 +381,7 @@ equip' :: ([Chara.ItemPos] -> String -> Event)
        -> GameMachine
 equip' _ _ _ [] next = next
 equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
-    let ids = (\(a, b) -> (a, itemID b)) <$> filter (identified . snd) (zip (Chara.numToItemPos <$> [0..9]) $ Chara.items c)
+    let ids = (\(a, b) -> (a, itemID b)) <$> filter (identified . snd) (zip (toEnum <$> [0..]) $ Chara.items c)
     items <- mapM itemByID (snd <$> ids)
     let idset = zipWith (\(a, b) c -> (a, b, c)) ids items
         tgts  = filter (Chara.canEquip c . thd3) . filter (isTarget . thd3) $ idset
