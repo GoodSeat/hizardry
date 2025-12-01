@@ -108,7 +108,7 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                                 | Paralysis `elem` statusErrors c = 'm'
                                 | Sleep     `elem` statusErrors c = 'y'
                                 | hasStatusError c (Poison 0)     = 'g'
-                                | hasStatusError c (Fear 0)       = 'g'
+                                | hasStatusError c (Fear 0)       = 'B'
                                 | otherwise                       = ' '
                               sgrs = replicate windowH sgr
                         in textSGR (6,  windowH - 6 + n) (show n ++ "  " ++ name c) sgrs

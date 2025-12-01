@@ -348,19 +348,20 @@ act (ByEnemies l e a) next = GameAuto $ do
               np <- length . party <$> world
               cp <- randomIn $ toPartyPos <$> [1..np]
               case s' of
-                Just s  -> do
-                   let tt = Spell.target s
+                Just sdef -> do
+                   let tt = Spell.target sdef
+                       s  = Spell.name sdef
                    if tt == Spell.OpponentSingle ||
                       tt == Spell.OpponentGroup  ||
                       tt == Spell.OpponentAll then
-                      run $ spell' s (Right e') (Left cp) next
+                      run $ spell s (Right e') (Left cp) next
                    else if tt == Spell.AllySingle ||
                            tt == Spell.AllyGroup then do
                       ess <- lastEnemies
                       el  <- randomIn $ toEnemyLine <$> [1..length ess]
-                      run $ spell' s (Right e') (Right el) next
+                      run $ spell s (Right e') (Right el) next
                    else
-                      run $ spell' s (Right e') (Right L1) next
+                      run $ spell s (Right e') (Right L1) next
                 Nothing -> run $ asSpell castUnknown "?" (Right e') (Left cp) next
 
           Enemy.Breath f attrs   -> do
@@ -421,7 +422,10 @@ agiBonus agi = do
               | agi <= 15 = -1
               | agi <= 16 = -2
               | agi <= 17 = -3
-              | otherwise = -4
+              | agi <= 18 = -4
+              | agi <= 19 = -5
+              | agi <= 20 = -6
+              | otherwise = -7
 
 -- ==========================================================================
 

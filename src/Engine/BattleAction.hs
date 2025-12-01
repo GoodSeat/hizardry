@@ -82,11 +82,12 @@ fightDamage el c e hitBonus = do
     rs <- replicateM tryCount $ do
         hit <- (<=) <$> randomNext 1 20 <*> pure atSkill
         dam <- (+) <$> evalWith m damageF <*> pure (max 0 strBonus)
-        let dam' | not . null $ Enemy.statusErrors e                            = dam * 2
-                 | any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) = dam * 2
-                 | otherwise                                                    = dam
-        dam'' <- applyVsEffect (Item.attrLabels wattr) vs (Left c) (Right e) dam'
-        return $ if hit then (1, dam'') else (0, 0)
+        let dam'  | e `hasStatusError` Sleep || e `hasStatusError` Paralysis     = dam * 2
+                  | otherwise                                                    = dam
+        let dam'' | any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) = dam' * 2
+                  | otherwise                                                    = dam''
+        dam''' <- applyVsEffect (Item.attrLabels wattr) vs (Left c) (Right e) dam''
+        return $ if hit then (1, dam''') else (0, 0)
     let dh = foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
     ses <- if snd dh == 0 then return []
            else flip filterM (Item.addStatusErrors wattr) $ \(prob, se, attrs) -> do
@@ -214,7 +215,7 @@ fightDamageE n e c dmg sts = do
     rs <- replicateM n $ do
         hit <- (<=) <$> randomNext 1 20 <*> pure (19 - hv)
         dam <- evalWith m dmg
-        let dam' = if not . null $ statusErrorsOf c then dam * 2 else dam
+        let dam' = if c `hasStatusError` Sleep || c `hasStatusError` Paralysis then dam * 2 else dam
         return $ if hit then (1, dam') else (0, 0)
     let dh = foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
     ses <- if snd dh == 0 then return []
