@@ -115,7 +115,9 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> textSGR (36, windowH - 6 + n) (show (alignment c) ++ "-" ++ take 3 (jobName $ job c)) sgrs
                         <> textSGR (46, windowH - 6 + n) (show $ ac) sgrs
                         <> textSGR (54, windowH - 6 + n) (show $ hp c) sgrs
-                        <> textSGR (61, windowH - 6 + n) (show $ maxhp c) sgrs
+                        <> textSGR (61, windowH - 6 + n) (show $ maxhp c) sgrs -- TODO:statue error
+                        <> textSGR (68, windowH - 6 + n) (if isLvUp c then "@" else "") sgrs
+    isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
 statusView :: Scenario -> World -> String -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
 statusView s w msg altContent itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] $ lines msg))
