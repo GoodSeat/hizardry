@@ -128,7 +128,7 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
 
 startBattleMaybeFriendly :: Bool -> [[Enemy.Instance]] -> Condition -> GameMachine -> GameMachine
 startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else
-    select (message msg) [(Key "a", core), (Key "l", whenLeave)] 
+    select (message msg) [(Key "a", core), (Key "l", whenLeave)]  -- TODO:may change alignment
   where
     erep = head . head $ es
     msg  = "A friendly group of " ++ nameOf erep ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"

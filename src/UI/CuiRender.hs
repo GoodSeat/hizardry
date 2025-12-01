@@ -116,7 +116,7 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> textSGR (46, windowH - 6 + n) (show $ ac) sgrs
                         <> textSGR (54, windowH - 6 + n) (show $ hp c) sgrs
                         <> textSGR (61, windowH - 6 + n) (show $ maxhp c) sgrs -- TODO:statue error
-                        <> textSGR (68, windowH - 6 + n) (if isLvUp c then "@" else "") sgrs
+                        <> textSGR (70, windowH - 6 + n) (if isLvUp c then "@" else "") sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
 statusView :: Scenario -> World -> String -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
@@ -127,9 +127,8 @@ statusView s w msg altContent itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] 
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     spellListView = foldl (<>) mempty (fmap toText' (zip [1..] $ lines altContent)) <> rect (6, 4) (65, 22) (Draw ' ')
       where toText' (n, t) = textSGR (8, 4 + n) (toTextMessage t) (toTextSGR t)
-    statusDetailView =
-        ( translate (5, 4) $
-          fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
+    statusDetailView = translate (5, 4) (
+      fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
                     . replaceText "[STR]"   (show $ strength st)     (Right 3)
                     . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
