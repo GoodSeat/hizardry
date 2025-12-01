@@ -99,9 +99,9 @@ fightDamage el c e hitBonus = do
 
 fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessage c e (h, d, ses) = do
-    en  <- enemyNameOf e
     vs' <- Item.atackMessages <$> weaponAttrOf c
     v   <- randomIn $ if null vs' then vs else vs'
+    let en = nameOf e
     let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
     let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
@@ -146,8 +146,8 @@ ambushOfCharacter id el next = GameAuto $ do
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 ambushMessage c e (h, d, ses) = do
-    en  <- enemyNameOf e
     v   <- randomIn vs
+    let en = nameOf e
     let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
     let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
@@ -230,9 +230,8 @@ fightDamageE n e c dmg sts = do
 
 fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessageE e c (h, d, ses) = do
-    en <- enemyNameOf e
     v  <- randomIn vs
-    let m1 = en ++ " " ++ v ++ "\n " ++ Chara.name c ++ ".\n"
+    let m1 = nameOf e ++ " " ++ v ++ "\n " ++ Chara.name c ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
     let m3 = if hpOf c <= 0 then [Chara.name c  ++ " is killed."]
              else (Chara.name c ++) . statusErrorMessage <$> sort ses
@@ -453,11 +452,6 @@ aliveEnemyLineRandom el = do
                else Just <$> randomIn es
 
 -- ================================================================================
-enemyNameOf :: Enemy.Instance -> GameState String
-enemyNameOf e = nameOf <$> enemyDefineByID (Enemy.id e)
-  where
-    nameOf = if Enemy.determined e then Enemy.name else Enemy.nameUndetermined
-
 
 toEffect :: Bool -> String -> GameMachine -> GameMachine
 toEffect fromEnemy msg next = e1

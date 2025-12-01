@@ -61,7 +61,7 @@ data Define = Define {
 } deriving (Show, Eq, Read)
 
 instance Object Instance where
-  nameOf            = name . define
+  nameOf o          = (if determined o then name else nameUndetermined) $ define o
   hpOf              = hp
   maxhpOf           = maxhp
   lvOf              = lv . define

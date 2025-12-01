@@ -130,9 +130,9 @@ startBattleMaybeFriendly :: Bool -> [[Enemy.Instance]] -> Condition -> GameMachi
 startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else
     select (message msg) [(Key "a", core), (Key "l", whenLeave)] 
   where
-    enemyName = (Enemy.name . Enemy.define . head . head) es
-    msg       = "A friendly group of " ++ enemyName ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
-    core      = with [moveToBattle es] $ selectBattleCommand 1 [] con (Just NoSurprise)
+    erep = head . head $ es
+    msg  = "A friendly group of " ++ nameOf erep ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
+    core = with [moveToBattle es] $ selectBattleCommand 1 [] con (Just NoSurprise)
   
     
 
@@ -370,9 +370,8 @@ act (ByEnemies l e a) next = GameAuto $ do
                                   in if d then toEffect True msg else events [message msg] 
               run $ foldr acc (with (fst3 <$> ts) next) ((undefined, "", False) : ts)
           Enemy.Run              -> do
-              en   <- enemyNameOf e'
               updateEnemy e' $ const e' { Enemy.hp = 0 }
-              run $ events [message $ en ++ " flees."] next
+              run $ events [message $ nameOf e' ++ " flees."] next
 
 
 -- ==========================================================================
