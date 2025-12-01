@@ -42,6 +42,7 @@ inspectCharacter h canSpell i = GameAuto $ do
         sCast  = showStatus cid
         sItem  = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
         dItem  = sCast
+        eItem  = showStatusEquip cid
         msg   
          | canSpell && not canIdentify =
                    "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
@@ -64,7 +65,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "u", selectItem sItem identified (useItem sCast (useItemInCamp i cancel)) c cancel, True)
                       : (Key "d", selectDropItem dItem i c cancel, True)
                       : (Key "t", selectTradeItem dItem i cancel, True)
-                      : (Key "e", equip           dItem i c cancel, True)
+                      : (Key "e", equip           eItem i c cancel, True)
                       : (Key "i", identifyItem    dItem i c cancel, canIdentify)
                       : (Key "r", readSpell cancel cid, True)
                       : (Key "g", with [msgDebug $ show (Chara.spells c)] cancel, True)
@@ -358,7 +359,7 @@ textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . Chara.numToItemPos) (leng
 -- =================================================================================
 -- for equipment.
 -- ---------------------------------------------------------------------------------
-equip :: (String -> Event)
+equip :: ([Int] -> String -> Event)
       -> PartyPos
       -> Chara.Character
       -> GameMachine
@@ -372,7 +373,7 @@ equip msgForSelect src c = equip' msgForSelect src c [(Item.isWeapon, "weapon")
                                                      ]
 -- TODO:cursed item.
 -- TODO:sp item.
-equip' :: (String -> Event)
+equip' :: ([Int] -> String -> Event)
        -> PartyPos
        -> Chara.Character
        -> [(Item.Define -> Bool, String)]
@@ -380,13 +381,13 @@ equip' :: (String -> Event)
        -> GameMachine
 equip' _ _ _ [] next = next
 equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
-    let ids = itemID <$> filter identified (Chara.items c)
-    items <- mapM itemByID ids
-    let idset = zip ids items
-        tgts  = filter (Chara.canEquip c . snd) . filter (isTarget . snd) $ idset
+    let ids = (\(a, b) -> (a, itemID b)) <$> filter (identified . snd) (zip [0..] $ Chara.items c)
+    items <- mapM itemByID (snd <$> ids)
+    let idset = zipWith (\(a, b) c -> (a, b, c)) ids items
+        tgts  = filter (Chara.canEquip c . thd3) . filter (isTarget . thd3) $ idset
     run $ if null tgts then equip' msgForSelect src c rest next
-          else selectItem' "n" (const $ msgForSelect $ "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]")
-                          ((`elem` (fst <$> tgts)) . itemID) selectEq c (eq Nothing)
+          else selectItem' "n" (const $ msgForSelect (fst3 <$> tgts) $ "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]")
+                          ((`elem` (snd3 <$> tgts)) . itemID) selectEq c (eq Nothing)
   where
     selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     selectEq c pos next = eq $ Just (Chara.itemInfAt c pos)
@@ -399,8 +400,9 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
       let es'  = snd <$> filter (not . isTarget. fst) (zip items es)
           es'' = case item of Nothing -> es'
                               Just i  -> i : es'
-      updateCharacter cid $ c { Chara.equips = es'' }
-      run $ equip' msgForSelect src c rest next
+          c'   = c { Chara.equips = es'' }
+      updateCharacter cid c'
+      run $ equip' msgForSelect src c' rest next
 
 
 -- =================================================================================

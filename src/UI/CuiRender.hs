@@ -119,11 +119,13 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         <> textSGR (70, windowH - 6 + n) (if isLvUp c then "@" else "") sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
-statusView :: Scenario -> World -> String -> String -> (ItemID -> Item.Define)  -> Character -> Craphic
-statusView s w msg altContent itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] $ lines msg))
-                                         <> rect (8, 24) (61, 7) (Draw ' ')
-                                         <> if null altContent then statusDetailView else spellListView
+statusView :: Scenario -> World -> String -> String -> Maybe [Int] -> (ItemID -> Item.Define)  -> Character -> Craphic
+statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] $ lines msg))
+                                             <> rect (8, 24) (61, 7) (Draw ' ')
+                                             <> if null altContent then statusDetailView else spellListView
   where
+    his' = case his of Nothing -> [0..10]
+                       Just hs -> hs
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     spellListView = foldl (<>) mempty (fmap toText' (zip [1..] $ lines altContent)) <> rect (6, 4) (65, 22) (Draw ' ')
       where toText' (n, t) = textSGR (8, 4 + n) (toTextMessage t) (toTextSGR t)
@@ -168,16 +170,16 @@ statusView s w msg altContent itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] 
                     . replaceText "[Item8]"  (items' !! 7) (Left 24)
                     . replaceText "[Item9]"  (items' !! 8) (Left 24)
                     . replaceText "[Item0]"  (items' !! 9) (Left 24)
-                    . replaceText "A)#"  ("A)" ++ equipMarks !! 0) (Left 3)
-                    . replaceText "B)#"  ("B)" ++ equipMarks !! 1) (Left 3)
-                    . replaceText "C)#"  ("C)" ++ equipMarks !! 2) (Left 3)
-                    . replaceText "D)#"  ("D)" ++ equipMarks !! 3) (Left 3)
-                    . replaceText "E)#"  ("E)" ++ equipMarks !! 4) (Left 3)
-                    . replaceText "F)#"  ("F)" ++ equipMarks !! 5) (Left 3)
-                    . replaceText "G)#"  ("G)" ++ equipMarks !! 6) (Left 3)
-                    . replaceText "H)#"  ("H)" ++ equipMarks !! 7) (Left 3)
-                    . replaceText "I)#"  ("I)" ++ equipMarks !! 8) (Left 3)
-                    . replaceText "J)#"  ("J)" ++ equipMarks !! 9) (Left 3)
+                    . replaceText "A)#" ((if 0 `elem` his' then "A)" else "  ") ++ equipMarks !! 0) (Left 3)
+                    . replaceText "B)#" ((if 1 `elem` his' then "B)" else "  ") ++ equipMarks !! 1) (Left 3)
+                    . replaceText "C)#" ((if 2 `elem` his' then "C)" else "  ") ++ equipMarks !! 2) (Left 3)
+                    . replaceText "D)#" ((if 3 `elem` his' then "D)" else "  ") ++ equipMarks !! 3) (Left 3)
+                    . replaceText "E)#" ((if 4 `elem` his' then "E)" else "  ") ++ equipMarks !! 4) (Left 3)
+                    . replaceText "F)#" ((if 5 `elem` his' then "F)" else "  ") ++ equipMarks !! 5) (Left 3)
+                    . replaceText "G)#" ((if 6 `elem` his' then "G)" else "  ") ++ equipMarks !! 6) (Left 3)
+                    . replaceText "H)#" ((if 7 `elem` his' then "H)" else "  ") ++ equipMarks !! 7) (Left 3)
+                    . replaceText "I)#" ((if 8 `elem` his' then "I)" else "  ") ++ equipMarks !! 8) (Left 3)
+                    . replaceText "J)#" ((if 9 `elem` his' then "J)" else "  ") ++ equipMarks !! 9) (Left 3)
                     $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
       where
         (ac', _) = runGameState s w (acOf $ Left c)

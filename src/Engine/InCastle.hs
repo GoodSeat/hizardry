@@ -220,13 +220,15 @@ buyItem cid page = GameAuto $ do
                                (rightTxt 10 . Item.valueInShop <$> defs)
           lst  = "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
                ++ unlines (zipWith (++) ((++") ") . show <$> [1..]) items) ++ "\n"
+          txt  = "Select item to buy. You have " ++ show gp ++ " G.P.\n\n"
+              ++ "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave [Esc]" ++ lst
+          msg  = message txt 
           cmds = cmdNums (length lstItem')
-               $ buy cid (buyItem cid page) (flip (messageTime (-1500)) Nothing . (++lst)) . (lstItem' !!) . flip (-) 1
-          msg  = message $ "Select item to buy. You have " ++ show gp ++ " G.P.\n\n"
-                        ++ "^N)ext list  ^P)revious list  ^L)eave [Esc]" ++ lst
+               $ buy cid (buyItem cid page) (flip (flashAndMessageTime (-1500) txt) Nothing . (++ "  \n  ") . ("\n  " ++)) . (lstItem' !!) . flip (-) 1
       run $ selectEsc msg $ (Key "l", selectShopAction cid)
                           : (Key "n", buyItem cid (page + 1))
                           : (Key "p", buyItem cid (page - 1))
+--                        : (Key "?", infoItem cid page)  -- TODO
                           : cmds
 
 buy :: CharacterID -> GameMachine -> (String -> Event) -> ItemID -> GameMachine
@@ -235,8 +237,8 @@ buy cid next toMsg idItem = GameAuto $ do
     v  <- Item.valueInShop <$> itemByID idItem
     is <- Character.items <$> characterByID cid
     g  <- Character.gold  <$> characterByID cid
-    if length is >= 10 then run $ events [toMsg "you can't have any more item.\n\n"] next
-    else if v > g then run $ events [toMsg "you are poor.\n\n"] next
+    if length is >= 10 then run $ events [toMsg "you can't have any more item."] next
+    else if v > g then run $ events [toMsg "you are poor."] next
     else do
       let map  = shopItems w
           pair = Map.lookup idItem map
@@ -244,11 +246,12 @@ buy cid next toMsg idItem = GameAuto $ do
                               Just n  -> n - 1
           map' = if n' == 0 then Map.delete idItem map
                             else Map.insert idItem n' map
-          msg  = if n' == 0 then "it is last one.\n\n" else "you must favorite in it.\n\n"
+          msg  = if n' == 0 then "it is last one." else "you must favorite in it."
       put $ w { shopItems = map' }
       updateCharacterWith cid $ \c -> c { Character.items = is ++ [ItemInf idItem True]
                                         , Character.gold  = g - v }
       run $ events [toMsg msg] next
+   -- TODO:you can't equip this. OK? -> no people take no mistake.
 
 
 sellItem :: CharacterID -> GameMachine

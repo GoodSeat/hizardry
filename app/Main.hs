@@ -143,12 +143,12 @@ ignoreKey = do
 type RenderMethod = Bool -> Craphic -> IO ()
 
 testRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> DisplayIO
-testRender rm picOf s (General        (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) Nothing p w
-testRender rm picOf s (ShowStatus cid (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) (Just cid) p w
-testRender rm picOf s None                                   w = testRender rm picOf s (wait 0 Nothing) w
-testRender rm _ s (ShowMap m trans)                   w = setCursorPosition 0 0
-                                                       >> rm (debugMode w) (mapView m (place w) trans (visitHitory w) $ mazeInf s w)
-testRender rm _ _ Exit                                w = undefined
+testRender rm picOf s (General            (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) Nothing p w
+testRender rm picOf s (ShowStatus cid his (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) (Just (cid, his)) p w
+testRender rm picOf s None                                       w = testRender rm picOf s (wait 0 Nothing) w
+testRender rm _ s (ShowMap m trans) w = setCursorPosition 0 0
+                                     >> rm (debugMode w) (mapView m (place w) trans (visitHitory w) $ mazeInf s w)
+testRender rm _ _ Exit              w = undefined
 
 mazeInf :: Scenario -> World -> MazeInf
 mazeInf s w = case runGameState s w mazeInf' of (Right m, w') -> m
@@ -167,7 +167,7 @@ rendering :: RenderMethod
           -> String -- ^ message on MessageBox
           -> String -- ^ message on FlashMessageBox
           -> String -- ^ message on CommandBox
-          -> Maybe CharacterID -- ^ inspection view target.
+          -> Maybe (CharacterID, Maybe [Int]) -- ^ inspection view target, valid item indecies.
           -> Maybe PictureInf
           -> World
           -> IO()
@@ -175,8 +175,8 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = do
     setCursorPosition 0 0
     rm (debugMode w)
            $ t1 (if null locationText         then mempty else location locationText)
-          <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox') mMsg')
           <> t1 (if null fMsg                 then mempty else flashMsgBox fMsg)
+          <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox') mMsg')
           <> t1 (if null cMsg  || isJust cid' then mempty else cmdBox cMsg )
           <> t1 (if visibleStatusWindow w && not hideStatus then status s w (catMaybes ps) else mempty)
           <> t1 (if visibleGuideWindow w then guide else mempty)
@@ -204,8 +204,8 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = do
     treasureScene = case place w of FindTreasureChest _ False -> treasureChest
                                     FindTreasureChest _ True  -> treasure
                                     _                         -> mempty
-    statusScene   = case cid' of Nothing  -> mempty
-                                 Just cid -> statusView s w mMsg cMsg itemDefOf (cs Map.! cid)
+    statusScene   = case cid' of Nothing         -> mempty
+                                 Just (cid, his) -> statusView s w mMsg cMsg his itemDefOf (cs Map.! cid)
     msgBox' = case place w of Camping _ _ -> msgBoxCamp
                               _           -> msgBox
     mMsg' | not (null mMsg) = mMsg

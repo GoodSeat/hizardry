@@ -34,7 +34,7 @@ data InputType = SingleKey
 data Event = None
            | Exit
            | General       Display
-           | ShowStatus    CharacterID Display -- ^ target character ID, manu message, next input type.
+           | ShowStatus    CharacterID (Maybe [Int]) Display  -- ^ target character ID, highlight items, display.
            | ShowMap       String (Int, Int)   -- ^ message, translete
     deriving (Show, Eq)
 
@@ -79,6 +79,14 @@ messageTime t s p = General $ Display {
     , picture    = p
     , needPhrase = False
     }
+flashAndMessageTime t s f p = General $ Display {
+      messageBox = Just s
+    , commandBox = Nothing
+    , flashBox   = Just f
+    , waitTime   = Just t
+    , picture    = p
+    , needPhrase = False
+    }
 wait t p = General $ Display {
       messageBox = Nothing
     , commandBox = Nothing
@@ -112,7 +120,7 @@ spellCommand s = General $ Display {
     , needPhrase = True
     }
 
-showStatus cid msg = ShowStatus cid $ Display {
+showStatus cid msg = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
     , commandBox = Nothing
     , flashBox   = Nothing
@@ -120,7 +128,7 @@ showStatus cid msg = ShowStatus cid $ Display {
     , picture    = Nothing
     , needPhrase = False
 }
-showStatusAlt cid msg alt = ShowStatus cid $ Display {
+showStatusAlt cid msg alt = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
     , commandBox = Just alt
     , flashBox   = Nothing
@@ -128,7 +136,7 @@ showStatusAlt cid msg alt = ShowStatus cid $ Display {
     , picture    = Nothing
     , needPhrase = False
 }
-showStatusAlt' cid msg alt help = ShowStatus cid $ Display {
+showStatusAlt' cid msg alt help = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
     , commandBox = Just alt
     , flashBox   = Just help
@@ -136,13 +144,21 @@ showStatusAlt' cid msg alt help = ShowStatus cid $ Display {
     , picture    = Nothing
     , needPhrase = False
 }
-askInStatus cid msg = ShowStatus cid $ Display {
+askInStatus cid msg = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
     , commandBox = Nothing
     , flashBox   = Nothing
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = True
+}
+showStatusEquip cid his msg = ShowStatus cid (Just his) $ Display {
+      messageBox = Just msg
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
 }
 
 
@@ -271,7 +287,7 @@ stepGame s w g =
                                           | isJust w  -> WaitClock $ fromJust w 
                                           | n         -> SequenceKey
                                           | otherwise -> SingleKey
-                                        ShowStatus _ (Display _ _ _ w _ n)
+                                        ShowStatus _ _ (Display _ _ _ w _ n)
                                           | isJust w  -> WaitClock $ fromJust w 
                                           | n         -> SequenceKey
                                           | otherwise -> SingleKey
