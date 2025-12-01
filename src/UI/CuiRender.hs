@@ -1,7 +1,7 @@
 module UI.CuiRender where
 
 import Control.Monad
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, intersperse)
 
 import Control.CUI
 import Engine.GameAuto
@@ -129,58 +129,59 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
     toText (n, t) = textSGR (11, 25 + n) (toTextMessage t) (toTextSGR t)
     spellListView = foldl (<>) mempty (fmap toText' (zip [1..] $ lines altContent)) <> rect (6, 4) (65, 22) (Draw ' ')
       where toText' (n, t) = textSGR (8, 4 + n) (toTextMessage t) (toTextSGR t)
-    statusDetailView = translate (5, 4) (
-      fromTexts ' ' $ replaceText "[Name]"  (name c) (Left 30)
-                    . replaceText "[Lv]"    (show $ lv c)            (Right 4)
-                    . replaceText "[STR]"   (show $ strength st)     (Right 3)
-                    . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
-                    . replaceText "[PIE]"   (show $ piety    st)     (Right 3)
-                    . replaceText "[VIT]"   (show $ vitality st)     (Right 3)
-                    . replaceText "[AGI]"   (show $ agility  st)     (Right 3)
-                    . replaceText "[LUK]"   (show $ luck     st)     (Right 3)
-                    . replaceText "[HP]"    (show $ hp c)            (Right 4)
-                    . replaceText "[MaxHP]" (show $ maxhp c)         (Right 4)
-                    . replaceText "[Exp]"   (show $ Character.exp c) (Right 8)
-                    . replaceText "[Gold]"  (show $ gold c)          (Right 8)
-                    . replaceText "[Age]"   (show $ age c)           (Right 4)
-                    . replaceText "[AC]"    (show $ ac)              (Right 4)
-                    . replaceText "[Marks]" (show $ marks c)         (Right 4)
-                    . replaceText "[RIPs]"  (show $ rips c)          (Right 4)
-                    . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
-                    . replaceText "M2"  (show $ (fst (mp c) ++ repeat 0) !! 1) (Right 2)
-                    . replaceText "M3"  (show $ (fst (mp c) ++ repeat 0) !! 2) (Right 2)
-                    . replaceText "M4"  (show $ (fst (mp c) ++ repeat 0) !! 3) (Right 2)
-                    . replaceText "M5"  (show $ (fst (mp c) ++ repeat 0) !! 4) (Right 2)
-                    . replaceText "M6"  (show $ (fst (mp c) ++ repeat 0) !! 5) (Right 2)
-                    . replaceText "M7"  (show $ (fst (mp c) ++ repeat 0) !! 6) (Right 2)
-                    . replaceText "P1"  (show $ (snd (mp c) ++ repeat 0) !! 0) (Right 2)
-                    . replaceText "P2"  (show $ (snd (mp c) ++ repeat 0) !! 1) (Right 2)
-                    . replaceText "P3"  (show $ (snd (mp c) ++ repeat 0) !! 2) (Right 2)
-                    . replaceText "P4"  (show $ (snd (mp c) ++ repeat 0) !! 3) (Right 2)
-                    . replaceText "P5"  (show $ (snd (mp c) ++ repeat 0) !! 4) (Right 2)
-                    . replaceText "P6"  (show $ (snd (mp c) ++ repeat 0) !! 5) (Right 2)
-                    . replaceText "P7"  (show $ (snd (mp c) ++ repeat 0) !! 6) (Right 2)
-                    . replaceText "[Item1]"  (items' !! 0) (Left 24)
-                    . replaceText "[Item2]"  (items' !! 1) (Left 24)
-                    . replaceText "[Item3]"  (items' !! 2) (Left 24)
-                    . replaceText "[Item4]"  (items' !! 3) (Left 24)
-                    . replaceText "[Item5]"  (items' !! 4) (Left 24)
-                    . replaceText "[Item6]"  (items' !! 5) (Left 24)
-                    . replaceText "[Item7]"  (items' !! 6) (Left 24)
-                    . replaceText "[Item8]"  (items' !! 7) (Left 24)
-                    . replaceText "[Item9]"  (items' !! 8) (Left 24)
-                    . replaceText "[Item0]"  (items' !! 9) (Left 24)
-                    . replaceText "A)#" ((if 0 `elem` his' then "A)" else "  ") ++ equipMarks !! 0) (Left 3)
-                    . replaceText "B)#" ((if 1 `elem` his' then "B)" else "  ") ++ equipMarks !! 1) (Left 3)
-                    . replaceText "C)#" ((if 2 `elem` his' then "C)" else "  ") ++ equipMarks !! 2) (Left 3)
-                    . replaceText "D)#" ((if 3 `elem` his' then "D)" else "  ") ++ equipMarks !! 3) (Left 3)
-                    . replaceText "E)#" ((if 4 `elem` his' then "E)" else "  ") ++ equipMarks !! 4) (Left 3)
-                    . replaceText "F)#" ((if 5 `elem` his' then "F)" else "  ") ++ equipMarks !! 5) (Left 3)
-                    . replaceText "G)#" ((if 6 `elem` his' then "G)" else "  ") ++ equipMarks !! 6) (Left 3)
-                    . replaceText "H)#" ((if 7 `elem` his' then "H)" else "  ") ++ equipMarks !! 7) (Left 3)
-                    . replaceText "I)#" ((if 8 `elem` his' then "I)" else "  ") ++ equipMarks !! 8) (Left 3)
-                    . replaceText "J)#" ((if 9 `elem` his' then "J)" else "  ") ++ equipMarks !! 9) (Left 3)
-                    $ statusViewPlaceHolder) <> rect (6, 4) (65, 22) (Draw ' ')
+    statusDetailView = translate (5, 4) (fromTextsSGR ' ' (toTextMessage <$> statusDetailText) (toTextSGR <$> statusDetailText))
+                    <> rect (6, 4) (65, 22) (Draw ' ')
+    statusDetailText = replaceText "[Name]"  (name c) (Left 30)
+                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
+                     . replaceText "[STR]"   (show $ strength st)     (Right 3)
+                     . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
+                     . replaceText "[PIE]"   (show $ piety    st)     (Right 3)
+                     . replaceText "[VIT]"   (show $ vitality st)     (Right 3)
+                     . replaceText "[AGI]"   (show $ agility  st)     (Right 3)
+                     . replaceText "[LUK]"   (show $ luck     st)     (Right 3)
+                     . replaceText "[HP]"    (show $ hp c)            (Right 4)
+                     . replaceText "[MaxHP]" (show $ maxhp c)         (Right 4)
+                     . replaceText "[Exp]"   (show $ Character.exp c) (Right 8)
+                     . replaceText "[Gold]"  (show $ gold c)          (Right 8)
+                     . replaceText "[Age]"   (show $ age c)           (Right 4)
+                     . replaceText "[AC]"    (show $ ac)              (Right 4)
+                     . replaceText "[Marks]" (show $ marks c)         (Right 4)
+                     . replaceText "[RIPs]"  (show $ rips c)          (Right 4)
+                     . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
+                     . replaceText "M2"  (show $ (fst (mp c) ++ repeat 0) !! 1) (Right 2)
+                     . replaceText "M3"  (show $ (fst (mp c) ++ repeat 0) !! 2) (Right 2)
+                     . replaceText "M4"  (show $ (fst (mp c) ++ repeat 0) !! 3) (Right 2)
+                     . replaceText "M5"  (show $ (fst (mp c) ++ repeat 0) !! 4) (Right 2)
+                     . replaceText "M6"  (show $ (fst (mp c) ++ repeat 0) !! 5) (Right 2)
+                     . replaceText "M7"  (show $ (fst (mp c) ++ repeat 0) !! 6) (Right 2)
+                     . replaceText "P1"  (show $ (snd (mp c) ++ repeat 0) !! 0) (Right 2)
+                     . replaceText "P2"  (show $ (snd (mp c) ++ repeat 0) !! 1) (Right 2)
+                     . replaceText "P3"  (show $ (snd (mp c) ++ repeat 0) !! 2) (Right 2)
+                     . replaceText "P4"  (show $ (snd (mp c) ++ repeat 0) !! 3) (Right 2)
+                     . replaceText "P5"  (show $ (snd (mp c) ++ repeat 0) !! 4) (Right 2)
+                     . replaceText "P6"  (show $ (snd (mp c) ++ repeat 0) !! 5) (Right 2)
+                     . replaceText "P7"  (show $ (snd (mp c) ++ repeat 0) !! 6) (Right 2)
+                     . replaceText "[Item1]"  (itemN 0) (Left inMax)
+                     . replaceText "[Item2]"  (itemN 1) (Left inMax)
+                     . replaceText "[Item3]"  (itemN 2) (Left inMax)
+                     . replaceText "[Item4]"  (itemN 3) (Left inMax)
+                     . replaceText "[Item5]"  (itemN 4) (Left inMax)
+                     . replaceText "[Item6]"  (itemN 5) (Left inMax)
+                     . replaceText "[Item7]"  (itemN 6) (Left inMax)
+                     . replaceText "[Item8]"  (itemN 7) (Left inMax)
+                     . replaceText "[Item9]"  (itemN 8) (Left inMax)
+                     . replaceText "[Item0]"  (itemN 9) (Left inMax)
+                     . replaceText "A)#" ((if 0 `elem` his' then "A)" else "  ") ++ equipMarks !! 0) (Left 3)
+                     . replaceText "B)#" ((if 1 `elem` his' then "B)" else "  ") ++ equipMarks !! 1) (Left 3)
+                     . replaceText "C)#" ((if 2 `elem` his' then "C)" else "  ") ++ equipMarks !! 2) (Left 3)
+                     . replaceText "D)#" ((if 3 `elem` his' then "D)" else "  ") ++ equipMarks !! 3) (Left 3)
+                     . replaceText "E)#" ((if 4 `elem` his' then "E)" else "  ") ++ equipMarks !! 4) (Left 3)
+                     . replaceText "F)#" ((if 5 `elem` his' then "F)" else "  ") ++ equipMarks !! 5) (Left 3)
+                     . replaceText "G)#" ((if 6 `elem` his' then "G)" else "  ") ++ equipMarks !! 6) (Left 3)
+                     . replaceText "H)#" ((if 7 `elem` his' then "H)" else "  ") ++ equipMarks !! 7) (Left 3)
+                     . replaceText "I)#" ((if 8 `elem` his' then "I)" else "  ") ++ equipMarks !! 8) (Left 3)
+                     . replaceText "J)#" ((if 9 `elem` his' then "J)" else "  ") ++ equipMarks !! 9) (Left 3)
+                     $ statusViewPlaceHolder
       where
         (ac', _) = runGameState s w (acOf $ Left c)
         ac = case ac' of Right v -> v
@@ -188,8 +189,10 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
         (st', _) = runGameState s w (paramOf $ Left c)
         st = case st' of Right v -> v
                          _       -> emptyParam
+        inMax = 24 -- maximum length of item name
         items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
                   <$> Character.items c) ++ repeat ""
+        itemN n = let nam = lenCut inMax (items' !! n) in if n `elem` his' then nam else '`' : intersperse '`' (nam ++ replicate (inMax - len nam) ' ')
         equipMarks = me (Character.items c) (Character.equips c)
           where me (i@(ItemInf id identified):is) eqs
                     | i `elem` eqs                                            = "*" : me is (filter (/=i) eqs)
@@ -205,11 +208,12 @@ replaceText src dst align ls = replaceLine src dst align <$> ls
 replaceLine :: String -> String -> Either Int Int -> String -> String
 replaceLine src dst align = rep src' dst''
   where
-    dst'  = case align of Left  i -> fill (i - len dst) dst False
-                          Right i -> fill (i - len dst) dst True
+    dstT  = toTextMessage dst
+    dst'  = case align of Left  i -> fill (i - len dstT) dstT False
+                          Right i -> fill (i - len dstT) dstT True
     n'    = max (len src) (len dst')
-    dst'' = fill (n' - len dst') dst' False
-    src'  = fill (n' - len src ) src  False
+    dst'' = fill (n' - len dstT) dst False
+    src'  = fill (n' - len src ) src False
     fill n s toL
       | n <= 0    = s
       | otherwise = if toL then ' ' : fill (n - 1) s toL else fill (n - 1) s toL ++ " "

@@ -261,6 +261,12 @@ diff c1 c2 = Craphic $ \(x, y) -> let d1 = at c1 (x, y); d2 = at c2 (x, y)
 len :: String -> Int
 len s = length s + (length . filter (not . isHalfChar) $ s)
 
+lenCut :: Int -> String -> String
+lenCut _ []     = []
+lenCut 0 _      = []
+lenCut 1 (s:_ ) = if isHalfChar s then [s] else []
+lenCut n (s:ss) = s : lenCut (n - if isHalfChar s then 1 else 2) ss
+
 isHalfChar :: Char -> Bool
 --isHalfChar c = 0xff61 <= n && n <= 0xff9f -- utf8
 isHalfChar c = n <= 0xdf -- cp932
