@@ -178,7 +178,7 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     if null valid_targets_cid then run next
     else do
       preferred_idc_raw <- eval tgt
-      let preferred_cid = ps !! (preferred_idc_raw `mod` length ps)
+      let preferred_cid = ps !! (preferred_idc_raw `mod` length ps - 1)
 
       target_cid <- if preferred_cid `elem` valid_targets_cid
                        then return preferred_cid
