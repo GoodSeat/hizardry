@@ -322,6 +322,7 @@ nextProgressBattle :: [BattleAction]
                    -> GameMachine
 nextProgressBattle as con = foldr act (nextTurn con) as
 
+
 act :: BattleAction -> GameMachine -> GameMachine
 act (ByParties id a) next = GameAuto $ do
     cantFight <- isCantFight <$> characterByID id
@@ -329,7 +330,7 @@ act (ByParties id a) next = GameAuto $ do
     else case a of
         Fight l     -> run $ fightOfCharacter id l next
         Spell s l   -> run $ spell s (Left id) l next
-        Parry       -> run next
+        Parry       -> run $ with [updateCharacterWith id $ \c -> c { Chara.paramDelta = (TillPastTime 1, parryParamChange) : Chara.paramDelta c }] next
         Run         -> run next
         CantMove    -> run next
         UseItem i l -> run $ useItemInBattle i (Left id) l next
@@ -394,7 +395,7 @@ determineActions cmds surprise = do
     toCharacterAction (id, act) = do
         c   <- characterByID id
         key <- agiBonus . agility =<< paramOf (Left c)
-        return (key, ByParties id act)
+        return (if act == Parry then -9999 else key, ByParties id act)
     toEnemyAction :: Maybe Surprise -> (Int, Enemy.Instance) -> GameState [(Int, BattleAction)]
     toEnemyAction surprise (l, ei) = do
         key <- agiBonus . agility =<< paramOf (Right ei)

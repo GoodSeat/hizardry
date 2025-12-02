@@ -66,6 +66,7 @@ instance Object Instance where
   maxhpOf           = maxhp
   lvOf              = lv . define
   statusErrorsOf    = statusErrors
+  whenTimePast o    = o
 
   setHp           v e = let e' = e { hp = max 0 (min v (maxhp e)) } in
                         if hp e' == 0 then addStatusError Dead e' else e'

@@ -43,6 +43,10 @@ instance Object Character where
   maxhpOf         = maxhp
   lvOf            = lv
   statusErrorsOf  = statusErrors
+  whenTimePast c  = c { paramDelta = onTimePast =<< paramDelta c }
+    where
+      onTimePast (TillPastTime n, p) = [(TillPastTime (n - 1), p) | n > 1]
+      onTimePast p                   = [p]
 
   setHp v c = let nhp    = min (maxhpOf c) (max 0 v)
                   toDead = hp c /= 0 && nhp == 0

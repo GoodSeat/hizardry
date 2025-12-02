@@ -205,8 +205,7 @@ fightDamageE n e c dmg sts = do
     acC  <- acOf (Left c)
     acE  <- acOf (Right e)
     m    <- formulaMapSO (Right e) (Left c)
-    let p  = -2 -- TODO!:parry bonus of c.
-        a  = 19 + p - acC - lvOf e
+    let a  = 19 - acC - lvOf e
         b  = a - acE
         hv |  19 <= b  = 19
            |   0 <= b  = b

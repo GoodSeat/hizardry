@@ -128,6 +128,7 @@ data ParamChange = ParamChange {
 
 emptyParamChange = ParamChange emptyParam 0 ""
 
+parryParamChange = ParamChange emptyParam (-2) "Parry"
 
 data AdParam = AdParam {
       adStrength :: !Formula -- ^ strength
@@ -153,7 +154,7 @@ emptyAdParam = AdParam {
 
 
 -- | effect valid term.
-data Term = OnlyInBattle | OnlyInMaze
+data Term = OnlyInBattle | OnlyInMaze | TillPastTime Int
     deriving (Show, Eq, Read)
 
 -- ==========================================================================
@@ -236,6 +237,7 @@ class Eq o => Object o where
   maxhpOf         :: o -> Int
   lvOf            :: o -> Int
   statusErrorsOf  :: o -> [StatusError]  -- ^ status errors.
+  whenTimePast    :: o -> o
 
   setHp           :: Int -> o -> o
   setStatusErrors :: [StatusError] -> o -> o
@@ -278,7 +280,7 @@ whenToNextTurn :: Object o
                -> Parameter
                -> o
                -> o
-whenToNextTurn n ne param o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf o)
+whenToNextTurn n ne param o = foldl (&) (whenTimePast o) (whenToNextTurn' n <$> statusErrorsOf o)
   where
     whenToNextTurn' :: Object o => Int -> StatusError -> o -> o
     whenToNextTurn' _ (Poison n) o = setHp (hpOf o - n) o
@@ -288,7 +290,7 @@ whenToNextTurn n ne param o = foldl (&) o (whenToNextTurn' n <$> statusErrorsOf 
     whenToNextTurn' _ _ o = o
 
 whenWalking :: Object o => o -> o
-whenWalking c = foldl (&) c (whenWalking' <$> statusErrorsOf c) 
+whenWalking c = foldl (&) (whenTimePast c) (whenWalking' <$> statusErrorsOf c) 
   where
     whenWalking' :: Object o => StatusError -> o -> o
     whenWalking' (Poison n) o = setHp (hpOf o - n) o
