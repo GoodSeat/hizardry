@@ -70,6 +70,11 @@ fst3 (t1, _, _) = t1
 snd3 (_, t2, _) = t2
 thd3 (_, _, t3) = t3
 
+fst4 (t1, _, _, _) = t1
+snd4 (_, t2, _, _) = t2
+thd4 (_, _, t3, _) = t3
+fot4 (_, _,  _,t4) = t4
+
 -- =================================================================================
 
 eval :: Formula -> GameState Int
@@ -184,6 +189,9 @@ updateCharacterWith :: CharacterID -> (Chara.Character -> Chara.Character) -> Ga
 updateCharacterWith id f = do
     db <- allCharacters <$> world
     updateCharacter id (f $ db ! id)
+
+addMarks :: CharacterID -> GameState ()
+addMarks id = updateCharacterWith id $ \c -> c { Chara.marks = Chara.marks c + 1 }
 
 poolGoldTo :: CharacterID -> GameState ()
 poolGoldTo id = do

@@ -161,6 +161,7 @@ initialWorld = World {
     , sceneTrans = id, enemyTrans = id, frameTrans = id
     , eventFlags = []
     , debugMode = False, debugMessage = []
+    , globalTime = 0
     }
 
 spec :: Spec
@@ -175,7 +176,7 @@ spec = describe "castResurrectionSpell" $ do
                 action = castResurrectionSpell hpFormula resurrectionFormulas caster (Left targetPartyPos)
 
             (Right results, _) <- return $ runGame action testScenario initialWorld
-            let (updateAction, msg, _) = head results
+            let (updateAction, msg, _, _) = head results
             
             (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorld
 
@@ -192,7 +193,7 @@ spec = describe "castResurrectionSpell" $ do
                 action = castResurrectionSpell hpFormula resurrectionFormulas caster (Left targetPartyPos)
 
             (Right results, _) <- return $ runGame action testScenario initialWorld
-            let (updateAction, msg, _) = head results
+            let (updateAction, msg, _, _) = head results
             
             (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorld
 
@@ -213,7 +214,7 @@ spec = describe "castResurrectionSpell" $ do
                     action = castAddStatusErrorSpell addStatusEffectInfo caster (Right [targetEnemyInstance])
 
                 (Right results, _) <- return $ runGame action testScenario initialWorld
-                let (updateAction, msg, _) = head results
+                let (updateAction, msg, _, _) = head results
 
                 -- To get the updated enemy instance, we need to run the update action within the context
                 -- of the world *after* the spell is cast.
@@ -231,7 +232,7 @@ spec = describe "castResurrectionSpell" $ do
                     action = castAddStatusErrorSpell addStatusEffectInfo caster (Right [resistantTargetEnemyInstance])
 
                 (Right results, _) <- return $ runGame action testScenario initialWorld
-                let (updateAction, msg, _) = head results
+                let (updateAction, msg, _, _) = head results
 
                 -- World setup for resistant enemy
                 let initialWorldWithResistantEnemy = initialWorld { place = InBattle (Position N 0 0 0) [[resistantTargetEnemyInstance]] }
@@ -248,7 +249,7 @@ spec = describe "castResurrectionSpell" $ do
                     action = castAddStatusErrorSpell addStatusEffectInfo caster (Right [targetEnemyInstance])
 
                 (Right results, _) <- return $ runGame action testScenario initialWorld
-                let (updateAction, msg, _) = head results
+                let (updateAction, msg, _, _) = head results
                 
                 let initialWorldWithTargetEnemy = initialWorld { place = InBattle (Position N 0 0 0) [[targetEnemyInstance]] }
                 (_, finalWorldAfterUpdate) <- return $ runGame updateAction testScenario initialWorldWithTargetEnemy

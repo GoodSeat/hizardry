@@ -52,6 +52,7 @@ fightOfCharacter id el next = GameAuto $ do
         let e' = damageHp d e
         updateEnemy e $ const e'
         ms <- fightMessage c e' (h, d, ses)
+        when (Enemy.hp e' <= 0) $ addMarks id
         run $ if d == 0 || el /= L1 then events (message <$> ms) next
                                     else toEffect False (head ms) (events (message <$> tail ms) next)
 
@@ -105,7 +106,7 @@ fightMessage c e (h, d, ses) = do
     let en = nameOf e
     let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
     let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."] --TODO:marks++
+    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
              else (en ++) . statusErrorMessage <$> sort ses
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
@@ -395,15 +396,15 @@ castInBattle :: Verb -> Cast
 castInBattle v n ca (Left cid) dst next = GameAuto $ do
     src <- characterByID cid
     ts  <- ca (Left src) dst
-    let acc (_, t, d) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                        in if d then toEffect False msg else events [message msg] 
-    run $ foldr acc (with (fst3 <$> ts) next) ((undefined, "", False) : ts)
+    let acc (_, t, d, k) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+                           in with [when k (addMarks cid)] . (if d then toEffect False msg else events [message msg])
+    run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
 
 castInBattle v n ca (Right e) dst next = GameAuto $ do
     ts <- ca (Right e) dst
-    let acc (_, t, d) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                        in if d then toEffect True msg else events [message msg] 
-    run $ foldr acc (with (fst3 <$> ts) next) ((undefined, "", False) : ts)
+    let acc (_, t, d, _) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+                           in if d then toEffect True msg else events [message msg] 
+    run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
 
 
 type CastAs = (Verb -> Cast) -> Cast
