@@ -86,7 +86,7 @@ fightDamage el c e hitBonus = do
         let dam'  | e `hasStatusError` Sleep || e `hasStatusError` Paralysis     = dam * 2
                   | otherwise                                                    = dam
         let dam'' | any (`elem` Item.doubleLabels wattr) (Enemy.attrLabels edef) = dam' * 2
-                  | otherwise                                                    = dam''
+                  | otherwise                                                    = dam'
         dam''' <- applyVsEffect (Item.attrLabels wattr) vs (Left c) (Right e) dam''
         return $ if hit then (1, dam''') else (0, 0)
     let dh = foldl' (\(h1, d1) (h2, d2) -> (h1 + h2, d1 + d2)) (0, 0) rs
