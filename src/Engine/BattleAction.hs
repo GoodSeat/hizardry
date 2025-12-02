@@ -169,29 +169,24 @@ fightOfEnemy :: Enemy.Instance                          -- ^ attacker enemy.
              -> GameMachine                             -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     ps   <- party <$> world
-
-    valid_targets_cid <- filterM (\cid -> do
+    vcids <- filterM (\cid -> do
         c <- characterByID cid
         return $ hpOf c > 0 && not (c `hasStatusError` Hidden)
       ) ps
 
-    if null valid_targets_cid then run next
+    if null vcids then run next
     else do
-      preferred_idc_raw <- eval tgt
-      let preferred_cid = ps !! (preferred_idc_raw `mod` length ps - 1)
-
-      target_cid <- if preferred_cid `elem` valid_targets_cid
-                       then return preferred_cid
-                       else randomIn valid_targets_cid
-
-      c <- characterByID target_cid
+      tind <- eval tgt
+      let cid' = ps !! (tind `mod` length ps - 1)
+      cid <- if cid' `elem` vcids then return cid' else randomIn (take tind vcids)
+      c   <- characterByID cid
       if hpOf c == 0 then run next
       else do
         (h, d, ses) <- fightDamageE n e c dmg sts
         let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
           -- TODO:lv drain
         ms <- fightMessageE e c' (h, d, ses)
-        let next' = with [updateCharacter target_cid c'] next
+        let next' = with [updateCharacter cid c'] next
         run $ if d == 0 then events (message <$> ms) next'
                         else toEffect True (head ms) (events (message <$> tail ms) next')
 

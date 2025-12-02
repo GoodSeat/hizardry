@@ -73,14 +73,14 @@ newtype EffectLabel = EffectLabel { effectLabel :: String } deriving (Show, Eq, 
 
 -- | type of status error.
 data StatusError = Silence
-                 | Paralysis
-                 | Stoned
                  | Poison Int
                  | Fear Int   -- valid time
                  | Sleep
                  | Hidden
                  | Found
                  | Drain Int
+                 | Paralysis
+                 | Stoned
                  | Dead
                  | Ash
                  | Lost
