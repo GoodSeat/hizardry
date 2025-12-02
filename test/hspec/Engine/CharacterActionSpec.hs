@@ -93,7 +93,7 @@ testEnemyInstance = Enemy.Instance {
     , Enemy.maxhp         = 10
     , Enemy.statusErrors  = []
     , Enemy.maybeDropItem = False
-    , Enemy.modParam      = emptyParamChange
+    , Enemy.modParams     = []
 }
 
 resistantEnemyDefine :: Enemy.Define

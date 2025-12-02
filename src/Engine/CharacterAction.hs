@@ -658,13 +658,8 @@ castParamChangeSpell ad term etxt (Left src) (Left is)
           )
 castParamChangeSpell ad term etxt (Right src) (Right is) = concat <$> forM is (\dst -> do
     prmc <- toParamChange (Right src) (Right dst) ad
-    let org = Enemy.modParam dst
-        p'  = if effectName prmc `isInfixOf` effectName org then org
-              else ParamChange { deltaParam = deltaParam org <> deltaParam prmc
-                               , deltaAC    = deltaAC org + deltaAC prmc
-                               , effectName = effectName org ++ effectName prmc ++ "\n" }
     if hpOf dst == 0 then return []
-    else return [(updateEnemy dst $ const dst { Enemy.modParam = p' }
+    else return [(updateEnemy dst $ const dst { Enemy.modParams = Spell.applyChangeParam term prmc (Enemy.modParams dst) }
                 , nameOf dst ++ " " ++ etxt ++ ".", False, False)]
     )
 

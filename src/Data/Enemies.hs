@@ -20,8 +20,11 @@ data Instance = Instance {
     , maxhp         :: !Int
     , statusErrors  :: ![StatusError]
     , maybeDropItem :: !Bool
-    , modParam      :: !ParamChange
+    , modParams     :: ![(Term, ParamChange)]
 } deriving (Show, Read)
+
+modParam :: Instance -> ParamChange
+modParam ei = foldl addParamChange emptyParamChange $ snd <$> modParams ei
 
 instance Eq Instance where
   e1 == e2 = (noID e1 == noID e2)
@@ -66,7 +69,10 @@ instance Object Instance where
   maxhpOf           = maxhp
   lvOf              = lv . define
   statusErrorsOf    = statusErrors
-  whenTimePast o    = o
+  whenTimePast o    = o { modParams = onTimePast =<< modParams o }
+    where
+      onTimePast (TillPastTime n, p) = [(TillPastTime (n - 1), p) | n > 1]
+      onTimePast p                   = [p]
 
   setHp           v e = let e' = e { hp = max 0 (min v (maxhp e)) } in
                         if hp e' == 0 then addStatusError Dead e' else e'

@@ -126,6 +126,13 @@ data ParamChange = ParamChange {
     , effectName :: !String -- ^ effect name. if this name isn't empty, can't apply multiple.
 } deriving (Show, Eq, Read)
 
+addParamChange :: ParamChange -> ParamChange -> ParamChange
+addParamChange p1 p2 = ParamChange { 
+      deltaParam = deltaParam p1 <> deltaParam p2
+    , deltaAC    = deltaAC    p1 +  deltaAC    p2 
+    , effectName = effectName p1 ++ effectName p2
+    }
+
 emptyParamChange = ParamChange emptyParam 0 ""
 
 parryParamChange = ParamChange emptyParam (-2) "Parry"

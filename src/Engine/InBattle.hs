@@ -81,7 +81,7 @@ createEnemyInstances n l eid dropItem = do
       , Enemy.maxhp         = mhp
       , Enemy.statusErrors  = []
       , Enemy.maybeDropItem = dropItem
-      , Enemy.modParam      = emptyParamChange
+      , Enemy.modParams     = []
     }
     return $ e : es
 
