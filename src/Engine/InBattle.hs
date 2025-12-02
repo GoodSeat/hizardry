@@ -326,16 +326,15 @@ nextProgressBattle as con = foldr act (nextTurn con) as
 act :: BattleAction -> GameMachine -> GameMachine
 act (ByParties id a) next = GameAuto $ do
     cantFight <- isCantFight <$> characterByID id
-    if cantFight then run next
-    else case a of
-        Fight l     -> run $ fightOfCharacter id l next
-        Spell s l   -> run $ spell s (Left id) l next
-        Parry       -> run $ with [updateCharacterWith id $ \c -> c { Chara.paramDelta = (TillPastTime 1, parryParamChange) : Chara.paramDelta c }] next
-        Run         -> run next
-        CantMove    -> run next
-        UseItem i l -> run $ useItemInBattle i (Left id) l next
-        Hide        -> run $ hideOfCharacter id next
-        Ambush l    -> run $ ambushOfCharacter id l next
+    run $ if cantFight then next else case a of
+        Fight l     -> fightOfCharacter id l next
+        Spell s l   -> spell s (Left id) l next
+        Parry       -> with [updateCharacterWith id $ \c -> c { Chara.paramDelta = Spell.applyChangeParam (TillPastTime 1) parryParamChange (Chara.paramDelta c) }] next
+        Run         -> next
+        CantMove    -> next
+        UseItem i l -> useItemInBattle i (Left id) l next
+        Hide        -> hideOfCharacter id next
+        Ambush l    -> ambushOfCharacter id l next
 act (ByEnemies l e a) next = GameAuto $ do
     e_ <- currentEnemyByNo $ Enemy.noID e
     case e_ of
