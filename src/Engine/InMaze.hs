@@ -285,7 +285,7 @@ openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p "")
     np <- length . party <$> world
-    run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
+    run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]") -- TODO:reorder
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
           ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)

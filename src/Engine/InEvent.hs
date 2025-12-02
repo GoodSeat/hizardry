@@ -134,15 +134,38 @@ matchCondition Ev.Otherwise = return True
 
 
 updownEffect :: Position -> Bool -> [(GameState (), Event)]
-updownEffect p toUp = replicate c (upStep, wait 150 Nothing)
-                   ++ [(upRest >> movePlace (InMaze p), wait 150 Nothing)]
-                   ++ replicate c (upStep, wait 150 Nothing)
+updownEffect p toUp =[ (upStep 3, wait  75 Nothing)
+                     , (upStep 2, wait  75 Nothing)
+                     , (upStep 2, wait  50 Nothing)
+                     , (upStep 1, wait  75 Nothing)
+                     , (upStep 2, wait  90 Nothing)
+                     , (upStep 1, wait 150 Nothing)
+                     , (upStep 3, wait  60 Nothing)
+                     , (upStep 1, wait  70 Nothing)
+                     , (upStep 2, wait  80 Nothing)
+                     , (upStep 1, wait 150 Nothing)
+                     , (upStep 1, wait  80 Nothing)
+                     , (upStep 1, wait  80 Nothing)
+                     ] ++
+                     [(upRest >> movePlace (InMaze p), wait 150 Nothing)] ++
+                     [ (upStep 3, wait  50 Nothing)
+                     , (upStep 2, wait  75 Nothing)
+                     , (upStep 2, wait  75 Nothing)
+                     , (upStep 1, wait  75 Nothing)
+                     , (upStep 2, wait  90 Nothing)
+                     , (upStep 1, wait 140 Nothing)
+                     , (upStep 3, wait  80 Nothing)
+                     , (upStep 1, wait 250 Nothing)
+                     , (upStep 2, wait  80 Nothing)
+                     , (upStep 4, wait  80 Nothing)
+                     , (upStep 2, wait  60 Nothing)
+                     , (upStep (-3), wait  80 Nothing)
+                     ]
   where
     r = if toUp then 1 else -1
-    u = 5 -- translate length by step.
-    c = 4 -- step count.
-    upStep = modify (\w -> w { sceneTrans = sceneTrans w . translate (0, u * r) })
-    upRest = modify (\w -> w { sceneTrans = translate (0, -u * c * r) })
+    upStep :: Int -> GameState ()
+    upStep n = modify (\w -> w { sceneTrans = sceneTrans w . translate (0, n * r) })
+    upRest   = modify (\w -> w { sceneTrans = translate (0, -20 * r) })
 
 
 -- | state machine when return to castle.
