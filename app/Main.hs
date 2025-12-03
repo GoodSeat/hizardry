@@ -35,10 +35,15 @@ import qualified SampleScenario.Home as SampleScenario
 -- *   sp
 -- * shop
 -- *   remove cursed item.
--- * training ground (job change)
+-- * training ground
+-- *   job change
+-- * camp
+-- *   reorder
 -- * classic secret door
 -- * other spells
 -- * other events
+-- * make backup data / load backup data
+--
 -- * config
 -- *   all cure when sleep / when return castle(-> delete INN)
 
