@@ -36,7 +36,8 @@ inspectCharacter h canSpell i = GameAuto $ do
     c   <- characterInPartyAt i
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter h canSpell) (const True)
     let job = Chara.job c
-        canIdentify = isJust (Chara.identifyItemChance (Chara.job c)) && not (hasStatusError c $ Fear 0)
+        canIdentify = isJust (Chara.identifyItemChance (Chara.job c)) && not (c `hasStatusError` Fear 0) && hpOf c > 0
+        canSpell' = canSpell && hpOf c > 0 && not (any (c `hasStatusError`) cantSpellStatus)
         cancel = inspectCharacter h canSpell i
         iCast  = askInStatus cid
         sCast  = showStatus cid
@@ -44,14 +45,14 @@ inspectCharacter h canSpell i = GameAuto $ do
         dItem  = sCast
         eItem  = showStatusEquip cid
         msg   
-         | canSpell && not canIdentify =
+         | canSpell' && not canIdentify =
                    "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
                    "^R)ead Spell   ^S)pell        ^P)ool Money             \n" ++
                    "^#)Inspect     ^L)eave `[`E`S`C`]                         "
-         | not canSpell && not canIdentify =
+         | not canSpell' && not canIdentify =
                    "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
                    "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave `[`E`S`C`]"
-         | canSpell && canIdentify =
+         | canSpell' && canIdentify =
                    "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
                    "^R)ead Spell   ^S)pell        ^P)ool Money   ^I)dentify\n" ++
                    "^#)Inspect     ^L)eave `[`E`S`C`]                         "
@@ -61,7 +62,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                    "^#)Inspect     ^L)eave `[`E`S`C`]"
     run $ selectWhenEsc (showStatus cid msg)
                       $ (Key "l", h, True)
-                      : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell)
+                      : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell')
                       : (Key "u", selectItem sItem identified (useItem sCast (useItemInCamp i cancel)) c cancel, True)
                       : (Key "d", selectDropItem dItem i c cancel, True)
                       : (Key "t", selectTradeItem eItem i cancel, True)
@@ -189,7 +190,7 @@ msgInReadSpell cid tgt = do
             groupedByLv = groupBy ((==) `on` Spell.lv) group
             snames = fmap Spell.name
             names lvGroup = if Spell.lv (head lvGroup) == lvl && Spell.kind (head group) == kind then
-                foldl (\acc (a, b) -> acc ++ " ^" ++ (a : ")" ++ b)) "" (zip ['A'..'Z'] (snames lvGroup))
+                foldl (\acc (a, b) -> acc ++ " ^" ++ (a : "`)" ++ b)) "" (zip ['A'..'Z'] (snames lvGroup))
               else
                 "   " ++ intercalate "   " (snames lvGroup)
             formatLvGroup lvGroup = " LV" ++ show (Spell.lv (head lvGroup)) ++ ": " ++ names lvGroup
@@ -416,8 +417,7 @@ inputSpell :: Chara.Character
            -> GameMachine
            -> GameMachine
 inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $
-    return (msgForCasting "Input spell.\n(Empty to cancel.)",
-            \(Key s) -> if null s then cancel else selectCastTarget s next)
+    return (msgForCasting msgForInputSpellInCamp, \(Key s) -> if null s then cancel else selectCastTarget s next)
   where
     selectCastTarget :: String -> (String -> SpellTarget -> GameMachine) -> GameMachine
     selectCastTarget s next = GameAuto $ do
@@ -455,19 +455,24 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
                   : cmdNums mx (nextWith.toDst)
 
 
+showStatusSpellingCamp :: CharacterID -> String -> Event
+showStatusSpellingCamp cid = showStatusFlash cid msgForInputSpellInCamp . (" \n  "++) .  (++"  \n ") 
+
+msgForInputSpellInCamp = "Input spell.\n(Empty to cancel.)"
+
 spellInCamp :: PartyPos -> GameMachine -> Spell.Name -> SpellTarget -> GameMachine
 spellInCamp src next s (Left dst) = GameAuto $ do
-    cid <- characterIDInPartyAt src
+    cid      <- characterIDInPartyAt src
     spellDef <- spellByName s
-    case spellDef of
-        Just def -> if Spell.InCamp `elem` Spell.enableIn def then
-                      run $ spellInCamp' def src dst next
-                    else
-                      run $ events [showStatus cid "can't cast it here."] next
-        Nothing  -> run $ events [showStatus cid "what?"] next
+    run $ if s == "\n" then next else case spellDef of
+      Just def -> if Spell.InCamp `elem` Spell.enableIn def then
+                    spellInCamp' def src dst next
+                  else
+                    events [showStatusSpellingCamp cid "can't cast it here."] next
+      Nothing  -> events [showStatusSpellingCamp cid "what?"] next
 spellInCamp src next s (Right dst) = GameAuto $ do
     cid <- characterIDInPartyAt src
-    run $ events [showStatus cid "can't cast it here."] next
+    run $ events [showStatusSpellingCamp cid "can't cast it here."] next
 
 spellInCamp' :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCamp' def src dst next = GameAuto $ do
@@ -476,9 +481,9 @@ spellInCamp' def src dst next = GameAuto $ do
     know <- knowSpell' c def
     can  <- canSpell'  c def
     if      not know then
-      run $ events [showStatus cid "you can't casting it."] next
+      run $ events [showStatusSpellingCamp cid "you can't casting it."] next
     else if not can  then
-      run $ events [showStatus cid "no more MP."] next
+      run $ events [showStatusSpellingCamp cid "no more MP."] next
     else do
       join $ updateCharacter <$> characterIDInPartyAt src <*> costSpell' c def
       run $ spellInCampNoCost def src dst next

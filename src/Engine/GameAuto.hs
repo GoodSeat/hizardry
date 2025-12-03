@@ -128,6 +128,14 @@ showStatus cid msg = ShowStatus cid Nothing $ Display {
     , picture    = Nothing
     , needPhrase = False
 }
+showStatusFlash cid msg fmsg = ShowStatus cid Nothing $ Display {
+      messageBox = Just msg
+    , commandBox = Nothing
+    , flashBox   = Just fmsg
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+}
 showStatusAlt cid msg alt = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
     , commandBox = Just alt
