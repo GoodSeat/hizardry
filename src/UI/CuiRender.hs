@@ -96,27 +96,31 @@ partyStatus m = foldl1 (<>) (fmap toText (zip [1..] ls))
 
 status :: Scenario -> World -> [Character] -> Craphic
 status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
-    [text (6, windowH - 6) "#--CHARACTER NAME-------------CLASS-----AC----HITS---STATUS"
-    ,rect (5, windowH - 6) (67, 8) (Draw ' ')]
+                             [text (6, windowH - 6) headerPlaceHolder
+                             ,rect (5, windowH - 6) (67, 8) (Draw ' ')]
   where
+    headerPlaceHolder =  "#--CHARACTER NAME-------------CLASS-----AC----HITS---STATUS--"
+    statusPlaceHolder =  "#  [NAME]                     [CLASS]  [AC]  [HP]  / [STAT]     @"
     toStatusLine (n, c) = let (ac', _) = runGameState s w (acOf $ Left c);
                               ac = case ac' of Right v -> v
                                                _       -> 99
-                              sgr
-                                | Ash       `elem` statusErrors c = 'w'
-                                | Dead      `elem` statusErrors c = 'r'
-                                | Paralysis `elem` statusErrors c = 'm'
-                                | Sleep     `elem` statusErrors c = 'y'
-                                | hasStatusError c (Poison 0)     = 'g'
-                                | hasStatusError c (Fear 0)       = 'B'
-                                | otherwise                       = ' '
+                              sgr | Ash       `elem` statusErrors c = 'w'
+                                  | Dead      `elem` statusErrors c = 'r'
+                                  | Paralysis `elem` statusErrors c = 'm'
+                                  | Sleep     `elem` statusErrors c = 'y'
+                                  | hasStatusError c (Poison 0)     = 'g'
+                                  | hasStatusError c (Fear 0)       = 'B'
+                                  | otherwise                       = ' '
                               sgrs = replicate windowH sgr
-                        in textSGR (6,  windowH - 6 + n) (show n ++ "  " ++ name c) sgrs
-                        <> textSGR (36, windowH - 6 + n) (show (alignment c) ++ "-" ++ take 3 (jobName $ job c)) sgrs
-                        <> textSGR (46, windowH - 6 + n) (show $ ac) sgrs
-                        <> textSGR (54, windowH - 6 + n) (show $ hp c) sgrs
-                        <> textSGR (61, windowH - 6 + n) (show $ maxhp c) sgrs -- TODO:statue error
-                        <> textSGR (70, windowH - 6 + n) (if isLvUp c then "@" else "") sgrs
+                        in textSGR (6,  windowH - 6 + n)
+                                   ( replaceLine "[NAME]"  (name c) (Left 26)
+                                   . replaceLine "#"       (show n) (Left 1)
+                                   . replaceLine "[CLASS]" (show (alignment c) ++ "-" ++ take 3 (jobName $ job c)) (Left 7)
+                                   . replaceLine "[AC]"    (show ac) (Right 4)
+                                   . replaceLine "[HP]"    (show $ hp c) (Right 5)
+                                   . replaceLine "[STAT]"  (show $ maxhp c) (Right 6) -- TODO:statue error/command in battle
+                                   . replaceLine "@"       (if isLvUp c then "@" else " ") (Left 1)
+                                   $ statusPlaceHolder ) sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
 statusView :: Scenario -> World -> String -> String -> Maybe [ItemPos] -> (ItemID -> Item.Define)  -> Character -> Craphic
@@ -131,36 +135,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
       where toText' (n, t) = textSGR (8, 4 + n) (toTextMessage t) (toTextSGR t)
     statusDetailView = translate (5, 4) (fromTextsSGR ' ' (toTextMessage <$> statusDetailText) (toTextSGR <$> statusDetailText))
                     <> rect (6, 4) (65, 22) (Draw ' ')
-    statusDetailText = replaceText "[Name]"  (name c) (Left 30)
-                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
-                     . replaceText "[STR]"   (show $ strength st)     (Right 3)
-                     . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
-                     . replaceText "[PIE]"   (show $ piety    st)     (Right 3)
-                     . replaceText "[VIT]"   (show $ vitality st)     (Right 3)
-                     . replaceText "[AGI]"   (show $ agility  st)     (Right 3)
-                     . replaceText "[LUK]"   (show $ luck     st)     (Right 3)
-                     . replaceText "[HP]"    (show $ hp c)            (Right 4)
-                     . replaceText "[MaxHP]" (show $ maxhp c)         (Right 4)
-                     . replaceText "[Exp]"   (show $ Character.exp c) (Right 8)
-                     . replaceText "[Gold]"  (show $ gold c)          (Right 8)
-                     . replaceText "[Age]"   (show $ age c)           (Right 4)
-                     . replaceText "[AC]"    (show $ ac)              (Right 4)
-                     . replaceText "[Marks]" (show $ marks c)         (Right 4)
-                     . replaceText "[RIPs]"  (show $ rips c)          (Right 4)
-                     . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
-                     . replaceText "M2"  (show $ (fst (mp c) ++ repeat 0) !! 1) (Right 2)
-                     . replaceText "M3"  (show $ (fst (mp c) ++ repeat 0) !! 2) (Right 2)
-                     . replaceText "M4"  (show $ (fst (mp c) ++ repeat 0) !! 3) (Right 2)
-                     . replaceText "M5"  (show $ (fst (mp c) ++ repeat 0) !! 4) (Right 2)
-                     . replaceText "M6"  (show $ (fst (mp c) ++ repeat 0) !! 5) (Right 2)
-                     . replaceText "M7"  (show $ (fst (mp c) ++ repeat 0) !! 6) (Right 2)
-                     . replaceText "P1"  (show $ (snd (mp c) ++ repeat 0) !! 0) (Right 2)
-                     . replaceText "P2"  (show $ (snd (mp c) ++ repeat 0) !! 1) (Right 2)
-                     . replaceText "P3"  (show $ (snd (mp c) ++ repeat 0) !! 2) (Right 2)
-                     . replaceText "P4"  (show $ (snd (mp c) ++ repeat 0) !! 3) (Right 2)
-                     . replaceText "P5"  (show $ (snd (mp c) ++ repeat 0) !! 4) (Right 2)
-                     . replaceText "P6"  (show $ (snd (mp c) ++ repeat 0) !! 5) (Right 2)
-                     . replaceText "P7"  (show $ (snd (mp c) ++ repeat 0) !! 6) (Right 2)
+    statusDetailText = replaceText "[Name]"   (name c) (Left 30)
                      . replaceText "[Item1]"  (itemN 0) (Left inMax)
                      . replaceText "[Item2]"  (itemN 1) (Left inMax)
                      . replaceText "[Item3]"  (itemN 2) (Left inMax)
@@ -181,6 +156,35 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
                      . replaceText "H)#" ((if ItemH `elem` his' then "H)" else "  ") ++ equipMarks !! 7) (Left 3)
                      . replaceText "I)#" ((if ItemI `elem` his' then "I)" else "  ") ++ equipMarks !! 8) (Left 3)
                      . replaceText "J)#" ((if ItemJ `elem` his' then "J)" else "  ") ++ equipMarks !! 9) (Left 3)
+                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
+                     . replaceText "[STR]"   (show $ strength st)     (Right 3)
+                     . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
+                     . replaceText "[PIE]"   (show $ piety    st)     (Right 3)
+                     . replaceText "[VIT]"   (show $ vitality st)     (Right 3)
+                     . replaceText "[AGI]"   (show $ agility  st)     (Right 3)
+                     . replaceText "[LUK]"   (show $ luck     st)     (Right 3)
+                     . replaceText "[HP]"    (show $ hp c)            (Right 4)
+                     . replaceText "[MxHP]"  (show $ maxhp c)         (Right 4)
+                     . replaceText "[Exp]"   (show $ Character.exp c) (Right 8)
+                     . replaceText "[Gold]"  (show $ gold c)          (Right 8)
+                     . replaceText "[Age]"   (show $ age c)           (Right 4)
+                     . replaceText "[AC]"    (show $ ac)              (Right 4)
+                     . replaceText "[Marks]" (show $ marks c)         (Right 4)
+                     . replaceText "[RIPs]"  (show $ rips c)          (Right 4)
+                     . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
+                     . replaceText "M2"  (show $ (fst (mp c) ++ repeat 0) !! 1) (Right 2)
+                     . replaceText "M3"  (show $ (fst (mp c) ++ repeat 0) !! 2) (Right 2)
+                     . replaceText "M4"  (show $ (fst (mp c) ++ repeat 0) !! 3) (Right 2)
+                     . replaceText "M5"  (show $ (fst (mp c) ++ repeat 0) !! 4) (Right 2)
+                     . replaceText "M6"  (show $ (fst (mp c) ++ repeat 0) !! 5) (Right 2)
+                     . replaceText "M7"  (show $ (fst (mp c) ++ repeat 0) !! 6) (Right 2)
+                     . replaceText "P1"  (show $ (snd (mp c) ++ repeat 0) !! 0) (Right 2)
+                     . replaceText "P2"  (show $ (snd (mp c) ++ repeat 0) !! 1) (Right 2)
+                     . replaceText "P3"  (show $ (snd (mp c) ++ repeat 0) !! 2) (Right 2)
+                     . replaceText "P4"  (show $ (snd (mp c) ++ repeat 0) !! 3) (Right 2)
+                     . replaceText "P5"  (show $ (snd (mp c) ++ repeat 0) !! 4) (Right 2)
+                     . replaceText "P6"  (show $ (snd (mp c) ++ repeat 0) !! 5) (Right 2)
+                     . replaceText "P7"  (show $ (snd (mp c) ++ repeat 0) !! 6) (Right 2)
                      $ statusViewPlaceHolder
       where
         (ac', _) = runGameState s w (acOf $ Left c)
@@ -208,12 +212,16 @@ replaceText src dst align ls = replaceLine src dst align <$> ls
 replaceLine :: String -> String -> Either Int Int -> String -> String
 replaceLine src dst align = rep src' dst''
   where
-    dstT  = toTextMessage dst
-    dst'  = case align of Left  i -> fill (i - len dstT) dstT False
-                          Right i -> fill (i - len dstT) dstT True
-    n'    = max (len src) (len dst')
-    dst'' = fill (n' - len dstT) dst False
-    src'  = fill (n' - len src ) src False
+    dstT   = toTextMessage dst
+    alignR = case align of Left  _ -> False
+                           Right _ -> True
+    tl     = case align of Left  i -> i
+                           Right i -> i
+    dstT'  = fill (tl - len dstT) dstT alignR
+    dst'   = fill (tl - len dstT) dst  alignR
+    n'     = max (len src) (len dstT')
+    dst''  = fill (n' - len dstT') dst' False
+    src'   = fill (n' - len src  ) src   False
     fill n s toL
       | n <= 0    = s
       | otherwise = if toL then ' ' : fill (n - 1) s toL else fill (n - 1) s toL ++ " "
@@ -227,7 +235,7 @@ statusViewPlaceHolder =
   ["                                                                 "  --   1
   ,"    [Name]                          Lv [Lv]           [KAJ]      "  --   2
   ,"                                                                 "  --   3
-  ,"                         HP : [HP]/[MaxHP]  Status : [Status]    "  --   4
+  ,"                         HP : [HP]/[MxHP]   Status : [Status]    "  --   4
   ,"      STR :[STR]                                                 "  --   5
   ,"       IQ :[IQ]         Exp : [Exp]            Age : [Age]       "  --   6
   ,"      PIE :[PIE]       Next : [Next]            AC : [AC]        "  --   7
