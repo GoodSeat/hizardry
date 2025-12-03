@@ -285,8 +285,9 @@ openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p "")
     np <- length . party <$> world
-    run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]") -- TODO:reorder
+    run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)
+          ,(Key "r", reorderParty p, np > 1)
           ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
           ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
           ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)
@@ -294,6 +295,32 @@ openCamp p = GameAuto $ do
           ,(Key "5", inspectCharacter (openCamp p) True B5, np >= 5)
           ,(Key "6", inspectCharacter (openCamp p) True B6, np >= 6)
           ]
+
+reorderParty :: Position -> GameMachine
+reorderParty p = GameAuto $ do
+    movePlace (Camping p "Reorder")
+    np <- length . party <$> world
+    let msg = message $ "Whom to move?  (1-" ++ show np ++ ")\n\n^L)eave `[`E`S`C`]"
+    run $ selectEsc msg $ (Key "l", openCamp p) : cmdNums np (selectReorderTo p)
+
+selectReorderTo :: Position -> Int -> GameMachine
+selectReorderTo p from = GameAuto $ do
+    np <- length . party <$> world
+    let msg = message $ "Move to where? (1-" ++ show np ++ ")\n\n^L)eave `[`E`S`C`]"
+    run $ selectEsc msg $ (Key "l", reorderParty p) : cmdNums np (doReorder p from)
+
+doReorder :: Position -> Int -> Int -> GameMachine
+doReorder p from to = GameAuto $ do
+    ps <- party <$> world
+    let len = length ps
+    when (from >= 1 && from <= len && to >= 1 && to <= len) $ do
+        let movedChar = ps !! (from - 1)
+            removedList = take (from - 1) ps ++ drop from ps
+            newList = take (to - 1) removedList ++ [movedChar] ++ drop (to - 1) removedList
+        modify $ \w -> w { party = newList }
+    run $ reorderParty p
+
+-- =======================================================================
 
 endEvent :: Event -> Bool -> GameMachine
 endEvent ev isHidden = GameAuto $ do
