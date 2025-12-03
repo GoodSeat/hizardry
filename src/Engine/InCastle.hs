@@ -98,7 +98,9 @@ selectCharacterRemoveFromParty = GameAuto $ do
 inAdventure'sInn :: GameMachine
 inAdventure'sInn = GameAuto $ do
     movePlace Adventure'sInn
-    cmds <- cmdNumPartiesID $ \(_, i) -> selectStayPlan i
+    cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do
+        c <- characterByID i
+        run $ if mustGotoTemple c then inAdventure'sInn else selectStayPlan i
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
     msg = message $ "Who will stay?\n\n"
@@ -170,7 +172,9 @@ doLvup id = GameAuto $ do
 inBoltac'sTradingPost :: GameMachine
 inBoltac'sTradingPost = GameAuto $ do
     movePlace Boltac'sTradingPost
-    cmds <- cmdNumPartiesID $ \(_, i) -> selectShopAction i
+    cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do
+        c <- characterByID i
+        run $ if mustGotoTemple c then inBoltac'sTradingPost else selectShopAction i
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
     msg = message $ "Who will enter?\n\n"

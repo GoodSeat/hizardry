@@ -111,7 +111,7 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                                   | hasStatusError c (Poison 0)     = 'g'
                                   | hasStatusError c (Fear 0)       = 'B'
                                   | otherwise                       = ' '
-                              sgrs = replicate windowH sgr
+                              sgrs = replicate windowW sgr
                         in textSGR (6,  windowH - 6 + n)
                                    ( replaceLine "[NAME]"  (name c) (Left 26)
                                    . replaceLine "#"       (show n) (Left 1)
