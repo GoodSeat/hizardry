@@ -13,8 +13,10 @@ import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Primitive
 import Data.Bifunctor (bimap)
-import Data.List (sort, sortOn)
+import Data.List (sort, sortOn, find)
+import Data.Maybe (catMaybes)
 import Data.Formula
+import Data.Char (toLower)
 import qualified Data.Characters as Character
 import qualified Data.Items as Item
 
@@ -191,6 +193,7 @@ selectShopAction id = GameAuto $ do
                      ++ "^B)uy\n"
                      ++ "^S)ell\n"
                      ++ "^I)dentify Items\n"
+                     ++ "^U)ncurse\n"
                      ++ "^P)ool Gold\n"
                      ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inBoltac'sTradingPost)
@@ -198,6 +201,7 @@ selectShopAction id = GameAuto $ do
               ,(Key "b", buyItem id 0)
               ,(Key "s", sellItem id)
               ,(Key "i", determineItem id)
+              ,(Key "u", uncurseItem id)
               ]
     run $ selectEsc msg lst
 
@@ -241,8 +245,8 @@ buy cid next toMsg idItem = GameAuto $ do
     v  <- Item.valueInShop <$> itemByID idItem
     is <- Character.items <$> characterByID cid
     g  <- Character.gold  <$> characterByID cid
-    if length is >= 10 then run $ events [toMsg "you can't have any more item."] next
-    else if v > g then run $ events [toMsg "you are poor."] next
+    if length is >= 10 then run $ events [toMsg "You can't have any more item."] next
+    else if v > g then run $ events [toMsg "You don't have enough gold."] next
     else do
       let map  = shopItems w
           pair = Map.lookup idItem map
@@ -250,7 +254,7 @@ buy cid next toMsg idItem = GameAuto $ do
                               Just n  -> n - 1
           map' = if n' == 0 then Map.delete idItem map
                             else Map.insert idItem n' map
-          msg  = if n' == 0 then "it is last one." else "you must favorite in it."
+          msg  = if n' == 0 then "It is last one." else "you must favorite in it."
       put $ w { shopItems = map' }
       updateCharacterWith cid $ \c -> c { Character.items = is ++ [ItemInf idItem True]
                                         , Character.gold  = g - v }
@@ -352,14 +356,58 @@ determine cid pos = GameAuto $ do
         n    = fromEnum pos
         item = is !! n
     v <- determineValue $ is !! n
-    if      v > gp          then run $ determineItem' "you are poor." cid
-    else if identified item then run $ determineItem' "you already know it." cid
+    if      v > gp          then run $ determineItem' "You don't have enough gold." cid
+    else if identified item then run $ determineItem' "You already know it." cid
     else do
       let i'  = item { identified = True }
           is' = take n is ++ [i'] ++ drop (n + 1) is
           gp' = gp - v
       updateCharacter cid $ c { Character.items = is', Character.gold = gp' }
       run $ determineItem' "determined." cid
+
+
+uncurseItem :: CharacterID -> GameMachine
+uncurseItem cid = GameAuto $ do
+    c <- characterByID cid
+    let gp = Character.gold c
+    let equippedItemInfs = map (\p -> (p, Character.itemInfAt c p)) (Character.equipPoss c)
+
+    cursedEquippedItems <- flip filterM equippedItemInfs $ \(_, inf) -> do
+        def <- itemByID (itemID inf)
+        return $ Item.Cursed `elem` Item.attributes def
+
+    if null cursedEquippedItems then run $ events [message "You have no cursed items equipped."] (selectShopAction cid)
+    else do
+      displayData <- mapM (\(pos, inf) -> do
+            name  <- (if identified inf then Item.name else Item.nameUndetermined) <$> itemByID (itemID inf)
+            value <- Item.valueInShop <$> itemByID (itemID inf)
+            return (pos, name, value)) cursedEquippedItems
+      let itemsText = map (\(pos, name, value) ->
+            Character.itemPosToText pos ++ ") " ++ takeChar 43 (name ++ repeat ' ') ++ rightTxt 10 value) displayData
+      let lst = "=========================================================\n\n" ++ unlines itemsText ++ "\n"
+          greet = "Select item to uncurse. You have " ++ show gp ++ " G.P.\n\n" ++ lst
+          itemPositions = map (\(pos, _, _) -> pos) displayData
+          ks = fmap toLower . Character.itemPosToText . fst <$> cursedEquippedItems
+          toMsg = flip (flashAndMessageTime (-4000) greet) Nothing . (++ "  \n  ") . ("\n  " ++)
+
+      run $ selectEsc (message greet)
+          $ (Key "l", selectShopAction cid)
+          : fmap (\(pos, _, val) -> (Key (toLower <$> Character.itemPosToText pos), doUncurse cid pos val toMsg)) displayData
+
+doUncurse :: CharacterID -> Character.ItemPos -> Int -> (String -> Event) -> GameMachine
+doUncurse cid pos val toMsg = GameAuto $ do
+    c <- characterByID cid
+    if Character.gold c < val then
+      run $ events [toMsg "You don't have enough gold."] (uncurseItem cid)
+    else do
+      let itemInfToRemove = Character.itemInfAt c pos
+      let c' = c { Character.gold   = Character.gold c - val
+                 , Character.items  = filter (/= itemInfToRemove) (Character.items c)
+                 , Character.equips = filter (/= itemInfToRemove) (Character.equips c)
+                 }
+      updateCharacter cid c'
+      run $ events [toMsg "The curse is broken."] (selectShopAction cid)
+
 
 -- =======================================================================
 

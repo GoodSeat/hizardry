@@ -233,25 +233,25 @@ items = Map.fromList [
     })
     ,
     (ItemID 17, Item.Define {
-          Item.name             = "HELMET OF IRON"
+          Item.name             = "CURSED HELMET"
         , Item.nameUndetermined = "HELMET?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
-        , Item.attributes       = []
+        , Item.attributes       = [Item.Cursed]
         , Item.equipType        = Just $ Item.Helmet
                                          Item.EquipBaseAttr {
-                                             Item.ac = read "-2"
+                                             Item.ac = read "-5"
                                            , Item.st = read "0"
                                            , Item.at = read "0"
                                            , Item.resistLabels   = []
                                            , Item.resistError    = []
                                            , Item.vsEffectLabels = []
                                          } 
-        , Item.valueInShop      = 300
+        , Item.valueInShop      = 950
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
-        , Item.itemLv           = 2
+        , Item.itemLv           = 4
     })
     ,
     (ItemID 103, Item.Define {

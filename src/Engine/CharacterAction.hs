@@ -8,7 +8,7 @@ import Control.Monad.Reader (asks)
 import Control.Monad.State (gets, modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
 import Data.Function ((&), on)
-import Data.List (isInfixOf, unlines, sortBy, groupBy, intercalate)
+import Data.List (isInfixOf, unlines, sortBy, groupBy, intercalate, find)
 import Data.Maybe (catMaybes, isJust)
 
 import Engine.GameAuto
@@ -372,7 +372,6 @@ equip msgForSelect src c = equip' msgForSelect src c [(Item.isWeapon, "weapon")
                                                      ,(Item.isGauntlet, "gauntlet")
                                                      ,(Item.isAccessory, "accessory")
                                                      ]
--- TODO:cursed item.
 -- TODO:sp item.
 equip' :: ([Chara.ItemPos] -> String -> Event)
        -> PartyPos
@@ -386,24 +385,31 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
     items <- mapM itemByID (snd <$> ids)
     let idset = zipWith (\(a, b) c -> (a, b, c)) ids items
         tgts  = filter (Chara.canEquip c . thd3) . filter (isTarget . thd3) $ idset
+        eps   = Chara.equipPoss c
+        isCursed = any (\(p, _, def) -> p `elem` eps && Item.Cursed `elem` Item.attributes def) tgts
     run $ if null tgts then equip' msgForSelect src c rest next
-          else selectItem' "n" (const $ msgForSelect (fst3 <$> tgts) $ "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]")
+          else if isCursed then events [msgForSelect [] ("* Your " ++ typeText ++ " is cursed and cannot be removed. *")] $ equip' msgForSelect src c rest next
+          else selectItem' "n" (const $ msgForSelect (fst3 <$> tgts) $ msgBase)
                           ((`elem` (snd3 <$> tgts)) . itemID) selectEq c (eq Nothing)
   where
+    msgBase = "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]"
     selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     selectEq c pos next = eq $ Just (Chara.itemInfAt c pos)
 
     eq :: Maybe ItemInf -> GameMachine
     eq item = GameAuto $ do
       cid <- characterIDInPartyAt src
-      let es  = Chara.equips c
+      let iid = itemID <$> item
+      isC  <- case iid of Nothing   -> return False
+                          Just iid' -> (Item.Cursed `elem`) . Item.attributes <$> itemByID iid'
+      let es = Chara.equips c
       items <- mapM itemByID (itemID <$> es)
       let es'  = snd <$> filter (not . isTarget. fst) (zip items es)
           es'' = case item of Nothing -> es'
                               Just i  -> i : es'
           c'   = c { Chara.equips = es'' }
       updateCharacter cid c'
-      run $ equip' msgForSelect src c' rest next
+      run $ events [showStatusFlash cid msgBase " \n  * The item is cursed. *  \n  " | isC] (equip' msgForSelect src c' rest next)
 
 
 -- =================================================================================

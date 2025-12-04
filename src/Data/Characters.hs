@@ -138,6 +138,16 @@ itemPosByChar "g" = Just ItemG
 itemPosByChar "h" = Just ItemH
 itemPosByChar "i" = Just ItemI
 itemPosByChar "j" = Just ItemJ
+itemPosByChar "A" = Just ItemA
+itemPosByChar "B" = Just ItemB
+itemPosByChar "C" = Just ItemC
+itemPosByChar "D" = Just ItemD
+itemPosByChar "E" = Just ItemE
+itemPosByChar "F" = Just ItemF
+itemPosByChar "G" = Just ItemG
+itemPosByChar "H" = Just ItemH
+itemPosByChar "I" = Just ItemI
+itemPosByChar "J" = Just ItemJ
 itemPosByChar _   = Nothing
 
 itemPosToText :: ItemPos -> String
