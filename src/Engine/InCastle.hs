@@ -261,26 +261,35 @@ buy cid next toMsg idItem = GameAuto $ do
       run $ events [toMsg msg] next
    -- TODO:you can't equip this. OK? -> no people take no mistake.
 
+-----
+
+toSellGreet :: CharacterID -> GameState String
+toSellGreet cid = do
+    is <- Character.items <$> characterByID cid
+    gp <- Character.gold <$> characterByID cid
+    ns <- mapM sellName is
+    vs <- mapM sellValue is
+    let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightTxt 10 <$> vs)
+        ps    = toEnum <$> take (length items) [0..]
+        lst   = "=========================================================\n\n"
+              ++ unlines (zipWith (++) ((++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
+    return $ "Select item to sell. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n" ++ lst
+
+toSellMessage :: CharacterID -> String -> GameState Event
+toSellMessage cid msg = do
+    greet <- toSellGreet cid
+    return $ flashAndMessageTime (-1500) greet ("\n  " ++ msg ++ "  \n  ") Nothing
 
 sellItem :: CharacterID -> GameMachine
 sellItem cid = GameAuto $ do
     is <- Character.items <$> characterByID cid
     if null is then run $ selectShopAction cid
     else do
-      gp <- Character.gold <$> characterByID cid
-      ns <- mapM sellName is
-      vs <- mapM sellValue is
-      let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightTxt 10 <$> vs)
-          ps    = toEnum <$> take (length items) [0..]
-          lst   = "=========================================================\n\n"
-                ++ unlines (zipWith (++) ((++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
-          greet = "Select item to sell. You have " ++ show gp ++ " G.P.\n\n" ++ "^L)eave `[`E`s`c`]\n" ++ lst
-          toMsg = flip (flashAndMessageTime (-4000) greet) Nothing . (++ "  \n  ") . ("\n  " ++)
-          pis   = toEnum <$> [0..(length is)] :: [Character.ItemPos]
-
+      greet <- toSellGreet cid
+      let pis = toEnum <$> [0..(length is)]
       run $ selectEsc (message greet)
           $ (Key "l", selectShopAction cid)
-          : fmap (\pos -> (Key (toLower <$> Character.itemPosToText pos), sell cid pos toMsg)) pis
+          : fmap (\pos -> (Key (toLower <$> Character.itemPosToText pos), sell cid pos)) pis
   where
     sellName :: ItemInf -> GameState String
     sellName (ItemInf id determined) = (if determined then Item.name else Item.nameUndetermined) <$> itemByID id
@@ -289,8 +298,8 @@ sellValue :: ItemInf -> GameState Int
 sellValue (ItemInf _ False) = return 0
 sellValue (ItemInf id True) = flip div 2 . Item.valueInShop <$> itemByID id
 
-sell :: CharacterID -> Character.ItemPos -> (String -> Event) -> GameMachine
-sell cid pos toMsg = GameAuto $ do
+sell :: CharacterID -> Character.ItemPos -> GameMachine
+sell cid pos = GameAuto $ do
     c <- characterByID cid
     let idItem = Character.itemAt c pos
         is = Character.items c
@@ -300,32 +309,29 @@ sell cid pos toMsg = GameAuto $ do
     let can'tSell = Item.CantDrop `elem` Item.attributes idef
     v <- sellValue $ is !! n
 
-    if pos `elem` Character.equipPoss c then
-      run $ events [toMsg "You can't sell what you equip."] (sellItem cid)
-    else if can'tSell then
-      run $ events [toMsg "Sorry, but we can't this item."] (sellItem cid)
-    else if v <= 0 then
-      run $ events [toMsg "It is no value."] (sellItem cid)
-    else do
-      let is' = take n is ++ drop (n + 1) is
-          gp' = gp + v
-      updateCharacter cid $ c { Character.items = is', Character.gold = gp' }
+    msg <- if pos `elem` Character.equipPoss c then return "You can't sell what you equip."
+           else if can'tSell then return "Sorry, but we can't this item."
+           else if v <= 0    then return "It is no value."
+           else do
+             let is' = take n is ++ drop (n + 1) is
+                 gp' = gp + v
+             updateCharacter cid $ c { Character.items = is', Character.gold = gp' }
 
-      w <- world
-      let map  = shopItems w
-          cnt  = Map.lookup idItem map
-          cnt' = case cnt of Nothing -> 1
-                             Just cn -> cn + 1
-          map' = Map.insert idItem cnt' map
-      put $ w { shopItems = map' }
-      run $ events [toMsg "Thank you so much."] (sellItem cid)
+             w <- world
+             let map  = shopItems w
+                 cnt  = Map.lookup idItem map
+                 cnt' = case cnt of Nothing -> 1
+                                    Just cn -> cn + 1
+                 map' = Map.insert idItem cnt' map
+             put $ w { shopItems = map' }
+             return "Thank you so much."
+    ev <- toSellMessage cid msg
+    run $ events [ev] (sellItem cid)
 
+-----
 
-determineItem :: CharacterID -> GameMachine
-determineItem = determineItem' []
-
-determineItem' :: String -> CharacterID -> GameMachine
-determineItem' greet cid = GameAuto $ do
+toDetermineGreet :: CharacterID -> GameState String
+toDetermineGreet cid = do
     is <- Character.items <$> characterByID cid
     gp <- Character.gold <$> characterByID cid
     ns <- mapM sellName is
@@ -334,22 +340,28 @@ determineItem' greet cid = GameAuto $ do
         ps    = toEnum <$> take (length items) [0..]
         lst   = "=========================================================\n\n"
               ++ unlines (zipWith (++) (("^"++) . (++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
-        greet' = if null greet then "Select item to determine. You have " ++ show gp ++ " G.P." else greet
-    if not (null greet) then run $ events [messageTime (-1500) (greet' ++ "\n\n\n" ++ lst) Nothing] $ determineItem cid
-    else
-      return (message $ greet' ++ "\n\n" ++ "^L)eave [Esc]\n" ++ lst,
-              \(Key s) -> if s == "l" || s == "\ESC" then selectShopAction cid
-                          else case Character.itemPosByChar s of
-                            Nothing -> determineItem cid
-                            Just i  -> if i `elem` ps then determine cid i
-                                       else determineItem cid)
-  where
-    sellName :: ItemInf -> GameState String
-    sellName (ItemInf id determined) = (if determined then Item.name else Item.nameUndetermined) <$> itemByID id
+    return $ "Select item to determine. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n" ++ lst
 
-    determineValueTxt :: ItemInf -> GameState String
-    determineValueTxt (ItemInf _ True)  = return "---"
-    determineValueTxt (ItemInf i False) = show <$> sellValue (ItemInf i True)
+toDetermineMessage :: CharacterID -> String -> GameState Event
+toDetermineMessage cid msg = do
+    greet <- toDetermineGreet cid
+    return $ flashAndMessageTime (-1500) greet ("\n  " ++ msg ++ "  \n  ") Nothing
+
+determineItem :: CharacterID -> GameMachine
+determineItem cid = GameAuto $ do
+    is <- Character.items <$> characterByID cid
+    let ps = toEnum <$> take (length is) [0..]
+    greet <- toDetermineGreet cid 
+    run $ selectEsc (message greet)
+        $ (Key "l", selectShopAction cid)
+        : fmap (\pos -> (Key (toLower <$> Character.itemPosToText pos), determine cid pos)) ps
+
+sellName :: ItemInf -> GameState String
+sellName (ItemInf id determined) = (if determined then Item.name else Item.nameUndetermined) <$> itemByID id
+
+determineValueTxt :: ItemInf -> GameState String
+determineValueTxt (ItemInf _ True)  = return "---"
+determineValueTxt (ItemInf i False) = show <$> sellValue (ItemInf i True)
 
 determineValue :: ItemInf -> GameState Int
 determineValue (ItemInf i b) = sellValue (ItemInf i $ not b)
@@ -362,15 +374,18 @@ determine cid pos = GameAuto $ do
         n    = fromEnum pos
         item = is !! n
     v <- determineValue $ is !! n
-    if      v > gp          then run $ determineItem' "You don't have enough gold." cid
-    else if identified item then run $ determineItem' "You already know it." cid
-    else do
-      let i'  = item { identified = True }
-          is' = take n is ++ [i'] ++ drop (n + 1) is
-          gp' = gp - v
-      updateCharacter cid $ c { Character.items = is', Character.gold = gp' }
-      run $ determineItem' "determined." cid
+    msg <- if      v > gp          then return "You don't have enough gold."
+           else if identified item then return "You already know it."
+           else do
+             let i'  = item { identified = True }
+                 is' = take n is ++ [i'] ++ drop (n + 1) is
+                 gp' = gp - v
+             updateCharacter cid $ c { Character.items = is', Character.gold = gp' }
+             return "Determined."
+    ev <- toDetermineMessage cid msg
+    run $ events [ev] (determineItem cid)
 
+-----
 
 uncurseItem :: CharacterID -> GameMachine
 uncurseItem cid = GameAuto $ do
@@ -391,8 +406,8 @@ uncurseItem cid = GameAuto $ do
       let itemsText = map (\(pos, name, value) ->
             Character.itemPosToText pos ++ ") " ++ takeChar 43 (name ++ repeat ' ') ++ rightTxt 10 value) displayData
       let lst = "=========================================================\n\n" ++ unlines itemsText ++ "\n"
-          greet = "Select item to uncurse. You have " ++ show gp ++ " G.P.\n\n" ++ lst
-          toMsg = flip (flashAndMessageTime (-4000) greet) Nothing . (++ "  \n  ") . ("\n  " ++)
+          greet = "Select item to uncurse. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n" ++ lst
+          toMsg = flip (flashAndMessageTime (-1500) greet) Nothing . (++ "  \n  ") . ("\n  " ++)
 
       run $ selectEsc (message greet)
           $ (Key "l", selectShopAction cid)
