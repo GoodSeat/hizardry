@@ -33,12 +33,8 @@ import qualified SampleScenario.Home as SampleScenario
 -- * game over
 -- * items
 -- *   sp
--- * shop
--- *   remove cursed item.
 -- * training ground
 -- *   job change
--- * camp
--- *   reorder
 -- * classic secret door
 -- * other spells
 -- * other events
@@ -46,6 +42,9 @@ import qualified SampleScenario.Home as SampleScenario
 --
 -- * config
 -- *   all cure when sleep / when return castle(-> delete INN)
+--
+-- * item encyclopedia
+-- * enemy encyclopedia
 
 -- * scenario parser, save data parser.
 -- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int

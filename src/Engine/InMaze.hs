@@ -287,7 +287,7 @@ openCamp p = GameAuto $ do
     np <- length . party <$> world
     run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)
-          ,(Key "r", reorderParty p, np > 1)
+          ,(Key "r", reorderParty [] p, np > 1)
           ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
           ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
           ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)
@@ -296,29 +296,29 @@ openCamp p = GameAuto $ do
           ,(Key "6", inspectCharacter (openCamp p) True B6, np >= 6)
           ]
 
-reorderParty :: Position -> GameMachine
-reorderParty p = GameAuto $ do
-    movePlace (Camping p "Reorder")
-    np <- length . party <$> world
-    let msg = message $ "Whom to move?  (1-" ++ show np ++ ")\n\n^L)eave `[`E`S`C`]"
-    run $ selectEsc msg $ (Key "l", openCamp p) : cmdNums np (selectReorderTo p)
+reorderParty :: [Int] -> Position -> GameMachine
+reorderParty ns p = GameAuto $ do
+    movePlace (Camping p "Reorder Party")
+    cids <- party <$> world
+    let np = length cids
+    if np == length ns then do
+        modify $ \w -> w { party = sortIds ns cids }
+        run $ openCamp p
+    else do
+        let cids' = (\i -> cids !! (i - 1)) <$> ns
+        ts <- fmap (Chara.toText 28) <$> mapM characterByID cids'
+        let ts' = take 7 $ zipWith (\n t -> show n ++ "  " ++ t ) ns ts ++ repeat ""
+            msg = message $ "New order? (1-" ++ show np ++ ")\n\n^L)eave `[`E`S`C`]\n =======================================================\n\n"
+                          ++ unlines ts'
+        run $ selectEsc msg $ (Key "l", openCamp p) : cmdNums np (doReorder ns p)
+  where
+    sortIds :: [Int] -> [CharacterID] -> [CharacterID]
+    sortIds [] _ = []
+    sortIds (n:ns) cids = cids !! (n - 1) : sortIds ns cids
 
-selectReorderTo :: Position -> Int -> GameMachine
-selectReorderTo p from = GameAuto $ do
-    np <- length . party <$> world
-    let msg = message $ "Move to where? (1-" ++ show np ++ ")\n\n^L)eave `[`E`S`C`]"
-    run $ selectEsc msg $ (Key "l", reorderParty p) : cmdNums np (doReorder p from)
-
-doReorder :: Position -> Int -> Int -> GameMachine
-doReorder p from to = GameAuto $ do
-    ps <- party <$> world
-    let len = length ps
-    when (from >= 1 && from <= len && to >= 1 && to <= len) $ do
-        let movedChar = ps !! (from - 1)
-            removedList = take (from - 1) ps ++ drop from ps
-            newList = take (to - 1) removedList ++ [movedChar] ++ drop (to - 1) removedList
-        modify $ \w -> w { party = newList }
-    run $ reorderParty p
+doReorder :: [Int] -> Position -> Int -> GameMachine
+doReorder ns p n = reorderParty ns' p
+  where ns' = if n `elem` ns then filter (/= n) ns else ns ++ [n]
 
 -- =======================================================================
 
