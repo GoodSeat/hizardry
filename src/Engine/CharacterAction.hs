@@ -116,6 +116,7 @@ doIdentifyItem cid cancel _ i _ = GameAuto $ do
                     run $ events [showStatus cid "Identification failed."] cancel
                 else do
                     updateCharacterWith cid $ addStatusError (Fear 30)
+                    -- TODO:if items is cursed, you equip it.
                     run $ events [showStatus cid "Ooops! you touch item!"] cancel
 
 
