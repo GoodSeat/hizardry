@@ -9,7 +9,15 @@ import Data.Formula
 
 mazeEvents :: Ev.DB
 mazeEvents = Map.fromList [
-      (GameEventID 010100, Ev.Events [
+      (GameEventID 000100, Ev.Events [
+         Ev.ChangeJob Ev.Leader "Ninja"
+      ])
+
+    , (GameEventID 000102, Ev.Events [
+         Ev.ChangeHP Ev.All (parse' "10d10")
+      ])
+
+    , (GameEventID 010100, Ev.Events [
          Ev.Select "there is climbing stairs.\n...climbing?\n\n(^Y/^N)" Nothing [
            ("y", Ev.ReturnCastle), ("n", Ev.Escape)]
        ])

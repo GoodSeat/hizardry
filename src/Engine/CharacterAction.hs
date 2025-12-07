@@ -222,7 +222,7 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
          let next' = with [breakItem bp cid i] next
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
-                       Just edef -> run $ doEvent edef (const next') (const next')
+                       Just edef -> run $ doEvent (Just cid) edef (const next') (const next')
                                                   (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
                                                                 spellInCampNoCost sdef src dst (with [breakItem bp cid i] n)
                                                               else
@@ -440,7 +440,7 @@ triggerSPEffect cid (Item.Happens eventId) next = do
         Nothing -> return next
         Just edef -> do
             pos <- partyPosOf =<< characterByID cid
-            return $ doEvent edef (const next) (const next)
+            return $ doEvent (Just cid) edef (const next) (const next)
                 (\sdef n ->
                     if Spell.InCamp `elem` Spell.enableIn sdef then
                         spellInCampNoCost sdef pos pos n
@@ -625,7 +625,7 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.Event eid -> do
          edef' <- asks (lookup eid . mazeEvents)
          run $ case edef' of Nothing   -> next
-                             Just edef -> doEvent edef (const next) (const next)
+                             Just edef -> doEvent (Just cid) edef (const next) (const next)
                                                   (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
                                                                 spellInCampNoCost sdef src dst n
                                                               else

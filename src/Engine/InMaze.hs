@@ -78,7 +78,7 @@ enterGrid e probEncount evMoved p = GameAuto $ do
                  if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
                  else fmap (,False) <$> checkEncount c False
                else return Nothing
-    case e of Just edef -> run $ doEvent edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
+    case e of Just edef -> run $ doEvent Nothing edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
               Nothing   -> case encount of
                 Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
                 Just (ei, isRB) -> run $ encountEnemy ei isRB
@@ -199,7 +199,7 @@ searchSurroundings p = GameAuto $ do
             evDef <- asks ((Map.! eid) . mazeEvents)
             let returnToInspect _ = inspect p
                 cantSpelling _ _  = inspect p
-            run $ events searchMsgs (doEvent evDef returnToInspect returnToInspect cantSpelling)
+            run $ events searchMsgs (doEvent Nothing evDef returnToInspect returnToInspect cantSpelling)
 
 searchCharacter :: Position -> GameMachine
 searchCharacter p = GameAuto $ do

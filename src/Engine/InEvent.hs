@@ -5,7 +5,8 @@ import Control.Monad (when, filterM)
 import Control.Monad.State (modify, gets, forM_)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
-import Data.List (sort)
+import Data.List (sort, find)
+import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
 import Data.Maze
@@ -21,23 +22,28 @@ import Control.CUI (translate)
 
 -- =======================================================================
 
-doEvent :: Ev.Define
+doEvent :: Maybe CharacterID
+        -> Ev.Define
         -> (Bool -> GameMachine)                        -- ^ when Escape Event
         -> (Bool -> GameMachine)                        -- ^ when End Event
         -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
         -> GameMachine
-doEvent = doEventInner True
+doEvent cidRep edef whenEscape whenEnd spelling = GameAuto $ do
+    cid <- characterIDInPartyAt F1
+    run $ doEventInner True (fromMaybe cid cidRep) edef whenEscape whenEnd spelling
+    
 
 doEventInner :: Bool
+             -> CharacterID
              -> Ev.Define
              -> (Bool -> GameMachine)                        -- ^ when Escape Event
              -> (Bool -> GameMachine)                        -- ^ when End Event
              -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
              -> GameMachine
-doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscape
+doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef whenEscape
   where
     candidates :: [(String, Ev.Define)] -> [(Input, GameMachine)]
-    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False edef whenEscape whenEnd spelling)
+    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False cidRep edef whenEscape whenEnd spelling)
                                           | x <- if m == "" || m == "\n" then [m] else if m == "\r" then ["\n"] else lines m])
 
     doEvent' :: Ev.Define -> (Bool -> GameMachine) -> GameMachine
@@ -72,32 +78,35 @@ doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscap
     doEvent' (Ev.SelectT      dt msg picID ways) next = talkSelect msg dt picID (`select` candidates ways)
     doEvent' (Ev.AskT         dt msg picID ways) next = talkSelect msg dt picID $ const (select (ask msg picID) (candidates ways))
 
-    -- in battle
-
     -- happens
     doEvent' (Ev.Switch []) next = next isHidden
     doEvent' (Ev.Switch (c:cs)) next = GameAuto $ do
-      match <- matchCondition (fst c)
-      run $ if match then doEvent' (snd c)        next
-                     else doEvent' (Ev.Switch cs) next
+        match <- matchCondition (fst c)
+        run $ if match then doEvent' (snd c)        next
+                       else doEvent' (Ev.Switch cs) next
 
-    doEvent' (Ev.GetItem targetType itemIdF isDetermined) next = undefined
-    doEvent' (Ev.LostItem targetType itemIdF) next = undefined
-    doEvent' (Ev.GetGold targetType valF) next = undefined
-    doEvent' (Ev.LostGold targetType valF) next = undefined
-    doEvent' (Ev.ChangeHP targetType valF) next = undefined
-    doEvent' (Ev.ChangeMP targetType kind lvs valF) next = undefined
-    doEvent' (Ev.ChangeJob targetType jobName) next = undefined
-    doEvent' (Ev.LearningSpell targetType spellIdF) next = undefined
+    doEvent' (Ev.GetItem targetType itemIdF isDetermined) next = undefined -- TODO
+    doEvent' (Ev.LostItem targetType itemIdF) next = undefined -- TODO
+    doEvent' (Ev.GetGold targetType valF) next = undefined -- TODO
+    doEvent' (Ev.LostGold targetType valF) next = undefined -- TODO
+    doEvent' (Ev.ChangeHP targetType valF) next = undefined -- TODO
+    doEvent' (Ev.ChangeMP targetType kind lvs valF) next = undefined -- TODO
+    doEvent' (Ev.ChangeJob targetType jobName) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
+        j <- asks $ find ((== jobName) . Chara.jobName) . jobs
+        case j of Just j' -> updateCharacterWith cid (\c -> c { Chara.equips = [], Chara.job = j' })
+                  Nothing -> return ()
+    doEvent' (Ev.LearningSpell targetType spellIdF) next = undefined -- TODO
 
     doEvent' (Ev.ChangeEventFlag idx f) next = GameAuto $ do
-      efs <- eventFlags <$> world
-      ps  <- party <$> world
-      os  <- mapM characterByID ps
-      map <- addEvFlagToFormulaMap Map.empty
-      n   <- evalWith map f
-      modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
-      run $ next isHidden
+        efs <- eventFlags <$> world
+        ps  <- party <$> world
+        os  <- mapM characterByID ps
+        map <- addEvFlagToFormulaMap Map.empty
+        n   <- evalWith map f
+        modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
+        run $ next isHidden
+
+    doEvent' (Ev.ChangeLeader pos) next = next isHidden
 
 
     -- others
@@ -107,13 +116,23 @@ doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscap
                          Nothing -> next isHidden
 
     doEvent' (Ev.Reference eid) next = GameAuto $ do
-      evDB  <- asks mazeEvents
-      case Map.lookup eid evDB of Nothing   -> run $ next isHidden
-                                  Just edef -> run $ doEvent' edef next
+        evDB  <- asks mazeEvents
+        case Map.lookup eid evDB of Nothing   -> run $ next isHidden
+                                    Just edef -> run $ doEvent' edef next
     doEvent' Ev.End    _ = whenEnd    isHidden
     doEvent' Ev.Escape _ = whenEscape isHidden
     doEvent' (Ev.Events [])        next = next isHidden
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' (Ev.Events es) whenEscape whenEnd spelling
+    doEvent' (Ev.Events (Ev.ChangeLeader pos:es)) next = GameAuto $ do
+        cid <- characterIDInPartyAtS pos
+        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) whenEscape whenEnd spelling
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) whenEscape whenEnd spelling
+
+    
+    doEventToCharacter :: Ev.TargetType -> GameMachine -> (CharacterID -> GameState()) -> GameMachine
+    doEventToCharacter Ev.Leader next' e = with [e cidRep] next'
+    doEventToCharacter Ev.All    next' e = GameAuto $ do
+        cids <- party <$> world
+        run $ with (e <$> cids) next'
 
 
 matchCondition :: Ev.Condition -> GameState Bool

@@ -26,9 +26,6 @@ data Define =
             | SelectT      Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
             | AskT         Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
-            -- in battle
-            | AsSpell SpellID
-
             -- happens
             | Switch [(Condition, Define)]
             | GetItem       TargetType Formula Bool -- item id, is wheter determined.
@@ -40,8 +37,10 @@ data Define =
             | ChangeJob     TargetType String -- job name.
             | LearningSpell TargetType Formula
             | ChangeEventFlag Int Formula -- change index, post changed value
+            | ChangeLeader  PartyPos -- temporary change leader in this event.
 
             -- others
+            | AsSpell SpellID
             | Reference GameEventID
             | End    -- ^ if there is another event, it start.
             | Escape -- ^ end event with ignore event on there.

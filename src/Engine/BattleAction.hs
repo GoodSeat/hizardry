@@ -256,7 +256,7 @@ useItemInBattle i (Left cid) dst next = GameAuto $ do
          let next' = with [breakItem bp cid i] next
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
-                       Just edef -> run $ doEvent edef (const next') (const next') (\sdef n -> spell' sdef (Left cid) dst n)
+                       Just edef -> run $ doEvent (Just cid) edef (const next') (const next') (\sdef n -> spell' sdef (Left cid) dst n)
 
 useItemInBattle i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
 
@@ -339,8 +339,10 @@ eventSpell :: GameEventID -> SpellEffect
 eventSpell eid s o next = GameAuto $ do
     evDB  <- asks mazeEvents
     let e = Map.lookup eid evDB
+        cid = case s of Left cid' -> Just cid'
+                        Right _   -> Nothing
     run $ case e of Nothing   -> next
-                    Just edef -> doEvent edef (const next) (const next) (\sdef n -> spell' sdef s o n)
+                    Just edef -> doEvent cid edef (const next) (const next) (\sdef n -> spell' sdef s o n)
 
 -- --------------------------------------------------------------------------------
 

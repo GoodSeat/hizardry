@@ -158,6 +158,12 @@ characterByID id = do
     db <- allCharacters <$> world
     return $ db ! id
 
+characterIDInPartyAtS :: PartyPos -> GameState (Maybe CharacterID)
+characterIDInPartyAtS pos = do
+    ps <- party <$> world
+    let i = partyPosToNum pos - 1
+    return $ if i < length ps then Just (ps !! i) else Nothing
+
 characterIDInPartyAt :: PartyPos -> GameState CharacterID
 characterIDInPartyAt pos = (!! (partyPosToNum pos - 1)) . party <$> world
 
