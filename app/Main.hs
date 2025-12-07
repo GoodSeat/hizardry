@@ -1,5 +1,8 @@
 module Main where
 
+import Data.Version (showVersion, versionBranch)
+import Paths_hizardry (version)
+
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
 import System.Console.ANSI (clearScreen, clearLine, hideCursor, showCursor, setCursorPosition, cursorUp)
 import System.Directory
@@ -58,6 +61,7 @@ crypt indx key text = do
     n <- readIORef indx
     modifyIORef indx (+ length text)
     return $ crypt' (drop n $ cycle key) text
+--crypt indx key text = return text
 
 crypt' :: String -> String -> String
 crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key)
@@ -65,6 +69,7 @@ crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key
 
 main :: IO ()
 main = do
+    let currentVersion = versionBranch version -- if isn't match with major/minor/build version, invalid save data.
     --gen <- getStdGen
     let gen = mkStdGen 0 
     (is, iw) <- SampleScenario.initScenario
@@ -77,13 +82,17 @@ main = do
     existSaveData <- doesFileExist saveDataPath
     indx <- newIORef 0
     
-    run <- if not existSaveData then return runGame
-           else do
-             c  <- readFile saveDataPath
-             ls <- lines <$> crypt indx encKey c
-             let is  = read <$> filter (not . null) ls
-                 is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
-             return $ loadGame (reverse is')
+    (run, reset) <- if not existSaveData then return (runGame, True) else do
+        c  <- readFile saveDataPath
+        ls <- lines <$> crypt indx encKey c
+        if length ls > 1 && take 3 (read $ head ls :: [Int]) == take 3 currentVersion then do
+          let is  = read <$> filter (not . null) (tail ls)
+              is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
+          return (loadGame (reverse is'), False)
+        else
+          return (runGame, True)
+
+    when reset $ writeFile saveDataPath =<< crypt indx encKey (show currentVersion ++ "\n")
              
     drawCache <- newDrawCache
     let renderMethod = renderWithCache drawCache
