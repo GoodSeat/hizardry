@@ -8,7 +8,7 @@ import Control.Monad.Reader (asks)
 import Control.Monad.State (gets, modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
 import Data.Function ((&), on)
-import Data.List (isInfixOf, unlines, sortBy, groupBy, intercalate, find)
+import Data.List (isInfixOf, unlines, sortBy, groupBy, intercalate, find, findIndex)
 import Data.Maybe (catMaybes, isJust)
 
 import Engine.GameAuto
@@ -359,6 +359,105 @@ textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . toEnum) (length (Chara.it
 
 
 -- =================================================================================
+-- for sp releasing.
+-- =================================================================================
+
+askReleaseSP :: ([Chara.ItemPos] -> String -> Event)
+             -> PartyPos
+             -> Chara.Character
+             -> GameMachine
+             -> GameMachine
+askReleaseSP msgForSelect src c next = GameAuto $ do
+    releasable <- spReleasableItems c
+    run $ if null releasable then next else
+            selectEsc (msgForSelect (fst <$> releasable) "Release special power of an item? (^Y/^N`[`E`s`c`])")
+                [ (Key "n", next)
+                , (Key "y", releaseSP msgForSelect src c next)
+                ]
+
+releaseSP :: ([Chara.ItemPos] -> String -> Event)
+          -> PartyPos
+          -> Chara.Character
+          -> GameMachine
+          -> GameMachine
+releaseSP msgForSelect src c cancel = GameAuto $ do
+    cid <- characterIDInPartyAt src
+    releasable <- spReleasableItems c
+    let releasableIDs = fmap (itemID . snd) releasable
+    run $ if null releasable then
+            events [msgForSelect [] "No items to release special power."] cancel
+          else
+            selectItem (const $ msgForSelect (fst <$> releasable) $ "Select item to release SP(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
+                       (\inf -> itemID inf `elem` releasableIDs)
+                       (doReleaseSP cid cancel)
+                       c
+                       cancel
+
+spReleasableItems :: Chara.Character -> GameState [(Chara.ItemPos, ItemInf)]
+spReleasableItems c = do
+    let indexedItems = zip [Chara.ItemA ..] (Chara.items c)
+    fmap catMaybes $ forM indexedItems $ \(pos, inf) -> do
+        def <- itemByID $ itemID inf
+        return $ if isJust (Item.spEffect def) then Just (pos, inf) else Nothing
+
+doReleaseSP :: CharacterID
+            -> GameMachine
+            -> Chara.Character
+            -> Chara.ItemPos
+            -> GameMachine
+            -> GameMachine
+doReleaseSP cid cancel c i _ = GameAuto $ do
+    let inf = Chara.itemInfAt c i
+    itemDef <- itemByID (itemID inf)
+
+    case Item.spEffect itemDef of
+        Nothing -> run $ events [showStatus cid "This item has no special power."] cancel
+        Just (effect, breakInfo) -> do
+            let success = True -- NOTE: For now, success is guaranteed.
+            if success then do
+                game <- triggerSPEffect cid effect cancel
+                run $ with [breakItem breakInfo cid i] game
+            else do
+                run $ events [showStatus cid "Failed to release special power."] cancel
+
+
+triggerSPEffect :: CharacterID -> Item.Effect -> GameMachine -> GameState GameMachine
+triggerSPEffect cid (Item.EqSpell spellId) next = do
+    c <- characterByID cid
+    sdef' <- spellByID spellId
+    case sdef' of
+        Just sdef ->
+            if Spell.InCamp `elem` Spell.enableIn sdef then do
+                pos <- partyPosOf c
+                return $ spellInCampNoCost sdef pos pos next
+            else
+                return $ events [showStatus cid "Cannot use this power here."] next
+        Nothing -> error $ "Invalid spellId in triggerSPEffect: " ++ show spellId
+
+triggerSPEffect cid (Item.Happens eventId) next = do
+    edef' <- asks (lookup eventId . mazeEvents)
+    case edef' of
+        Nothing -> return next
+        Just edef -> do
+            pos <- partyPosOf =<< characterByID cid
+            return $ doEvent edef (const next) (const next)
+                (\sdef n ->
+                    if Spell.InCamp `elem` Spell.enableIn sdef then
+                        spellInCampNoCost sdef pos pos n
+                    else
+                        events [showStatus cid "Cannot use this power here."] n)
+
+
+partyPosOf :: Chara.Character -> GameState PartyPos
+partyPosOf c = do
+    ps <- party <$> world
+    cs <- mapM characterByID ps
+    case Data.List.findIndex ((== Chara.name c) . Chara.name) cs of
+        Just i  -> return $ toPartyPos (i + 1)
+        Nothing -> error $ "Character not in party: " ++ Chara.name c
+
+
+-- =================================================================================
 -- for equipment.
 -- ---------------------------------------------------------------------------------
 equip :: ([Chara.ItemPos] -> String -> Event)
@@ -366,14 +465,18 @@ equip :: ([Chara.ItemPos] -> String -> Event)
       -> Chara.Character
       -> GameMachine
       -> GameMachine
-equip msgForSelect src c = equip' msgForSelect src c [(Item.isWeapon, "weapon")
-                                                     ,(Item.isShield, "shield")
-                                                     ,(Item.isHelmet, "helmet")
-                                                     ,(Item.isArmour, "armour")
-                                                     ,(Item.isGauntlet, "gauntlet")
-                                                     ,(Item.isAccessory, "accessory")
-                                                     ]
--- TODO:sp item.
+equip msgForSelect src c next =
+    let finalContinuation = GameAuto $ do
+            c' <- characterInPartyAt src
+            run $ askReleaseSP msgForSelect src c' next
+    in equip' msgForSelect src c [(Item.isWeapon, "weapon")
+                                 ,(Item.isShield, "shield")
+                                 ,(Item.isHelmet, "helmet")
+                                 ,(Item.isArmour, "armour")
+                                 ,(Item.isGauntlet, "gauntlet")
+                                 ,(Item.isAccessory, "accessory")
+                                 ] finalContinuation
+
 equip' :: ([Chara.ItemPos] -> String -> Event)
        -> PartyPos
        -> Chara.Character

@@ -81,6 +81,15 @@ doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscap
       run $ if match then doEvent' (snd c)        next
                      else doEvent' (Ev.Switch cs) next
 
+    doEvent' (Ev.GetItem targetType itemIdF isDetermined) next = undefined
+    doEvent' (Ev.LostItem targetType itemIdF) next = undefined
+    doEvent' (Ev.GetGold targetType valF) next = undefined
+    doEvent' (Ev.LostGold targetType valF) next = undefined
+    doEvent' (Ev.ChangeHP targetType valF) next = undefined
+    doEvent' (Ev.ChangeMP targetType kind lvs valF) next = undefined
+    doEvent' (Ev.ChangeJob targetType jobName) next = undefined
+    doEvent' (Ev.LearningSpell targetType spellIdF) next = undefined
+
     doEvent' (Ev.ChangeEventFlag idx f) next = GameAuto $ do
       efs <- eventFlags <$> world
       ps  <- party <$> world
@@ -105,7 +114,6 @@ doEventInner isHidden edef whenEscape whenEnd spelling = doEvent' edef whenEscap
     doEvent' Ev.Escape _ = whenEscape isHidden
     doEvent' (Ev.Events [])        next = next isHidden
     doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' (Ev.Events es) whenEscape whenEnd spelling
-    doEvent' _ next = undefined
 
 
 matchCondition :: Ev.Condition -> GameState Bool
@@ -130,6 +138,8 @@ matchCondition (Ev.FormulaCheckLeader f) = do
     map <- addEvFlagToFormulaMap =<< formulaMapS (Left c)
     n   <- evalWith map f
     happens n
+matchCondition (Ev.And cs) = and <$> mapM matchCondition cs
+matchCondition (Ev.Or  cs) = or  <$> mapM matchCondition cs
 matchCondition Ev.Otherwise = return True
 
 

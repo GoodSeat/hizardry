@@ -5,6 +5,7 @@ import qualified Data.Map as Map
 import Data.Maze
 import Data.Primitive
 import Data.Formula
+import qualified Data.Spells as Spell
 import qualified Data.Characters as Character
 
 data Define =
@@ -35,7 +36,8 @@ data Define =
             | GetGold       TargetType Formula
             | LostGold      TargetType Formula
             | ChangeHP      TargetType Formula
-            | ChangeMP      TargetType Bool [Int] Formula -- target kind, Lv, heal point
+            | ChangeMP      TargetType Spell.Kind [Int] Formula -- target kind, Lv, heal point
+            | ChangeJob     TargetType String -- job name.
             | LearningSpell TargetType Formula
             | ChangeEventFlag Int Formula -- change index, post changed value
 
@@ -91,6 +93,6 @@ data Condition = PartyHasItem           ItemID Bool -- ^ itemID, must determined
                | Or  [Condition]
                | Otherwise
 
-data TargetType  = Leader | Any | All deriving (Show, Read, Eq)
+data TargetType  = Leader | All deriving (Show, Read, Eq)
 
 
