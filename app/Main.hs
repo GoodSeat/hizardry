@@ -34,8 +34,6 @@ import qualified SampleScenario.Home as SampleScenario
 
 -- note
 -- * game over
--- * training ground
--- *   job change
 -- * classic secret door
 -- * other spells
 -- * other events

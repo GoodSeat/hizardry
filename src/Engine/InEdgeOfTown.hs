@@ -3,7 +3,7 @@ module Engine.InEdgeOfTown (inEdgeOfTown) where
 import Control.Monad (join)
 import Control.Monad.State (modify, put, gets)
 import Control.Monad.Reader (asks)
-import Data.List (sort, sortOn, elemIndex)
+import Data.List (sort, sortOn, elemIndex, intersperse)
 import Data.Char (toLower)
 import Data.Maybe (fromJust)
 import qualified Data.Map as Map
@@ -93,6 +93,7 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                                   ,(Key "s", showListOfCharacters 0)
                                   ,(Key "d", selectDeleteTargetCharacter 0)
                                   ,(Key "n", selectCharacterToChangeName 0)
+                                  ,(Key "j", selectCharacterToChangeJob 0)
                                   ,(Key "r", selectReorderTargetCharacter 0)
                                   ,(Key "q", exitGame)]
   where
@@ -103,6 +104,53 @@ inTrainingGrounds = with [ movePlace TrainingGrounds
                  ++ "^J)ob Change of Character\n"
                  ++ "^R)eorder List\n"
                  ++ "^L)eave `[`E`S`C`]\n"
+
+-- -----------------------------------------------------------------------
+-- Job Change
+-- -----------------------------------------------------------------------
+
+selectCharacterToChangeJob :: Int -> GameMachine
+selectCharacterToChangeJob = cmdWithCharacterListOnlyIn ("Job Change", selectNewJob)
+
+selectNewJob :: GameMachine -> CharacterID -> GameMachine
+selectNewJob h cid = GameAuto $ do
+    c <- characterByID cid
+    allJobs <- asks jobs
+    let availableJobs = filter (canChangeToJob c) allJobs
+    if null availableJobs then
+        run $ events [message "There are no jobs you can change to."] h
+    else do
+        let jobItems = zipWith (\i j -> (show i, Character.jobName j)) [1..] availableJobs
+            jobCmds = zipWith (\i j -> (Key (show i), confirmChangeJob h cid j)) [1..] availableJobs
+            msg' = message $ "Select new job for " ++ Character.name c ++ ".\n\n"
+                         ++ unlines (map (\(i, name) -> "  ^" ++ i ++ ") " ++ name) jobItems)
+                         ++ "\n^L)eave `[`E`S`C`]"
+        run $ selectEsc msg' ((Key "l", h) : jobCmds)
+
+canChangeToJob :: Character.Character -> Character.Job -> Bool
+canChangeToJob c j =
+    let currentJobName = Character.jobName (Character.job c)
+        newJobName = Character.jobName j
+    in currentJobName /= newJobName && isEnableJob (Character.alignment c) (Character.param c) j
+
+confirmChangeJob :: GameMachine -> CharacterID -> Character.Job -> GameMachine
+confirmChangeJob h cid newJob = GameAuto $ do
+    c <- characterByID cid
+    let msg' = message $ "Change " ++ Character.name c ++ "'s job to " ++ Character.jobName newJob ++ "?\n"
+                      ++ "This will reset LV, EXP.\n\n"
+                      ++ "^Y)es / ^N)o `[`E`S`C`]"
+    run $ selectEsc msg' [(Key "n", h), (Key "y", with [doChangeJob cid newJob] h)]
+
+doChangeJob :: CharacterID -> Character.Job -> GameState ()
+doChangeJob cid newJob = do
+    c <- characterByID cid
+    updateCharacter cid $ c {
+          Character.job   = newJob
+        , Character.lv    = 1
+        , Character.exp   = 0
+        , Character.age   = Character.age c + 1
+        , Character.param = Character.initialParam (Character.race c)
+    }
 
 -- -----------------------------------------------------------------------
 
@@ -368,25 +416,38 @@ insertCharacter cid _ cidTo = GameAuto $ do
 
 -- -----------------------------------------------------------------------
 
-cmdWithCharacterList :: (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
-cmdWithCharacterList cmd (-1) = GameAuto $ do
+cmdWithCharacterListOnly :: (CharacterID -> Bool) -> (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
+cmdWithCharacterListOnly be cmd (-1) = GameAuto $ do
     mxPage <- lastPage
-    run $ cmdWithCharacterList cmd mxPage
-cmdWithCharacterList cmd page = GameAuto $ do
+    run $ cmdWithCharacterListOnly be cmd mxPage
+cmdWithCharacterListOnly be cmd page = GameAuto $ do
     mxPage <- lastPage
-    cids <- take sizePage . drop (page * sizePage) . sortOn fst . Map.toList . allCharacters <$> world 
-    if page > mxPage then run $ cmdWithCharacterList cmd 0
+    cids   <- take sizePage . drop (page * sizePage) . sortOn fst . Map.toList . allCharacters <$> world 
+    inCids <- inTarvernMember <$> world 
+    if page > mxPage then run $ cmdWithCharacterListOnly be cmd 0
     else if null cids then run inTrainingGrounds
     else do
-      let cst = zipWith (++) (("^"++) .(++")") . show <$> [1..]) (Character.name . snd <$> cids)
+      let toT (cid, c) = Character.name c ++ rightString 45 (take 3 $ Character.jobName $ Character.job c)
+                                          ++ rightString  5 (if cid `elem` inCids then "IN" else "OUT")
+      let cst'= zip (zipWith (++) ((++")") . show <$> [1..]) (toT <$> cids)) (be . fst <$> cids)
+          cst = fmap (\(l, valid) -> if valid then '^' : l else '`' : intersperse '`' l) cst'
           msg = message $ "^N)ext list  ^P)revious list  ^#)" ++ fst cmd ++"  ^L)eave `[`E`s`c`]"
                       ++ "\n\n-------------------------(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")--------------------------\n\n"
                       ++ unlines cst
-          cmds = cmdNums (length cids) (\i -> (snd cmd) (cmdWithCharacterList cmd page) $ (fst <$> cids) !! (i-1))
+          cmds = zip (be . fst <$> cids) (cmdNums (length cids) (\i -> (snd cmd) (cmdWithCharacterListOnly be cmd page) $ (fst <$> cids) !! (i-1)))
+
       run $ selectEsc msg $ (Key "l", inTrainingGrounds)
-                          : (Key "n", cmdWithCharacterList cmd (page+1))
-                          : (Key "p", cmdWithCharacterList cmd (page-1))
-                          : cmds
+                          : (Key "n", cmdWithCharacterListOnly be cmd (page+1))
+                          : (Key "p", cmdWithCharacterListOnly be cmd (page-1))
+                          : (snd <$> filter fst cmds)
+
+cmdWithCharacterList :: (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
+cmdWithCharacterList = cmdWithCharacterListOnly $ const True
+
+cmdWithCharacterListOnlyIn :: (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
+cmdWithCharacterListOnlyIn cmd page = GameAuto $ do
+    inCids <- inTarvernMember <$> world 
+    run $ cmdWithCharacterListOnly (`elem` inCids) cmd page
 
 sizePage :: Int
 sizePage = 9
