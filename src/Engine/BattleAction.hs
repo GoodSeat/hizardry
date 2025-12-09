@@ -40,6 +40,10 @@ type ActionOfCharacter = CharacterID  -- ^ id of actor.
                       -> GameMachine  -- ^ next game auto.
                       -> GameMachine  -- ^ game auto.
 
+msgBlink :: [String] -> [Event]
+msgBlink [] = []
+msgBlink (m:ms) = messageTime 1 (unlines $ head ls : ("" <$ tail ls)) Nothing : (message <$> ms)
+  where ls = lines m
 
 fightOfCharacter :: ActionOfCharacter
 fightOfCharacter id el next = GameAuto $ do
@@ -52,13 +56,14 @@ fightOfCharacter id el next = GameAuto $ do
       let es' | range == Item.ToSingle = [head es]
               | range == Item.ToGroup  = es
               | range == Item.ToAll    = ea
+          toM = if length es' <= 1 then fmap message else msgBlink
       nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 0
         let e' = damageHp d e
         ms <- fightMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
-        return $ if d == 0 || el /= L1 then with [update] . events (message <$> ms)
-                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+        return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
+                                       else with [update] . toEffect False (head ms) . events (toM $ tail ms)
       run $ foldr ($) next nexts
 
 fightDamage :: EnemyLine
@@ -148,13 +153,14 @@ ambushOfCharacter id el next = GameAuto $ do
       let es' | range == Item.ToSingle = [head es]
               | range == Item.ToGroup  = es
               | range == Item.ToAll    = ea
+          toM = if length es' <= 1 then fmap message else msgBlink
       nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 2
         let e' = damageHp d e
         ms <- ambushMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
-        return $ if d == 0 || el /= L1 then with [update] . events (message <$> ms)
-                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+        return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
+                                       else with [update] . toEffect False (head ms) . events (toM $ tail ms)
       run $ foldr ($) next nexts
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
