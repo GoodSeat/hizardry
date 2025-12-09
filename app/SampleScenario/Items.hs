@@ -374,7 +374,7 @@ items = Map.fromList [
                                            , Item.doubleLabels  = []
                                            , Item.attrLabels    = []
                                            , Item.addStatusErrors = []
-                                           , Item.atackMessages = ["throw"]
+                                           , Item.atackMessages = ["throw weqpon to"]
                                            , Item.targetRange   = Item.ToAll
                                          }
         , Item.valueInShop      = 3000

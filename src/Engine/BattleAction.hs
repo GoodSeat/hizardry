@@ -44,7 +44,7 @@ type ActionOfCharacter = CharacterID  -- ^ id of actor.
 fightOfCharacter :: ActionOfCharacter
 fightOfCharacter id el next = GameAuto $ do
     es <- aliveEnemiesLine el
-    ea <- join <$> lastEnemies
+    ea <- filter (\e -> Enemy.hp e > 0) . join <$> lastEnemies
     c     <- characterByID id
     wattr <- weaponAttrOf c
     let range = Item.targetRange wattr
@@ -102,7 +102,7 @@ fightDamage el c e hitBonus = do
              p' <- applyVsEffect attrs vs (Left c) (Right e) p
              resist <- resistStatusError m se (Enemy.resistError edef)
              (&&) <$> happens p' <*> pure (not resist)
-    return (fst dh, snd dh, (\(_,s,_) -> s) <$> ses)
+    return (fst dh, snd dh, snd3 <$> ses)
 
 fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessage c e (h, d, ses) = do
@@ -140,7 +140,7 @@ hideOfCharacter cid next = GameAuto $ do
 ambushOfCharacter :: ActionOfCharacter
 ambushOfCharacter id el next = GameAuto $ do
     es <- aliveEnemiesLine el
-    ea <- join <$> lastEnemies
+    ea <- filter (\e -> Enemy.hp e > 0) . join <$> lastEnemies
     c     <- characterByID id
     wattr <- weaponAttrOf c
     let range = Item.targetRange wattr
@@ -233,7 +233,7 @@ fightDamageE n e c dmg sts = do
              eats <- allValidEquipAttrs c
              resist <- resistStatusError m se (concatMap Item.resistError eats)
              (&&) <$> happens p' <*> pure (not resist)
-    return (fst dh, snd dh, (\(_,s,_) -> s) <$> ses)
+    return (fst dh, snd dh, snd3 <$> ses)
 
 fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessageE e c (h, d, ses) = do
