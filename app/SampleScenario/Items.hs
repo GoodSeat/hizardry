@@ -115,6 +115,7 @@ items = Map.fromList [
                                            , Item.attrLabels    = [EffectLabel "fire"]
                                            , Item.addStatusErrors = []
                                            , Item.atackMessages = []
+                                           , Item.targetRange   = Item.ToSingle
                                          }
         , Item.valueInShop      = 500
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
@@ -278,6 +279,7 @@ items = Map.fromList [
                                            , Item.attrLabels    = []
                                            , Item.addStatusErrors = []
                                            , Item.atackMessages = ["aimed and shot"]
+                                           , Item.targetRange   = Item.ToSingle
                                          }
         , Item.valueInShop      = 4000
         , Item.enableToEquip    = Item.Only ["Thief"]
@@ -309,8 +311,73 @@ items = Map.fromList [
                                            , Item.attrLabels    = [EffectLabel "fire"]
                                            , Item.addStatusErrors = [(read "lv-o.lv", Dead, [EffectLabel "fire"])]
                                            , Item.atackMessages = ["aimed and shot"]
+                                           , Item.targetRange   = Item.ToSingle
                                          }
         , Item.valueInShop      = 4000
+        , Item.enableToEquip    = Item.Only ["Thief"]
+        , Item.enableToUse      = Item.All
+        , Item.itemLv           = 3
+    })
+    ,
+    (ItemID 105, Item.Define {
+          Item.name             = "聖職者の鞭"
+        , Item.nameUndetermined = "紐?"
+        , Item.itemType         = Item.Equip
+        , Item.usingEffect      = Nothing
+        , Item.spEffect         = Nothing
+        , Item.attributes       = []
+        , Item.equipType        = Just $ Item.Weapon
+                                         Item.EquipBaseAttr {
+                                             Item.ac = read "0"
+                                           , Item.st = read "0"
+                                           , Item.at = read "0"
+                                           , Item.resistLabels   = []
+                                           , Item.resistError    = []
+                                           , Item.vsEffectLabels = []
+                                         } 
+                                         Item.WeaponAttr {
+                                             Item.targetF       = [L1, L2]
+                                           , Item.targetB       = []
+                                           , Item.damage        = read "2d6"
+                                           , Item.doubleLabels  = [EnemyLabel "undead"]
+                                           , Item.attrLabels    = [EffectLabel "fire"]
+                                           , Item.addStatusErrors = []
+                                           , Item.atackMessages = ["aimed and hit"]
+                                           , Item.targetRange   = Item.ToGroup
+                                         }
+        , Item.valueInShop      = 2000
+        , Item.enableToEquip    = Item.Only ["Priest"]
+        , Item.enableToUse      = Item.All
+        , Item.itemLv           = 3
+    })
+    ,
+    (ItemID 106, Item.Define {
+          Item.name             = "盗賊のブーメラン"
+        , Item.nameUndetermined = "曲がったもの?"
+        , Item.itemType         = Item.Equip
+        , Item.usingEffect      = Nothing
+        , Item.spEffect         = Nothing
+        , Item.attributes       = []
+        , Item.equipType        = Just $ Item.Weapon
+                                         Item.EquipBaseAttr {
+                                             Item.ac = read "0"
+                                           , Item.st = read "0"
+                                           , Item.at = read "0"
+                                           , Item.resistLabels   = []
+                                           , Item.resistError    = []
+                                           , Item.vsEffectLabels = []
+                                         } 
+                                         Item.WeaponAttr {
+                                             Item.targetF       = [L1]
+                                           , Item.targetB       = [L1]
+                                           , Item.damage        = read "2d3"
+                                           , Item.doubleLabels  = []
+                                           , Item.attrLabels    = []
+                                           , Item.addStatusErrors = []
+                                           , Item.atackMessages = ["throw"]
+                                           , Item.targetRange   = Item.ToAll
+                                         }
+        , Item.valueInShop      = 3000
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 3

@@ -43,24 +43,29 @@ type ActionOfCharacter = CharacterID  -- ^ id of actor.
 
 fightOfCharacter :: ActionOfCharacter
 fightOfCharacter id el next = GameAuto $ do
-    e1 <- aliveEnemyLineHead el
-    case e1 of
-      Nothing -> run next
-      Just e  -> do
-        c           <- characterByID id
+    es <- aliveEnemiesLine el
+    ea <- join <$> lastEnemies
+    c     <- characterByID id
+    wattr <- weaponAttrOf c
+    let range = Item.targetRange wattr
+    if null ea || (range /= Item.ToAll && null es) then run next else do
+      let es' | range == Item.ToSingle = [head es]
+              | range == Item.ToGroup  = es
+              | range == Item.ToAll    = ea
+      nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 0
         let e' = damageHp d e
-        updateEnemy e $ const e'
         ms <- fightMessage c e' (h, d, ses)
-        when (Enemy.hp e' <= 0) $ addMarks id
-        run $ if d == 0 || el /= L1 then events (message <$> ms) next
-                                    else toEffect False (head ms) (events (message <$> tail ms) next)
+        let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
+        return $ if d == 0 || el /= L1 then with [update] . events (message <$> ms)
+                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+      run $ foldr ($) next nexts
 
 fightDamage :: EnemyLine
             -> Chara.Character
             -> Enemy.Instance
             -> Int
-            -> GameState (Int, Int, [StatusError])
+            -> GameState (Int, Int, [StatusError]) -- hit count, damage, status errors.
 fightDamage el c e hitBonus = do
     wattr <- weaponAttrOf c
     m     <- formulaMapSO (Left c) (Right e)
@@ -134,17 +139,23 @@ hideOfCharacter cid next = GameAuto $ do
 
 ambushOfCharacter :: ActionOfCharacter
 ambushOfCharacter id el next = GameAuto $ do
-    e1 <- aliveEnemyLineHead el
-    case e1 of
-      Nothing -> run next
-      Just e  -> do
-        c           <- characterByID id
+    es <- aliveEnemiesLine el
+    ea <- join <$> lastEnemies
+    c     <- characterByID id
+    wattr <- weaponAttrOf c
+    let range = Item.targetRange wattr
+    if null ea || (range /= Item.ToAll && null es) then run next else do
+      let es' | range == Item.ToSingle = [head es]
+              | range == Item.ToGroup  = es
+              | range == Item.ToAll    = ea
+      nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 2
         let e' = damageHp d e
-        updateEnemy e $ const e'
         ms <- ambushMessage c e' (h, d, ses)
-        run $ if d == 0 || el /= L1 then events (message <$> ms) next
-                                    else toEffect False (head ms) (events (message <$> tail ms) next)
+        let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
+        return $ if d == 0 || el /= L1 then with [update] . events (message <$> ms)
+                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+      run $ foldr ($) next nexts
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 ambushMessage c e (h, d, ses) = do

@@ -67,6 +67,11 @@ data Attribute =
     | Heal Int Bool -- ^ heal or damege HP (it's value, only when equip)
     deriving (Show, Eq, Read)
 
+data WeaponRange =
+      ToSingle
+    | ToGroup
+    | ToAll
+    deriving (Show, Eq, Read)
 
 data EquipBaseAttr = EquipBaseAttr {
       ac             :: !Formula                  -- ^ ac
@@ -85,6 +90,7 @@ data WeaponAttr = WeaponAttr {
     , attrLabels      :: ![EffectLabel]                           -- ^ attribute of atack.
     , addStatusErrors :: ![(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
     , atackMessages   :: ![String]                                -- ^ message candidates when fight with this weapon. [optional]
+    , targetRange     :: !WeaponRange                             -- ^ range of weapon.
 } deriving (Show, Eq, Read)
         
 

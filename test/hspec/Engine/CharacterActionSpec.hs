@@ -42,7 +42,7 @@ testJob = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "0"
     , Chara.disarmTrapAbility    = parse' "0"
     , Chara.needParameter        = Parameter { strength = 11, iq = 0, piety = 0, vitality = 0, agility = 0, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [], Item.targetB = [], Item.damage = parse' "2d2", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [] }
+    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [], Item.targetB = [], Item.damage = parse' "2d2", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
     , Chara.fightTryCount        = parse' "1"
     , Chara.fightHitBonus        = parse' "2"
     , Chara.baseAC               = parse' "10"

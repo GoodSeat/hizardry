@@ -173,18 +173,18 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                                 [(Key "l", selectBattleCommand i cmds con surprise)
                                 ,(Key "r", readSpell inspect cid)
                                 ]
-            cms = [( Key "f"
-                   , selectFightTarget fts next cancel
+            cms = [( Key "a"
+                   , selectFightTarget c fts next cancel
+                   , Chara.Ambush `elem` cs')
+                  ,( Key "f"
+                   , selectFightTarget c fts next cancel
                    , Chara.Fight `elem` cs')
-                  ,( Key "p"
-                   , next Parry
-                   , Chara.Parry `elem` cs')
                   ,( Key "h"
                    , next Hide
                    , Chara.Hide `elem` cs')
-                  ,( Key "a"
-                   , selectFightTarget fts next cancel
-                   , Chara.Ambush `elem` cs')
+                  ,( Key "p"
+                   , next Parry
+                   , Chara.Parry `elem` cs')
                   ,( Key "s"
                    , inputSpell c spellCommand battleCommand (\s l -> next $ Spell s l) cancel
                    , Chara.Spell `elem` cs')
@@ -201,23 +201,24 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                    , events [None] (selectBattleCommand i cmds con surprise)
                    , True)
                   ]
-            toMsg cmd = case cmd of Chara.Fight   -> "^F)ight`*\n"
+            toMsg cmd = case cmd of Chara.Fight   -> if Chara.Ambush `elem` cs' then "^F)ight\n" else "^F)ight`*\n"
                                     Chara.Spell   -> "^S)pell\n"
-                                    Chara.Hide    -> "^H)ide\n"
-                                    Chara.Ambush  -> "^A)mbush\n"
+                                    Chara.Hide    -> if Chara.Fight `elem` cs' then "^H)ide\n" else"^H)ide`*\n" 
+                                    Chara.Ambush  -> "^A)mbush`*\n"
                                     Chara.Dispell -> "^D)ispell\n"
                                     Chara.Run     -> "^R)un\n"
-                                    Chara.Parry   -> if Chara.Fight `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
+                                    Chara.Parry   -> if Chara.Fight `elem` cs' || Chara.Hide `elem` cs' || Chara.Ambush `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
                                     Chara.UseItem -> "^U)se Item\n"
         in run $ selectWhen1 (battleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
 
-selectFightTarget :: [EnemyLine] -> (Action -> GameMachine) -> GameMachine -> GameMachine
-selectFightTarget fts next cancel = GameAuto $ do
-    ess <- lastEnemies
+selectFightTarget :: Chara.Character -> [EnemyLine] -> (Action -> GameMachine) -> GameMachine -> GameMachine
+selectFightTarget c fts next cancel = GameAuto $ do
+    ess   <- lastEnemies
+    wattr <- weaponAttrOf c
     let cmds = cmdNumsWhen (length ess) $ \i -> ((next . Fight . toEnemyLine) i, toEnemyLine i `elem` fts)
         minl = enemyLineToNum $ minimum fts
         maxl = enemyLineToNum $ maximum fts
-    run $ if length ess == 1 then next (Fight L1)
+    run $ if length ess == 1 || Item.targetRange wattr == Item.ToAll then next (Fight L1)
           else selectWhen1 (battleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")\n\n^L)eave `[`E`S`C`]")
                            (cmds ++ [(Key "l", cancel, True), (Key "\ESC", cancel, True)])
 
