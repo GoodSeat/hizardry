@@ -265,7 +265,8 @@ runGame render cmd s w g = do
     else do
       render e w'
       i <- cmd itype
-      runGame render cmd s w' (next' i)
+      let w'' = w' { debugMessage = show i : debugMessage w' }
+      runGame render cmd s w'' (next' i)
 
 
 loadGame :: [Input]

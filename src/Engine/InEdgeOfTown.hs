@@ -22,16 +22,17 @@ inEdgeOfTown = GameAuto $ do
     movePlace InEdgeOfTown
     notnull  <- not . null . party <$> world
     toCastle <- home
-    run $ selectWhen msg [(Key "m", enteringMaze, notnull)
-                         ,(Key "t", inTrainingGrounds, True)
-                         ,(Key "r", restartAnOutParty 0, True)
-                         ,(Key "c", toCastle, True)
-                         ,(Key "q", exitGame, True)]
+    run $ selectWhenEsc msg [(Key "c", toCastle, True)
+                            ,(Key "m", enteringMaze, notnull)
+                            ,(Key "t", inTrainingGrounds, True)
+                            ,(Key "r", restartAnOutParty 0, True)
+                            ,(Key "q", exitGame, True)
+                            ]
   where
     msg = message $ "^M)aze\n"
                  ++ "^T)raining Grounds\n"
                  ++ "^R)estart an \"OUT\" Party\n"
-                 ++ "Return to the ^C)astle\n"
+                 ++ "Return to the ^C)astle `[`E`S`C`]\n"
                  ++ "^Q)uit Game\n"
 
 -- =======================================================================

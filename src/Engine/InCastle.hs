@@ -24,18 +24,18 @@ inCastle :: GameMachine
 inCastle = GameAuto $ do
     movePlace InCastle
     notnull <- not . null . party <$> world
-    run $ selectWhen msg [(Key "g", inGilgamesh'sTarvern, True)
-                         ,(Key "a", inAdventure'sInn, notnull)
-                         ,(Key "b", inBoltac'sTradingPost, notnull)
-                         ,(Key "t", inTempleOfCant, notnull)
-                         ,(Key "e", inEdgeOfTown, True)
-                         ]
+    run $ selectWhenEsc msg [(Key "e", inEdgeOfTown, True)
+                            ,(Key "g", inGilgamesh'sTarvern, True)
+                            ,(Key "a", inAdventure'sInn, notnull)
+                            ,(Key "b", inBoltac'sTradingPost, notnull)
+                            ,(Key "t", inTempleOfCant, notnull)
+                            ]
   where
     msg = message $ "^G)ilgamesh's Tarvern\n"
                  ++ "^A)dventure's Inn\n"
                  ++ "^B)oltac's Trading Post\n"
                  ++ "^T)emple of Cant\n"
-                 ++ "^E)dge of Town\n"
+                 ++ "^E)dge of Town `[`E`S`C`]\n"
 
 -- =======================================================================
 
@@ -115,7 +115,7 @@ selectStayPlan id = GameAuto $ do
     let nam = Character.name c
         gp  = Character.gold c
         msg = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
-                     ++ "We have:\n"
+                     ++ "We have:\n\n"
                      ++ "^A)The Stables        (FREE)\n"
                      ++ "^B)A Cot               10 G.P/Week\n"
                      ++ "^C)Economy Rooms       50 G.P/Week\n"

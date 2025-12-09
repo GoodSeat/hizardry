@@ -42,7 +42,7 @@ type ActionOfCharacter = CharacterID  -- ^ id of actor.
 
 msgBlink :: [String] -> [Event]
 msgBlink [] = []
-msgBlink (m:ms) = messageTime 1 (unlines $ head ls : ("" <$ tail ls)) Nothing : (message <$> ms)
+msgBlink (m:ms) = messageTime 2 (unlines $ head ls : ("" <$ tail ls)) Nothing : (message <$> m : ms)
   where ls = lines m
 
 fightOfCharacter :: ActionOfCharacter
@@ -63,7 +63,7 @@ fightOfCharacter id el next = GameAuto $ do
         ms <- fightMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
         return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
-                                       else with [update] . toEffect False (head ms) . events (toM $ tail ms)
+                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
       run $ foldr ($) next nexts
 
 fightDamage :: EnemyLine
@@ -160,7 +160,7 @@ ambushOfCharacter id el next = GameAuto $ do
         ms <- ambushMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
         return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
-                                       else with [update] . toEffect False (head ms) . events (toM $ tail ms)
+                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
       run $ foldr ($) next nexts
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
@@ -469,7 +469,7 @@ aliveEnemyLineRandom el = do
 -- ================================================================================
 
 toEffect :: Bool -> String -> GameMachine -> GameMachine
-toEffect fromEnemy msg next = e1
+toEffect fromEnemy msg next = e0
   where
     d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
                                              , sceneTrans = sceneTrans w . translate ( 0,  1) }
@@ -483,6 +483,7 @@ toEffect fromEnemy msg next = e1
     d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
                                              , sceneTrans = id }
                                       else w { enemyTrans = id }
+    e0  =             select (head $ msgBlink [msg])         [(Clock, e1), (AnyKey, with [d4] next)]
     e1  = with [d1] $ select (messageTime (-40) msg Nothing) [(Clock, e2), (AnyKey, with [d4] next)]
     e2  = with [d2] $ select (messageTime (-30) msg Nothing) [(Clock, e3), (AnyKey, with [d4] next)]
     e3  = with [d3] $ select (messageTime (-40) msg Nothing) [(Clock, e4), (AnyKey, with [d4] next)]

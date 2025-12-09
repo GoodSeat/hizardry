@@ -85,7 +85,7 @@ evalWith m f = do
     w <- world
     let (res, g') = evalFormula m f $ randomGen w
     put w { randomGen = g' }
-    msgDebug $ "    " ++ show f ++ " = " ++ show res
+--  msgDebug $ "    " ++ show f ++ " = " ++ show res
     case res of Right i   -> return i
                 Left  msg -> err msg
 
