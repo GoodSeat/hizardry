@@ -4136,7 +4136,7 @@ treasureChest = fromTextsSGR ' '
   ,"                                                                           "   --   19
   ,"                                                                           "   --   20
   ,"                                                                           "   --   21
-  ,"                                            HmxvT                          "   --   22
+  ,"                                                                           "   --   22
   ,"                                MM@MHHbkk+?4bbWHh_7                        "   --   23
   ,"                    MNggK7TH@@Hm+JWHWfWpfWW,,yWWWW,d                       "   --   24
   ,"                  NNN#HHHHa-?pHWfhYdkfWWfWWW2dpWWpb_                       "   --   25
@@ -4177,22 +4177,22 @@ treasureChest = fromTextsSGR ' '
   ,"                                                                           "   --   19
   ,"                                                                           "   --   20
   ,"                                                                           "   --   21
-  ,"                                            bbbbb                          "   --   22
-  ,"                                bbbbbbbbbbbBBrrrrbb                        "   --   23
-  ,"                    bbbbbbbbbbbbrryyyYrrrryyyyrrrrrb                       "   --   24
-  ,"                  bbrrryyyYYrRRRrrrryyYrrrryyyyrrrrB                       "   --   25
-  ,"                  brrrrrryyYYrrrrrrrryyYrrrryyyyrrrrB                      "   --   26
-  ,"                 brrrrrrrryyYYrRRRrrryyyyrrrryyyrrrrB                      "   --   27
-  ,"                 brrrrrrrrryyYYrRRRryYYyyrrrryyyrrrrB                      "   --   28
-  ,"                 brrrrrrrrryyYYrRRRrryyyyrrrryyyrrrrB                      "   --   29
-  ,"                 brrrrrrrrryyyYYrRRRryyyyrrrryyyrrrrB                      "   --   30
-  ,"                 BrrrrrrrrrryyYYrRRRryyyyrrrryyyrrrrB                      "   --   31
-  ,"                 BrrrrrrrrrryyYYrRRRryyyyrrrryyyrrrrB                      "   --   32
-  ,"                 BBrrrrrrrrryyYYrRRRryyyyrrrryyyBBBBB                      "   --   33
-  ,"                   BBrrrrrrryyYYrRRRryyyyrrrBBBBBBBBBBB                    "   --   34
-  ,"                     BBrrrrryyYYrRRRryyyyBB      BBBB                      "   --   35
-  ,"                        BBrryyYYrrrr BBBB                                  "   --   36
-  ,"                          BBBBBYBBBBBBBBBBB                                "   --   37
+  ,"                                                                           "   --   22
+  ,"                                ###################                        "   --   23
+  ,"                    ################################                       "   --   24
+  ,"                  ##################################                       "   --   25
+  ,"                  ##################################B                      "   --   26
+  ,"                 ####################################                      "   --   27
+  ,"                 ####################################                      "   --   28
+  ,"                 ####################################                      "   --   29
+  ,"                 ####################################                      "   --   30
+  ,"                 ####################################                      "   --   31
+  ,"                 ####################################                      "   --   32
+  ,"                 BB#############################BBBBB                      "   --   33
+  ,"                   BB#######################BBBBBBBBBBB                    "   --   34
+  ,"                     BB##################BB      BBBB                      "   --   35
+  ,"                        BB###########BBBB                                  "   --   36
+  ,"                          BBBBBBBBBBBBBBBBB                                "   --   37
   ,"                               BBBBBBBBBBBBBB                              "   --   38
   ,"                                                                           "   --   39
   ,"                                                                           "]  --   40
@@ -4201,7 +4201,7 @@ treasureChest = fromTextsSGR ' '
 
 
 treasure :: Craphic
-treasure = fromTextsA ' ' 'y'
+treasure = fromTexts ' '
   ["                                                                           "   --   1
   ,"                                                                           "   --   2
   ,"                                                                           "   --   3
