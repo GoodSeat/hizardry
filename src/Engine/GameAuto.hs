@@ -254,10 +254,10 @@ type GameMachine = GameAuto Input Event
 --
 
 runGame :: (Event -> World -> IO a) -- ^ renderer of game.
-        -> (InputType -> IO Input)   -- ^ input command.
-        -> Scenario                  -- ^ game scenario.
-        -> World                     -- ^ current environment.
-        -> GameMachine               -- ^ target GameMachine.
+        -> (InputType -> IO Input)  -- ^ input command.
+        -> Scenario                 -- ^ game scenario.
+        -> World                    -- ^ current environment.
+        -> GameMachine              -- ^ target GameMachine.
         -> IO World
 runGame render cmd s w g = do
     let (e, w', itype, next') = stepGame s w g
@@ -271,10 +271,10 @@ runGame render cmd s w g = do
 
 loadGame :: [Input]
          -> (Event -> World -> IO a) -- ^ renderer of game.
-         -> (InputType -> IO Input)   -- ^ input command.
-         -> Scenario                  -- ^ game scenario.
-         -> World                     -- ^ initial environment.
-         -> GameMachine               -- ^ initial GameMachine.
+         -> (InputType -> IO Input)  -- ^ input command.
+         -> Scenario                 -- ^ game scenario.
+         -> World                    -- ^ initial environment.
+         -> GameMachine              -- ^ initial GameMachine.
          -> IO World
 loadGame [] render cmd s w g = runGame render cmd s w g
 loadGame (i:is) render cmd s w g = do
