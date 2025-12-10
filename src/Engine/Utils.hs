@@ -63,7 +63,8 @@ parse'D :: String -> String -> (Formula -> GameMachine) -> GameMachine
 parse'D s help next = GameAuto $ do
     w <- world
     if debugMode w then return (ask (help ++ "\n orginal:" ++ s ++ "\n (emtpy to use original.)") Nothing
-                               , \(Key s') -> next $ parse' (if null s' then s else s'))
+                               , \(Key s') -> let s'' = filter (/= ' ') . filter (/= '\r') . filter (/= '\n') $ s'
+                                              in next $ parse' (if null s'' then s else s'))
                    else run $ next (parse' s)
 
 fst3 (t1, _, _) = t1
