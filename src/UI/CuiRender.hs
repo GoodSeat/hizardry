@@ -1,4 +1,8 @@
-module UI.CuiRender where
+module UI.CuiRender (
+      cuiRender
+    , renderWithCache
+    , render
+    ) where
 
 import Control.Monad
 import Data.List (isPrefixOf, intersperse)
@@ -17,15 +21,28 @@ import qualified Data.Items as Item
 
 -- ========================================================================
 
+windowW = 75
+windowH = 40
+
+debugWindowH = 10
+
 type RenderMethod = Bool    -- ^ visible of debug window.
                  -> Craphic -- ^ target craphic.
                  -> IO ()
 
-type DisplayIO = Scenario -> Event -> World -> IO()
+render :: RenderMethod
+render showDebugWindow = if showDebugWindow then draw (windowW + 2, windowH + 2 + (debugWindowH + 3))
+                                            else draw (windowW + 2, windowH + 2)
 
-cuiRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> DisplayIO
-cuiRender rm picOf s (General            (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) Nothing p w
-cuiRender rm picOf s (ShowStatus cid his (Display m c f t p n)) w = rendering  rm picOf s (toT m) (toT f) (toT c) (Just (cid, his)) p w
+renderWithCache :: DrawCache -> RenderMethod
+renderWithCache cache showDebugWindow = if showDebugWindow then drawWithCache (windowW + 2, windowH + 2 + (debugWindowH + 3)) cache
+                                                           else drawWithCache (windowW + 2, windowH + 2) cache
+
+-- ========================================================================
+
+cuiRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> Scenario -> DisplayIO
+cuiRender rm picOf s (General            (Display m c f t p n)) w = rendering rm picOf s (toT m) (toT f) (toT c) Nothing p w
+cuiRender rm picOf s (ShowStatus cid his (Display m c f t p n)) w = rendering rm picOf s (toT m) (toT f) (toT c) (Just (cid, his)) p w
 cuiRender rm picOf s None                                       w = cuiRender rm picOf s (wait 0 Nothing) w
 cuiRender rm _ s (ShowMap m trans) w = rm (debugMode w) (mapView m (place w) trans (visitHitory w) $ mazeInf s w)
 cuiRender rm _ _ Exit              w = undefined
@@ -144,18 +161,6 @@ visibleGuideWindow w = let inMaze = case place w of InMaze _ -> True
     in guideOn w && inMaze
 
 -- ========================================================================
-
-windowW = 75
-windowH = 40
-
-debugWindowH = 10
-
-render :: Bool -> Craphic -> IO ()
-render showDebugWindow = if showDebugWindow then draw (windowW + 2, windowH + 2 + (debugWindowH + 3))
-                                            else draw (windowW + 2, windowH + 2)
-renderWithCache :: DrawCache -> Bool -> Craphic -> IO ()
-renderWithCache cache showDebugWindow = if showDebugWindow then drawWithCache (windowW + 2, windowH + 2 + (debugWindowH + 3)) cache
-                                                           else drawWithCache (windowW + 2, windowH + 2) cache
 
 msgBox :: String -> Craphic
 msgBox m = foldl1 (<>) (fmap toText (zip [1..] ls))

@@ -106,10 +106,6 @@ main = do
     appendFile saveDataPath =<< crypt indx encKey (show Abort ++ "\n")
     void $ saveWorld w' "world.dat"
 
-
-type DisplayIO = Scenario -> Event -> World -> IO()
-type InputIO   = InputType -> IO Input
-
 -- ==========================================================================
 
 getKey :: IORef Int -> IO () -> InputIO
