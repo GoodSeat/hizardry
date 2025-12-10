@@ -93,14 +93,14 @@ main = do
     -- setting for CUI
     let picOf = maybe mempty SampleScenario.pic
     drawCache <- newDrawCache
-    let renderMethod   = renderWithCache drawCache
-        display        = cuiRender renderMethod picOf
-        display' s e w = setCursorPosition 0 0 >> display s e w
-    let cmd            = getKey indx (clearCache drawCache)
+    let renderMethod = renderWithCache drawCache
+        display      = cuiRender renderMethod picOf s
+        display' e w = setCursorPosition 0 0 >> display e w
+    let cmd          = getKey indx (clearCache drawCache)
 
     clearScreen
     hideCursor
-    w' <- run (display' s) cmd s w inCastle
+    w' <- run display' cmd s w inCastle
     showCursor
 
     appendFile saveDataPath =<< crypt indx encKey (show Abort ++ "\n")
