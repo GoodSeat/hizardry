@@ -33,7 +33,7 @@ data World = World {
 
     , visitHitory     :: !(Map.Map Coord Bool)
 
-    , inTarvernMember :: ![CharacterID]
+    , inTavernMember  :: ![CharacterID]
     , inMazeMember    :: ![(CharacterID, Position)]
     , shopItems       :: !(Map.Map ItemID Int)
 
@@ -61,7 +61,7 @@ data InitWorld = InitWorld {
     , initPartyLight'     :: !Int     -- ^ last time super milwa effect.(delete dark zone)
     , initPartyParamDelta :: ![(Term, ParamChange)]
 
-    , initInTarvernMember :: ![CharacterID]
+    , initInTavernMember  :: ![CharacterID]
     , initInMazeMember    :: ![(CharacterID, Position)]
     , initShopItems       :: !(Map.Map ItemID Int)
 
@@ -71,24 +71,24 @@ data InitWorld = InitWorld {
 initWorld :: InitWorld -> StdGen -> Bool -> World
 initWorld i rnd debugMode = World {
       randomGen       = rnd
-    , guideOn         = initGuideOn          i
-    , statusOn        = initStatusOn         i
-    , worldOption     = initWorldOption      i
+    , guideOn         = initGuideOn         i
+    , statusOn        = initStatusOn        i
+    , worldOption     = initWorldOption     i
 
-    , party           = initParty            i
-    , place           = initPlace            i
-    , roomBattled     = initRoomBattled      i
-    , partyLight      = initPartyLight       i
-    , partyLight'     = initPartyLight'      i
-    , partyParamDelta = initPartyParamDelta  i
+    , party           = initParty           i
+    , place           = initPlace           i
+    , roomBattled     = initRoomBattled     i
+    , partyLight      = initPartyLight      i
+    , partyLight'     = initPartyLight'     i
+    , partyParamDelta = initPartyParamDelta i
 
     , visitHitory     = Map.empty
 
-    , inTarvernMember = initInTarvernMember  i
-    , inMazeMember    = initInMazeMember     i
-    , shopItems       = initShopItems        i
+    , inTavernMember  = initInTavernMember  i
+    , inMazeMember    = initInMazeMember    i
+    , shopItems       = initShopItems       i
 
-    , allCharacters   = initAllCharacters    i
+    , allCharacters   = initAllCharacters   i
     , globalTime      = 0
 
     , sceneTrans      = id
@@ -101,7 +101,7 @@ initWorld i rnd debugMode = World {
 }
 
 data Place  = InCastle
-            | Gilgamesh'sTarvern 
+            | Gilgamesh'sTavern 
             | Adventure'sInn
             | Boltac'sTradingPost 
             | TempleOfCant 
@@ -170,8 +170,8 @@ saveWorld w path = do
       , "### visitHitory ###"
       , show $ visitHitory     w
 
-      , "### inTarvernMember ###"
-      , show $ inTarvernMember w
+      , "### inTavernMember ###"
+      , show $ inTavernMember w
       , "### inMazeMember ###"
       , show $ inMazeMember    w
       , "### shopItems ###"
@@ -212,7 +212,7 @@ buildWorld ls = do
     pLight'      <- readSection sections "partyLight'"
     pDelta       <- readSection sections "partyParamDelta"
     pVisit       <- readSection sections "visitHitory"
-    pTarvern     <- readSection sections "inTarvernMember"
+    pTavern      <- readSection sections "inTavernMember"
     pMaze        <- readSection sections "inMazeMember"
     pShop        <- readSection sections "shopItems"
     pChars       <- readSection sections "allCharacters"
@@ -232,7 +232,7 @@ buildWorld ls = do
         partyLight'     = pLight',
         partyParamDelta = pDelta,
         visitHitory     = pVisit,
-        inTarvernMember = pTarvern,
+        inTavernMember  = pTavern,
         inMazeMember    = pMaze,
         shopItems       = pShop,
         allCharacters   = pChars,

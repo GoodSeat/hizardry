@@ -175,14 +175,14 @@ characterInPartyAt pos = characterByID =<< characterIDInPartyAt pos
 addCharacterToParty :: CharacterID -> GameState ()
 addCharacterToParty id = modify $ \w -> w {
       party           = party w ++ [id]
-    , inTarvernMember = filter (/= id) $ inTarvernMember w
+    , inTavernMember  = filter (/= id) $ inTavernMember w
     , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
     }
 
 deleteCharacter :: CharacterID -> GameState ()
 deleteCharacter id = modify $ \w -> w {
       party           = filter (/= id) $ party w
-    , inTarvernMember = filter (/= id) $ inTarvernMember w
+    , inTavernMember  = filter (/= id) $ inTavernMember w
     , inMazeMember    = filter (\(id', _) -> id' /= id) $ inMazeMember w
     , allCharacters   = Data.Map.delete id $ allCharacters w
     }
@@ -606,4 +606,5 @@ currentPosition = do
                 FindTreasureChest p _ -> return p
                 Camping p _           -> return p
                 _                     -> err "failed on currentPosition."
+--              _                     -> return (Position N 0 0 0)
 

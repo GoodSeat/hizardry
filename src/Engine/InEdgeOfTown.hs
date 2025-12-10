@@ -71,7 +71,7 @@ restart cid = GameAuto $ do
         ps = cid : take 5 (snd <$> (ccs1 ++ ccs2))
     modify $ \w -> w {
         party = ps
-      , inTarvernMember = sort (inTarvernMember w ++ party w)
+      , inTavernMember = sort (inTavernMember w ++ party w)
       , inMazeMember = filter ((`notElem` ps) . fst) (inMazeMember w)
       }
     run $ openCamp p
@@ -88,7 +88,7 @@ enteringMaze = with [movePlace EnteringMaze] (events [msg] $ openCamp p)
 
 inTrainingGrounds :: GameMachine
 inTrainingGrounds = with [ movePlace TrainingGrounds
-                         , modify $ \w -> w { party = [], inTarvernMember = sort (inTarvernMember w ++ party w) }]
+                         , modify $ \w -> w { party = [], inTavernMember = sort (inTavernMember w ++ party w) }]
                   $ selectEsc msg [(Key "l", inEdgeOfTown)
                                   ,(Key "c", createNewCharacter)
                                   ,(Key "s", showListOfCharacters 0)
@@ -167,7 +167,7 @@ createNewCharacter = GameAuto $
 existSameName :: String -> GameState Bool
 existSameName name = do
   w <- world
-  let cids = inTarvernMember w ++ (fst <$> inMazeMember w)
+  let cids = inTavernMember w ++ (fst <$> inMazeMember w)
   ns <- map Character.name <$> mapM characterByID cids
   return $ name `elem` ns
 
@@ -303,7 +303,7 @@ makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainin
           midn = maximum $ 0 : (characterId . fst <$> Map.toList cmap)
           nid  = CharacterID $ midn + 1
       put w { allCharacters = Map.insert nid c' cmap
-            , inTarvernMember = sort (nid : inTarvernMember w) }
+            , inTavernMember = sort (nid : inTavernMember w) }
 
 
 totalParameter :: Parameter -> Int
@@ -407,10 +407,10 @@ insertCharacter cid _ cidTo = GameAuto $ do
         conv n = CharacterID $ fromJust (elemIndex n cisn) + 1
         conv2 (a, b) = (conv a, b)
     w <- world
-    put $ w { party           = conv <$> party w
-            , inTarvernMember = conv <$> inTarvernMember w
-            , inMazeMember    = conv2 <$> inMazeMember w
-            , allCharacters   = Map.fromList (conv2 <$> cs)
+    put $ w { party          = conv <$> party w
+            , inTavernMember = conv <$> inTavernMember w
+            , inMazeMember   = conv2 <$> inMazeMember w
+            , allCharacters  = Map.fromList (conv2 <$> cs)
             }
     let toPage = div toi sizePage
     run $ selectReorderTargetCharacter toPage
@@ -424,7 +424,7 @@ cmdWithCharacterListOnly be cmd (-1) = GameAuto $ do
 cmdWithCharacterListOnly be cmd page = GameAuto $ do
     mxPage <- lastPage
     cids   <- take sizePage . drop (page * sizePage) . sortOn fst . Map.toList . allCharacters <$> world 
-    inCids <- inTarvernMember <$> world 
+    inCids <- inTavernMember <$> world 
     if page > mxPage then run $ cmdWithCharacterListOnly be cmd 0
     else if null cids then run inTrainingGrounds
     else do
@@ -447,7 +447,7 @@ cmdWithCharacterList = cmdWithCharacterListOnly $ const True
 
 cmdWithCharacterListOnlyIn :: (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
 cmdWithCharacterListOnlyIn cmd page = GameAuto $ do
-    inCids <- inTarvernMember <$> world 
+    inCids <- inTavernMember <$> world 
     run $ cmdWithCharacterListOnly (`elem` inCids) cmd page
 
 sizePage :: Int

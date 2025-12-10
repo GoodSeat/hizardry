@@ -218,7 +218,7 @@ returnToCastle = do
     modify $ \w -> w {
         partyParamDelta = []
       , party           = filter (not . (`elem` rcis)) $ party w
-      , inTarvernMember = sort $ inTarvernMember w ++ rcis
+      , inTavernMember  = sort $ inTavernMember w ++ rcis
       }
 
 

@@ -155,7 +155,7 @@ initialWorld = World {
     , partyLight = 0, partyLight' = 0
     , partyParamDelta = []
     , visitHitory = Map.empty
-    , inTarvernMember = []
+    , inTavernMember = []
     , inMazeMember = []
     , shopItems = Map.empty
     , sceneTrans = id, enemyTrans = id, frameTrans = id

@@ -25,13 +25,13 @@ inCastle = GameAuto $ do
     movePlace InCastle
     notnull <- not . null . party <$> world
     run $ selectWhenEsc msg [(Key "e", inEdgeOfTown, True)
-                            ,(Key "g", inGilgamesh'sTarvern, True)
+                            ,(Key "g", inGilgamesh'sTavern, True)
                             ,(Key "a", inAdventure'sInn, notnull)
                             ,(Key "b", inBoltac'sTradingPost, notnull)
                             ,(Key "t", inTempleOfCant, notnull)
                             ]
   where
-    msg = message $ "^G)ilgamesh's Tarvern\n"
+    msg = message $ "^G)ilgamesh's Tavern\n"
                  ++ "^A)dventure's Inn\n"
                  ++ "^B)oltac's Trading Post\n"
                  ++ "^T)emple of Cant\n"
@@ -39,15 +39,15 @@ inCastle = GameAuto $ do
 
 -- =======================================================================
 
-inGilgamesh'sTarvern :: GameMachine
-inGilgamesh'sTarvern = GameAuto $ do
-    movePlace Gilgamesh'sTarvern
+inGilgamesh'sTavern :: GameMachine
+inGilgamesh'sTavern = GameAuto $ do
+    movePlace Gilgamesh'sTavern
     np <- length . party <$> world
-    cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter inGilgamesh'sTarvern False) (const True)
+    cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter inGilgamesh'sTavern False) (const True)
     run $ selectWhenEsc msg $ (Key "l", inCastle, True)
                             : (Key "a", selectCharacterAddToParty 0, np < 6)
                             : (Key "r", selectCharacterRemoveFromParty, np > 0)
-                            : (Key "d", with [divvyGold] inGilgamesh'sTarvern, np > 0)
+                            : (Key "d", with [divvyGold] inGilgamesh'sTavern, np > 0)
                             : cmdsInspect
   where
     msg = message $ "^A)dd Character to Party\n"
@@ -59,7 +59,7 @@ inGilgamesh'sTarvern = GameAuto $ do
 selectCharacterAddToParty :: Int -> GameMachine
 selectCharacterAddToParty page = GameAuto $ do
     np  <- length . party <$> world
-    ids <- inTarvernMember <$> world
+    ids <- inTavernMember <$> world
     if page /= 0 && page * 9 >= length ids then run $ selectCharacterAddToParty 0
     else if page < 0 then run $ selectCharacterAddToParty ((length ids - 1) `div` 9)
     else do
@@ -67,14 +67,14 @@ selectCharacterAddToParty page = GameAuto $ do
       cs  <- mapM characterByID ids'
       let msg = "^#)Add to Party  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
               ++ unlines (toShow <$> zip [1..] cs)
-      let lst = (Key "l", inGilgamesh'sTarvern)
+      let lst = (Key "l", inGilgamesh'sTavern)
               : (Key "n", selectCharacterAddToParty $ page + 1)
               : (Key "p", selectCharacterAddToParty $ page - 1)
               : cmdNums (length cs) (\i ->
                   if np == 0 && mustGotoTemple (cs !! (i - 1)) then selectCharacterAddToParty page
                                                                else addParty (ids' !! (i - 1))
                   )
-      run $ if np >= 6 || null ids then inGilgamesh'sTarvern
+      run $ if np >= 6 || null ids then inGilgamesh'sTavern
                                    else selectEsc (message msg) lst
   where
     addParty id = with [addCharacterToParty id] (selectCharacterAddToParty page)
@@ -83,16 +83,16 @@ selectCharacterAddToParty page = GameAuto $ do
 selectCharacterRemoveFromParty :: GameMachine
 selectCharacterRemoveFromParty = GameAuto $ do
     cs <- party <$> world
-    if null cs then run inGilgamesh'sTarvern
+    if null cs then run inGilgamesh'sTavern
     else do
       cmds <- cmdNumPartiesID $ \(_, cid) -> removeParty cid
       run $ selectEsc (message "^#)Remove from Party    ^L)eave `[`E`S`C`]") $
-                      (Key "l", inGilgamesh'sTarvern) : cmds
+                      (Key "l", inGilgamesh'sTavern) : cmds
   where
     removeParty cid = GameAuto $ do
       w <- world
-      put $ w { party           = filter (/= cid) (party w)
-              , inTarvernMember = sort $ cid : inTarvernMember w }
+      put $ w { party          = filter (/= cid) (party w)
+              , inTavernMember = sort $ cid : inTavernMember w }
       run selectCharacterRemoveFromParty
 
 -- =======================================================================
@@ -433,20 +433,25 @@ doUncurse cid pos val toMsg = GameAuto $ do
 inTempleOfCant :: GameMachine
 inTempleOfCant = GameAuto $ do
     movePlace TempleOfCant
-    cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do 
-              c <- characterByID i
-              run $ if mustGotoTemple c then inTempleOfCant
-                                        else selectCureTarget i 0
-    run $ selectEsc msg $ (Key "l", inCastle) : cmds
+    ids <- filterM (fmap mustGotoTemple . characterByID) . inTavernMember =<< world
+    if null ids then
+      run (events [flashAndMessageTime (-2000) msg "\n  No body in tavern needs cure.  \n " Nothing] inCastle)
+    else do
+      cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do 
+          c <- characterByID i
+          run $ if mustGotoTemple c then inTempleOfCant
+                                    else selectCureTarget i 0
+      run $ selectEsc (message msg) $ (Key "l", inCastle) : cmds
   where
-    msg = message $ "Who will enter?\n\n"
-                 ++ "^#)Select\n"
-                 ++ "^L)eave `[`E`S`C`]\n"
+    msg = "Who will enter?\n\n"
+       ++ "^#)Select\n"
+       ++ "^L)eave `[`E`S`C`]\n"
 
 selectCureTarget :: CharacterID -> Int -> GameMachine
 selectCureTarget id page = GameAuto $ do
-    ids <- filterM (fmap mustGotoTemple . characterByID) . inTarvernMember =<< world
-    if page /= 0 && page * 9 >= length ids then run $ selectCureTarget id 0
+    ids <- filterM (fmap mustGotoTemple . characterByID) . inTavernMember =<< world
+    if null ids then run inCastle
+    else if page /= 0 && page * 9 >= length ids then run $ selectCureTarget id 0
     else if page < 0 then run $ selectCureTarget id ((length ids - 1) `div` 9)
     else do
       let ids' = take 9 . drop (page * 9) $ ids
@@ -508,7 +513,7 @@ tryCureCharacter cid cidDst = GameAuto $ do
         when (not succeed && isDead) $ updateCharacterWith cidDst $ \c -> c { Character.statusErrors = [Ash] }
         when (not succeed && isAsh ) $ do
             updateCharacterWith cidDst (\c -> c { Character.statusErrors = [Lost] })
-            modify (\w -> w { inTarvernMember = filter (/= cidDst) $ inTarvernMember w })
+            modify (\w -> w { inTavernMember = filter (/= cidDst) $ inTavernMember w })
 
         let mg | succeed   = nam ++ " has recovered !!"
                | isAsh     = nam ++ " is lost..."

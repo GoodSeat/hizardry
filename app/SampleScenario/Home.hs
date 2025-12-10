@@ -43,7 +43,7 @@ initScenario = return (s, w)
         , initPartyLight'     = 0
         , initPartyParamDelta = []
 
-        , initInTarvernMember = [
+        , initInTavernMember = [
               CharacterID 1, CharacterID 2, CharacterID 3, CharacterID 4, CharacterID 5
             ]
         , initInMazeMember    = []

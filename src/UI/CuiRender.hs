@@ -121,7 +121,7 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
     itemDefOf = (Map.!) (Engine.GameAuto.items s)
     locationText = if isJust cid' then "" else
                    case place w of InCastle            -> "Castle" 
-                                   Gilgamesh'sTarvern  -> "ギルガメッシュの酒場" --"Gilgamesh's Tarvern"
+                                   Gilgamesh'sTavern   -> "ギルガメッシュの酒場" --"Gilgamesh's Tavern"
                                    Adventure'sInn      -> "Adventure's Inn"
                                    Boltac'sTradingPost -> "Boltac's Trading Post"
                                    TempleOfCant        -> "Temple of Cant"
@@ -405,7 +405,7 @@ scene (Camping p _)           onLight superLight = do
 scene InCastle                _       _          = const $ translate (0, 2) city2
 scene InEdgeOfTown            _       _          = const $ translate (0, 2) edgeOfTown
 scene EnteringMaze            onLight superLight = scene InEdgeOfTown onLight superLight
-scene Gilgamesh'sTarvern      _       _          = const $ translate (0, 2) tarvern
+scene Gilgamesh'sTavern       _       _          = const $ translate (0, 2) tavern
 scene _                       _       _          = const mempty
 
 
@@ -4019,8 +4019,8 @@ city2 = fromTextsA ' ' 'B'
 --           1         2         3         4         5         6         7
 --
 
-tarvern :: Craphic
-tarvern = fromTextsA ' ' 'B'
+tavern :: Craphic
+tavern = fromTextsA ' ' 'B'
   ["+?;:_~<?1zHWNWb                             ~~:::::;>:;;;<?z>1z?+?=zzz=lOtzvOtrr"   --    1
   ,"z1<<~<(judS+zZ0                            (:<(;:;;;<:;;<+=z>11???=zz?zlllzzZltt"   --    2
   ,"<+<<~~~_(j(-..~                  +         +>>>?><<<z+>>?+=z?zO???zlz?O=OlzvIllt"   --    3
