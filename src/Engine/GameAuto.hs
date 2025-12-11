@@ -46,6 +46,7 @@ data Scenario = Scenario {
     , enemies        :: !Enemy.DB
     , spells         :: !Spell.DB
     , items          :: !Item.DB
+    , encKey         :: !String
     }
 data InitScenario = InitScenario {
       initScenarioOption :: !ScenarioOption
@@ -62,6 +63,7 @@ data InitScenario = InitScenario {
     , initEnemies        :: !Enemy.DB
     , initSpells         :: !Spell.DB
     , initItems          :: !Item.DB
+    , initEncKey         :: !String
     }
 
 initScenario :: InitScenario -> GameMachine -> Scenario
@@ -81,6 +83,7 @@ initScenario i home = Scenario {
     , enemies                   = initEnemies        i
     , Engine.GameAuto.spells    = initSpells         i
     , Engine.GameAuto.items     = initItems          i
+    , encKey                    = initEncKey         i
 }
 
 -- ==========================================================================

@@ -19,7 +19,6 @@ import qualified Data.Bits as Bits
 import Engine.GameAuto
 import Engine.InCastle (inCastle)
 import Data.World (saveWorld, initWorld)
-import qualified Data.Enemies as Enemy
 
 import Control.CUI
 import UI.CuiRender (cuiRender, renderWithCache)
@@ -44,13 +43,10 @@ import qualified SampleScenario.Home as SampleScenario
 -- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int
 -- *   zip compression with secret keyword. using another exe? deflate?
 
-encKey :: String
-encKey = "hizardry-secret-key"
-
 saveDataPath = "rtsd.iks" -- path of "real time save data(input keys)"
 
 crypt :: IORef Int -> String -> String -> IO String
-crypt indx key text = do
+crypt indx key text = if null key then return text else do
     n <- readIORef indx
     modifyIORef indx (+ length text)
     return $ crypt' (drop n $ cycle key) text
@@ -72,10 +68,11 @@ main = do
 
     existSaveData <- doesFileExist saveDataPath
     indx <- newIORef 0
+    let ekey = encKey s
     
     (run, reset) <- if not existSaveData then return (runGame, True) else do
         c  <- readFile saveDataPath
-        ls <- lines <$> crypt indx encKey c
+        ls <- lines <$> crypt indx ekey c
         if length ls > 1 && take 3 (read $ head ls :: [Int]) == take 3 currentVersion then do
           let is  = read <$> filter (not . null) (tail ls)
               is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
@@ -83,7 +80,7 @@ main = do
         else
           return (runGame, True)
 
-    when reset $ writeFile saveDataPath =<< crypt indx encKey (show currentVersion ++ "\n")
+    when reset $ writeFile saveDataPath =<< crypt indx ekey (show currentVersion ++ "\n")
              
     -- setting for CUI
     let picOf = maybe mempty SampleScenario.pic
@@ -91,20 +88,20 @@ main = do
     let renderMethod = renderWithCache drawCache
         display      = cuiRender renderMethod picOf s
         display' e w = setCursorPosition 0 0 >> display e w
-    let cmd          = getKey indx (clearCache drawCache)
+    let cmd          = getKey indx ekey (clearCache drawCache)
 
     clearScreen
     hideCursor
     w' <- run display' cmd s w inCastle
     showCursor
 
-    appendFile saveDataPath =<< crypt indx encKey (show Abort ++ "\n")
+    appendFile saveDataPath =<< crypt indx ekey (show Abort ++ "\n")
     void $ saveWorld w' "world.dat"
 
 -- ==========================================================================
 
-getKey :: IORef Int -> IO () -> InputIO
-getKey indx refresh itype = do
+getKey :: IORef Int -> String -> IO () -> InputIO
+getKey indx encKey refresh itype = do
     i <- getKey' itype
     appendFile saveDataPath =<< crypt indx encKey (show i ++ "\n")
     return i

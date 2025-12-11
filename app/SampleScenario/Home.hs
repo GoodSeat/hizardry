@@ -92,6 +92,7 @@ initScenario = return (s, w)
         , initEnemies        = SampleEnemies.enemies
         , initSpells         = SampleSpells.spells
         , initItems          = SampleItems.items
+        , initEncKey         = "hizardry-secret-key"
         }
     param = Parameter {
           strength = 12
