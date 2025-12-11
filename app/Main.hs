@@ -7,23 +7,18 @@ import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
 import System.Console.ANSI (clearScreen, clearLine, hideCursor, showCursor, setCursorPosition, cursorUp)
 import System.Directory
 import System.Random
-import qualified Data.Map as Map
-import Data.Maybe (maybe)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void, when)
+import qualified Data.Map as Map
+import Data.Maybe (maybe)
 import Data.Char (ord, chr)
+import Data.IORef
 import qualified Data.Bits as Bits
 
 import Engine.GameAuto
-import Engine.InCastle
-import Engine.Utils
-import Data.Primitive
-import Data.Characters (ItemPos(..))
-import Data.World
-import Data.Formula
-import Data.Maze
-import Data.IORef
+import Engine.InCastle (inCastle)
+import Data.World (saveWorld, initWorld)
 import qualified Data.Enemies as Enemy
 
 import Control.CUI
