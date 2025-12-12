@@ -122,6 +122,7 @@ testScenario = initScenario (InitScenario {
     , initEnemies        = Map.fromList [(EnemyID 1, testEnemyDefine), (EnemyID 2, resistantEnemyDefine)] -- Added resistant enemy
     , initSpells         = Map.empty
     , initItems          = Map.empty
+    , initEncKey         = ""
     }) mockGameMachine
 
 initialCaster :: Chara.Character
