@@ -253,7 +253,7 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                                    . replaceLine "[AC]"    (show ac) (Right 4)
                                    . replaceLine "[HP]"    (show $ hp c) (Right 5)
                                    . replaceLine "[STAT]"  (show $ maxhp c) (Right 6) -- TODO:statue error/command in battle
-                                   . replaceLine "@"       (if isLvUp c then "@" else " ") (Left 1)
+                                   . replaceLine "@"       (if isLvUp c then "@" else "|") (Left 1)
                                    $ statusPlaceHolder ) sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
