@@ -462,8 +462,7 @@ cmdWithCharacterListOnly be cmd page = GameAuto $ do
     if page > mxPage then run $ cmdWithCharacterListOnly be cmd 0
     else if null cids then run inTrainingGrounds
     else do
-      let toT (cid, c) = Character.name c ++ rightString 45 (take 3 $ Character.jobName $ Character.job c)
-                                          ++ rightString  5 (if cid `elem` inCids then "IN" else "OUT")
+      let toT (cid, c) = Character.toText 30 c ++ rightString  4 (if cid `elem` inCids then "IN" else "OUT")
       let cst'= zip (zipWith (++) ((++")") . show <$> [1..]) (toT <$> cids)) (be . fst <$> cids)
           cst = fmap (\(l, valid) -> if valid then '^' : l else '`' : intersperse '`' l) cst'
           msg = message $ "^N)ext list  ^P)revious list  ^#)" ++ fst cmd ++"  ^L)eave `[`E`s`c`]"

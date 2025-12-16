@@ -33,8 +33,7 @@ import qualified SampleScenario.Home as SampleScenario
 -- * other events
 -- * make backup data / load backup data
 --
--- * config
--- *   all cure when sleep / when return castle(-> delete INN)
+-- * config (worldOption)
 --
 -- * item encyclopedia
 -- * enemy encyclopedia

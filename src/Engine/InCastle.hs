@@ -13,7 +13,7 @@ import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Primitive
 import Data.Bifunctor (bimap)
-import Data.List (sort, sortOn, find)
+import Data.List (sort, sortOn, find, intersperse)
 import Data.Maybe (catMaybes)
 import Data.Formula
 import Data.Char (toLower)
@@ -58,27 +58,33 @@ inGilgamesh'sTavern = GameAuto $ do
 
 selectCharacterAddToParty :: Int -> GameMachine
 selectCharacterAddToParty page = GameAuto $ do
-    np  <- length . party <$> world
+    ps <- mapM characterByID . party =<< world
+    np <- length . party <$> world
+    ignoreA <- ignoreAlignment . worldOption <$> world
+    let existG = Character.G `elem` (Character.alignment <$> ps)
+        existE = Character.E `elem` (Character.alignment <$> ps)
+        baseEn c = np /= 0 || not (mustGotoTemple c)
+        canAdd c | existG    = baseEn c && (ignoreA || Character.alignment c /= Character.E)
+                 | existE    = baseEn c && (ignoreA || Character.alignment c /= Character.G)
+                 | otherwise = baseEn c
     ids <- inTavernMember <$> world
     if page /= 0 && page * 9 >= length ids then run $ selectCharacterAddToParty 0
     else if page < 0 then run $ selectCharacterAddToParty ((length ids - 1) `div` 9)
     else do
       let ids' = take 9 . drop (page * 9) $ ids
+          toShow (n, c) = if canAdd c then show n ++ ") " ++ Character.toText 33 c
+                                      else "   `" ++ intersperse '`' (Character.toText 33 c)
       cs  <- mapM characterByID ids'
       let msg = "^#)Add to Party  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
               ++ unlines (toShow <$> zip [1..] cs)
       let lst = (Key "l", inGilgamesh'sTavern)
               : (Key "n", selectCharacterAddToParty $ page + 1)
               : (Key "p", selectCharacterAddToParty $ page - 1)
-              : cmdNums (length cs) (\i ->
-                  if np == 0 && mustGotoTemple (cs !! (i - 1)) then selectCharacterAddToParty page
-                                                               else addParty (ids' !! (i - 1))
-                  )
-      run $ if np >= 6 || null ids then inGilgamesh'sTavern
-                                   else selectEsc (message msg) lst
+              : cmdNums (length cs) (\i -> if canAdd (cs !! (i - 1)) then addParty (ids' !! (i - 1))
+                                                                     else selectCharacterAddToParty page)
+      run $ if np >= 6 || null ids then inGilgamesh'sTavern else selectEsc (message msg) lst
   where
     addParty id = with [addCharacterToParty id] (selectCharacterAddToParty page)
-    toShow (n, c) = show n ++ ") " ++ Character.name c
 
 selectCharacterRemoveFromParty :: GameMachine
 selectCharacterRemoveFromParty = GameAuto $ do

@@ -32,10 +32,7 @@ initScenario = return (s, w)
     w = InitWorld {
           initGuideOn         = True
         , initStatusOn        = True
-        , initWorldOption     = WorldOption {
-              effectDumapic = Spell.ViewMap
-            , minimapType   = Normal
-            }
+        , initWorldOption     = defaultWorldOption
         , initParty           = []
         , initPlace           = InCastle
         , initRoomBattled     = []

@@ -119,10 +119,25 @@ data Place  = InCastle
 
 data MiniMapType = Disable | Normal | AlwaysN deriving (Show, Eq, Read)
 
+data HPHealType = Classic
+                | CureWhenInn          -- ^ full cured when sleep at Inn.
+                | CureWhenReturnCastle -- ^ full cured when return castle.
+    deriving (Eq, Show, Read)
+
 data WorldOption = WorldOption {
-      effectDumapic :: !Spell.CheckLocationType
-    , minimapType   :: !MiniMapType
+      effectDumapic   :: !Spell.CheckLocationType
+    , minimapType     :: !MiniMapType
+    , hpHealType      :: !HPHealType -- TODO
+    , ignoreAlignment :: !Bool
     } deriving (Eq, Show, Read)
+
+defaultWorldOption :: WorldOption
+defaultWorldOption = WorldOption {
+      effectDumapic   = Spell.ViewMap
+    , minimapType     = Normal
+    , hpHealType      = Classic
+    , ignoreAlignment = False
+    }
 
 
 -- TODO!:explicit saving(only in Edge of Town, or Castle. Auto?).
