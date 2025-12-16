@@ -4,8 +4,8 @@ import Data.Version (showVersion, versionBranch)
 import Paths_hizardry (version)
 
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
+import System.Directory (doesFileExist, createDirectoryIfMissing, listDirectory)
 import System.Console.ANSI (clearScreen, clearLine, hideCursor, showCursor, setCursorPosition, cursorUp)
-import System.Directory
 import System.Random
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
@@ -18,7 +18,7 @@ import qualified Data.Bits as Bits
 
 import Engine.GameAuto
 import Engine.InCastle (inCastle)
-import Data.World (saveWorld, initWorld)
+import Data.World (saveWorld, loadWorld, initWorld)
 
 import Control.CUI
 import UI.CuiRender (cuiRender, renderWithCache)
@@ -44,6 +44,7 @@ import qualified SampleScenario.Home as SampleScenario
 -- *   zip compression with secret keyword. using another exe? deflate?
 
 saveDataPath = "rtsd.iks" -- path of "real time save data(input keys)"
+backupDirectory = "savedata"
 
 crypt :: IORef Int -> String -> String -> IO String
 crypt indx key text = if null key then return text else do
@@ -92,11 +93,28 @@ main = do
 
     clearScreen
     hideCursor
-    w' <- run display' cmd s w inCastle
+    w' <- run display' cmd updateBackUpList savingGame loadingGame s w inCastle
     showCursor
 
     appendFile saveDataPath =<< crypt indx ekey (show Abort ++ "\n")
     void $ saveWorld w' "world.dat"
+
+-- ==========================================================================
+--TODO:WIP
+
+updateBackUpList :: UpdateBackUpList
+updateBackUpList = do
+    createDirectoryIfMissing True backupDirectory
+    listDirectory backupDirectory
+
+savingGame :: SavingGame
+savingGame slot tag w = Just <$> saveWorld w (backupDirectory ++ "/backup." ++ show slot)
+
+loadingGame :: LoadingGame
+loadingGame slot = do
+    res <- loadWorld $ backupDirectory ++ "/backup." ++ show slot
+    return $ case res of Right w -> Just w
+                         Left  _ -> Nothing
 
 -- ==========================================================================
 

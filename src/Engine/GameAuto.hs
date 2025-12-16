@@ -107,36 +107,64 @@ type GameMachine = GameAuto Input Event
 
 -- ==========================================================================
 --
-type DisplayIO = Event -> World -> IO()
+type DisplayIO = Event -> World -> IO () -- TODO:event for display must be another data of Event.(because SaveGame and LoadGame has no meaning.)
 type InputIO   = InputType -> IO Input
+
+type UpdateBackUpList = IO [String]
+type SavingGame  = Int -> String -> World -> IO (Maybe World)
+type LoadingGame = Int -> IO (Maybe World)
 
 runGame :: DisplayIO    -- ^ renderer of game.
         -> InputIO      -- ^ input command.
+        -> UpdateBackUpList
+        -> SavingGame
+        -> LoadingGame
         -> Scenario     -- ^ game scenario.
         -> World        -- ^ current environment.
         -> GameMachine  -- ^ target GameMachine.
         -> IO World
-runGame render cmd s w g = do
-    let (e, w', itype, next') = stepGame s w g
-    if e == Exit then return w'
-    else do
-      render e w'
-      i <- cmd itype
-      let w'' = w' { debugMessage = show i : debugMessage w' }
-      runGame render cmd s w'' (next' i)
+runGame render cmd updateBackupList saving loading s = runGame' True None
+  where
+    runGame' loadBackupList e' w g = do
+        wp <- if not loadBackupList then return w else do
+                ls <- updateBackupList 
+                return $ w { backUpSlotInfo = ls }
+        let (e, w', itype, next') = stepGame s wp g
+        if e == Exit then return w'
+        else do
+          (wn, emsg) <- case e of SaveGame i tag -> do
+                                    wh <- saving i tag w'
+                                    return $ case wh of Just wh' -> (wh', "")
+                                                        Nothing  -> (w' , "* failed data saving *")
+                                  LoadGame i     -> do
+                                    wh <- loading i
+                                    return $ case wh of Just wh' -> (wh', "")
+                                                        Nothing  -> (w' , "* failed data loading *")
+                                  _              -> return (w', "")
+          let (needUpdateBackupList, eu) = case e of SaveGame _ _ -> (True , e') -- use before event for display.
+                                                     LoadGame _   -> (True , e') -- use before event for display.
+                                                     _            -> (False, e )
+          -- TODO:if not null emsg then notiry it with flash mesesage.
+          render eu wn
+          i <- cmd itype
+          let w'' = wn { debugMessage = show i : debugMessage wn }
+          runGame' needUpdateBackupList eu w'' (next' i)
 
 
 loadGame :: [Input]
          -> DisplayIO   -- ^ renderer of game.
          -> InputIO     -- ^ input command.
+         -> UpdateBackUpList
+         -> SavingGame
+         -> LoadingGame
          -> Scenario    -- ^ game scenario.
          -> World       -- ^ initial environment.
          -> GameMachine -- ^ initial GameMachine.
          -> IO World
-loadGame [] render cmd s w g = runGame render cmd s w g
-loadGame (i:is) render cmd s w g = do
+loadGame [] render cmd update saving loading s w g = runGame render cmd update saving loading s w g
+loadGame (i:is) render cmd update saving loading s w g = do
     let (e, w', _, next') = stepGame s w g
-    loadGame is render cmd s w' (next' i)
+    loadGame is render cmd update saving loading s w' (next' i)
 
 
 stepGame :: Scenario

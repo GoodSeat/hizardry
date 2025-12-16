@@ -47,6 +47,8 @@ data World = World {
 
     , debugMode       :: !Bool
     , debugMessage    :: ![String]
+
+    , backUpSlotInfo  :: ![String]
 } -- deriving (Show)
 
 data InitWorld = InitWorld {
@@ -98,6 +100,7 @@ initWorld i rnd debugMode = World {
 
     , debugMode       = debugMode
     , debugMessage    = []
+    , backUpSlotInfo  = []
 }
 
 data Place  = InCastle
@@ -242,7 +245,8 @@ buildWorld ls = do
         sceneTrans      = id,
         enemyTrans      = id,
         frameTrans      = id,
-        debugMessage    = []
+        debugMessage    = [],
+        backUpSlotInfo  = []  -- MEMO:this is auto created in playing.
     }
 
 parseSections :: [String] -> Map.Map String String

@@ -19,6 +19,8 @@ data InputType = SingleKey
 
 data Event = None
            | Exit
+           | SaveGame Int String -- ^ slot id, tag
+           | LoadGame Int        -- ^ slot id
            | General       Display
            | ShowStatus    CharacterID (Maybe [ItemPos]) Display  -- ^ target character ID, highlight items, display.
            | ShowMap       String (Int, Int)   -- ^ message, translete

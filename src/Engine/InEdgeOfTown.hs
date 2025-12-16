@@ -26,14 +26,48 @@ inEdgeOfTown = GameAuto $ do
                             ,(Key "m", enteringMaze, notnull)
                             ,(Key "t", inTrainingGrounds, True)
                             ,(Key "r", restartAnOutParty 0, True)
-                            ,(Key "q", exitGame, True)
+                            ,(Key "l", exitGame, True)
+                            ,(Key "u", utilities, True)
                             ]
   where
     msg = message $ "^M)aze\n"
                  ++ "^T)raining Grounds\n"
                  ++ "^R)estart an \"OUT\" Party\n"
+                 ++ "^U)tilities\n"
+                 ++ "^L)eave Game\n"
                  ++ "Return to the ^C)astle `[`E`S`C`]\n"
-                 ++ "^Q)uit Game\n"
+
+-- =======================================================================
+
+utilities :: GameMachine
+utilities = selectEsc msg [(Key "l", inEdgeOfTown)
+--                        ,(Key "c", config)
+                          ,(Key "s", selectSaveSlot)
+                          ,(Key "r", selectLoadSlot)
+                          ]
+  where
+    msg = message $ "^C)onfig\n"
+                 ++ "^S)ave backup\n"
+                 ++ "^R)estore from backup\n"
+                 ++ "^L)eave Utilities `[`E`S`C`]\n"
+
+selectSaveSlot :: GameMachine
+selectSaveSlot = GameAuto $ do
+    bs <- backUpSlotInfo <$> world
+    let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
+    let cmds = cmdNums 9 (\i -> events [SaveGame i "TODO"] utilities)
+        msg  = message $ "Save to which slot (^1-^9)?\n ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
+                      ++ unlines lst
+    run $ selectEsc msg ((Key "l", utilities) : cmds)
+
+selectLoadSlot :: GameMachine
+selectLoadSlot = GameAuto $ do
+    bs <- backUpSlotInfo <$> world
+    let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
+    let cmds = cmdNums 9 (\i -> events [LoadGame i] utilities)
+        msg  = message $ "Load from which slot (^1-^9)?\n ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
+                      ++ unlines lst
+    run $ selectEsc msg ((Key "l", utilities) : cmds)
 
 -- =======================================================================
 
