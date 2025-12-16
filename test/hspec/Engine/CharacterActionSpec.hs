@@ -146,23 +146,27 @@ deadTarget = initialCaster
 
 initialWorld :: World
 initialWorld = World {
-      randomGen = mkStdGen 42
-    , guideOn = False, statusOn = False
-    , worldOption = WorldOption Spell.OnlyCoord Normal
-    , allCharacters = Map.fromList [(CharacterID 1, initialCaster), (CharacterID 2, deadTarget)]
-    , party = [CharacterID 1, CharacterID 2]
-    , place = InBattle (Position N 0 0 0) [[testEnemyInstance, resistantEnemyInstance]] -- Set place to InBattle with enemies
-    , roomBattled = []
-    , partyLight = 0, partyLight' = 0
+      randomGen       = mkStdGen 42
+    , guideOn         = False
+    , statusOn        = False
+    , worldOption     = defaultWorldOption
+    , allCharacters   = Map.fromList [(CharacterID 1, initialCaster), (CharacterID 2, deadTarget)]
+    , party           = [CharacterID 1, CharacterID 2]
+    , place           = InBattle (Position N 0 0 0) [[testEnemyInstance, resistantEnemyInstance]] -- Set place to InBattle with enemies
+    , roomBattled     = []
+    , partyLight      = 0
+    , partyLight'     = 0
     , partyParamDelta = []
-    , visitHitory = Map.empty
-    , inTavernMember = []
-    , inMazeMember = []
-    , shopItems = Map.empty
-    , sceneTrans = id, enemyTrans = id, frameTrans = id
-    , eventFlags = []
-    , debugMode = False, debugMessage = []
-    , globalTime = 0
+    , visitHitory     = Map.empty
+    , inTavernMember  = []
+    , inMazeMember    = []
+    , shopItems       = Map.empty
+    , sceneTrans      = id
+    , enemyTrans      = id
+    , frameTrans      = id
+    , eventFlags      = []
+    , debugMode       = False, debugMessage = []
+    , globalTime      = 0
     }
 
 spec :: Spec

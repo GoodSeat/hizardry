@@ -58,13 +58,15 @@ inGilgamesh'sTavern = GameAuto $ do
 
 selectCharacterAddToParty :: Int -> GameMachine
 selectCharacterAddToParty page = GameAuto $ do
-    ps  <- mapM characterByID . party =<< world
-    np  <- length . party <$> world
+    ps <- mapM characterByID . party =<< world
+    np <- length . party <$> world
+    ignoreA <- ignoreAlignment . worldOption <$> world
     let existG = Character.G `elem` (Character.alignment <$> ps)
         existE = Character.E `elem` (Character.alignment <$> ps)
-        canAdd c | existG    = Character.alignment c /= Character.E
-                 | existE    = Character.alignment c /= Character.G
-                 | otherwise = np /= 0 || not (mustGotoTemple c)
+        baseEn c = np /= 0 || not (mustGotoTemple c)
+        canAdd c | existG    = baseEn c && (ignoreA || Character.alignment c /= Character.E)
+                 | existE    = baseEn c && (ignoreA || Character.alignment c /= Character.G)
+                 | otherwise = baseEn c
     ids <- inTavernMember <$> world
     if page /= 0 && page * 9 >= length ids then run $ selectCharacterAddToParty 0
     else if page < 0 then run $ selectCharacterAddToParty ((length ids - 1) `div` 9)
