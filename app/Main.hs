@@ -9,9 +9,10 @@ import System.Console.ANSI (clearScreen, clearLine, hideCursor, showCursor, setC
 import System.Random
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
-import Control.Monad (void, when)
+import Control.Monad (void, when, forM)
 import qualified Data.Map as Map
 import Data.Maybe (maybe)
+import Data.List (isSuffixOf)
 import Data.Char (ord, chr)
 import Data.IORef
 import qualified Data.Bits as Bits
@@ -62,10 +63,20 @@ main = do
     --gen <- getStdGen
     let gen = mkStdGen 0 
     (is, iw) <- SampleScenario.initScenario
-    let s'= initScenario is inCastle 
-    let w = initWorld iw gen True
-        s = SampleScenario.modScenario s' -- TODO:WIP
+    let s' = initScenario is inCastle 
+    let w1 = initWorld iw gen True
+        s  = SampleScenario.modScenario s' -- TODO:WIP
 
+    -- restore from save data.
+    infData0 <- findData s 0
+    w <- case infData0 of
+        Nothing        -> return w1
+        Just (path, _) -> do
+            res <- loadWorld path
+            case res of Right w -> return w
+                        Left  _ -> return w1
+
+    -- restore from input log.
     existSaveData <- doesFileExist saveDataPath
     indx <- newIORef 0
     let ekey = encKey s
@@ -80,7 +91,9 @@ main = do
         else
           return (runGame, True)
 
-    when reset $ writeFile saveDataPath =<< crypt indx ekey (show currentVersion ++ "\n")
+    let resetSaveData = writeIORef indx 0 >> (writeFile saveDataPath =<< crypt indx ekey (show currentVersion ++ "\n"))
+
+    when reset resetSaveData
              
     -- setting for CUI
     let picOf = maybe mempty SampleScenario.pic
@@ -92,7 +105,7 @@ main = do
 
     clearScreen
     hideCursor
-    w' <- run display' cmd updateBackUpList savingGame loadingGame s w inCastle
+    w' <- run display' cmd updateBackUpList (savingGame resetSaveData) (loadingGame resetSaveData) s w inCastle
     showCursor
 
     appendFile saveDataPath =<< crypt indx ekey (show Abort ++ "\n")
@@ -101,19 +114,40 @@ main = do
 -- ==========================================================================
 --TODO:WIP
 
+nameOfData :: String -> Scenario -> Int -> String
+nameOfData tag s slot = tag ++ "_" ++ scenarioName s ++ "." ++ show slot
+
+pathOfData :: String -> Scenario -> Int -> FilePath
+pathOfData tag s slot = backupDirectory ++ "/" ++ nameOfData tag s slot
+
+findData :: Scenario -> Int -> IO (Maybe (FilePath, String))
+findData s slot = do
+    ls <- listDirectory backupDirectory
+    let ns = filter (isSuffixOf $ nameOfData "" s slot) ls
+    return $ if null ns then Nothing else let n = head ns in
+        Just ( backupDirectory ++ "/" ++ n, take (length n - length (nameOfData "" s slot)) n)
+
 updateBackUpList :: UpdateBackUpList
-updateBackUpList = do
+updateBackUpList s = do
     createDirectoryIfMissing True backupDirectory
-    listDirectory backupDirectory
+    forM [1..9] $ \slot -> do
+        dat <- findData s slot
+        return $ case dat of Nothing     -> ""
+                             Just (_, n) -> n
 
-savingGame :: SavingGame
-savingGame slot tag w = Just <$> saveWorld w (backupDirectory ++ "/backup." ++ show slot)
+savingGame :: IO () -> SavingGame
+savingGame resetSaveData slot tag s w = resetSaveData >> (Just <$> saveWorld w (pathOfData tag s slot))
+  where tag' = if null tag then "data" ++ show slot else tag
 
-loadingGame :: LoadingGame
-loadingGame slot = do
-    res <- loadWorld $ backupDirectory ++ "/backup." ++ show slot
-    return $ case res of Right w -> Just w
-                         Left  _ -> Nothing
+loadingGame :: IO () -> LoadingGame
+loadingGame resetSaveData slot s = do
+    dat <- findData s slot
+    case dat of
+      Nothing -> return Nothing
+      Just (path, _) -> do
+        res <- loadWorld path
+        case res of Right w -> resetSaveData >> return (Just w)
+                    Left  _ -> return Nothing
 
 -- ==========================================================================
 

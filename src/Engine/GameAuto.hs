@@ -31,7 +31,8 @@ data ScenarioOption = ScenarioOption {
 
 -- | scenario immutable data.
 data Scenario = Scenario {
-      scenarioOption :: !ScenarioOption
+      scenarioName   :: !String -- ^ use this name as save file path.
+    , scenarioOption :: !ScenarioOption
     , scenarioHome   :: !GameMachine
     , racies         :: ![Race]
     , jobs           :: ![Job]
@@ -49,7 +50,8 @@ data Scenario = Scenario {
     , encKey         :: !String
     }
 data InitScenario = InitScenario {
-      initScenarioOption :: !ScenarioOption
+      initScenarioName   :: !String
+    , initScenarioOption :: !ScenarioOption
     , initRacies         :: ![Race]
     , initJobs           :: ![Job]
     , initMazes          :: ![(String, Size2D, Maze)]
@@ -68,7 +70,8 @@ data InitScenario = InitScenario {
 
 initScenario :: InitScenario -> GameMachine -> Scenario
 initScenario i home = Scenario {
-      scenarioOption            = initScenarioOption i
+      scenarioName              = initScenarioName   i
+    , scenarioOption            = initScenarioOption i
     , scenarioHome              = home
     , racies                    = initRacies         i
     , jobs                      = initJobs           i
@@ -110,9 +113,15 @@ type GameMachine = GameAuto Input Event
 type DisplayIO = Event -> World -> IO () -- TODO:event for display must be another data of Event.(because SaveGame and LoadGame has no meaning.)
 type InputIO   = InputType -> IO Input
 
-type UpdateBackUpList = IO [String]
-type SavingGame  = Int -> String -> World -> IO (Maybe World)
-type LoadingGame = Int -> IO (Maybe World)
+type UpdateBackUpList = Scenario -> IO [String]
+type SavingGame  = Int    -- ^ slot id
+                -> String -- ^ tag
+                -> Scenario
+                -> World
+                -> IO (Maybe World)
+type LoadingGame = Int    -- ^ slot id
+                -> Scenario
+                -> IO (Maybe World)
 
 runGame :: DisplayIO    -- ^ renderer of game.
         -> InputIO      -- ^ input command.
@@ -127,17 +136,17 @@ runGame render cmd updateBackupList saving loading s = runGame' True None
   where
     runGame' loadBackupList e' w g = do
         wp <- if not loadBackupList then return w else do
-                ls <- updateBackupList 
+                ls <- updateBackupList s 
                 return $ w { backUpSlotInfo = ls }
         let (e, w', itype, next') = stepGame s wp g
         if e == Exit then return w'
         else do
           (wn, emsg) <- case e of SaveGame i tag -> do
-                                    wh <- saving i tag w'
+                                    wh <- saving i tag s w'
                                     return $ case wh of Just wh' -> (wh', "")
                                                         Nothing  -> (w' , "* failed data saving *")
                                   LoadGame i     -> do
-                                    wh <- loading i
+                                    wh <- loading i s
                                     return $ case wh of Just wh' -> (wh', "")
                                                         Nothing  -> (w' , "* failed data loading *")
                                   _              -> return (w', "")

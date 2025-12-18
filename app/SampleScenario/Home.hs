@@ -63,7 +63,8 @@ initScenario = return (s, w)
         , enableMinimapType   = [Disable, Normal, AlwaysN]
         }
     s = InitScenario {
-          initScenarioOption = option
+          initScenarioName   = "SampleScenario"
+        , initScenarioOption = option
         , initRacies         = SampleRacies.racies
         , initJobs           = SampleJobs.jobs
         , initMazes          = [

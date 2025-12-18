@@ -108,7 +108,8 @@ resistantEnemyInstance = testEnemyInstance
 
 testScenario :: Scenario
 testScenario = initScenario (InitScenario {
-      initScenarioOption = ScenarioOption [] []
+      initScenarioName   = "TestScenario"
+    , initScenarioOption = ScenarioOption [] []
     , initRacies         = [testRace]
     , initJobs           = [testJob]
     , initMazes          = []
@@ -167,6 +168,7 @@ initialWorld = World {
     , eventFlags      = []
     , debugMode       = False, debugMessage = []
     , globalTime      = 0
+    , backUpSlotInfo  = []
     }
 
 spec :: Spec
