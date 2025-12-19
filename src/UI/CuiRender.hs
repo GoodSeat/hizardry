@@ -45,10 +45,13 @@ cuiRender rm picOf s (General            (Display m c f t p n)) w = rendering rm
 cuiRender rm picOf s (ShowStatus cid his (Display m c f t p n)) w = rendering rm picOf s (toT m) (toT f) (toT c) (Just (cid, his)) p w
 cuiRender rm picOf s None                                       w = cuiRender rm picOf s (wait 0 Nothing) w
 cuiRender rm _ s (ShowMap m trans) w = rm (debugMode w) (mapView m (place w) trans (visitHitory w) $ mazeInf s w)
+cuiRender rm _ _ (SaveGame _ _)    w = rm (debugMode w) (flashMsgBox "  ** NOW SAVING ... **  ")
+cuiRender rm _ _ (LoadGame _  )    w = rm (debugMode w) (flashMsgBox "  ** NOW LOADING... **  ")
 cuiRender rm _ _ Exit              w = undefined
 
 mazeInf :: Scenario -> World -> MazeInf
 mazeInf s w = case runGameState s w mazeInf' of (Right m, w') -> m
+                                                (Left  _, w') -> ("", (0,0), undefined)
   where
     mazeInf' = currentPosition >>= mazeInfAt . thd3 . coordOf
 

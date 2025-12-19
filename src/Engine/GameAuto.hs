@@ -153,7 +153,7 @@ runGame render cmd updateBackupList saving loading s = runGame' True None
           let (needUpdateBackupList, eu) = case e of SaveGame _ _ -> (True , e') -- use before event for display.
                                                      LoadGame _   -> (True , e') -- use before event for display.
                                                      _            -> (False, e )
-          -- TODO:if not null emsg then notiry it with flash mesesage.
+          -- TODO:if not null emsg then notify it with flash mesesage.
           render eu wn
           i <- cmd itype
           let w'' = wn { debugMessage = show i : debugMessage wn }
@@ -194,6 +194,8 @@ stepGame s w g =
                                           | isJust w  -> WaitClock $ fromJust w 
                                           | n         -> SequenceKey
                                           | otherwise -> SingleKey
+                                        SaveGame _ _  -> WaitClock 1
+                                        LoadGame _    -> WaitClock 1
                                         _             -> SingleKey
                           in (e, w', itype, next')
 

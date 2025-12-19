@@ -21,8 +21,7 @@ import qualified Data.Characters as Character
 import qualified Data.Items as Item
 
 inCastle :: GameMachine
-inCastle = GameAuto $ do
-    movePlace InCastle
+inCastle = with [movePlace InCastle] $ autoSaveToSlot0 $ GameAuto $ do
     notnull <- not . null . party <$> world
     run $ selectWhenEsc msg [(Key "e", inEdgeOfTown, True)
                             ,(Key "g", inGilgamesh'sTavern, True)

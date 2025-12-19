@@ -69,6 +69,14 @@ messageTime t s p = General $ Display {
     , picture    = p
     , needPhrase = False
     }
+askFlashAndMessage s f p = General $ Display {
+      messageBox = Just s
+    , commandBox = Nothing
+    , flashBox   = Just f
+    , waitTime   = Nothing
+    , picture    = p
+    , needPhrase = True
+    }
 flashAndMessageTime t s f p = General $ Display {
       messageBox = Just s
     , commandBox = Nothing

@@ -1,4 +1,4 @@
-module Engine.InEdgeOfTown (inEdgeOfTown) where
+module Engine.InEdgeOfTown (inEdgeOfTown, autoSaveToSlot0) where
 
 import Control.Monad (join)
 import Control.Monad.State (modify, put, gets)
@@ -18,8 +18,7 @@ import Data.Primitive
 import qualified Data.Characters as Character
 
 inEdgeOfTown :: GameMachine
-inEdgeOfTown = GameAuto $ do
-    movePlace InEdgeOfTown
+inEdgeOfTown = with [movePlace InEdgeOfTown] $ autoSaveToSlot0 $ GameAuto $ do
     notnull  <- not . null . party <$> world
     toCastle <- home
     run $ selectWhenEsc msg [(Key "c", toCastle, True)
@@ -51,14 +50,21 @@ utilities = selectEsc msg [(Key "l", inEdgeOfTown)
                  ++ "^R)estore from backup\n"
                  ++ "^L)eave Utilities `[`E`S`C`]\n"
 
+autoSaveToSlot0 :: GameMachine -> GameMachine
+autoSaveToSlot0 = events [SaveGame 0 "AutoSave"]
+
 selectSaveSlot :: GameMachine
 selectSaveSlot = GameAuto $ do
     bs <- backUpSlotInfo <$> world
     let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
-    let cmds = cmdNums 9 (\i -> events [SaveGame i "TODO"] utilities)
-        msg  = message $ "Save to which slot (^1-^9)?\n ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
-                      ++ unlines lst
-    run $ selectEsc msg ((Key "l", utilities) : cmds)
+    let cmds = cmdNums 9 (`inputSaveTag` msg)
+        msg  = "Save to which slot (^1-^9)?\n ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
+            ++ unlines lst
+    run $ selectEsc (message msg) ((Key "l", utilities) : cmds)
+
+inputSaveTag :: Int -> String -> GameMachine
+inputSaveTag slot msg = GameAuto $
+    return (askFlashAndMessage msg "\n  Tag? (empty to cancel)  \n " Nothing, \(Key s) -> events [SaveGame slot s | not (isNullKey s)] utilities)
 
 selectLoadSlot :: GameMachine
 selectLoadSlot = GameAuto $ do

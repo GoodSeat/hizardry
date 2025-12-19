@@ -4,9 +4,10 @@ import Data.Version (showVersion, versionBranch)
 import Paths_hizardry (version)
 
 import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
-import System.Directory (doesFileExist, createDirectoryIfMissing, listDirectory)
+import System.Directory (doesFileExist, removeFile, createDirectoryIfMissing, listDirectory)
 import System.Console.ANSI (clearScreen, clearLine, hideCursor, showCursor, setCursorPosition, cursorUp)
 import System.Random
+import Control.Exception (try, SomeException(..))
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void, when, forM)
@@ -14,12 +15,13 @@ import qualified Data.Map as Map
 import Data.Maybe (maybe)
 import Data.List (isSuffixOf)
 import Data.Char (ord, chr)
-import Data.IORef
+import Data.IORef (IORef, newIORef, readIORef, modifyIORef, writeIORef)
 import qualified Data.Bits as Bits
 
 import Engine.GameAuto
 import Engine.InCastle (inCastle)
-import Data.World (saveWorld, loadWorld, initWorld)
+import Engine.InEdgeOfTown (inEdgeOfTown)
+import Data.World (Place(..), place, saveWorld, loadWorld, initWorld)
 
 import Control.CUI
 import UI.CuiRender (cuiRender, renderWithCache)
@@ -43,7 +45,7 @@ import qualified SampleScenario.Home as SampleScenario
 -- *   hashable-1.4.1.0 [Data.Hashable] hash:: a -> Int
 -- *   zip compression with secret keyword. using another exe? deflate?
 
-saveDataPath = "rtsd.iks" -- path of "real time save data(input keys)"
+inputLogPath = "rtsd.iks" -- path of "real time save data(input keys)"
 backupDirectory = "savedata"
 
 crypt :: IORef Int -> String -> String -> IO String
@@ -51,7 +53,6 @@ crypt indx key text = if null key then return text else do
     n <- readIORef indx
     modifyIORef indx (+ length text)
     return $ crypt' (drop n $ cycle key) text
---crypt indx key text = return text
 
 crypt' :: String -> String -> String
 crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key)
@@ -77,12 +78,13 @@ main = do
                         Left  _ -> return w1
 
     -- restore from input log.
-    existSaveData <- doesFileExist saveDataPath
+    existInputLog <- doesFileExist inputLogPath
     indx <- newIORef 0
     let ekey = encKey s
+--  let ekey = ""
     
-    (run, reset) <- if not existSaveData then return (runGame, True) else do
-        c  <- readFile saveDataPath
+    (run, needResetInputLog) <- if not existInputLog then return (runGame, True) else do
+        c  <- readFile inputLogPath
         ls <- lines <$> crypt indx ekey c
         if length ls > 1 && take 3 (read $ head ls :: [Int]) == take 3 currentVersion then do
           let is  = read <$> filter (not . null) (tail ls)
@@ -91,9 +93,12 @@ main = do
         else
           return (runGame, True)
 
-    let resetSaveData = writeIORef indx 0 >> (writeFile saveDataPath =<< crypt indx ekey (show currentVersion ++ "\n"))
+    let resetInputLog = writeIORef indx 0 >> (writeFile inputLogPath =<< crypt indx ekey (show currentVersion ++ "\n"))
 
-    when reset resetSaveData
+    when needResetInputLog resetInputLog
+
+    let start | place w == InEdgeOfTown = inEdgeOfTown
+              | otherwise               = inCastle
              
     -- setting for CUI
     let picOf = maybe mempty SampleScenario.pic
@@ -105,14 +110,13 @@ main = do
 
     clearScreen
     hideCursor
-    w' <- run display' cmd updateBackUpList (savingGame resetSaveData) (loadingGame resetSaveData) s w inCastle
+    w' <- run display' cmd updateBackUpList (savingGame resetInputLog) (loadingGame resetInputLog) s w start
     showCursor
 
-    appendFile saveDataPath =<< crypt indx ekey (show Abort ++ "\n")
+    appendFile inputLogPath =<< crypt indx ekey (show Abort ++ "\n")
     void $ saveWorld w' "world.dat"
 
 -- ==========================================================================
---TODO:WIP
 
 nameOfData :: String -> Scenario -> Int -> String
 nameOfData tag s slot = tag ++ "_" ++ scenarioName s ++ "." ++ show slot
@@ -136,17 +140,21 @@ updateBackUpList s = do
                              Just (_, n) -> n
 
 savingGame :: IO () -> SavingGame
-savingGame resetSaveData slot tag s w = resetSaveData >> (Just <$> saveWorld w (pathOfData tag s slot))
+savingGame resetInputLog slot tag s w = do
+    dat <- findData s slot
+    case dat of Nothing        -> return ()
+                Just (path, _) -> removeFile path
+    resetInputLog >> (Just <$> saveWorld w (pathOfData tag s slot))
   where tag' = if null tag then "data" ++ show slot else tag
 
 loadingGame :: IO () -> LoadingGame
-loadingGame resetSaveData slot s = do
+loadingGame resetInputLog slot s = do
     dat <- findData s slot
     case dat of
       Nothing -> return Nothing
       Just (path, _) -> do
         res <- loadWorld path
-        case res of Right w -> resetSaveData >> return (Just w)
+        case res of Right w -> resetInputLog >> return (Just w)
                     Left  _ -> return Nothing
 
 -- ==========================================================================
@@ -154,7 +162,7 @@ loadingGame resetSaveData slot s = do
 getKey :: IORef Int -> String -> IO () -> InputIO
 getKey indx encKey refresh itype = do
     i <- getKey' itype
-    appendFile saveDataPath =<< crypt indx encKey (show i ++ "\n")
+    appendFile inputLogPath =<< crypt indx encKey (show i ++ "\n")
     return i
   where
     getKey' SingleKey = do

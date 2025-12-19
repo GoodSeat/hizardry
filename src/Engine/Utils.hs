@@ -608,3 +608,7 @@ currentPosition = do
                 _                     -> err "failed on currentPosition."
 --              _                     -> return (Position N 0 0 0)
 
+
+isNullKey :: String -> Bool
+isNullKey = null . filter (/= '\n') . filter (/= '\r')
+

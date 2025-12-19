@@ -527,7 +527,7 @@ inputSpell :: Chara.Character
            -> GameMachine
            -> GameMachine
 inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $
-    return (msgForCasting msgForInputSpellInCamp, \(Key s) -> if null s then cancel else selectCastTarget s next)
+    return (msgForCasting msgForInputSpellInCamp, \(Key s) -> if isNullKey s then cancel else selectCastTarget s next)
   where
     selectCastTarget :: String -> (String -> SpellTarget -> GameMachine) -> GameMachine
     selectCastTarget s next = GameAuto $ do

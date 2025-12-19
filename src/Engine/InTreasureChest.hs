@@ -70,7 +70,7 @@ disarmTrap con afterNotDisarm = GameAuto $ do
                                                                   : cmds
   where
     disarm' p = GameAuto $ return (ask "Input trap.\n(Empty to cancel.)" Nothing,
-                                   \(Key s) -> if null s then afterNotDisarm else tryDisarm con s p afterNotDisarm)
+                                   \(Key s) -> if isNullKey s then afterNotDisarm else tryDisarm con s p afterNotDisarm)
 
 tryDisarm :: TreasureCondition -> String -> PartyPos -> GameMachine -> GameMachine
 tryDisarm con t i afterNotDisarm = GameAuto $ do
