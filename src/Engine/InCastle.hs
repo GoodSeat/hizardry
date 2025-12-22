@@ -237,15 +237,15 @@ buyItem cid page = GameAuto $ do
               ++ "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave [Esc]" ++ lst
           msg  = message txt 
           cmds = cmdNums (length lstItem')
-               $ buy cid (buyItem cid page) (flip (flashAndMessageTime (-1500) txt) Nothing . (++ "  \n  ") . ("\n  " ++)) . (lstItem' !!) . flip (-) 1
+               $ buy cid (buyItem cid page) . (lstItem' !!) . flip (-) 1
       run $ selectEsc msg $ (Key "l", selectShopAction cid)
                           : (Key "n", buyItem cid (page + 1))
                           : (Key "p", buyItem cid (page - 1))
 --                        : (Key "?", infoItem cid page)  -- TODO
                           : cmds
 
-buy :: CharacterID -> GameMachine -> (String -> Event) -> ItemID -> GameMachine
-buy cid next toMsg idItem = GameAuto $ do
+buy :: CharacterID -> GameMachine -> ItemID -> GameMachine
+buy cid next idItem = GameAuto $ do
     w  <- world
     v  <- Item.valueInShop <$> itemByID idItem
     is <- Character.items <$> characterByID cid
@@ -265,6 +265,8 @@ buy cid next toMsg idItem = GameAuto $ do
                                         , Character.gold  = g - v }
       run $ events [toMsg msg] next
    -- TODO:you can't equip this. OK? -> no people take no mistake.
+  where
+    toMsg m = With (changeFlashTime ("\n  " ++ m ++ "  \n  ") (-1500))
 
 -----
 
@@ -315,7 +317,7 @@ sell cid pos = GameAuto $ do
     v <- sellValue $ is !! n
 
     msg <- if pos `elem` Character.equipPoss c then return "You can't sell what you equip."
-           else if can'tSell then return "Sorry, but we can't this item."
+           else if can'tSell then return "Sorry, but we can't buy this item."
            else if v <= 0    then return "It is no value."
            else do
              let is' = take n is ++ drop (n + 1) is

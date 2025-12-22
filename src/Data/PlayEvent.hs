@@ -24,7 +24,8 @@ data Event = None
            | General       Display
            | ShowStatus    CharacterID (Maybe [ItemPos]) Display  -- ^ target character ID, highlight items, display.
            | ShowMap       String (Int, Int)   -- ^ message, translete
-    deriving (Show, Eq)
+           | With     (Event -> Event)
+--  deriving (Show, Eq)
 
 data Display = Display {
       messageBox :: !(Maybe String)
@@ -34,6 +35,24 @@ data Display = Display {
     , picture    :: !(Maybe PictureInf)
     , needPhrase :: Bool
 } deriving (Show, Eq)
+
+-- ==========================================================================
+
+changeMessage :: String -> Event -> Event
+changeMessage m (General d) = General $ d { messageBox = Just m }
+changeMessage m (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { messageBox = Just m }
+changeMessage _ e = e
+
+changeFlash :: String -> Event -> Event
+changeFlash f (General d) = General $ d { flashBox = Just f }
+changeFlash f (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = Just f }
+changeFlash _ e = e
+
+changeFlashTime :: String -> Int -> Event -> Event
+changeFlashTime f t (General d) = General $ d { flashBox = Just f, waitTime = Just t }
+changeFlashTime f t (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = Just f, waitTime = Just t }
+changeFlashTime _ _ e = e
+
 
 -- ==========================================================================
 

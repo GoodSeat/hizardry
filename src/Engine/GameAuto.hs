@@ -134,31 +134,37 @@ runGame :: DisplayIO    -- ^ renderer of game.
         -> IO World
 runGame render cmd updateBackupList saving loading s = runGame' True None
   where
-    runGame' loadBackupList e' w g = do
+    runGame' loadBackupList e0 w g = do
         wp <- if not loadBackupList then return w else do
                 ls <- updateBackupList s 
                 return $ w { backUpSlotInfo = ls }
-        let (e, w', itype, next') = stepGame s wp g
-        if e == Exit then return w'
-        else do
-          (wn, emsg) <- case e of SaveGame i tag -> do
-                                    wh <- saving i tag s w'
-                                    return $ case wh of Just wh' -> (wh', "")
-                                                        Nothing  -> (w' , "* failed data saving *")
-                                  LoadGame i     -> do
-                                    wh <- loading i s
-                                    return $ case wh of Just wh' -> (wh', "")
-                                                        Nothing  -> (w' , "* failed data loading *")
-                                  _              -> return (w', "")
-          let (needUpdateBackupList, eu) = case e of SaveGame _ _ -> (True , e') -- use before event for display.
-                                                     LoadGame _   -> (True , e') -- use before event for display.
-                                                     _            -> (False, e )
-          -- TODO:if not null emsg then notify it with flash mesesage.
-          render eu wn
-          i <- cmd itype
-          let w'' = wn { debugMessage = show i : debugMessage wn }
-          runGame' needUpdateBackupList eu w'' (next' i)
+        let (e1, w', next') = stepGame s wp g
+        case e1 of
+          Exit -> return w'
+          _ -> do
+            (wn, emsg) <- case e1 of SaveGame i tag -> do
+                                       wh <- saving i tag s w'
+                                       return $ case wh of Just wh' -> (wh', "")
+                                                           Nothing  -> (w' , "\n * failed data saving * \n ")
+                                     LoadGame i     -> do
+                                       wh <- loading i s
+                                       return $ case wh of Just wh' -> (wh', "")
+                                                           Nothing  -> (w' , "\n * failed data loading * \n ")
+                                     _              -> return (w', "")
 
+            let e2 | not (null emsg) = changeFlashTime emsg 3000 e0
+                   | otherwise       = case e1 of With f -> f e0
+                                                  _      -> e1
+            let itype = nextInputType e2
+
+            let (needUpdateBackupList, eu) = case e2 of SaveGame _ _ -> (True , e0) -- use before event for display.
+                                                        LoadGame _   -> (True , e0) -- use before event for display.
+                                                        _            -> (False, e2)
+            render eu wn
+
+            i <- cmd itype
+            let w'' = wn { debugMessage = show i : debugMessage wn }
+            runGame' needUpdateBackupList eu w'' (next' i)
 
 loadGame :: [Input]
          -> DisplayIO   -- ^ renderer of game.
@@ -172,32 +178,32 @@ loadGame :: [Input]
          -> IO World
 loadGame [] render cmd update saving loading s w g = runGame render cmd update saving loading s w g
 loadGame (i:is) render cmd update saving loading s w g = do
-    let (e, w', _, next') = stepGame s w g
+    let (e, w', next') = stepGame s w g
     loadGame is render cmd update saving loading s w' (next' i)
 
 
 stepGame :: Scenario
          -> World
          -> GameMachine
-         -> (Event, World, InputType, Input -> GameMachine)
-stepGame s w g = 
-    let (res, w') = runGameState s w $ run g
-    in case res of
-      Left msg         -> let end = GameAuto $ return (Exit, const g)
-                          in (message msg, w', SingleKey, const end)
-      Right (e, next') -> let itype = case e of
-                                        General (Display _ _ _ w _ n)
-                                          | isJust w  -> WaitClock $ fromJust w 
-                                          | n         -> SequenceKey
-                                          | otherwise -> SingleKey
-                                        ShowStatus _ _ (Display _ _ _ w _ n)
-                                          | isJust w  -> WaitClock $ fromJust w 
-                                          | n         -> SequenceKey
-                                          | otherwise -> SingleKey
-                                        SaveGame _ _  -> WaitClock 1
-                                        LoadGame _    -> WaitClock 1
-                                        _             -> SingleKey
-                          in (e, w', itype, next')
+         -> (Event, World, Input -> GameMachine)
+stepGame s w g = let (res, w') = runGameState s w $ run g in case res of
+    Left msg     -> let end = GameAuto $ return (Exit, const g) in (message msg, w', const end)
+    Right (e, n) -> (e, w', n)
+
+
+nextInputType :: Event -> InputType
+nextInputType e = case e of
+    General (Display _ _ _ w _ n)
+      | isJust w  -> WaitClock $ fromJust w 
+      | n         -> SequenceKey
+      | otherwise -> SingleKey
+    ShowStatus _ _ (Display _ _ _ w _ n)
+      | isJust w  -> WaitClock $ fromJust w 
+      | n         -> SequenceKey
+      | otherwise -> SingleKey
+    SaveGame _ _  -> WaitClock 1
+    LoadGame _    -> WaitClock 1
+    _             -> SingleKey
 
 -- ==========================================================================
 

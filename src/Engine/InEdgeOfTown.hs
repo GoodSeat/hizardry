@@ -83,7 +83,7 @@ restartAnOutParty page = GameAuto $ do
     cs' <- mapM characterByID cs
     let ccs = filter ((> 0) . Character.hp . fst) $ zip cs' cs
         mxPage = max 0 ((length ccs - 1) `div` 10)
-    if      null ccs      then run inEdgeOfTown
+    if      null ccs      then run $ events [With $ changeFlashTime "\n  no body in maze.  \n  " (-1500)] inEdgeOfTown
     else if page < 0      then run $ restartAnOutParty mxPage
     else if page > mxPage then run $ restartAnOutParty 0
     else do
