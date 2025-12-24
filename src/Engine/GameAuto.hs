@@ -104,6 +104,20 @@ instance Functor (GameAuto i) where
   fmap f (GameAuto s) = GameAuto $ do
     (o, next) <- s
     return (f o, fmap f . next)
+
+instance Applicative (GameAuto i) where
+    pure o = GameAuto $ return (o, const $ pure o)
+    (GameAuto sf) <*> (GameAuto sx) = GameAuto $ do
+        (f, next_f) <- sf
+        (x, next_x) <- sx
+        return (f x, \i -> next_f i <*> next_x i)
+
+instance Monad (GameAuto i) where
+    (GameAuto m) >>= k = GameAuto $ do
+        (a, m') <- m
+        let (GameAuto next_m) = k a
+        (b, _) <- next_m
+        return (b, \i -> m' i >>= k)
       
 -- | GameMachine by Automaton.
 type GameMachine = GameAuto Input Event
