@@ -145,16 +145,16 @@ runGame render cmd updateBackupList saving loading s = runGame' True None
             (wn, emsg) <- case e1 of SaveGame i tag -> do
                                        wh <- saving i tag s w'
                                        return $ case wh of Just wh' -> (wh', "")
-                                                           Nothing  -> (w' , "\n * failed data saving * \n ")
+                                                           Nothing  -> (w' , "* failed data saving *")
                                      LoadGame i     -> do
                                        wh <- loading i s
                                        return $ case wh of Just wh' -> (wh', "")
-                                                           Nothing  -> (w' , "\n * failed data loading * \n ")
+                                                           Nothing  -> (w' , "* failed data loading *")
                                      _              -> return (w', "")
 
             let e2 | not (null emsg) = changeFlashTime emsg 3000 e0
-                   | otherwise       = case e1 of With f -> f e0
-                                                  _      -> e1
+                   | otherwise       = case e1 of Resume f -> f e0
+                                                  _        -> e1
             let itype = nextInputType e2
 
             let (needUpdateBackupList, eu) = case e2 of SaveGame _ _ -> (True , e0) -- use before event for display.

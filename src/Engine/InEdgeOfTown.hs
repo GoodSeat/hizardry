@@ -58,20 +58,20 @@ selectSaveSlot = GameAuto $ do
     bs <- backUpSlotInfo <$> world
     let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
     let cmds = cmdNums 9 (`inputSaveTag` msg)
-        msg  = "Save to which slot (^1-^9)?\n ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
+        msg  = "Save to which slot (^1-^9)?  ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
             ++ unlines lst
     run $ selectEsc (message msg) ((Key "l", utilities) : cmds)
 
 inputSaveTag :: Int -> String -> GameMachine
 inputSaveTag slot msg = GameAuto $
-    return (askFlashAndMessage msg "\n  Tag? (empty to cancel)  \n " Nothing, \(Key s) -> events [SaveGame slot s | not (isNullKey s)] utilities)
+    return (askFlashAndMessage msg "Tag? (empty to cancel)" Nothing, \(Key s) -> events [SaveGame slot s | not (isNullKey s)] utilities)
 
 selectLoadSlot :: GameMachine
 selectLoadSlot = GameAuto $ do
     bs <- backUpSlotInfo <$> world
     let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
     let cmds = cmdNums 9 (\i -> events [LoadGame i] utilities)
-        msg  = message $ "Load from which slot (^1-^9)?\n ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
+        msg  = message $ "Load from which slot (^1-^9)?  ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
                       ++ unlines lst
     run $ selectEsc msg ((Key "l", utilities) : cmds)
 
@@ -83,7 +83,7 @@ restartAnOutParty page = GameAuto $ do
     cs' <- mapM characterByID cs
     let ccs = filter ((> 0) . Character.hp . fst) $ zip cs' cs
         mxPage = max 0 ((length ccs - 1) `div` 10)
-    if      null ccs      then run $ events [With $ changeFlashTime "\n  no body in maze.  \n  " (-1500)] inEdgeOfTown
+    if      null ccs      then run $ events [Resume $ changeFlashTime "no body in maze." (-1500)] inEdgeOfTown
     else if page < 0      then run $ restartAnOutParty mxPage
     else if page > mxPage then run $ restartAnOutParty 0
     else do

@@ -161,7 +161,7 @@ showSpellListForInfo cancel cid kind level = GameAuto $ do
         ac <- msgInReadSpell cid (Just (kind, level))
         let indexedSpells = zip ['A'..'Z'] filteredSpells
             infoCmds = flip fmap indexedSpells $ \(key, spellDef) ->
-              let info = unlines . fmap ((++" ") . (" "++)) . lines $ Spell.information spellDef
+              let info = Spell.information spellDef
                   -- After showing info, return to this same spell list
                   nextMachine = if null info
                                   then showSpellListForInfo cancel cid kind level
@@ -513,7 +513,7 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
                               Just i  -> i : es'
           c'   = c { Chara.equips = es'' }
       updateCharacter cid c'
-      run $ events [showStatusFlash cid msgBase " \n  * The item is cursed. *  \n  " | isC] (equip' msgForSelect src c' rest next)
+      run $ events [showStatusFlash cid msgBase "* The item is cursed. *" | isC] (equip' msgForSelect src c' rest next)
 
 
 -- =================================================================================
@@ -566,7 +566,7 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
 
 
 showStatusSpellingCamp :: CharacterID -> String -> Event
-showStatusSpellingCamp cid = showStatusFlash cid msgForInputSpellInCamp . (" \n  "++) .  (++"  \n ") 
+showStatusSpellingCamp cid = showStatusFlash cid msgForInputSpellInCamp
 
 msgForInputSpellInCamp = "Input spell.\n(Empty to cancel.)"
 

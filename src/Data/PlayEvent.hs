@@ -21,10 +21,10 @@ data Event = None
            | Exit
            | SaveGame Int String -- ^ slot id, tag
            | LoadGame Int        -- ^ slot id
-           | General       Display
-           | ShowStatus    CharacterID (Maybe [ItemPos]) Display  -- ^ target character ID, highlight items, display.
-           | ShowMap       String (Int, Int)   -- ^ message, translete
-           | With     (Event -> Event)
+           | General    Display
+           | ShowStatus CharacterID (Maybe [ItemPos]) Display  -- ^ target character ID, highlight items, display.
+           | ShowMap    String (Int, Int)   -- ^ message, translete
+           | Resume     (Event -> Event)
 --  deriving (Show, Eq)
 
 data Display = Display {
@@ -44,17 +44,20 @@ changeMessage m (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { messageBox =
 changeMessage _ e = e
 
 changeFlash :: String -> Event -> Event
-changeFlash f (General d) = General $ d { flashBox = Just f }
-changeFlash f (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = Just f }
+changeFlash f (General d) = General $ d { flashBox = adjustText f }
+changeFlash f (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = adjustText f }
 changeFlash _ e = e
 
 changeFlashTime :: String -> Int -> Event -> Event
-changeFlashTime f t (General d) = General $ d { flashBox = Just f, waitTime = Just t }
-changeFlashTime f t (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = Just f, waitTime = Just t }
+changeFlashTime f t (General d) = General $ d { flashBox = adjustText f, waitTime = Just t }
+changeFlashTime f t (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = adjustText f, waitTime = Just t }
 changeFlashTime _ _ e = e
 
 
 -- ==========================================================================
+
+adjustText :: String -> Maybe String
+adjustText = Just . ('\n':) . (++ "  ") . unlines . fmap ((++"  ") . ("  "++)) . lines
 
 message s = General $ Display {
       messageBox = Just s
@@ -91,7 +94,7 @@ messageTime t s p = General $ Display {
 askFlashAndMessage s f p = General $ Display {
       messageBox = Just s
     , commandBox = Nothing
-    , flashBox   = Just f
+    , flashBox   = adjustText f
     , waitTime   = Nothing
     , picture    = p
     , needPhrase = True
@@ -99,7 +102,7 @@ askFlashAndMessage s f p = General $ Display {
 flashAndMessageTime t s f p = General $ Display {
       messageBox = Just s
     , commandBox = Nothing
-    , flashBox   = Just f
+    , flashBox   = adjustText f
     , waitTime   = Just t
     , picture    = p
     , needPhrase = False
@@ -113,6 +116,14 @@ wait t p = General $ Display {
     , needPhrase = False
     }
 flashMessage t s = General $ Display {
+      messageBox = Nothing
+    , commandBox = Nothing
+    , flashBox   = adjustText s
+    , waitTime   = Just t
+    , picture    = Nothing
+    , needPhrase = False
+    }
+flashMessage' t s = General $ Display {
       messageBox = Nothing
     , commandBox = Nothing
     , flashBox   = Just s
@@ -148,7 +159,7 @@ showStatus cid msg = ShowStatus cid Nothing $ Display {
 showStatusFlash cid msg fmsg = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
     , commandBox = Nothing
-    , flashBox   = Just fmsg
+    , flashBox   = adjustText fmsg
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
@@ -164,7 +175,7 @@ showStatusAlt cid msg alt = ShowStatus cid Nothing $ Display {
 showStatusAlt' cid msg alt help = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
     , commandBox = Just alt
-    , flashBox   = Just help
+    , flashBox   = adjustText help
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False

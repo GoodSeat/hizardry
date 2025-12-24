@@ -107,10 +107,10 @@ checkEncount c checkRoomBattle = do
 ouch :: Position -> GameMachine
 ouch p = ouch1
   where
-    ouch1 = with [d1] $ select (flashMessage ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
-    ouch2 = with [d2] $ select (flashMessage ( -20) " Ouch !! ") $ (Clock, ouch3) : moves'
-    ouch3 = with [d3] $ select (flashMessage ( -30) " Ouch !! ") $ (Clock, ouch4) : moves'
-    ouch4 = with [d4] $ select (flashMessage (-330) " Ouch !! ") $ moves p
+    ouch1 = with [d1] $ select (flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
+    ouch2 = with [d2] $ select (flashMessage' ( -20) " Ouch !! ") $ (Clock, ouch3) : moves'
+    ouch3 = with [d3] $ select (flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch4) : moves'
+    ouch4 = with [d4] $ select (flashMessage' (-330) " Ouch !! ") $ moves p
     moves' = map ((\f (a, b) -> (a, f b)) $ with [d4]) (moves p)
     d1  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 0,  1)
                             , sceneTrans = sceneTrans w . translate ( 0,  1) }
@@ -123,7 +123,7 @@ ouch p = ouch1
 
 
 flashMoveView :: String -> Event
-flashMoveView = flashMessage (-100)
+flashMoveView = flashMessage' (-100)
 
 moves :: Position -> [(Input, GameMachine)]
 moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)

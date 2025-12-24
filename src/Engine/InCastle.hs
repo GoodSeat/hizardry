@@ -266,7 +266,7 @@ buy cid next idItem = GameAuto $ do
       run $ events [toMsg msg] next
    -- TODO:you can't equip this. OK? -> no people take no mistake.
   where
-    toMsg m = With (changeFlashTime ("\n  " ++ m ++ "  \n  ") (-1500))
+    toMsg m = Resume (changeFlashTime m (-1500))
 
 -----
 
@@ -285,7 +285,7 @@ toSellGreet cid = do
 toSellMessage :: CharacterID -> String -> GameState Event
 toSellMessage cid msg = do
     greet <- toSellGreet cid
-    return $ flashAndMessageTime (-1500) greet ("\n  " ++ msg ++ "  \n  ") Nothing
+    return $ flashAndMessageTime (-1500) greet msg Nothing
 
 sellItem :: CharacterID -> GameMachine
 sellItem cid = GameAuto $ do
@@ -352,7 +352,7 @@ toDetermineGreet cid = do
 toDetermineMessage :: CharacterID -> String -> GameState Event
 toDetermineMessage cid msg = do
     greet <- toDetermineGreet cid
-    return $ flashAndMessageTime (-1500) greet ("\n  " ++ msg ++ "  \n  ") Nothing
+    return $ flashAndMessageTime (-1500) greet msg Nothing
 
 determineItem :: CharacterID -> GameMachine
 determineItem cid = GameAuto $ do
@@ -414,7 +414,7 @@ uncurseItem cid = GameAuto $ do
             Character.itemPosToText pos ++ ") " ++ takeChar 43 (name ++ repeat ' ') ++ rightTxt 10 value) displayData
       let lst = "=========================================================\n\n" ++ unlines itemsText ++ "\n"
           greet = "Select item to uncurse. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n" ++ lst
-          toMsg = flip (flashAndMessageTime (-1500) greet) Nothing . (++ "  \n  ") . ("\n  " ++)
+          toMsg = flip (flashAndMessageTime (-1500) greet) Nothing
 
       run $ selectEsc (message greet)
           $ (Key "l", selectShopAction cid)
@@ -442,7 +442,7 @@ inTempleOfCant = GameAuto $ do
     movePlace TempleOfCant
     ids <- filterM (fmap mustGotoTemple . characterByID) . inTavernMember =<< world
     if null ids then
-      run (events [flashAndMessageTime (-2000) msg "\n  No body in tavern needs cure.  \n " Nothing] inCastle)
+      run (events [flashAndMessageTime (-2000) msg "No body in tavern needs cure." Nothing] inCastle)
     else do
       cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do 
           c <- characterByID i
@@ -496,7 +496,7 @@ cureCharacter cid cidDst = GameAuto $ do
     let lst =[(Key "l", selectCureTarget cid 0)
              ,(Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
              ,(Key "y", if canSpent then with [spentGold cid fee] $ tryCureCharacter cid cidDst
-                                    else events [flashMessage (-1000) "\n     Get out! You cheap traitor!     \n "] $ selectCureTarget cid 0)]
+                                    else events [flashMessage (-1000) "  Get out! You cheap traitor!  "] $ selectCureTarget cid 0)]
     run $ selectEsc msg lst
 
 tryCureCharacter :: CharacterID -> CharacterID -> GameMachine

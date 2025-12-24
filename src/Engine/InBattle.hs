@@ -114,14 +114,14 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
         return $ if      r < partySurpriseProb                     then PartySurprise
                  else if r < partySurpriseProb + enemySurpriseProb then EnemySurprise
                  else                                                   NoSurprise
-    let msg = flashMessage (-1000) "\n      Encounter!!      \n "
+    let msg = flashMessage (-1000) "    Encounter!!    "
         con = Condition {
                 afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
               }
     run $ case surprise of
-        PartySurprise -> events [msg, flashMessage (-3000) "\n      The monsters are unaware of you.      \n "]
+        PartySurprise -> events [msg, flashMessage (-3000) "    The monsters are unaware of you.    "]
                          (with [moveToBattle es] $ selectBattleCommand 1 [] con (Just PartySurprise))
-        EnemySurprise -> events [msg, flashMessage (-3000) "\n      The monsters surprised you!      \n "]
+        EnemySurprise -> events [msg, flashMessage (-3000) "    The monsters surprised you!    "]
                          (with [moveToBattle es] $ startProgressBattle [] con (Just EnemySurprise))
         NoSurprise    -> events [msg]
                          (startBattleMaybeFriendly isFriendly es con g1)
