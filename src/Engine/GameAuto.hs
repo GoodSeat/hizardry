@@ -132,7 +132,19 @@ runGame :: DisplayIO    -- ^ renderer of game.
         -> World        -- ^ current environment.
         -> GameMachine  -- ^ target GameMachine.
         -> IO World
-runGame render cmd updateBackupList saving loading s = runGame' True None
+runGame = runGameE None
+
+runGameE :: Event
+         -> DisplayIO    -- ^ renderer of game.
+         -> InputIO      -- ^ input command.
+         -> UpdateBackUpList
+         -> SavingGame
+         -> LoadingGame
+         -> Scenario     -- ^ game scenario.
+         -> World        -- ^ current environment.
+         -> GameMachine  -- ^ target GameMachine.
+         -> IO World
+runGameE ei render cmd updateBackupList saving loading s = runGame' True ei
   where
     runGame' loadBackupList e0 w g = do
         wp <- if not loadBackupList then return w else do
@@ -176,10 +188,12 @@ loadGame :: [Input]
          -> World       -- ^ initial environment.
          -> GameMachine -- ^ initial GameMachine.
          -> IO World
-loadGame [] render cmd update saving loading s w g = runGame render cmd update saving loading s w g
-loadGame (i:is) render cmd update saving loading s w g = do
-    let (e, w', next') = stepGame s w g
-    loadGame is render cmd update saving loading s w' (next' i)
+loadGame = loadGameE None
+  where
+    loadGameE e0 [] render cmd update saving loading s w g = runGameE e0 render cmd update saving loading s w g
+    loadGameE _  (i:is) render cmd update saving loading s w g = do
+        let (e, w', next') = stepGame s w g
+        loadGameE e is render cmd update saving loading s w' (next' i)
 
 
 stepGame :: Scenario
