@@ -307,11 +307,13 @@ makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainin
                  ++ "\n               ^R)egister  or  ^C)ancel \n\n"
     register :: GameState ()
     register = do
+      age <- randomIn [16, 16, 16, 16, 17]
+      day <- randomIn [0..364]
       let c = Character.Character {
                 Character.name      = name
               , Character.race      = k
-              , Character.age       = 10 -- TODO!
-              , Character.days      = 10 -- TODO!
+              , Character.age       = age
+              , Character.days      = day
               , Character.lv        = 1
               , Character.exp       = 0
               , Character.gold      = 0
