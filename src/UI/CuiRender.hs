@@ -249,13 +249,15 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                                   | hasStatusError c (Fear 0)       = 'B'
                                   | otherwise                       = ' '
                               sgrs = replicate windowW sgr
+                              stxt = toStatusText (statusErrorsOf c)
                         in textSGR (6,  windowH - 6 + n)
                                    ( replaceLine "[NAME]"  (name c) (Left 26)
                                    . replaceLine "#"       (show n) (Left 1)
                                    . replaceLine "[CLASS]" (show (alignment c) ++ "-" ++ take 3 (jobName $ job c)) (Left 7)
                                    . replaceLine "[AC]"    (show ac) (Right 4)
                                    . replaceLine "[HP]"    (show $ hp c) (Right 5)
-                                   . replaceLine "[STAT]"  (show $ maxhp c) (Right 6) -- TODO:statue error/command in battle
+                                   . (if null stxt then replaceLine "[STAT]"  (show $ maxhp c) (Right 6)
+                                                   else replaceLine "[STAT]"  stxt             (Left 10))
                                    . replaceLine "@"       (if isLvUp c then "@" else "|") (Left 1)
                                    $ statusPlaceHolder ) sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
@@ -272,6 +274,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
       where toText' (n, t) = textSGR (8, 4 + n) (toTextMessage t) (toTextSGR t)
     statusDetailView = translate (5, 4) (fromTextsSGR ' ' (toTextMessage <$> statusDetailText) (toTextSGR <$> statusDetailText))
                     <> rect (6, 4) (65, 22) (Draw ' ')
+    stxt = toStatusText (statusErrorsOf $ removeStatusError (Command "") c)
     statusDetailText = replaceText "[Name]"   (name c) (Left 30)
                      . replaceText "[Item1]"  (itemN 0) (Left inMax)
                      . replaceText "[Item2]"  (itemN 1) (Left inMax)
@@ -308,6 +311,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
                      . replaceText "[AC]"    (show $ ac)              (Right 4)
                      . replaceText "[Marks]" (show $ marks c)         (Right 4)
                      . replaceText "[RIPs]"  (show $ rips c)          (Right 4)
+                     . replaceText "[Status]" (if null stxt then "正常" else stxt) (Left 11)
                      . replaceText "M1"  (show $ (fst (mp c) ++ repeat 0) !! 0) (Right 2)
                      . replaceText "M2"  (show $ (fst (mp c) ++ repeat 0) !! 1) (Right 2)
                      . replaceText "M3"  (show $ (fst (mp c) ++ repeat 0) !! 2) (Right 2)

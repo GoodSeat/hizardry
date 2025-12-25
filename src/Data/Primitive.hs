@@ -4,7 +4,7 @@ where
 import Data.Formula
 
 import GHC.Stack (HasCallStack)
-import Data.List (find)
+import Data.List (find, sort, intercalate)
 import Data.Char (ord)
 import Data.Function ((&))
 
@@ -72,7 +72,8 @@ newtype EffectLabel = EffectLabel { effectLabel :: String } deriving (Show, Eq, 
 -- --------------------------------------------------------------------------
 
 -- | type of status error.
-data StatusError = Silence
+data StatusError = Command String -- ^ current command on battle
+                 | Silence
                  | Poison Int
                  | Fear Int   -- valid time
                  | Sleep
@@ -85,6 +86,25 @@ data StatusError = Silence
                  | Ash
                  | Lost
     deriving (Ord, Show, Eq, Read)
+
+toStatusText :: [StatusError] -> String
+toStatusText ss = let ss' = sort ss; ts = filter (not . null) (t <$> ss') in
+    if null ts then ""
+    else if any (`areSameStatusError` Command "") ss then head ts
+    else intercalate "/" ts
+  where
+    t (Command s) = s
+    t Silence     = "沈黙"
+    t (Poison _)  = "毒"
+    t (Fear _)    = "恐怖"
+    t Sleep       = "睡眠"
+    t Paralysis   = "麻痺"
+    t Stoned      = "石化"
+    t Dead        = "死亡"
+    t Ash         = "灰"
+    t Lost        = "消失"
+    t _           = ""
+
 
 -- | define of character's parameter.
 data Parameter = Parameter {
@@ -274,12 +294,13 @@ whenReturnCastle :: Object o => o -> o
 whenReturnCastle c = foldl (&) c (whenReturnCastle' <$> statusErrorsOf c) 
   where
     whenReturnCastle' :: Object o => StatusError -> o -> o
-    whenReturnCastle' (Poison n) = removeStatusError (Poison n)
-    whenReturnCastle' (Fear   n) = removeStatusError (Fear   n)
-    whenReturnCastle' Sleep      = removeStatusError Sleep
-    whenReturnCastle' Hidden     = removeStatusError Hidden
-    whenReturnCastle' Found      = removeStatusError Found
-    whenReturnCastle' _          = id
+    whenReturnCastle' (Poison n)  = removeStatusError (Poison n)
+    whenReturnCastle' (Fear   n)  = removeStatusError (Fear   n)
+    whenReturnCastle' Sleep       = removeStatusError Sleep
+    whenReturnCastle' Hidden      = removeStatusError Hidden
+    whenReturnCastle' Found       = removeStatusError Found
+    whenReturnCastle' (Command s) = removeStatusError (Command s)
+    whenReturnCastle' _           = id
 
 whenToNextTurn :: Object o
                => Int    -- ^ random integer 1~100
@@ -290,10 +311,11 @@ whenToNextTurn :: Object o
 whenToNextTurn n ne param o = foldl (&) (whenTimePast o) (whenToNextTurn' n <$> statusErrorsOf o)
   where
     whenToNextTurn' :: Object o => Int -> StatusError -> o -> o
-    whenToNextTurn' _ (Poison n) o = setHp (hpOf o - n) o
-    whenToNextTurn' n (Sleep   ) o = if n < 50 then o else removeStatusError Sleep o
-    whenToNextTurn' _ (Fear   t) o = (if t > 1 then addStatusError (Fear $ t - 1) else id) $ removeStatusError (Fear t) o
-    whenToNextTurn' n (Hidden  ) o = (if n + 2*ne - 2*agility param > 50 then addStatusError Found . removeStatusError Hidden else id) o
+    whenToNextTurn' _ (Poison n) o  = setHp (hpOf o - n) o
+    whenToNextTurn' n (Sleep   ) o  = if n < 50 then o else removeStatusError Sleep o
+    whenToNextTurn' _ (Fear   t) o  = (if t > 1 then addStatusError (Fear $ t - 1) else id) $ removeStatusError (Fear t) o
+    whenToNextTurn' n (Hidden  ) o  = (if n + 2*ne - 2*agility param > 50 then addStatusError Found . removeStatusError Hidden else id) o
+    whenToNextTurn' _ (Command s) o = removeStatusError (Command s) o
     whenToNextTurn' _ _ o = o
 
 whenWalking :: Object o => o -> o
@@ -308,16 +330,18 @@ whenBattleEnd :: Object o => o -> o
 whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c) 
   where
     whenBattleEnd' :: Object o => StatusError -> o -> o
-    whenBattleEnd' Silence = removeStatusError Silence
-    whenBattleEnd' Sleep   = removeStatusError Sleep
-    whenBattleEnd' Hidden  = removeStatusError Hidden
-    whenBattleEnd' Found   = removeStatusError Found
-    whenBattleEnd' _       = id
+    whenBattleEnd' Silence     = removeStatusError Silence
+    whenBattleEnd' Sleep       = removeStatusError Sleep
+    whenBattleEnd' Hidden      = removeStatusError Hidden
+    whenBattleEnd' (Command s) = removeStatusError (Command s)
+    whenBattleEnd' Found       = removeStatusError Found
+    whenBattleEnd' _           = id
 
 areSameStatusError :: StatusError -> StatusError -> Bool
-areSameStatusError (Poison _) (Poison _) = True
-areSameStatusError (Fear _) (Fear _)     = True
-areSameStatusError s1 s2                 = s1 == s2
+areSameStatusError (Poison _) (Poison _)   = True
+areSameStatusError (Fear _) (Fear _)       = True
+areSameStatusError (Command _) (Command _) = True
+areSameStatusError s1 s2                   = s1 == s2
 
 hasStatusError :: Object o => o -> StatusError -> Bool
 hasStatusError o s = any (areSameStatusError s) (statusErrorsOf o)

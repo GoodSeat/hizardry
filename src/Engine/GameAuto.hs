@@ -148,7 +148,7 @@ runGame :: DisplayIO    -- ^ renderer of game.
         -> IO World
 runGame = runGameE None
 
-runGameE :: Event
+runGameE :: Event        -- ^ initial event.
          -> DisplayIO    -- ^ renderer of game.
          -> InputIO      -- ^ input command.
          -> UpdateBackUpList

@@ -146,6 +146,7 @@ selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> Maybe Surprise
                     -> GameMachine
 selectBattleCommand i cmds con surprise = GameAuto $ do
+    if null cmds then resetCommand else updateCommand cmds
     p   <- party <$> world
     if length p < i then
       run $ confirmBattle cmds con surprise
@@ -221,6 +222,27 @@ selectFightTarget c fts next cancel = GameAuto $ do
     run $ if length ess == 1 || Item.targetRange wattr == Item.ToAll then next (Fight L1)
           else selectWhen1 (battleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")\n\n^L)eave `[`E`S`C`]")
                            (cmds ++ [(Key "l", cancel, True), (Key "\ESC", cancel, True)])
+
+resetCommand :: GameState ()
+resetCommand = do
+    ps <- party <$> world
+    forM_ ps $ flip updateCharacterWith (removeStatusError (Command ""))
+
+updateCommand :: [(CharacterID, Action)] -> GameState ()
+updateCommand [] = return ()
+updateCommand ((cid, act):cs) = do
+    let s = toS act
+    c <- characterByID cid
+    unless (null s) $ updateCharacterWith cid (addStatusError (Command s))
+    updateCommand cs
+  where
+    toS (Fight _)     = "Fight"
+    toS (Spell s _)   = s
+    toS Hide          = "Hide"
+    toS (Ambush _)    = "Ambush"
+    toS Parry         = "Parry"
+    toS (UseItem _ _) = "Item"
+    toS _             = ""
 
 
 confirmBattle :: [(CharacterID, Action)]
