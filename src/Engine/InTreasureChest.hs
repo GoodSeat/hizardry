@@ -96,19 +96,19 @@ openTreasureChest con afterNotOpen = GameAuto $ do
 
 invokingTrap :: TreasureCondition -> PartyPos -> GameMachine
 invokingTrap con i = GameAuto $ do
-    cid         <- characterIDInPartyAt i
-    (msg, eid') <- effectTrap cid $ trap con
+    cid               <- characterIDInPartyAt i
+    (msg, eid', gain) <- effectTrap cid $ trap con
     sortPartyAuto
     case eid' of
-      Nothing  -> run $ events [message msg] (getTreasures con)
+      Nothing  -> run $ events [message msg] (if gain then getTreasures con else afterChest con)
       Just eid -> run $ events [message msg] (whenAlarm con eid)
 
 
-effectTrap :: CharacterID -> Enemy.Trap -> GameState (String, Maybe EnemyID)
-effectTrap _ Enemy.NoTrap = return ("No traps were set.", Nothing)
+effectTrap :: CharacterID -> Enemy.Trap -> GameState (String, Maybe EnemyID, Bool)
+effectTrap _ Enemy.NoTrap = return ("No traps were set.", Nothing, True)
 effectTrap i Enemy.PoisonNeedle = do
     updateCharacterWith i (addPoison 1)
-    return ("Ooops!! Poison Needle!!", Nothing)
+    return ("Ooops!! Poison Needle!!", Nothing, True)
 effectTrap i Enemy.GasBomb = do
     ps <- party <$> world
     forM_ ps $ \i -> do
@@ -116,12 +116,12 @@ effectTrap i Enemy.GasBomb = do
       m   <- formulaMapS (Left c)
       hit <- happens =<< evalWith m (parse' "100*(20-luc)/20")
       when hit $ updateCharacterWith i (addPoison 1)
-    return ("Ooops!! Gas Bomb!!", Nothing)
+    return ("Ooops!! Gas Bomb!!", Nothing, True)
 effectTrap i Enemy.CrossbowBolt = do
     floor <- (+1) . Maze.z <$> currentPosition
     dmg <- eval (parse' $ show floor ++ "d8")
     updateCharacterWith i (damageHp dmg)
-    return ("Ooops!! Crossbow Bolt!!", Nothing)
+    return ("Ooops!! Crossbow Bolt!!", Nothing, True)
 effectTrap i Enemy.ExplodingBox = do
     ps    <- party <$> world
     floor <- (+1) . Maze.z <$> currentPosition
@@ -131,33 +131,35 @@ effectTrap i Enemy.ExplodingBox = do
       dmg1 <- eval (parse' $ show floor ++ "d5")
       dmg2 <- eval (parse' $ show floor ++ "d8")
       when hit $ updateCharacterWith i (damageHp $ if flg then dmg1 else dmg2)
-    return ("Ooops!! Exploding Box!!", Nothing)
+    return ("Ooops!! Exploding Box!!", Nothing, True)
 effectTrap i Enemy.Stunner = do
     updateCharacterWith i (addStatusError Paralysis)
-    return ("Ooops!! Stunner!!", Nothing)
+    return ("Ooops!! Stunner!!", Nothing, True)
 effectTrap i Enemy.Teleporter = do
     p     <- currentPosition
     (w,h) <- mazeSizeAt $ Maze.z p
     x'    <- randomIn [1..w]
     y'    <- randomIn [1..h]
     movePlace $ FindTreasureChest (p { Maze.x = x', Maze.y = y' }) False
-    return ("Ooops!! Teleporter!!", Nothing)
+    return ("Ooops!! Teleporter!!", Nothing, False)
 effectTrap i Enemy.Alarm = do
     c    <- Maze.coordOf <$> currentPosition
     emap <- asks roomBattleMap
     case Map.lookup c emap of
-      Nothing      -> return ("No traps were set.", Nothing)
+      Nothing      -> return ("No traps were set.", Nothing, True)
       Just (_, es) -> do
         eid <- randomIn es
-        return ("Ooops!! Alarm!!", Just eid)
+        return ("Ooops!! Alarm!!", Just eid, True)
 
 
 getTreasures :: TreasureCondition -> GameMachine
 getTreasures con = GameAuto $ do
-    np <- length . party <$> world
-    let gp   = dropGold con `div` np
+    ps <- party <$> world
+    let np   = length ps
+        gp   = dropGold con `div` np
         msg1 = [message ("Each survivor got " ++ show gp ++ "G.P.") | gp > 0]
     msg2 <- fmap message <$> divideItems (dropItems con)
+    forM_ ps $ flip spentGold (-gp)
     movePlace =<< FindTreasureChest <$> currentPosition <*> pure True
     run $ events (msg2 ++ msg1) (afterChest con)
 
