@@ -41,7 +41,7 @@ instance Object Character where
   nameOf          = name
   hpOf            = hp
   maxhpOf         = maxhp
-  lvOf            = lv
+  lvOf         c  = lv c - getDrainLv c
   statusErrorsOf  = statusErrors
   whenTimePast c  = c { paramDelta = onTimePast =<< paramDelta c }
     where

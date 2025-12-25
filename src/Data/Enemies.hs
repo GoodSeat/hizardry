@@ -67,7 +67,7 @@ instance Object Instance where
   nameOf o          = (if determined o then name else nameUndetermined) $ define o
   hpOf              = hp
   maxhpOf           = maxhp
-  lvOf              = lv . define
+  lvOf         o    = lv (define o) - getDrainLv o
   statusErrorsOf    = statusErrors
   whenTimePast o    = o { modParams = onTimePast =<< modParams o }
     where

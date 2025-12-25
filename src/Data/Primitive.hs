@@ -270,6 +270,8 @@ class Eq o => Object o where
   setStatusErrors :: [StatusError] -> o -> o
 
 addStatusError :: Object o => StatusError -> o -> o
+addStatusError (Poison n) o = addPoison n o
+addStatusError (Drain  n) o = addDrain  n o
 addStatusError s o = let o' = if s >= Dead && hpOf o > 0 then setHp 0 o else o
                      in setStatusErrors (s : statusErrorsOf (removeStatusError s o')) o'
 
@@ -284,6 +286,16 @@ addPoison d s = let ss = statusErrorsOf s in
     isPoison (Poison _) = True
     isPoison _          = False
 
+addDrain :: Object o => Int -> o -> o
+addDrain d s = let ss = statusErrorsOf s in case find (`areSameStatusError` Drain 0) ss of
+    Just (Drain n) -> addStatusError (Drain $ n + d) . removeStatusError (Drain n) $ s
+    _              -> addStatusError (Drain d) s
+
+getDrainLv :: Object o => o -> Int
+getDrainLv s =  case find (`areSameStatusError` Drain 0) (statusErrorsOf s) of
+    Just (Drain n) -> n
+    _              -> 0
+
 damageHp :: Object o => Int -> o -> o
 damageHp dmg s = setHp (hpOf s - dmg) s
 
@@ -296,6 +308,7 @@ whenReturnCastle c = foldl (&) c (whenReturnCastle' <$> statusErrorsOf c)
     whenReturnCastle' :: Object o => StatusError -> o -> o
     whenReturnCastle' (Poison n)  = removeStatusError (Poison n)
     whenReturnCastle' (Fear   n)  = removeStatusError (Fear   n)
+    whenReturnCastle' (Drain  n)  = removeStatusError (Drain  n)
     whenReturnCastle' Sleep       = removeStatusError Sleep
     whenReturnCastle' Hidden      = removeStatusError Hidden
     whenReturnCastle' Found       = removeStatusError Found
@@ -332,6 +345,7 @@ whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c)
     whenBattleEnd' :: Object o => StatusError -> o -> o
     whenBattleEnd' Silence     = removeStatusError Silence
     whenBattleEnd' Sleep       = removeStatusError Sleep
+    whenBattleEnd' (Drain n)   = removeStatusError (Drain n) -- MEMO:in classic mode, must lose exp.
     whenBattleEnd' Hidden      = removeStatusError Hidden
     whenBattleEnd' (Command s) = removeStatusError (Command s)
     whenBattleEnd' Found       = removeStatusError Found
@@ -340,6 +354,7 @@ whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c)
 areSameStatusError :: StatusError -> StatusError -> Bool
 areSameStatusError (Poison _) (Poison _)   = True
 areSameStatusError (Fear _) (Fear _)       = True
+areSameStatusError (Drain _) (Drain _)     = True
 areSameStatusError (Command _) (Command _) = True
 areSameStatusError s1 s2                   = s1 == s2
 

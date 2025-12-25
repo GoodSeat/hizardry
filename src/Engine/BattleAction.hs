@@ -201,7 +201,6 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
       else do
         (h, d, ses) <- fightDamageE n e c dmg sts
         let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
-          -- TODO:lv drain
         ms <- fightMessageE e c' (h, d, ses)
         let next' = with [updateCharacter cid c'] next
         run $ if d == 0 then events (message <$> ms) next'
