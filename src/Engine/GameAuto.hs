@@ -124,7 +124,7 @@ type GameMachine = GameAuto Input Event
 
 -- ==========================================================================
 --
-type DisplayIO = Event -> World -> IO () -- TODO:event for display must be another data of Event.(because SaveGame and LoadGame has no meaning.)
+type DisplayIO = Event -> World -> IO ()
 type InputIO   = InputType -> IO Input
 
 type UpdateBackUpList = Scenario -> IO [String]

@@ -139,7 +139,6 @@ startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then co
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
 moveToBattle es = movePlace =<< InBattle <$> currentPosition <*> pure es
 
-
 selectBattleCommand :: Int -- ^ character index in party(start from 1).
                     -> [(CharacterID, Action)]
                     -> Condition
@@ -194,7 +193,7 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                        (useItem battleCommand (\i l -> next $ UseItem i l)) c cancel
                    , Chara.UseItem `elem` cs')
                   ,( Key "r"
-                   , events [message $ Chara.name c ++ " flees."] (afterRun con) -- TODO:implement possible of fail to run.
+                   , tryRun c con surprise
                    , Chara.Run `elem` cs')
                   ,( Key "\16128", inspect, True) -- code of "?" ?
                   ,( Key "?", inspect, True)
@@ -222,6 +221,15 @@ selectFightTarget c fts next cancel = GameAuto $ do
     run $ if length ess == 1 || Item.targetRange wattr == Item.ToAll then next (Fight L1)
           else selectWhen1 (battleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")\n\n^L)eave `[`E`S`C`]")
                            (cmds ++ [(Key "l", cancel, True), (Key "\ESC", cancel, True)])
+
+tryRun :: Chara.Character -> Condition -> Maybe Surprise -> GameMachine
+tryRun c con surprised = GameAuto $ do
+    np  <- length . party <$> world
+    es  <- lastEnemies
+    suc <- happens $ 100 - length es * 3 - (np - 1) * 4
+    let bm = Chara.name c ++ " flees."
+    if suc then run $ events [message bm] (afterRun con)
+           else run $ events [message bm, message $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
 
 resetCommand :: GameState ()
 resetCommand = do
