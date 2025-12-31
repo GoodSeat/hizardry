@@ -58,8 +58,12 @@ crypt' :: String -> String -> String
 crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key)
 
 
+import Engine.Sound (initAudio, quitAudio, playBGM)
+import Control.Exception (bracket)
+
 main :: IO ()
-main = do
+main = bracket initAudio quitAudio $ \() -> do
+    playBGM "res/bgm.mp3"
     let currentVersion = versionBranch version -- if isn't match with major/minor/build version, invalid save data.
     --gen <- getStdGen
     let gen = mkStdGen 0 

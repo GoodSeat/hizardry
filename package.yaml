@@ -29,6 +29,8 @@ dependencies:
 - ansi-terminal
 - parsec
 - async
+- sdl2
+- sdl2-mixer
 
 library:
   source-dirs: 
@@ -42,9 +44,10 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts
-    - --io-manager=native
     dependencies:
     - hizardry
+    - sdl2
+    - sdl2-mixer
 
 tests:
   hizardry-test:
