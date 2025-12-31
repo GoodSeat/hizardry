@@ -2,7 +2,9 @@ module Engine.Sound (
     initAudio,
     quitAudio,
     playBGM,
-    playSoundEffect
+    playMusicOnce,
+    playSoundEffect,
+    stopBGM
 ) where
 
 import Control.Concurrent (forkIO)
@@ -36,6 +38,10 @@ quitAudio = do
     mHandle <- atomicModifyIORef' bgmProcessHandle (\h -> (Nothing, h))
     maybe (return ()) terminateProcess mHandle
 
+-- | Stop the currently playing BGM/music.
+stopBGM :: IO ()
+stopBGM = quitAudio
+
 -- | Stop the old BGM and play a new one, looping.
 playBGM :: FilePath -> IO ()
 playBGM file = do
@@ -46,6 +52,16 @@ playBGM file = do
         -- We are not closing the stdin/stdout/stderr handles, which might lead to resource leaks in some cases,
         -- but for a long-running BGM process that is only terminated, it's generally acceptable.
         (_, _, _, ph) <- createProcess (proc vlc ["--intf", "dummy", "--loop", file])
+        writeIORef bgmProcessHandle (Just ph)
+
+-- | Stop the old BGM/music and play a new one once.
+playMusicOnce :: FilePath -> IO ()
+playMusicOnce file = do
+    readIORef vlcPath >>= maybe (return ()) handlePlay
+  where
+    handlePlay vlc = do
+        quitAudio -- Stop previous BGM/music
+        (_, _, _, ph) <- createProcess (proc vlc ["--intf", "dummy", "--play-and-exit", file])
         writeIORef bgmProcessHandle (Just ph)
 
 -- | Play a sound effect once.
