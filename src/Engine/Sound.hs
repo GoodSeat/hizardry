@@ -5,30 +5,56 @@ module Engine.Sound (
     playSoundEffect
 ) where
 
-import Control.Monad (void)
-import qualified SDL
-import qualified SDL.Mixer as Mixer
+import Control.Concurrent (forkIO)
+import Control.Monad (void, when)
+import Data.IORef
+import System.IO.Unsafe (unsafePerformIO)
+import System.Process (createProcess, proc, terminateProcess, ProcessHandle)
+import System.Directory (findExecutable)
+import Data.Maybe (isJust)
 
--- | オーディオデバイスを初期化する
+-- IORef to hold the process handle of the currently playing BGM
+bgmProcessHandle :: IORef (Maybe ProcessHandle)
+{-# NOINLINE bgmProcessHandle #-}
+bgmProcessHandle = unsafePerformIO (newIORef Nothing)
+
+vlcPath :: IORef (Maybe FilePath)
+{-# NOINLINE vlcPath #-}
+vlcPath = unsafePerformIO (newIORef Nothing)
+
+-- | Find VLC executable and store its path.
 initAudio :: IO ()
 initAudio = do
-    SDL.initialize [SDL.InitAudio]
-    Mixer.openAudio Mixer.defaultAudio 256
+    path <- findExecutable "vlc"
+    writeIORef vlcPath path
+    when (not . isJust $ path) $
+        putStrLn "Warning: VLC executable not found. Sound will not be played."
 
--- | オーディオデバイスを終了する
+-- | Stop the BGM if it's playing.
 quitAudio :: IO ()
 quitAudio = do
-    Mixer.closeAudio
-    SDL.quit
+    mHandle <- atomicModifyIORef' bgmProcessHandle (\h -> (Nothing, h))
+    maybe (return ()) terminateProcess mHandle
 
--- | BGMを再生する
+-- | Stop the old BGM and play a new one, looping.
 playBGM :: FilePath -> IO ()
-playBGM musicFile = do
-    music <- Mixer.load musicFile
-    Mixer.playMusic Mixer.Forever music
+playBGM file = do
+    readIORef vlcPath >>= maybe (return ()) handlePlay
+  where
+    handlePlay vlc = do
+        quitAudio -- Stop previous BGM
+        -- We are not closing the stdin/stdout/stderr handles, which might lead to resource leaks in some cases,
+        -- but for a long-running BGM process that is only terminated, it's generally acceptable.
+        (_, _, _, ph) <- createProcess (proc vlc ["--intf", "dummy", "--loop", file])
+        writeIORef bgmProcessHandle (Just ph)
 
--- | 効果音を再生する
+-- | Play a sound effect once.
 playSoundEffect :: FilePath -> IO ()
-playSoundEffect soundFile = do
-    chunk <- Mixer.load soundFile
-    void $ Mixer.play chunk
+playSoundEffect file = do
+    readIORef vlcPath >>= maybe (return ()) handlePlay
+  where
+    handlePlay vlc = void . forkIO $ do
+        -- Fire and forget. We don't manage the process handle.
+        -- VLC with --play-and-exit will terminate itself.
+        (_, _, _, _) <- createProcess $ proc vlc ["--intf", "dummy", "--play-and-exit", file]
+        return ()

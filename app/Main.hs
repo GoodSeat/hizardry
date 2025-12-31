@@ -18,6 +18,9 @@ import Data.Char (ord, chr)
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef, writeIORef)
 import qualified Data.Bits as Bits
 
+import Engine.Sound (initAudio, quitAudio, playBGM)
+import Control.Exception (bracket_, finally)
+
 import Engine.GameAuto
 import Engine.InCastle (inCastle)
 import Engine.InEdgeOfTown (inEdgeOfTown)
@@ -57,12 +60,8 @@ crypt indx key text = if null key then return text else do
 crypt' :: String -> String -> String
 crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key)
 
-
-import Engine.Sound (initAudio, quitAudio, playBGM)
-import Control.Exception (bracket)
-
 main :: IO ()
-main = bracket initAudio quitAudio $ \() -> do
+main = bracket_ initAudio quitAudio $ do
     playBGM "res/bgm.mp3"
     let currentVersion = versionBranch version -- if isn't match with major/minor/build version, invalid save data.
     --gen <- getStdGen
