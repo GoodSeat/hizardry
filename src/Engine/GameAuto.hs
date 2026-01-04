@@ -221,11 +221,11 @@ stepGame s w g = let (res, w') = runGameState s w $ run g in case res of
 
 nextInputType :: Event -> InputType
 nextInputType e = case e of
-    General (Display _ _ _ w _ n)
+    General (Display _ _ _ w _ n _ _)
       | isJust w  -> WaitClock $ fromJust w 
       | n         -> SequenceKey
       | otherwise -> SingleKey
-    ShowStatus _ _ (Display _ _ _ w _ n)
+    ShowStatus _ _ (Display _ _ _ w _ n _ _)
       | isJust w  -> WaitClock $ fromJust w 
       | n         -> SequenceKey
       | otherwise -> SingleKey

@@ -18,13 +18,14 @@ import Data.Char (ord, chr)
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef, writeIORef)
 import qualified Data.Bits as Bits
 
-import Engine.Sound (initAudio, quitAudio, playBGM)
+import Engine.Sound (initAudio, quitAudio, playBGM, stopBGM, playMusicOnce, playBGMIfNoMusic, playSoundEffect)
 import Control.Exception (bracket_, finally)
 
 import Engine.GameAuto
 import Engine.InCastle (inCastle)
 import Engine.InEdgeOfTown (inEdgeOfTown)
-import Data.World (Place(..), place, saveWorld, loadWorld, initWorld)
+import Data.World (World(..), Place(..), place, saveWorld, loadWorld, initWorld)
+import Data.PlayEvent
 
 import Control.CUI
 import UI.CuiRender (cuiRender, renderWithCache)
@@ -108,7 +109,7 @@ main = bracket_ initAudio quitAudio $ do
     drawCache <- newDrawCache
     let renderMethod = renderWithCache drawCache
         display      = cuiRender renderMethod picOf s
-        display' e w = setCursorPosition 0 0 >> display e w
+        display' e w = playSound e w >> setCursorPosition 0 0 >> display e w
     let cmd          = getKey indx ekey (clearCache drawCache)
 
     clearScreen
@@ -118,6 +119,35 @@ main = bracket_ initAudio quitAudio $ do
 
     appendFile inputLogPath =<< crypt indx ekey (show Abort ++ "\n")
     void $ saveWorld w' "world.dat"
+
+-- ==========================================================================
+
+playSound :: Event -> World -> IO ()
+playSound (General d)        w = playSE d >> playBGM' d w
+playSound (ShowStatus _ _ d) w = playSE d >> playBGM' d w
+playSound _                  _ = return ()
+
+playSE :: Display -> IO ()
+playSE d = case typeSE d of
+  Walk            -> playSoundEffect "res/walk.mp3"
+  TurnLeftOrRight -> playSoundEffect "res/walk.mp3"
+  HitWall         -> playSoundEffect "res/hit1.mp3"
+  KickDoor        -> playSoundEffect "res/kickDoor.mp3"
+  Spelled         -> playSoundEffect "res/walk.mp3"
+  FightHitToP     -> playSoundEffect "res/hit1.mp3"
+  FightHitToE     -> playSoundEffect "res/hit2.mp3"
+  SpellHitToP     -> playSoundEffect "res/hit1.mp3"
+  SpellHitToE     -> playSoundEffect "res/hit2.mp3"
+  _               -> return ()
+
+playBGM' :: Display -> World -> IO ()
+playBGM' d w = case typeBGM d of
+  TurnOff         -> stopBGM
+  Encounter       -> return ()
+  WinBattle       -> playMusicOnce "res/fanfare.mp3"
+  AllDead         -> return ()
+  _               -> return ()
+
 
 -- ==========================================================================
 

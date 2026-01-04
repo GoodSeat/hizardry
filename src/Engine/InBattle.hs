@@ -325,7 +325,7 @@ wonBattle con = GameAuto $ do
     let e  = gotExps con `div` length ps
         ft = isRoomBattle con && (dropGold con > 0 || not (null $ dropItems con))
     forM_ ps $ flip updateCharacterWith (Chara.getExp e)
-    run $ events [message $ "Each survivor got " ++ show e ++ " E.P."]
+    run $ events [withBGM WinBattle $ message $ "Each survivor got " ++ show e ++ " E.P."]
                  (if ft then findTreasureChest con else findTreasures con)
 
 findTreasureChest :: Condition -> GameMachine

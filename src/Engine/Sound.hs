@@ -13,7 +13,7 @@ import Control.Monad (void, when, unless)
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (createProcess, proc, terminateProcess, ProcessHandle, waitForProcess, getPid)
-import System.Directory (findExecutable)
+import System.Directory (findExecutable, doesFileExist)
 import Data.Maybe (isJust)
 import Data.Foldable (forM_)
 
@@ -39,10 +39,26 @@ vlcPath = unsafePerformIO (newIORef Nothing)
 -- | Find VLC executable and store its path.
 initAudio :: IO ()
 initAudio = do
-    path <- findExecutable "vlc"
-    writeIORef vlcPath path
-    unless (isJust path) $
-        putStrLn "Warning: VLC executable not found. Sound will not be played."
+    vlcFromPath <- findExecutable "vlc"
+    case vlcFromPath of 
+      Just path -> writeIORef vlcPath (Just path)
+      Nothing   -> findInStandardPaths
+  where
+    findInStandardPaths :: IO ()
+    findInStandardPaths = do
+        let paths = [ "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"
+                    , "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"
+                    ]
+        foundPath <- findFirst paths
+        case foundPath of
+            Just path -> writeIORef vlcPath (Just path)
+            Nothing   -> putStrLn "Warning: VLC executable not found. Sound will not be played."
+
+    findFirst :: [FilePath] -> IO (Maybe FilePath)
+    findFirst [] = return Nothing
+    findFirst (p:ps) = do
+        exists <- doesFileExist p
+        if exists then return (Just p) else findFirst ps
 
 -- | Stop the BGM and clear all states.
 quitAudio :: IO ()

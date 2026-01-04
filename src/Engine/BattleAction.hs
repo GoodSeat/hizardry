@@ -482,8 +482,9 @@ toEffect fromEnemy msg next = e0
     d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
                                              , sceneTrans = id }
                                       else w { enemyTrans = id }
-    e0  =             select (head $ msgBlink [msg])         [(Clock, e1), (AnyKey, with [d4] next)]
-    e1  = with [d1] $ select (messageTime (-40) msg Nothing) [(Clock, e2), (AnyKey, with [d4] next)]
-    e2  = with [d2] $ select (messageTime (-30) msg Nothing) [(Clock, e3), (AnyKey, with [d4] next)]
-    e3  = with [d3] $ select (messageTime (-40) msg Nothing) [(Clock, e4), (AnyKey, with [d4] next)]
+    e0  =             select (withSE se $ head $ msgBlink [msg]) [(Clock, e1), (AnyKey, with [d4] next)]
+    e1  = with [d1] $ select (messageTime (-40) msg Nothing)     [(Clock, e2), (AnyKey, with [d4] next)]
+    e2  = with [d2] $ select (messageTime (-30) msg Nothing)     [(Clock, e3), (AnyKey, with [d4] next)]
+    e3  = with [d3] $ select (messageTime (-40) msg Nothing)     [(Clock, e4), (AnyKey, with [d4] next)]
     e4  = with [d4] $ events [message msg] next
+    se  = if fromEnemy then FightHitToP else FightHitToE

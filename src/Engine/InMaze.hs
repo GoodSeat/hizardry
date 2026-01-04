@@ -107,7 +107,7 @@ checkEncount c checkRoomBattle = do
 ouch :: Position -> GameMachine
 ouch p = ouch1
   where
-    ouch1 = with [d1] $ select (flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
+    ouch1 = with [d1] $ select (withSE HitWall $ flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
     ouch2 = with [d2] $ select (flashMessage' ( -20) " Ouch !! ") $ (Clock, ouch3) : moves'
     ouch3 = with [d3] $ select (flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch4) : moves'
     ouch4 = with [d4] $ select (flashMessage' (-330) " Ouch !! ") $ moves p
@@ -126,8 +126,8 @@ flashMoveView :: String -> Event
 flashMoveView = flashMessage' (-100)
 
 moves :: Position -> [(Input, GameMachine)]
-moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
-          ,(Key "d", enterMaybeEncount' (flashMoveView " -> ") $ turnRight p)
+moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " <- ") $ turnLeft p)
+          ,(Key "d", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " -> ") $ turnRight p)
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
@@ -154,9 +154,11 @@ moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
             -- update party status.
             ps <- party <$> world
             forM_ ps (`updateCharacterWith` whenWalking)
+            let se = case walkForward lab p of Nothing -> KickDoor
+                                               _       -> Walk
             sortPartyAuto
             -- TODO!:if all character dead, move to gameover.
-            run $ enterMaybeEncount (flashMoveView " 1  ") p'
+            run $ enterMaybeEncount (withSE se $ flashMoveView " 1  ") p'
 
 
 nextMiniMap :: GameState ()

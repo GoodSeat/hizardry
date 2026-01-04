@@ -33,8 +33,29 @@ data Display = Display {
     , flashBox   :: !(Maybe String)
     , waitTime   :: !(Maybe Int)       -- ^ negative wait time means enable to skip by key input
     , picture    :: !(Maybe PictureInf)
-    , needPhrase :: Bool
+    , needPhrase :: !Bool
+    , typeSE     :: !SEType
+    , typeBGM    :: !BGMType
 } deriving (Show, Eq)
+
+data SEType = NoSE
+            | Walk
+            | TurnLeftOrRight
+            | HitWall
+            | KickDoor
+            | Spelled
+            | FightHitToE
+            | FightHitToP
+            | SpellHitToE
+            | SpellHitToP
+  deriving (Show, Eq)
+
+data BGMType = NoBGM
+             | TurnOff
+             | Encounter
+             | WinBattle
+             | AllDead
+  deriving (Show, Eq)
 
 -- ==========================================================================
 
@@ -53,6 +74,15 @@ changeFlashTime f t (General d) = General $ d { flashBox = adjustText f, waitTim
 changeFlashTime f t (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = adjustText f, waitTime = Just t }
 changeFlashTime _ _ e = e
 
+withSE :: SEType -> Event -> Event
+withSE se (General d) = General $ d { typeSE = se }
+withSE se (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { typeSE = se }
+withSE _ e = e
+
+withBGM :: BGMType -> Event -> Event
+withBGM bgm (General d) = General $ d { typeBGM = bgm }
+withBGM bgm (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { typeBGM = bgm }
+withBGM _ e = e
 
 -- ==========================================================================
 
@@ -66,6 +96,8 @@ message s = General $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 messagePic s p = General $ Display {
       messageBox = Just s
@@ -74,6 +106,8 @@ messagePic s p = General $ Display {
     , waitTime   = Nothing
     , picture    = p
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 ask s p = General $ Display {
       messageBox = Just s
@@ -82,6 +116,8 @@ ask s p = General $ Display {
     , waitTime   = Nothing
     , picture    = p
     , needPhrase = True
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 messageTime t s p = General $ Display {
       messageBox = Just s
@@ -90,6 +126,8 @@ messageTime t s p = General $ Display {
     , waitTime   = Just t
     , picture    = p
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 askFlashAndMessage s f p = General $ Display {
       messageBox = Just s
@@ -98,6 +136,8 @@ askFlashAndMessage s f p = General $ Display {
     , waitTime   = Nothing
     , picture    = p
     , needPhrase = True
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 flashAndMessageTime t s f p = General $ Display {
       messageBox = Just s
@@ -106,6 +146,8 @@ flashAndMessageTime t s f p = General $ Display {
     , waitTime   = Just t
     , picture    = p
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 wait t p = General $ Display {
       messageBox = Nothing
@@ -114,6 +156,8 @@ wait t p = General $ Display {
     , waitTime   = Just t
     , picture    = p
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 flashMessage t s = General $ Display {
       messageBox = Nothing
@@ -122,6 +166,8 @@ flashMessage t s = General $ Display {
     , waitTime   = Just t
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 flashMessage' t s = General $ Display {
       messageBox = Nothing
@@ -130,6 +176,8 @@ flashMessage' t s = General $ Display {
     , waitTime   = Just t
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 battleCommand s = General $ Display {
       messageBox = Nothing
@@ -138,6 +186,8 @@ battleCommand s = General $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 spellCommand s = General $ Display {
       messageBox = Nothing
@@ -146,6 +196,8 @@ spellCommand s = General $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = True
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
     }
 
 showStatus cid msg = ShowStatus cid Nothing $ Display {
@@ -155,6 +207,8 @@ showStatus cid msg = ShowStatus cid Nothing $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
 }
 showStatusFlash cid msg fmsg = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -163,6 +217,8 @@ showStatusFlash cid msg fmsg = ShowStatus cid Nothing $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
 }
 showStatusAlt cid msg alt = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -171,6 +227,8 @@ showStatusAlt cid msg alt = ShowStatus cid Nothing $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
 }
 showStatusAlt' cid msg alt help = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -179,6 +237,8 @@ showStatusAlt' cid msg alt help = ShowStatus cid Nothing $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
 }
 askInStatus cid msg = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -187,6 +247,8 @@ askInStatus cid msg = ShowStatus cid Nothing $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = True
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
 }
 showStatusEquip cid his msg = ShowStatus cid (Just his) $ Display {
       messageBox = Just msg
@@ -195,5 +257,7 @@ showStatusEquip cid his msg = ShowStatus cid (Just his) $ Display {
     , waitTime   = Nothing
     , picture    = Nothing
     , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = NoBGM
 }
 
