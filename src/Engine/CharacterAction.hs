@@ -596,7 +596,7 @@ spellInCamp' def src dst next = GameAuto $ do
       run $ events [showStatusSpellingCamp cid "no more MP."] next
     else do
       join $ updateCharacter <$> characterIDInPartyAt src <*> costSpell' c def
-      run $ spellInCampNoCost def src dst next
+      run $ addEff (withSE Spelled) $ spellInCampNoCost def src dst next
 
 spellInCampNoCost :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCampNoCost def src dst next = GameAuto $ do

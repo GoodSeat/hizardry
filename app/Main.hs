@@ -63,7 +63,6 @@ crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key
 
 main :: IO ()
 main = bracket_ initAudio quitAudio $ do
-    playBGM "res/bgm.mp3"
     let currentVersion = versionBranch version -- if isn't match with major/minor/build version, invalid save data.
     --gen <- getStdGen
     let gen = mkStdGen 0 
@@ -105,11 +104,12 @@ main = bracket_ initAudio quitAudio $ do
               | otherwise               = inCastle
              
     -- setting for CUI
+    cachePlace <- newIORef (EnteringMaze, "")
     let picOf = maybe mempty SampleScenario.pic
     drawCache <- newDrawCache
     let renderMethod = renderWithCache drawCache
         display      = cuiRender renderMethod picOf s
-        display' e w = playSound e w >> setCursorPosition 0 0 >> display e w
+        display' e w = playSound cachePlace e w >> setCursorPosition 0 0 >> display e w
     let cmd          = getKey indx ekey (clearCache drawCache)
 
     clearScreen
@@ -122,10 +122,10 @@ main = bracket_ initAudio quitAudio $ do
 
 -- ==========================================================================
 
-playSound :: Event -> World -> IO ()
-playSound (General d)        w = playSE d >> playBGM' d w
-playSound (ShowStatus _ _ d) w = playSE d >> playBGM' d w
-playSound _                  _ = return ()
+playSound :: IORef (Place, String) -> Event -> World -> IO ()
+playSound cp (General d)        w = playSE d >> playBGM' cp d w
+playSound cp (ShowStatus _ _ d) w = playSE d >> playBGM' cp d w
+playSound cp _                  _ = return ()
 
 playSE :: Display -> IO ()
 playSE d = case typeSE d of
@@ -133,20 +133,41 @@ playSE d = case typeSE d of
   TurnLeftOrRight -> playSoundEffect "res/walk.mp3"
   HitWall         -> playSoundEffect "res/hit1.mp3"
   KickDoor        -> playSoundEffect "res/kickDoor.mp3"
-  Spelled         -> playSoundEffect "res/walk.mp3"
+  Spelled         -> playSoundEffect "res/spell1.mp3"
   FightHitToP     -> playSoundEffect "res/hit1.mp3"
   FightHitToE     -> playSoundEffect "res/hit2.mp3"
   SpellHitToP     -> playSoundEffect "res/hit1.mp3"
   SpellHitToE     -> playSoundEffect "res/hit2.mp3"
   _               -> return ()
 
-playBGM' :: Display -> World -> IO ()
-playBGM' d w = case typeBGM d of
-  TurnOff         -> stopBGM
-  Encounter       -> return ()
-  WinBattle       -> playMusicOnce "res/fanfare.mp3"
-  AllDead         -> return ()
-  _               -> return ()
+playBGM' :: IORef (Place, String) -> Display -> World -> IO ()
+playBGM' cp d w = do
+    (op, otitle) <- readIORef cp
+    ntitle <- case typeBGM d of
+      TurnOff   -> stopBGM >> return ""
+      Encounter -> playMusicOnce "res/encounter.mp3" >> return ""
+      WinBattle -> playMusicOnce "res/fanfare1.mp3" >> return ""
+      LevelUp   -> playMusicOnce "res/lvup.mp3" >> return ""
+      AllDead   -> return ""
+      _         -> case np of
+          InCastle              -> return "res/inTavern.mp3"
+          Gilgamesh'sTavern     -> return "res/inTavern.mp3"
+          Adventure'sInn        -> return "res/inTavern.mp3"
+          Boltac'sTradingPost   -> return "res/inTavern.mp3"
+          TempleOfCant          -> return "res/inTavern.mp3"
+          InEdgeOfTown          -> return "res/inTavern.mp3"
+          TrainingGrounds       -> return "res/inTavern.mp3"
+          EnteringMaze          -> stopBGM >> return ""
+          InMaze _              -> return "res/inMaze1.mp3"
+          InBattle _ _          -> return "res/inBattle1.mp3"
+          FindTreasureChest _ _ -> return ""
+          Camping _ _           -> return "res/inCamp.mp3" 
+          _                     -> return ""
+    when (otitle == "" && ntitle /= "") $ playBGMIfNoMusic ntitle
+    when (otitle /= "" && ntitle /= "" && otitle /= ntitle) $ playBGM ntitle
+    writeIORef cp (np, ntitle)
+  where
+    np = place w
 
 
 -- ==========================================================================

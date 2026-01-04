@@ -114,7 +114,7 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
         return $ if      r < partySurpriseProb                     then PartySurprise
                  else if r < partySurpriseProb + enemySurpriseProb then EnemySurprise
                  else                                                   NoSurprise
-    let msg = flashMessage (-1000) "    Encounter!!    "
+    let msg = withBGM Encounter $ flashMessage (-1000) "    Encounter!!    "
         con = Condition {
                 afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
               }

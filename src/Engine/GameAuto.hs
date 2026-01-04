@@ -122,6 +122,11 @@ instance Monad (GameAuto i) where
 -- | GameMachine by Automaton.
 type GameMachine = GameAuto Input Event
 
+addEff :: (Event -> Event) -> GameMachine -> GameMachine
+addEff f g = GameAuto $ do
+  (o, next) <- run g
+  return (f o, next)
+
 -- ==========================================================================
 --
 type DisplayIO = Event -> World -> IO ()

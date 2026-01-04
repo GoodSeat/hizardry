@@ -55,6 +55,7 @@ data BGMType = NoBGM
              | Encounter
              | WinBattle
              | AllDead
+             | LevelUp
   deriving (Show, Eq)
 
 -- ==========================================================================

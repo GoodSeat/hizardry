@@ -172,7 +172,7 @@ checkLvup id = GameAuto $ do
 doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do
     (txt, c') <- lvup =<< characterByID id
-    run $ with [updateCharacter id c'] (events [message txt] $ selectStayPlan id)
+    run $ with [updateCharacter id c'] (events [withBGM LevelUp $ message txt] $ selectStayPlan id)
 
 -- =======================================================================
 
