@@ -202,6 +202,9 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                   ,( Key "\ESC"
                    , events [None] (selectBattleCommand i cmds con surprise)
                    , True)
+                  ,( Key "b"
+                   , with [resetCommand] $ selectBattleCommand (i - 1) (drop 1 cmds) con surprise
+                   , i > 1)
                   ]
             toMsg cmd = case cmd of Chara.Fight   -> if Chara.Ambush `elem` cs' then "^F)ight\n" else "^F)ight`*\n"
                                     Chara.Spell   -> "^S)pell\n"
@@ -211,7 +214,7 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                                     Chara.Run     -> "^R)un\n"
                                     Chara.Parry   -> if Chara.Fight `elem` cs' || Chara.Hide `elem` cs' || Chara.Ambush `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
                                     Chara.UseItem -> "^U)se Item\n"
-        in run $ selectWhen1 (battleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs') cms
+        in run $ selectWhen1 (battleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs' ++ (if i == 1 then "" else "^B)ack\n")) cms
 
 selectFightTarget :: Chara.Character -> [EnemyLine] -> (Action -> GameMachine) -> GameMachine -> GameMachine
 selectFightTarget c fts next cancel = GameAuto $ do
@@ -228,7 +231,7 @@ tryRun :: Chara.Character -> Condition -> Maybe Surprise -> GameMachine
 tryRun c con surprised = GameAuto $ do
     np  <- length . party <$> world
     es  <- lastEnemies
-    suc <- happens $ 100 - length es * 3 - (np - 1) * 4
+    suc <- if isJust surprised then return True else happens $ 100 - length es * 3 - (np - 1) * 4
     let bm = Chara.name c ++ " flees."
     if suc then run $ events [message bm] (afterRun con)
            else run $ events [message bm, message $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
