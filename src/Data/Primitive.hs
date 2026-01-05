@@ -279,17 +279,17 @@ removeStatusError :: Object o => StatusError -> o -> o
 removeStatusError s o = setStatusErrors (filter (not . areSameStatusError s) $ statusErrorsOf o) o
 
 addPoison :: Object o => Int -> o -> o
-addPoison d s = let ss = statusErrorsOf s in
-    case find isPoison ss of Just (Poison n) -> addStatusError (Poison $ n + d) . removeStatusError (Poison n) $ s
-                             _               -> addStatusError (Poison d) s
+addPoison d s = let ss = statusErrorsOf s in case find isPoison ss of
+    Just (Poison n) -> setStatusErrors (Poison (n + d) : statusErrorsOf (removeStatusError (Poison n) s)) s
+    _               -> setStatusErrors (Poison d : statusErrorsOf s) s
   where
     isPoison (Poison _) = True
     isPoison _          = False
 
 addDrain :: Object o => Int -> o -> o
 addDrain d s = let ss = statusErrorsOf s in case find (`areSameStatusError` Drain 0) ss of
-    Just (Drain n) -> addStatusError (Drain $ n + d) . removeStatusError (Drain n) $ s
-    _              -> addStatusError (Drain d) s
+    Just (Drain n) -> setStatusErrors (Drain (n + d) : statusErrorsOf (removeStatusError (Drain n) s)) s
+    _              -> setStatusErrors (Drain d : statusErrorsOf s) s
 
 getDrainLv :: Object o => o -> Int
 getDrainLv s =  case find (`areSameStatusError` Drain 0) (statusErrorsOf s) of
