@@ -7,7 +7,7 @@ import System.IO (getChar, hSetBuffering, stdin, BufferMode(..), hReady)
 import System.Directory (doesFileExist, removeFile, createDirectoryIfMissing, listDirectory)
 import System.Console.ANSI (clearScreen, clearLine, hideCursor, showCursor, setCursorPosition, cursorUp)
 import System.Random
-import Control.Exception (try, SomeException(..))
+import Control.Exception (try, SomeException(..), bracket_, finally)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
 import Control.Monad (void, when, forM)
@@ -18,9 +18,6 @@ import Data.Char (ord, chr)
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef, writeIORef)
 import qualified Data.Bits as Bits
 
-import Engine.Sound (initAudio, quitAudio, playBGM, stopBGM, playMusicOnce, playBGMIfNoMusic, playSoundEffect)
-import Control.Exception (bracket_, finally)
-
 import Engine.GameAuto
 import Engine.InCastle (inCastle)
 import Engine.InEdgeOfTown (inEdgeOfTown)
@@ -29,6 +26,7 @@ import Data.PlayEvent
 
 import Control.CUI
 import UI.CuiRender (cuiRender, renderWithCache)
+import UI.SoundControl
 
 import qualified SampleScenario.Home as SampleScenario
 
@@ -62,7 +60,7 @@ crypt' :: String -> String -> String
 crypt' key text = zipWith (\c k -> chr $ ord c `Bits.xor` ord k) text (cycle key)
 
 main :: IO ()
-main = bracket_ initAudio quitAudio $ do
+main = bracket_ initSound quitSound $ do
     let currentVersion = versionBranch version -- if isn't match with major/minor/build version, invalid save data.
     --gen <- getStdGen
     let gen = mkStdGen 0 
@@ -104,12 +102,15 @@ main = bracket_ initAudio quitAudio $ do
               | otherwise               = inCastle
              
     -- setting for CUI
-    cachePlace <- newIORef (EnteringMaze, "")
+    cacheSound <- newIORef (EnteringMaze, "")
     let picOf = maybe mempty SampleScenario.pic
+        seOf  = SampleScenario.seOf
+        bgmOf = SampleScenario.bgmOf
     drawCache <- newDrawCache
     let renderMethod = renderWithCache drawCache
         display      = cuiRender renderMethod picOf s
-        display' e w = playSound cachePlace e w >> setCursorPosition 0 0 >> display e w
+        display' e w = playSound cacheSound seOf bgmOf e w
+                    >> setCursorPosition 0 0 >> display e w
     let cmd          = getKey indx ekey (clearCache drawCache)
 
     clearScreen
@@ -119,56 +120,6 @@ main = bracket_ initAudio quitAudio $ do
 
     appendFile inputLogPath =<< crypt indx ekey (show Abort ++ "\n")
     void $ saveWorld w' "world.dat"
-
--- ==========================================================================
-
-playSound :: IORef (Place, String) -> Event -> World -> IO ()
-playSound cp (General d)        w = playSE d >> playBGM' cp d w
-playSound cp (ShowStatus _ _ d) w = playSE d >> playBGM' cp d w
-playSound cp _                  _ = return ()
-
-playSE :: Display -> IO ()
-playSE d = case typeSE d of
-  Walk            -> playSoundEffect "res/walk.mp3"
-  TurnLeftOrRight -> playSoundEffect "res/walk.mp3"
-  HitWall         -> playSoundEffect "res/hit1.mp3"
-  KickDoor        -> playSoundEffect "res/kickDoor.mp3"
-  Spelled         -> playSoundEffect "res/spell1.mp3"
-  FightHitToP     -> playSoundEffect "res/hit1.mp3"
-  FightHitToE     -> playSoundEffect "res/hit2.mp3"
-  SpellHitToP     -> playSoundEffect "res/hit1.mp3"
-  SpellHitToE     -> playSoundEffect "res/hit2.mp3"
-  _               -> return ()
-
-playBGM' :: IORef (Place, String) -> Display -> World -> IO ()
-playBGM' cp d w = do
-    (op, otitle) <- readIORef cp
-    ntitle <- case typeBGM d of
-      TurnOff   -> stopBGM >> return ""
-      Encounter -> playMusicOnce "res/encounter.mp3" >> return ""
-      WinBattle -> playMusicOnce "res/fanfare1.mp3" >> return ""
-      LevelUp   -> playMusicOnce "res/lvup.mp3" >> return ""
-      AllDead   -> return ""
-      _         -> case np of
-          InCastle              -> return "res/inTavern.mp3"
-          Gilgamesh'sTavern     -> return "res/inTavern.mp3"
-          Adventure'sInn        -> return "res/inTavern.mp3"
-          Boltac'sTradingPost   -> return "res/inTavern.mp3"
-          TempleOfCant          -> return "res/inTavern.mp3"
-          InEdgeOfTown          -> return "res/inTavern.mp3"
-          TrainingGrounds       -> return "res/inTavern.mp3"
-          EnteringMaze          -> stopBGM >> return ""
-          InMaze _              -> return "res/inMaze1.mp3"
-          InBattle _ _          -> return "res/inBattle1.mp3"
-          FindTreasureChest _ _ -> return ""
-          Camping _ _           -> return "res/inCamp.mp3" 
-          _                     -> return ""
-    when (otitle == "" && ntitle /= "") $ playBGMIfNoMusic ntitle
-    when (otitle /= "" && ntitle /= "" && otitle /= ntitle) $ playBGM ntitle
-    writeIORef cp (np, ntitle)
-  where
-    np = place w
-
 
 -- ==========================================================================
 

@@ -1,4 +1,4 @@
-module Engine.Sound (
+module Control.Sound (
     initAudio,
     quitAudio,
     stopBGM,

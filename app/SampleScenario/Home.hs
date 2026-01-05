@@ -8,6 +8,8 @@ import Data.World
 import Data.Maze
 import Data.Formula
 import Control.CUI
+import UI.CuiRender
+import UI.SoundControl
 
 import qualified Data.Map as Map
 
@@ -207,6 +209,8 @@ modScenario s = let org = mazes s in s {
     }
 
 
+-- ==========================================================================
+
 pic :: PictureInf -> Craphic
 pic Null = mempty
 pic (Single (PictureID id))
@@ -221,3 +225,38 @@ pic (Diff p1 p2)     = diff (pic p1) (pic p2)
 pic (List [])        = mempty
 pic (List (pi:pis))  = pic pi <> pic (List pis)
 
+
+seOf :: SETypeToFilePath
+seOf Walk            = Just "res/walk.mp3"
+seOf TurnLeftOrRight = Just "res/walk.mp3"
+seOf HitWall         = Just "res/hit1.mp3"
+seOf KickDoor        = Just "res/kickDoor.mp3"
+seOf Spelled         = Just "res/spell1.mp3"
+seOf FightHitToP     = Just "res/hit1.mp3"
+seOf FightHitToE     = Just "res/hit2.mp3"
+seOf SpellHitToP     = Just "res/hit1.mp3"
+seOf SpellHitToE     = Just "res/hit2.mp3"
+seOf _               = Nothing
+
+bgmOf :: BGMTypeToFilePath
+bgmOf (op, otitle) np typeBGM = 
+    case typeBGM of
+      TurnOff   -> Just $ Left ""
+      Encounter -> Just $ Left "res/encounter.mp3"
+      WinBattle -> Just $ Left "res/fanfare1.mp3"
+      LevelUp   -> Just $ Left "res/lvup.mp3"
+      AllDead   -> Just $ Right ""
+      _         -> case np of
+          InCastle              -> Just $ Right "res/inTavern.mp3"
+          Gilgamesh'sTavern     -> Just $ Right "res/inTavern.mp3"
+          Adventure'sInn        -> Just $ Right "res/inTavern.mp3"
+          Boltac'sTradingPost   -> Just $ Right "res/inTavern.mp3"
+          TempleOfCant          -> Just $ Right "res/inTavern.mp3"
+          InEdgeOfTown          -> Just $ Right "res/inTavern.mp3"
+          TrainingGrounds       -> Just $ Right "res/inTavern.mp3"
+          EnteringMaze          -> Just $ Left ""
+          InMaze _              -> Just $ Right "res/inMaze1.mp3"
+          InBattle _ _          -> Just $ Right "res/inBattle1.mp3"
+          FindTreasureChest _ _ -> Just $ Right ""
+          Camping _ _           -> Just $ Right "res/inCamp.mp3" 
+          _                     -> Nothing
