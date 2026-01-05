@@ -156,8 +156,10 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
       ess <- lastEnemies
       let els = take (length ess) $ toEnemyLine <$> [1..]
           fts = filter (`elem` els) $ if i <= 3 then Item.targetF wep else Item.targetB wep
+          fts'= filter (`elem` els) $ Item.targetF wep
           cs  = Chara.enableBattleCommands $ Chara.job c
-          cs' = filter (if null fts then (/= Chara.Fight) else const True)
+          cs' = filter (if null fts  then (/= Chara.Fight) else const True)
+              . filter (if null fts' then (/= Chara.Ambush) else const True)
               . filter (if any (hasStatusError c) cantSpellStatus then (/= Chara.Spell) else const True)
               . filter (if not (hasStatusError c Hidden) then (/= Chara.Ambush) else const True)
               . filter (if hasStatusError c Hidden then (/= Chara.Hide) else const True)
@@ -174,7 +176,7 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                                 ,(Key "r", readSpell inspect cid)
                                 ]
             cms = [( Key "a"
-                   , selectFightTarget c fts next cancel
+                   , selectFightTarget c fts' next cancel
                    , Chara.Ambush `elem` cs')
                   ,( Key "f"
                    , selectFightTarget c fts next cancel

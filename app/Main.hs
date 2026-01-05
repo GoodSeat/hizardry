@@ -126,6 +126,7 @@ pathOfData tag s slot = backupDirectory ++ "/" ++ nameOfData tag s slot
 
 findData :: Scenario -> Int -> IO (Maybe (FilePath, String))
 findData s slot = do
+    createDirectoryIfMissing True backupDirectory
     ls <- listDirectory backupDirectory
     let ns = filter (isSuffixOf $ nameOfData "" s slot) ls
     return $ if null ns then Nothing else let n = head ns in
