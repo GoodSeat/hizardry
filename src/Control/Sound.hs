@@ -14,128 +14,146 @@ import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (createProcess, proc, terminateProcess, ProcessHandle, waitForProcess, getPid)
 import System.Directory (findExecutable, doesFileExist)
-import Data.Maybe (isJust)
-import Data.Foldable (forM_)
+import Data.Maybe (isJust, isNothing)
+import Control.Exception (SomeException, try)
 
--- IORef to hold the process handle of the currently playing BGM/Music
-bgmProcessHandle :: IORef (Maybe ProcessHandle)
-{-# NOINLINE bgmProcessHandle #-}
-bgmProcessHandle = unsafePerformIO (newIORef Nothing)
+-- Player Definition
+data PlayerType = FFPLAY | VLC | WMP deriving (Eq, Show)
+data Player = Player { playerType :: PlayerType, playerPath :: FilePath }
 
--- IORef to track if the current music is looping
+activePlayer :: IORef (Maybe Player)
+{-# NOINLINE activePlayer #-}
+activePlayer = unsafePerformIO (newIORef Nothing)
+
+bgmHandle :: IORef (Maybe ProcessHandle)
+{-# NOINLINE bgmHandle #-}
+bgmHandle = unsafePerformIO (newIORef Nothing)
+
 isLooping :: IORef Bool
 {-# NOINLINE isLooping #-}
 isLooping = unsafePerformIO (newIORef False)
 
--- IORef for reserving the next BGM
 reservation :: IORef (Maybe FilePath)
 {-# NOINLINE reservation #-}
 reservation = unsafePerformIO (newIORef Nothing)
 
-vlcPath :: IORef (Maybe FilePath)
-{-# NOINLINE vlcPath #-}
-vlcPath = unsafePerformIO (newIORef Nothing)
-
--- | Find VLC executable and store its path.
+-- | Find an available media player (ffplay > vlc > wmp).
 initAudio :: IO ()
 initAudio = do
-    vlcFromPath <- findExecutable "vlc"
-    case vlcFromPath of 
-      Just path -> writeIORef vlcPath (Just path)
-      Nothing   -> findInStandardPaths
+    mPlayer <- findPlayer
+    case mPlayer of
+        Just player -> do
+            writeIORef activePlayer (Just player)
+            putStrLn $ "Sound player found: " ++ show (playerType player)
+        Nothing     -> putStrLn "Warning: ffplay, VLC, or WMP not found. Sound will not be played."
   where
-    findInStandardPaths :: IO ()
-    findInStandardPaths = do
-        let paths = [ "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"
-                    , "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"
-                    ]
-        foundPath <- findFirst paths
-        case foundPath of
-            Just path -> writeIORef vlcPath (Just path)
-            Nothing   -> putStrLn "Warning: VLC executable not found. Sound will not be played."
+    findPlayer :: IO (Maybe Player)
+    findPlayer = do
+        let candidates = [ (FFPLAY, "ffplay"), (VLC, "vlc"), (WMP, "wmplayer") ]
+        let standardPaths = [ (FFPLAY, ".\\bin\\ffplay.exe"), -- A common user choice
+                              (VLC, "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"),
+                              (VLC, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"),
+                              (WMP, "C:\\Program Files\\Windows Media Player\\wmplayer.exe"),
+                              (WMP, "C:\\Program Files (x86)\\Windows Media Player\\wmplayer.exe") ]
 
-    findFirst :: [FilePath] -> IO (Maybe FilePath)
-    findFirst [] = return Nothing
-    findFirst (p:ps) = do
-        exists <- doesFileExist p
-        if exists then return (Just p) else findFirst ps
+        foundInPath <- findFirstM (\(pt, name) -> fmap (Player pt) <$> findExecutable name) candidates
+        case foundInPath of
+            Just player -> return (Just player)
+            Nothing -> findFirstM (\(pt, path) -> do
+                exists <- doesFileExist path
+                return $ if exists then Just (Player pt path) else Nothing
+                ) standardPaths
 
--- | Stop the BGM and clear all states.
+    findFirstM :: Monad m => (a -> m (Maybe b)) -> [a] -> m (Maybe b)
+    findFirstM _ [] = return Nothing
+    findFirstM f (x:xs) = do
+        mRes <- f x
+        case mRes of
+            Just res -> return (Just res)
+            Nothing  -> findFirstM f xs
+
+-- | Stop the current music and clear all related states.
 quitAudio :: IO ()
 quitAudio = do
-    mHandle <- atomicModifyIORef' bgmProcessHandle (\h -> (Nothing, h))
+    mHandle <- atomicModifyIORef' bgmHandle (\h -> (Nothing, h))
     maybe (return ()) terminateProcess mHandle
     writeIORef isLooping False
     writeIORef reservation Nothing
 
--- | Stop the currently playing BGM/music. Alias for quitAudio.
+-- | Alias for quitAudio for semantic clarity.
 stopBGM :: IO ()
 stopBGM = quitAudio
 
--- | Stop the old BGM and play a new one, looping.
+-- | Internal function to play music, handling looping and player differences.
+playMusicInternal :: Bool -> FilePath -> IO ()
+playMusicInternal isLoopingRequested file = do
+    mPlayer <- readIORef activePlayer
+    case mPlayer of
+        Nothing -> return ()
+        Just player -> do
+            quitAudio -- Stop any currently playing music
+            writeIORef isLooping isLoopingRequested
+            
+            let (path, args) = buildMusicArgs player isLoopingRequested file
+            let effectiveLooping = isLoopingRequested && playerType player /= WMP
+
+            (_, _, _, ph) <- createProcess (proc path args)
+            writeIORef bgmHandle (Just ph)
+            
+            unless effectiveLooping $ void . forkIO $ do
+                _ <- waitForProcess ph
+                mMyPid <- getPid ph
+                mCurrentBgm <- readIORef bgmHandle
+                case mCurrentBgm of
+                    Just currentPh -> do
+                        mCurrentPid <- getPid currentPh
+                        when (mMyPid == mCurrentPid) $ writeIORef bgmHandle Nothing
+                    Nothing -> return ()
+                
+                mReservedFile <- atomicModifyIORef' reservation (\r -> (Nothing, r))
+                case mReservedFile of
+                    Just reservedFile -> playBGM reservedFile
+                    Nothing           -> return ()
+  where
+    buildMusicArgs player loop f = 
+        let pPath = playerPath player
+        in case playerType player of
+            FFPLAY -> (pPath, if loop then ["-nodisp", "-loop", "0", f] else ["-nodisp", "-autoexit", f])
+            VLC    -> (pPath, if loop then ["--intf", "dummy", "--loop", f] else ["--intf", "dummy", "--play-and-exit", f])
+            WMP    -> (pPath, ["/play", "/close", f]) -- WMP loop is not supported, plays once.
+
+-- | Public function to play looping BGM.
 playBGM :: FilePath -> IO ()
-playBGM file = do
-    readIORef vlcPath >>= maybe (return ()) handlePlay
-  where
-    handlePlay vlc = do
-        quitAudio -- Stop previous music and clear reservations
-        writeIORef isLooping True
-        (_, _, _, ph) <- createProcess (proc vlc ["--intf", "dummy", "--loop", file])
-        writeIORef bgmProcessHandle (Just ph)
+playBGM = playMusicInternal True
 
--- | Stop the old BGM/music and play a new one once.
+-- | Public function to play music once.
 playMusicOnce :: FilePath -> IO ()
-playMusicOnce file = do
-    readIORef vlcPath >>= maybe (return ()) handlePlay
-  where
-    handlePlay vlc = do
-        quitAudio -- Stop previous music and clear reservations
-        writeIORef isLooping False
-        (_, _, _, ph) <- createProcess (proc vlc ["--intf", "dummy", "--play-and-exit", file])
-        writeIORef bgmProcessHandle (Just ph)
-        -- Fork a thread to wait for the music to finish and then play the reserved BGM
-        void . forkIO $ do
-            _ <- waitForProcess ph
-            mMyPid <- getPid ph
-            -- Check if this process was the one we were waiting for, and not a new one.
-            mCurrentHandle <- readIORef bgmProcessHandle
-            case mCurrentHandle of
-                Just currentPh -> do
-                    mCurrentPid <- getPid currentPh
-                    -- If the PID matches, it means no new music has started.
-                    when (mMyPid == mCurrentPid) $ do
-                        writeIORef bgmProcessHandle Nothing
-                Nothing -> return ()
-
-            -- After waiting and potentially clearing the handle, check for reservations.
-            mReservedFile <- atomicModifyIORef' reservation (\r -> (Nothing, r))
-            forM_ mReservedFile playBGM
+playMusicOnce = playMusicInternal False
 
 -- | Play a looping BGM based on the current playback state.
 playBGMIfNoMusic :: FilePath -> IO ()
 playBGMIfNoMusic file = do
     looping <- readIORef isLooping
-    -- If a BGM is already looping, do nothing.
-    if looping
-    then return ()
-    else do
-        mHandle <- readIORef bgmProcessHandle
+    unless looping $ do
+        mHandle <- readIORef bgmHandle
         case mHandle of
-            -- If no music is playing, play immediately.
             Nothing -> playBGM file
-            -- If a non-looping music is playing, reserve the new BGM.
-            Just _ -> void $ atomicModifyIORef' reservation $ \m ->
-                case m of
-                    -- Only reserve if there is no prior reservation.
-                    Nothing -> (Just file, ())
-                    Just _  -> (m, ())
+            Just _  -> void $ atomicModifyIORef' reservation $ \r -> 
+                if isNothing r then (Just file, ()) else (r, ()) 
 
 -- | Play a sound effect once.
 playSoundEffect :: FilePath -> IO ()
 playSoundEffect file = do
-    readIORef vlcPath >>= maybe (return ()) handlePlay
+    mPlayer <- readIORef activePlayer
+    case mPlayer of
+        Nothing -> return ()
+        Just player -> void . forkIO $ do
+            let (path, args) = buildEffectArgs player file
+            void $ createProcess $ proc path args
   where
-    handlePlay vlc = void . forkIO $ do
-        -- Fire and forget.
-        (_, _, _, _) <- createProcess $ proc vlc ["--intf", "dummy", "--play-and-exit", file]
-        return ()
+    buildEffectArgs player f = 
+        let pPath = playerPath player
+        in case playerType player of
+            FFPLAY -> (pPath, ["-nodisp", "-autoexit", f])
+            VLC    -> (pPath, ["--intf", "dummy", "--play-and-exit", f])
+            WMP    -> (pPath, ["/play", "/close", f])
