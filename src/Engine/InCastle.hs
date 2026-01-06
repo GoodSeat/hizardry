@@ -496,7 +496,7 @@ cureCharacter cid cidDst = GameAuto $ do
     let lst =[(Key "l", selectCureTarget cid 0)
              ,(Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
              ,(Key "y", if canSpent then with [spentGold cid fee] $ tryCureCharacter cid cidDst
-                                    else events [flashMessage (-1000) "  Get out! You cheap traitor!  "] $ selectCureTarget cid 0)]
+                                    else events [Resume (changeFlashTime "  Get out! You cheap traitor!  " (-1000))] $ selectCureTarget cid 0)]
     run $ selectEsc msg lst
 
 tryCureCharacter :: CharacterID -> CharacterID -> GameMachine
