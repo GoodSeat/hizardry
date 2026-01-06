@@ -352,7 +352,7 @@ cast v name def = let as cast = cast v in case Spell.effect def of
     Spell.Event eid        -> eventSpell eid
 
 eventSpell :: GameEventID -> SpellEffect
-eventSpell eid s o next = GameAuto $ do
+eventSpell eid s o next = addEff (withSE Spelled) $ GameAuto $ do
     evDB  <- asks mazeEvents
     let e = Map.lookup eid evDB
         cid = case s of Left cid' -> Just cid'
@@ -363,36 +363,36 @@ eventSpell eid s o next = GameAuto $ do
 -- --------------------------------------------------------------------------------
 
 castToNull :: CastAs -> String -> CastAction -> SpellEffect
-castToNull as n ca src (Left l)  next = as castInBattle n ca src (Left []) next
-castToNull as n ca src (Right _) next = GameAuto $ do
+castToNull as n ca src (Left l)  next = addEff (withSE Spelled) $ as castInBattle n ca src (Left []) next
+castToNull as n ca src (Right _) next = addEff (withSE Spelled) $ GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
     run $ as castInBattle n ca src (Right $ concat es) next
 
 castToSingle :: CastAs -> String -> CastAction -> SpellEffect
-castToSingle as n ca (Left id) (Left l) next = as castInBattle n ca (Left id) (Left [l]) next
-castToSingle as n ca (Left id) (Right el) next = GameAuto $ do
+castToSingle as n ca (Left id) (Left l) next = addEff (withSE Spelled) $ as castInBattle n ca (Left id) (Left [l]) next
+castToSingle as n ca (Left id) (Right el) next = addEff (withSE Spelled) $ GameAuto $ do
     e1 <- aliveEnemyLineRandom el
     case e1 of Nothing -> run next
                Just e  -> run $ as castInBattle n ca (Left id) (Right [e]) next
-castToSingle as n ca (Right e) (Left l) next = as castInBattle n ca (Right e) (Left [l]) next
-castToSingle as n ca (Right se) (Right el) next = GameAuto $ do
+castToSingle as n ca (Right e) (Left l) next = addEff (withSE Spelled) $ as castInBattle n ca (Right e) (Left [l]) next
+castToSingle as n ca (Right se) (Right el) next = addEff (withSE Spelled) $ GameAuto $ do
     e1 <- aliveEnemyLineRandom el
     case e1 of Nothing -> run next
                Just e  -> run $ as castInBattle n ca (Right se) (Right [e]) next
 
 castToGroup :: CastAs -> String -> CastAction -> SpellEffect
-castToGroup as n ca src (Right el) next = GameAuto $ do
+castToGroup as n ca src (Right el) next = addEff (withSE Spelled) $ GameAuto $ do
     es <- aliveEnemiesLine el
     run $ as castInBattle n ca src (Right es) next
-castToGroup as n ca src (Left _) next = GameAuto $ do
+castToGroup as n ca src (Left _) next = addEff (withSE Spelled) $ GameAuto $ do
     ps <- party <$> world
     run $ as castInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
 
 castToAll :: CastAs -> String -> CastAction -> SpellEffect
-castToAll as n ca src (Left _) next = GameAuto $ do
+castToAll as n ca src (Left _) next = addEff (withSE Spelled) $ GameAuto $ do
     ps <- party <$> world
     run $ as castInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
-castToAll as n ca src (Right _) next = GameAuto $ do
+castToAll as n ca src (Right _) next = addEff (withSE Spelled) $ GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
     run $ as castInBattle n ca src (Right $ concat es) next
 

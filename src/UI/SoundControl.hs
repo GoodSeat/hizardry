@@ -28,9 +28,9 @@ playSound :: IORef (Place, FilePath)
           -> SETypeToFilePath
           -> BGMTypeToFilePath
           -> Event -> World -> IO ()
-playSound cp st bt (General d)        w = playSE d st >> playBGM' cp d w bt
-playSound cp st bt (ShowStatus _ _ d) w = playSE d st >> playBGM' cp d w bt
-playSound cp st bt _                  _ = return ()
+playSound cp st bt (General d)        w = playSE d st >> playBGM' cp (typeBGM d) w bt
+playSound cp st bt (ShowStatus _ _ d) w = playSE d st >> playBGM' cp (typeBGM d) w bt
+playSound cp st bt _                  w = playBGM' cp NoBGM w bt
 
 playSE :: Display -> SETypeToFilePath -> IO ()
 playSE d st = case st (typeSE d) of
@@ -39,11 +39,11 @@ playSE d st = case st (typeSE d) of
     existSE <- doesFileExist path
     when existSE $ playSoundEffect path
 
-playBGM' :: IORef (Place, FilePath) -> Display -> World -> BGMTypeToFilePath -> IO ()
-playBGM' cp d w bt = do
+playBGM' :: IORef (Place, FilePath) -> BGMType -> World -> BGMTypeToFilePath -> IO ()
+playBGM' cp typeB w bt = do
     let np = place w
     (op, opath) <- readIORef cp
-    let bgm = bt (op, opath) np (typeBGM d)
+    let bgm = bt (op, opath) np typeB
     case bgm of
       Nothing           -> writeIORef cp (np, "")
       Just (Left path)  -> do
