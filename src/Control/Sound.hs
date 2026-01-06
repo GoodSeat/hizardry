@@ -12,8 +12,9 @@ import Control.Concurrent (forkIO)
 import Control.Monad (void, when, unless)
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
-import System.Process (createProcess, proc, terminateProcess, ProcessHandle, waitForProcess, getPid)
+import System.Process (createProcess, proc, terminateProcess, ProcessHandle, waitForProcess, getPid, StdStream(UseHandle), CreateProcess(..))
 import System.Directory (findExecutable, doesFileExist)
+import System.IO (IOMode(WriteMode), openFile, Handle)
 import Data.Maybe (isJust, isNothing)
 import Control.Exception (SomeException, try)
 
@@ -97,7 +98,7 @@ playMusicInternal isLoopingRequested file = do
             let (path, args) = buildMusicArgs player isLoopingRequested file
             let effectiveLooping = isLoopingRequested && playerType player /= WMP
 
-            (_, _, _, ph) <- createProcess (proc path args)
+            (_, _, _, ph) <- createSilentProcess path args
             writeIORef bgmHandle (Just ph)
             
             unless effectiveLooping $ void . forkIO $ do
@@ -118,10 +119,10 @@ playMusicInternal isLoopingRequested file = do
     buildMusicArgs player loop f = 
         let pPath = playerPath player
         in case playerType player of
-            FFPLAY -> (pPath, if loop then ["-nodisp", "-loop", "0", f] else ["-nodisp", "-autoexit", f])
+            FFPLAY -> (pPath, if loop then ["-hide_banner", "-nodisp", "-loop", "0", "-loglevel", "quiet", f] else ["-hide_banner", "-nodisp", "-autoexit", "-loglevel", "quiet", f])
             VLC    -> (pPath, if loop then ["--intf", "dummy", "--loop", f] else ["--intf", "dummy", "--play-and-exit", f])
-            WMP    -> (pPath, ["/play", "/close", f]) -- WMP loop is not supported, plays once.
-
+            WMP    -> (pPath, ["/play", "/close", f]) -- WMP loop is not supported, plays once. 
+    
 -- | Public function to play looping BGM.
 playBGM :: FilePath -> IO ()
 playBGM = playMusicInternal True
@@ -149,11 +150,20 @@ playSoundEffect file = do
         Nothing -> return ()
         Just player -> void . forkIO $ do
             let (path, args) = buildEffectArgs player file
-            void $ createProcess $ proc path args
+            void $ createSilentProcess path args
   where
     buildEffectArgs player f = 
         let pPath = playerPath player
         in case playerType player of
-            FFPLAY -> (pPath, ["-nodisp", "-autoexit", f])
+            FFPLAY -> (pPath, ["-hide_banner", "-nodisp", "-autoexit", "-loglevel", "quiet", f])
             VLC    -> (pPath, ["--intf", "dummy", "--play-and-exit", f])
             WMP    -> (pPath, ["/play", "/close", f])
+
+-- | Helper to create a process with stdout and stderr redirected to null.
+createSilentProcess :: FilePath -> [String] -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
+createSilentProcess path args = do
+    nulHandle <- openFile "sound.log" WriteMode
+    createProcess (proc path args) {
+        std_out = UseHandle nulHandle,
+        std_err = UseHandle nulHandle
+    }
