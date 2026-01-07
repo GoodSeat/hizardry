@@ -194,7 +194,8 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     if null vcids then run next
     else do
       tind <- eval tgt
-      let cid' = ps !! (tind `mod` length ps - 1)
+      let idx  = tind `mod` length ps - 1
+          cid' = ps !! (if idx >= 0 then idx else length ps - 1)
       cid <- if cid' `elem` vcids then return cid' else randomIn (take tind vcids)
       c   <- characterByID cid
       if hpOf c == 0 then run next
