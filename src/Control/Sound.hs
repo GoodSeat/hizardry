@@ -47,16 +47,15 @@ initAudio = do
         Just player -> do
             writeIORef activePlayer (Just player)
             putStrLn $ "Sound player found: " ++ show (playerType player)
-        Nothing     -> putStrLn "Warning: ffplay, VLC, or WMP not found. Sound will not be played."
+        Nothing     -> putStrLn "Warning: ffplay or VLC not found. Sound will not be played."
   where
     findPlayer :: IO (Maybe Player)
     findPlayer = do
-        let candidates = [ (FFPLAY, "ffplay"), (VLC, "vlc"), (WMP, "wmplayer") ]
-        let standardPaths = [ (FFPLAY, ".\\bin\\ffplay.exe"), -- A common user choice
-                              (VLC, "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"),
-                              (VLC, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"),
-                              (WMP, "C:\\Program Files\\Windows Media Player\\wmplayer.exe"),
-                              (WMP, "C:\\Program Files (x86)\\Windows Media Player\\wmplayer.exe") ]
+        let candidates = [ (FFPLAY, "ffplay"), (VLC, "vlc") ]
+        let standardPaths = [ (FFPLAY, ".\\bin\\ffplay.exe") -- A common user choice
+                            , (VLC, "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe")
+                            , (VLC, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe")
+                            ]
 
         foundInPath <- findFirstM (\(pt, name) -> fmap (Player pt) <$> findExecutable name) candidates
         case foundInPath of
