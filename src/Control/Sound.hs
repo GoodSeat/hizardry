@@ -8,6 +8,7 @@ module Control.Sound (
     playBGMIfNoMusic
 ) where
 
+import PreludeL
 import Control.Concurrent (forkIO)
 import Control.Monad (void, when, unless)
 import Data.IORef

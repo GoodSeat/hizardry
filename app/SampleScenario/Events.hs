@@ -1,5 +1,6 @@
 module SampleScenario.Events where
 
+import PreludeL
 import qualified Data.Map as Map
 import qualified Data.GameEvent as Ev
 

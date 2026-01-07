@@ -1,5 +1,6 @@
 module SampleScenario.PicturesOfEnemies (picOfEnemies) where
 
+import PreludeL
 import Control.CUI
 
 picOfEnemies :: Int -> Craphic

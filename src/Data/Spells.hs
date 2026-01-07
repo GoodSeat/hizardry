@@ -1,6 +1,7 @@
 module Data.Spells
 where
 
+import PreludeL
 import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (fromMaybe)

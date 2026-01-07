@@ -1,5 +1,6 @@
 module SampleScenario.PicturesOfPrimitives (picOfPrimitive) where
 
+import PreludeL
 import Control.CUI
 
 picOfPrimitive :: Int -> Craphic

@@ -1,7 +1,7 @@
 module Data.Characters
 where
 
-import Prelude hiding (exp)
+import PreludeL hiding (exp)
 import Data.List (nub)
 import Data.Primitive
 import Data.Formula (Formula)

@@ -1,5 +1,6 @@
 module SampleScenario.Maze where
 
+import PreludeL
 import Data.Maze
 
 maze1F :: Maze

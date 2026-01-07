@@ -1,5 +1,6 @@
 module Main where
 
+import PreludeL
 import Data.Version (showVersion, versionBranch)
 import Paths_hizardry (version)
 

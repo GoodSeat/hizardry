@@ -1,7 +1,8 @@
 module Spec (spec) where
 
-import           Data.RomajiToHiragana (romajiToHiragana)
-import           Test.Hspec
+import Prelude
+import Data.RomajiToHiragana (romajiToHiragana)
+import Test.Hspec
 
 spec :: Spec
 spec = do

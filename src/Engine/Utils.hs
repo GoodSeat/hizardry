@@ -2,7 +2,6 @@
 module Engine.Utils where
 
 import PreludeL
-import Prelude hiding ((!!))
 import System.Random
 import Control.Monad.Except
 import Control.Monad.State

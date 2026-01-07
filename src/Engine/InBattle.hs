@@ -1,7 +1,8 @@
 {-# LANGUAGE TupleSections #-}
 module Engine.InBattle (startBattle) where
 
-import Data.List
+import PreludeL
+import Data.List hiding ((!!))
 import Data.Maybe
 import qualified Data.Map as Map
 import Control.Monad

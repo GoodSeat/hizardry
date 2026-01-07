@@ -1,5 +1,6 @@
 module SampleScenario.Spells where
 
+import PreludeL
 import qualified Data.Spells as Spell
 import qualified Data.Map as Map
 

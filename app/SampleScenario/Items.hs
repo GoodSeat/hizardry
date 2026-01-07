@@ -1,5 +1,6 @@
 module SampleScenario.Items where
 
+import PreludeL
 import qualified Data.Items as Item
 import qualified Data.Map as Map
 

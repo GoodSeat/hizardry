@@ -1,6 +1,7 @@
 module Data.Primitive
 where
 
+import PreludeL
 import Data.Formula
 
 import GHC.Stack (HasCallStack)

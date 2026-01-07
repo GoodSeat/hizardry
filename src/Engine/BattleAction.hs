@@ -2,9 +2,9 @@
 module Engine.BattleAction
 where
 
-import Prelude hiding (lookup)
+import PreludeL hiding (lookup)
 import qualified Data.Map as Map
-import Data.List hiding (lookup)
+import Data.List hiding (lookup, (!!))
 import Data.Maybe (fromJust)
 import Data.Function ((&))
 import Data.Map hiding (filter, null, foldl, foldl', foldr, take, drop)

@@ -1,5 +1,6 @@
 module SampleScenario.Enemies where
 
+import PreludeL
 import qualified Data.Enemies as Enemy
 import qualified Data.Map as Map
 

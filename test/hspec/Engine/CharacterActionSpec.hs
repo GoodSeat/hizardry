@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Engine.CharacterActionSpec (spec) where
 
+import Prelude
 import Test.Hspec
 import Control.Monad.Reader (runReader)
 import Control.Monad.State (runStateT)

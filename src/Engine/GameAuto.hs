@@ -4,6 +4,7 @@ module Engine.GameAuto (
     , module Engine.GameAuto
     ) where
 
+import PreludeL
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader

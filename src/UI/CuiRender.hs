@@ -4,6 +4,7 @@ module UI.CuiRender (
     , render
     ) where
 
+import PreludeL
 import Control.Monad
 import Data.List (isPrefixOf, intersperse)
 

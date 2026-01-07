@@ -6,6 +6,7 @@ module Data.Formula (
     , evalFormula
 ) where
 
+import PreludeL
 import System.Random
 import Text.ParserCombinators.Parsec hiding (token)
 import Text.Parsec.Expr

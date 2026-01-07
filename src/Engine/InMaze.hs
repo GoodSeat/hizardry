@@ -1,6 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 module Engine.InMaze (openCamp) where
 
+import PreludeL
 import Control.Monad (when)
 import Control.Monad.State (modify, forM_, guard, gets)
 import Control.Monad.Reader (asks)

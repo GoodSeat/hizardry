@@ -1,6 +1,7 @@
 module Data.World
 where
 
+import PreludeL
 import System.Random
 import qualified Data.Map as Map
 import System.IO.Error (tryIOError)

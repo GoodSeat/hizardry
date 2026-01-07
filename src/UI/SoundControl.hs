@@ -6,6 +6,7 @@ module UI.SoundControl (
     , BGMTypeToFilePath
 ) where
     
+import PreludeL
 import Control.Monad (when)
 import Data.IORef (IORef, readIORef, writeIORef)
 import System.Directory (doesFileExist)

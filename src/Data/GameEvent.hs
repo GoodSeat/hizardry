@@ -1,6 +1,7 @@
 module Data.GameEvent
 where
 
+import PreludeL
 import qualified Data.Map as Map
 import Data.Maze
 import Data.Primitive

@@ -1,5 +1,6 @@
 module Engine.InEdgeOfTown (inEdgeOfTown, autoSaveToSlot0) where
 
+import PreludeL
 import Control.Monad (join)
 import Control.Monad.State (modify, put, gets)
 import Control.Monad.Reader (asks)

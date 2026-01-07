@@ -1,6 +1,7 @@
 module Data.PlayEvent
 where
 
+import PreludeL
 import Data.Primitive
 import Data.Characters
 

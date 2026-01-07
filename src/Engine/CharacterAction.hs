@@ -2,7 +2,7 @@
 module Engine.CharacterAction
 where
 
-import Prelude hiding (lookup)
+import PreludeL hiding (lookup)
 import Control.Monad (when, join, forM, forM_)
 import Control.Monad.Reader (asks)
 import Control.Monad.State (gets, modify)

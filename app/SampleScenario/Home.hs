@@ -1,5 +1,6 @@
 module SampleScenario.Home where
 
+import PreludeL
 import Engine.GameAuto
 import Engine.InCastle
 import Engine.Utils

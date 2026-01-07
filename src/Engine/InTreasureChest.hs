@@ -1,5 +1,7 @@
 module Engine.InTreasureChest
 where
+
+import PreludeL
 import Control.Monad (forM, forM_, when)
 import Control.Monad.Reader (asks)
 import Engine.GameAuto

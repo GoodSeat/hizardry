@@ -1,7 +1,6 @@
 module Engine.InCastle (inCastle) where
 
 import PreludeL
-import Prelude hiding ((!!))
 import Control.Monad (when)
 import Control.Monad.State (put, filterM, modify)
 import qualified Data.Map as Map

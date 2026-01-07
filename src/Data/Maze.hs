@@ -1,7 +1,8 @@
 module Data.Maze
 where
 
-import Data.List
+import PreludeL
+import Data.List hiding ((!!))
 import Data.Maybe (isJust)
 import qualified Data.Map as Map
 

@@ -2,6 +2,7 @@
 module Data.Enemies
 where
 
+import PreludeL
 import Data.List (nub)
 import qualified Data.Map as Map
 
