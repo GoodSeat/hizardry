@@ -50,7 +50,7 @@ data SEType = NoSE
             | SpellHitToP
   deriving (Show, Eq)
 
-data BGMType = NoBGM
+data BGMType = Ambient
              | TurnOff
              | Encounter
              | WinBattle
@@ -98,7 +98,7 @@ message s = General $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 messagePic s p = General $ Display {
       messageBox = Just s
@@ -108,7 +108,7 @@ messagePic s p = General $ Display {
     , picture    = p
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 ask s p = General $ Display {
       messageBox = Just s
@@ -118,7 +118,7 @@ ask s p = General $ Display {
     , picture    = p
     , needPhrase = True
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 messageTime t s p = General $ Display {
       messageBox = Just s
@@ -128,7 +128,7 @@ messageTime t s p = General $ Display {
     , picture    = p
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 askFlashAndMessage s f p = General $ Display {
       messageBox = Just s
@@ -138,7 +138,7 @@ askFlashAndMessage s f p = General $ Display {
     , picture    = p
     , needPhrase = True
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 flashAndMessageTime t s f p = General $ Display {
       messageBox = Just s
@@ -148,7 +148,7 @@ flashAndMessageTime t s f p = General $ Display {
     , picture    = p
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 wait t p = General $ Display {
       messageBox = Nothing
@@ -158,7 +158,7 @@ wait t p = General $ Display {
     , picture    = p
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 flashMessage t s = General $ Display {
       messageBox = Nothing
@@ -168,7 +168,7 @@ flashMessage t s = General $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 flashMessage' t s = General $ Display {
       messageBox = Nothing
@@ -178,7 +178,7 @@ flashMessage' t s = General $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 battleCommand s = General $ Display {
       messageBox = Nothing
@@ -188,7 +188,7 @@ battleCommand s = General $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 spellCommand s = General $ Display {
       messageBox = Nothing
@@ -198,7 +198,7 @@ spellCommand s = General $ Display {
     , picture    = Nothing
     , needPhrase = True
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
     }
 
 showStatus cid msg = ShowStatus cid Nothing $ Display {
@@ -209,7 +209,7 @@ showStatus cid msg = ShowStatus cid Nothing $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
 }
 showStatusFlash cid msg fmsg = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -219,7 +219,7 @@ showStatusFlash cid msg fmsg = ShowStatus cid Nothing $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
 }
 showStatusAlt cid msg alt = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -229,7 +229,7 @@ showStatusAlt cid msg alt = ShowStatus cid Nothing $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
 }
 showStatusAlt' cid msg alt help = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -239,7 +239,7 @@ showStatusAlt' cid msg alt help = ShowStatus cid Nothing $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
 }
 askInStatus cid msg = ShowStatus cid Nothing $ Display {
       messageBox = Just msg
@@ -249,7 +249,7 @@ askInStatus cid msg = ShowStatus cid Nothing $ Display {
     , picture    = Nothing
     , needPhrase = True
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
 }
 showStatusEquip cid his msg = ShowStatus cid (Just his) $ Display {
       messageBox = Just msg
@@ -259,6 +259,6 @@ showStatusEquip cid his msg = ShowStatus cid (Just his) $ Display {
     , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
-    , typeBGM    = NoBGM
+    , typeBGM    = Ambient
 }
 

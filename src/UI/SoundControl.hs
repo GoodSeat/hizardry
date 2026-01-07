@@ -30,7 +30,7 @@ playSound :: IORef (Place, FilePath)
           -> Event -> World -> IO ()
 playSound cp st bt (General d)        w = playSE d st >> playBGM' cp (typeBGM d) w bt
 playSound cp st bt (ShowStatus _ _ d) w = playSE d st >> playBGM' cp (typeBGM d) w bt
-playSound cp st bt _                  w = playBGM' cp NoBGM w bt
+playSound cp st bt _                  w = playBGM' cp Ambient w bt
 
 playSE :: Display -> SETypeToFilePath -> IO ()
 playSE d st = case st (typeSE d) of
