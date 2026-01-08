@@ -303,10 +303,13 @@ nextTurn con = GameAuto $ do
       return $ message (nameOf c ++ " was found by enemies.")
 
     sortPartyAutoWith (defaultOrder con)
-    -- TODO!:if all character dead, move to gameover.
 
-    moveToBattle ess'
-    run $ if null ess' then wonBattle con' else events msgs (selectBattleCommand 1 [] con' Nothing)
+    allDead <- isTotalAnnihilation
+    if allDead then
+      run totalAnnihilation
+    else do
+      moveToBattle ess'
+      run $ if null ess' then wonBattle con' else events msgs (selectBattleCommand 1 [] con' Nothing)
 
 updateCondition :: Condition -> GameState Condition
 updateCondition con = do

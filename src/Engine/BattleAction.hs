@@ -24,7 +24,7 @@ import Engine.CharacterAction (
     , castAddStatusErrorSpell
     , breakItem
     )
-import Engine.InEvent (setLightValue, doEvent)
+import Engine.InEvent (doEvent)
 import Data.World
 import Data.Formula
 import Data.Primitive

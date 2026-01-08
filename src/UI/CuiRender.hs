@@ -413,6 +413,7 @@ scene (Camping p _)           onLight superLight = do
 scene InCastle                _       _          = const $ translate (0, 2) city2
 scene InEdgeOfTown            _       _          = const $ translate (0, 2) edgeOfTown
 scene EnteringMaze            onLight superLight = scene InEdgeOfTown onLight superLight
+scene TotalAnnihilation       _       _          = const mempty -- TODO:
 scene Gilgamesh'sTavern       _       _          = const $ translate (0, 2) tavern
 scene _                       _       _          = const mempty
 

@@ -112,6 +112,7 @@ data Place  = InCastle
             | InEdgeOfTown
             | TrainingGrounds
             | EnteringMaze
+            | TotalAnnihilation
             | InMaze            Position
             | InBattle          Position [[Enemy.Instance]]
             | FindTreasureChest Position Bool -- ^ chest is opend.
@@ -141,20 +142,21 @@ defaultWorldOption = WorldOption {
     }
 
 
--- TODO!:explicit saving(only in Edge of Town, or Castle. Auto?).
---       belows contents are not save target.
---         * sceneTrans (always restore as "id")
---         * enemyTrans (always restore as "id")
---         * frameTrans (always restore as "id")
---       and when classic mode, belows contents also not target.
---         * party        (always [])
---         * place        (always InCastle)
---         * roomBattled  (always [])
---         * partyLight   (always 0)
+-- | Explicit saving world.
+--   belows contents are not save target.
+--     * sceneTrans (always restore as "id")
+--     * enemyTrans (always restore as "id")
+--     * frameTrans (always restore as "id")
+--   and when classic mode, belows contents also not target.
+--     * party        (always [])
+--     * place        (always InCastle)
+--     * roomBattled  (always [])
+--     * partyLight   (always 0)
 --
---        NOTE:
---         * when saving "randomGen", save random int(with random by getStdGen), and replace randomGen by made StdGen using mkStdGen it.
---         * when loading "randomGen", restore by "mkStdGen :: Int -> RandomGen")
+--    NOTE:
+--     * when saving "randomGen", save random int(with random by getStdGen), and replace randomGen by made StdGen using mkStdGen it.
+--     * when loading "randomGen", restore by "mkStdGen :: Int -> RandomGen")
+--    TODO:save as json for enable to load data of different version.
 saveWorld :: World -> FilePath -> IO World
 saveWorld w path = do
     r <- randomIO
@@ -190,7 +192,7 @@ saveWorld w path = do
       , show $ visitHitory     w
 
       , "### inTavernMember ###"
-      , show $ inTavernMember w
+      , show $ inTavernMember  w
       , "### inMazeMember ###"
       , show $ inMazeMember    w
       , "### shopItems ###"
@@ -199,7 +201,7 @@ saveWorld w path = do
       , "### allCharacters ###"
       , show $ allCharacters   w
       , "### globalTime ###"
-      , show $ globalTime   w
+      , show $ globalTime      w
 
       , "### eventFlags ###"
       , show $ take 100000 (eventFlags w)

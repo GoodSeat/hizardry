@@ -66,6 +66,9 @@ parse'D s help next = GameAuto $ do
                                               in next $ parse' (if null s'' then s else s'))
                    else run $ next (parse' s)
 
+isNullKey :: String -> Bool
+isNullKey = null . filter (/= '\n') . filter (/= '\r')
+
 fst3 (t1, _, _) = t1
 snd3 (_, t2, _) = t2
 thd3 (_, _, t3) = t3
@@ -344,6 +347,12 @@ sortPartyAutoWith psOrg = do
         p1s = filter (`notElem` p2s) ps'
     put $ w { party = fst <$> (p1s ++ p2s) }
 
+isTotalAnnihilation :: GameState Bool
+isTotalAnnihilation = do
+    cids <- party <$> world
+    pcs  <- mapM characterByID cids
+    return $ all mustGotoTemple pcs
+
 -- =================================================================================
 -- for Enemies.
 -- ---------------------------------------------------------------------------------
@@ -594,6 +603,83 @@ addEvFlagToFormulaMap m = do
 
 
 -- =================================================================================
+-- General GameMachine
+-- ---------------------------------------------------------------------------------
+
+totalAnnihilation :: GameMachine
+totalAnnihilation = GameAuto $ do
+    p <- currentPosition
+    movePlace TotalAnnihilation
+    ps <- party <$> world
+    mapM_ dead ps
+    run $ events [withBGM AllDead $ message "パーティは全滅しました"] (suspendMazing p)
+  where
+    dead cid = do
+      c <- characterByID cid
+      let c' = if any (>= Dead) (statusErrorsOf c) then c
+               else c { Chara.statusErrors = [Dead] }
+      updateCharacter cid c'
+
+suspendMazing :: Position -> GameMachine
+suspendMazing p = GameAuto $ do
+    modify $ \w -> w { inMazeMember = inMazeMember w ++ ((,p) <$> party w), party = [] }
+    toCastle <- home
+    returnToCastle >> run toCastle
+
+
+-- =================================================================================
+-- Change World.
+-- ---------------------------------------------------------------------------------
+
+-- | state machine when return to castle.
+returnToCastle :: GameState ()
+returnToCastle = do
+    resetRoomBattle
+    setLightValue True  0
+    setLightValue False 0
+
+    resetEffectInOnlyBattle
+
+    ps <- party <$> world
+    forM_ ps $ \p -> do
+      c <- characterByID p
+      updateCharacter p c { Chara.paramDelta = [] }
+      updateCharacterWith p whenReturnCastle
+
+    -- remove dead/stoned/staned characters etc.
+    rcis <- flip filterM ps $ fmap mustGotoTemple . characterByID
+
+    modify $ \w -> w {
+        partyParamDelta = []
+      , party           = filter (not . (`elem` rcis)) $ party w
+      , inTavernMember  = sort $ inTavernMember w ++ rcis
+      }
+
+
+-- | remove effects that is valid in battle only.
+resetEffectInOnlyBattle :: GameState ()
+resetEffectInOnlyBattle = do
+    ps <- party <$> world
+    mapM_ (`updateCharacterWith` (\ca -> ca { Chara.paramDelta = filter ((/= OnlyInBattle) . fst) (Chara.paramDelta ca) })) ps
+    w <- world
+    modify $ \w -> w { partyParamDelta = filter ((/= OnlyInBattle) . fst) (partyParamDelta w) }
+
+
+
+resetRoomBattle :: GameState ()
+resetRoomBattle = modify $ \w -> w { roomBattled = [] }
+
+setLightValue :: Bool -> Int -> GameState ()
+setLightValue super n = modify $ \w -> if super then w { partyLight' = n }
+                                                else w { partyLight = n }
+
+setLightValueWith :: Bool -> (Int -> Int) -> GameState ()
+setLightValueWith super f = do
+    n <- gets (f . if super then partyLight' else partyLight)
+    when (n >= 0) $ setLightValue super n
+
+
+-- =================================================================================
 -- Other.
 -- ---------------------------------------------------------------------------------
 
@@ -606,8 +692,4 @@ currentPosition = do
                 Camping p _           -> return p
                 _                     -> err "failed on currentPosition."
 --              _                     -> return (Position N 0 0 0)
-
-
-isNullKey :: String -> Bool
-isNullKey = null . filter (/= '\n') . filter (/= '\r')
 

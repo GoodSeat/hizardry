@@ -14,7 +14,7 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
-import Engine.InEvent (doEvent, setLightValueWith, setLightValue, resetEffectInOnlyBattle, returnToCastle)
+import Engine.InEvent (doEvent)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
@@ -132,7 +132,7 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
-          ,(Key "q", suspend p)
+          ,(Key "q", suspendMazing p)
           ,(Key "i", inspect p)
           ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
@@ -158,8 +158,10 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
             let se = case walkForward lab p of Nothing -> KickDoor
                                                _       -> Walk
             sortPartyAuto
-            -- TODO!:if all character dead, move to gameover.
-            run $ enterMaybeEncount (withSE se $ flashMoveView " 1  ") p'
+
+            allDead <- isTotalAnnihilation
+            run $ if allDead then totalAnnihilation
+                  else enterMaybeEncount (withSE se $ flashMoveView " 1  ") p'
 
 
 nextMiniMap :: GameState ()
@@ -176,12 +178,6 @@ nextMiniMap = do
                       | n /= a = next a org ns
 
 -- =======================================================================
-
-suspend :: Position -> GameMachine
-suspend p = GameAuto $ do
-    modify $ \w -> w { inMazeMember = inMazeMember w ++ ((,p) <$> party w), party = [] }
-    toCastle <- home
-    returnToCastle >> run toCastle
 
 inspect :: Position -> GameMachine
 inspect p = GameAuto $ do
