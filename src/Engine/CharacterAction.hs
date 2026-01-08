@@ -99,7 +99,15 @@ doIdentifyItem cid cancel _ i _ = GameAuto $ do
     let inf = Chara.itemInfAt c i
     itemDef <- itemByID (itemID inf)
     let charLv = Chara.lv c
-    let ilv = Item.itemLv itemDef
+    let ilv  = Item.itemLv itemDef
+        isC  = Item.Cursed `elem` Item.attributes itemDef
+        etyp = Item.equipType itemDef
+
+    let es = Chara.equips c
+    items <- mapM itemByID (itemID <$> es)
+    let es' = snd <$> filter ((/= Item.equipType itemDef) . Item.equipType . fst) (zip items es)
+    let forceEquip = updateCharacter cid $ c { Chara.equips = inf : es' }
+
     case Chara.identifyItemChance job of
         Nothing -> run $ events [showStatus cid "You cannot identify items."] cancel
         Just formula -> do
@@ -116,7 +124,7 @@ doIdentifyItem cid cancel _ i _ = GameAuto $ do
                     run $ events [showStatus cid "Identification failed."] cancel
                 else do
                     updateCharacterWith cid $ addStatusError (Fear 30)
-                    -- TODO:if items is cursed, you equip it.
+                    when (isC && isJust etyp) forceEquip
                     run $ events [showStatus cid "Ooops! you touch item!"] cancel
 
 
