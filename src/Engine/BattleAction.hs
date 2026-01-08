@@ -40,13 +40,25 @@ type ActionOfCharacter = CharacterID  -- ^ id of actor.
                       -> GameMachine  -- ^ next game auto.
                       -> GameMachine  -- ^ game auto.
 
-msgBlink :: [String] -> [Event]
-msgBlink [] = []
-msgBlink (m:ms) = messageTime 2 (unlines $ head ls : ("" <$ tail ls)) Nothing : (message <$> m : ms)
-  where ls = lines m
+messageBlink :: GameState ([String] -> [Event])
+messageBlink = do
+    msgF <- messageF
+    return $ \ms -> messageBlink' msgF ms
+  where
+    messageBlink' :: (String -> Event) -> [String] -> [Event]
+    messageBlink' msgF [] = []
+    messageBlink' msgF (m:ms) = messageTime 2 (unlines $ head ls : ("" <$ tail ls)) Nothing : (msgF <$> m : ms)
+      where ls = lines m
+
+messageF :: GameState (String -> Event)
+messageF = do
+    tw <- waitTimeInBattle . worldOption <$> world
+    return $ if tw == 0 then message else flip (messageTime (-tw)) Nothing
 
 fightOfCharacter :: ActionOfCharacter
 fightOfCharacter id el next = GameAuto $ do
+    msgBlink <- messageBlink
+    msgF     <- messageF
     es <- aliveEnemiesLine el
     ea <- filter (\e -> Enemy.hp e > 0) . join <$> lastEnemies
     c     <- characterByID id
@@ -56,14 +68,14 @@ fightOfCharacter id el next = GameAuto $ do
       let es' | range == Item.ToSingle = [head es]
               | range == Item.ToGroup  = es
               | range == Item.ToAll    = ea
-          toM = if length es' <= 1 then fmap message else msgBlink
+          toM = if length es' <= 1 then fmap msgF else msgBlink
       nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 0
         let e' = damageHp d e
         ms <- fightMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
         return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
-                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+                                       else with [update] . toEffect False (head ms) . events (msgF <$> tail ms)
       run $ foldr ($) next nexts
 
 fightDamage :: EnemyLine
@@ -133,17 +145,20 @@ weaponAttrOf c = do
 
 hideOfCharacter :: CharacterID -> GameMachine -> GameMachine
 hideOfCharacter cid next = GameAuto $ do
+    msgF     <- messageF
     c     <- characterByID cid
     param <- paramOf (Left c)
     couldHide <- happens $ 50 + agility param
     if couldHide then do
         updateCharacter cid (addStatusError Hidden c)
-        run $ events [message $ Chara.name c ++ " has hidden in the shadows."] next
+        run $ events [msgF $ Chara.name c ++ " has hidden in the shadows."] next
     else
-        run $ events [message $ Chara.name c ++ " tried to hide, but couldn't."] next
+        run $ events [msgF $ Chara.name c ++ " tried to hide, but couldn't."] next
 
 ambushOfCharacter :: ActionOfCharacter
 ambushOfCharacter id el next = GameAuto $ do
+    msgBlink <- messageBlink
+    msgF     <- messageF
     es <- aliveEnemiesLine el
     ea <- filter (\e -> Enemy.hp e > 0) . join <$> lastEnemies
     c     <- characterByID id
@@ -153,14 +168,14 @@ ambushOfCharacter id el next = GameAuto $ do
       let es' | range == Item.ToSingle = [head es]
               | range == Item.ToGroup  = es
               | range == Item.ToAll    = ea
-          toM = if length es' <= 1 then fmap message else msgBlink
+          toM = if length es' <= 1 then fmap msgF else msgBlink
       nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 2
         let e' = damageHp d e
         ms <- ambushMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
         return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
-                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+                                       else with [update] . toEffect False (head ms) . events (msgF <$> tail ms)
       run $ foldr ($) next nexts
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
@@ -185,6 +200,7 @@ fightOfEnemy :: Enemy.Instance                          -- ^ attacker enemy.
              -> GameMachine                             -- ^ next game auto.
              -> GameMachine                             -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
+    msgF <- messageF
     ps   <- party <$> world
     vcids <- filterM (\cid -> do
         c <- characterByID cid
@@ -204,8 +220,8 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
         let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
         ms <- fightMessageE e c' (h, d, ses)
         let next' = with [updateCharacter cid c'] next
-        run $ if d == 0 then events (message <$> ms) next'
-                        else toEffect True (head ms) (events (message <$> tail ms) next')
+        run $ if d == 0 then events (msgF <$> ms) next'
+                        else toEffect True (head ms) (events (msgF <$> tail ms) next')
 
 fightDamageE :: Int             -- ^ count of attack.
              -> Enemy.Instance  -- ^ attacker enemy.
@@ -407,16 +423,18 @@ type Cast = String -- object (spell name or item name).
 
 castInBattle :: Verb -> Cast
 castInBattle v n ca (Left cid) dst next = GameAuto $ do
+    msgF <- messageF
     src <- characterByID cid
     ts  <- ca (Left src) dst
     let acc (_, t, d, k) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                           in with [when k (addMarks cid)] . (if d then toEffect False msg else events [message msg])
+                           in with [when k (addMarks cid)] . (if d then toEffect False msg else events [msgF msg])
     run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
 
 castInBattle v n ca (Right e) dst next = GameAuto $ do
+    msgF <- messageF
     ts <- ca (Right e) dst
     let acc (_, t, d, _) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                           in if d then toEffect True msg else events [message msg] 
+                           in if d then toEffect True msg else events [msgF msg] 
     run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
 
 
@@ -441,10 +459,11 @@ castButFear v = castNoEffect v "but couldn't voice well by fear."
 
 castNoEffect :: Verb -> String -> String -> SpellEffect
 castNoEffect v msg n src _ next = GameAuto $ do
+    msgF <- messageF
     name <- case src of Left id -> Chara.name <$> characterByID id
                         Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
     let ts      = ["", msg]
-        toMsg t = message $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+        toMsg t = msgF $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
 
 
@@ -469,23 +488,25 @@ aliveEnemyLineRandom el = do
 -- ================================================================================
 
 toEffect :: Bool -> String -> GameMachine -> GameMachine
-toEffect fromEnemy msg next = e0
-  where
-    d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
+toEffect fromEnemy msg next = GameAuto $ do
+    msgBlink <- messageBlink
+    msgF     <- messageF
+    let d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
                                              , sceneTrans = sceneTrans w . translate ( 0,  1) }
                                       else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
-    d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
-                                             , sceneTrans = sceneTrans w . translate (-1,  0) }
-                                      else w { enemyTrans = enemyTrans w . translate (-1,  0) }
-    d3  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 2, -1)
-                                             , sceneTrans = sceneTrans w . translate ( 2, -1) }
-                                      else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
-    d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
-                                             , sceneTrans = id }
-                                      else w { enemyTrans = id }
-    e0  =             select (withSE se $ head $ msgBlink [msg]) [(Clock, e1), (AnyKey, with [d4] next)]
-    e1  = with [d1] $ select (messageTime (-40) msg Nothing)     [(Clock, e2), (AnyKey, with [d4] next)]
-    e2  = with [d2] $ select (messageTime (-30) msg Nothing)     [(Clock, e3), (AnyKey, with [d4] next)]
-    e3  = with [d3] $ select (messageTime (-40) msg Nothing)     [(Clock, e4), (AnyKey, with [d4] next)]
-    e4  = with [d4] $ events [message msg] next
-    se  = if fromEnemy then FightHitToP else FightHitToE
+        d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
+                                                 , sceneTrans = sceneTrans w . translate (-1,  0) }
+                                          else w { enemyTrans = enemyTrans w . translate (-1,  0) }
+        d3  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 2, -1)
+                                                 , sceneTrans = sceneTrans w . translate ( 2, -1) }
+                                          else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
+        d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
+                                                 , sceneTrans = id }
+                                          else w { enemyTrans = id }
+        e0  =             select (withSE se $ head $ msgBlink [msg]) [(Clock, e1), (AnyKey, with [d4] next)]
+        e1  = with [d1] $ select (messageTime (-40) msg Nothing)     [(Clock, e2), (AnyKey, with [d4] next)]
+        e2  = with [d2] $ select (messageTime (-30) msg Nothing)     [(Clock, e3), (AnyKey, with [d4] next)]
+        e3  = with [d3] $ select (messageTime (-40) msg Nothing)     [(Clock, e4), (AnyKey, with [d4] next)]
+        e4  = with [d4] $ events [msgF msg] next
+        se  = if fromEnemy then FightHitToP else FightHitToE
+    run e0

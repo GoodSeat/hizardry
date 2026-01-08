@@ -7,6 +7,7 @@ import Control.Monad.Reader (asks)
 import Data.List (sort, sortOn, elemIndex, intersperse)
 import Data.Char (toLower)
 import Data.Maybe (fromJust)
+import Text.Read (readMaybe)
 import qualified Data.Map as Map
 
 import Engine.GameAuto
@@ -16,6 +17,7 @@ import Engine.CharacterAction (readSpell)
 import Data.World
 import Data.Maze
 import Data.Primitive
+import qualified Data.Spells as Spell
 import qualified Data.Characters as Character
 
 inEdgeOfTown :: GameMachine
@@ -41,7 +43,7 @@ inEdgeOfTown = with [movePlace InEdgeOfTown] $ autoSaveToSlot0 $ GameAuto $ do
 
 utilities :: GameMachine
 utilities = selectEsc msg [(Key "l", inEdgeOfTown)
---                        ,(Key "c", config)
+                          ,(Key "c", config)
                           ,(Key "s", selectSaveSlot)
                           ,(Key "r", selectLoadSlot)
                           ]
@@ -50,6 +52,76 @@ utilities = selectEsc msg [(Key "l", inEdgeOfTown)
                  ++ "^S)ave backup\n"
                  ++ "^R)estore from backup\n"
                  ++ "^L)eave Utilities `[`E`S`C`]\n"
+
+config :: GameMachine
+config = GameAuto $ do
+    w <- world
+    let tE = effectDumapic    $ worldOption w
+        tM = minimapType      $ worldOption w
+        tH = hpHealType       $ worldOption w
+        tI = ignoreAlignment  $ worldOption w
+        tS = switchSE         $ worldOption w
+        tB = switchBGM        $ worldOption w
+        tW = waitTimeInBattle $ worldOption w
+    let msg = "\n^E)位置判別呪文の効果           : " ++ eToT tE
+           ++ "\n^M)ミニマップの表示             : " ++ mToT tM
+           ++ "\n^H)城帰還時のHP回復             : " ++ hToT tH
+           ++ "\n^I)酒場パーティ編成時の属性混合 : " ++ iToT tI
+           ++ "\n^S)効果音の有無                 : " ++ iToS tS
+           ++ "\n^B)音楽の有無                   : " ++ iToB tB
+           ++ "\n^W)戦闘時のテキスト自動進行時間 : " ++ show tW ++ " ms"
+           ++ "\n    (※ 0 を設定すると、自動進行しなくなります)"
+           ++ "\n                            "
+           ++ "\n^L)戻る  `[`E`S`C`]         "
+    let changeE = do
+            ts <- asks (enableEffectDumapic . scenarioOption)
+            put $ w { worldOption = (worldOption w) { effectDumapic = next ts tE } }
+        changeM = do
+            ts <- asks (enableMinimapType . scenarioOption)
+            put $ w { worldOption = (worldOption w) { minimapType = next ts tM } }
+        changeH = do
+            let ts = [Classic, CureWhenInn, CureWhenReturnCastle]
+            put $ w { worldOption = (worldOption w) { hpHealType = next ts tH } }
+        changeI = put $ w { worldOption = (worldOption w) { ignoreAlignment = not tI } }
+        changeS = put $ w { worldOption = (worldOption w) { switchSE        = not tS } }
+        changeB = put $ w { worldOption = (worldOption w) { switchBGM       = not tB } }
+        changeW :: Int -> GameState ()
+        changeW t = put $ w { worldOption = (worldOption w) { waitTimeInBattle = abs t } }
+        inputW = GameAuto $ return (askFlashAndMessage msg "進行時間(ms)を入力してください。" Nothing
+                                   ,\(Key s) -> case readMaybe s of Nothing -> config
+                                                                    Just t  -> with [changeW t] config)
+
+    run $ selectEsc (message msg) [(Key "l", utilities)
+                                  ,(Key "e", with [changeE] config)
+                                  ,(Key "m", with [changeM] config)
+                                  ,(Key "h", with [changeH] config)
+                                  ,(Key "i", with [changeI] config)
+                                  ,(Key "s", with [changeS] config)
+                                  ,(Key "b", with [changeB] config)
+                                  ,(Key "w", inputW)
+                                  ]
+  where
+    eToT Spell.OnlyCoord      = "座標表示"
+    eToT Spell.ViewMap        = "地図表示"
+    mToT Disable              = "非表示"
+    mToT Normal               = "表示"
+    mToT AlwaysN              = "表示(方向感覚無効)"
+    hToT Classic              = "回復しない"
+    hToT CureWhenInn          = "宿泊時に全回復"
+    hToT CureWhenReturnCastle = "城帰還時に全回復"
+    iToT True                 = "可能"
+    iToT False                = "不可"
+    iToS True                 = "有効"
+    iToS False                = "無効"
+    iToB True                 = "有効"
+    iToB False                = "無効"
+
+    next :: Eq a => [a] -> a -> a
+    next as = next' (head as) as
+      where
+        next' a []     _ = a
+        next' a [b]    _ = a
+        next' a (b:bs) c = if b == c then head bs else next' a bs c
 
 autoSaveToSlot0 :: GameMachine -> GameMachine
 autoSaveToSlot0 = events [SaveGame 0 "AutoSave"]

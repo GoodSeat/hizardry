@@ -29,8 +29,8 @@ playSound :: IORef (Place, FilePath)
           -> SETypeToFilePath
           -> BGMTypeToFilePath
           -> Event -> World -> IO ()
-playSound cp st bt (General d)        w = playSE d st >> playBGM' cp (typeBGM d) w bt
-playSound cp st bt (ShowStatus _ _ d) w = playSE d st >> playBGM' cp (typeBGM d) w bt
+playSound cp st bt (General d)        w = when (validSE w) (playSE d st) >> playBGM' cp (typeBGM d) w bt
+playSound cp st bt (ShowStatus _ _ d) w = when (validSE w) (playSE d st) >> playBGM' cp (typeBGM d) w bt
 playSound cp st bt _                  w = playBGM' cp Ambient w bt
 
 playSE :: Display -> SETypeToFilePath -> IO ()
@@ -41,7 +41,9 @@ playSE d st = case st (typeSE d) of
     when existSE $ playSoundEffect path
 
 playBGM' :: IORef (Place, FilePath) -> BGMType -> World -> BGMTypeToFilePath -> IO ()
-playBGM' cp typeB w bt = do
+playBGM' cp typeB w bt
+  | not (validBGM w) = stopBGM
+  | otherwise        = do
     let np = place w
     (op, opath) <- readIORef cp
     let bgm = bt (op, opath) np typeB
@@ -55,3 +57,11 @@ playBGM' cp typeB w bt = do
         existBGM <- doesFileExist path
         when (existBGM && opath /= path) $ (if opath == "" then playBGMIfNoMusic else playBGM) path
         writeIORef cp (np, path)
+
+
+validSE :: World -> Bool
+validSE = switchSE . worldOption
+
+validBGM :: World -> Bool
+validBGM = switchBGM . worldOption
+

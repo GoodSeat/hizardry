@@ -127,18 +127,24 @@ data HPHealType = Classic
     deriving (Eq, Show, Read)
 
 data WorldOption = WorldOption {
-      effectDumapic   :: !Spell.CheckLocationType
-    , minimapType     :: !MiniMapType
-    , hpHealType      :: !HPHealType -- TODO
-    , ignoreAlignment :: !Bool
+      effectDumapic    :: !Spell.CheckLocationType
+    , minimapType      :: !MiniMapType
+    , hpHealType       :: !HPHealType  -- TODO
+    , ignoreAlignment  :: !Bool        -- TODO
+    , switchSE         :: !Bool
+    , switchBGM        :: !Bool
+    , waitTimeInBattle :: !Int  -- ^ wait time in battle message (ms). 0 means infinity.
     } deriving (Eq, Show, Read)
 
 defaultWorldOption :: WorldOption
 defaultWorldOption = WorldOption {
-      effectDumapic   = Spell.ViewMap
-    , minimapType     = Normal
-    , hpHealType      = Classic
-    , ignoreAlignment = False
+      effectDumapic    = Spell.ViewMap
+    , minimapType      = Normal
+    , hpHealType       = Classic
+    , ignoreAlignment  = False
+    , switchSE         = True
+    , switchBGM        = True
+    , waitTimeInBattle = 1000
     }
 
 

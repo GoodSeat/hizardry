@@ -230,12 +230,13 @@ selectFightTarget c fts next cancel = GameAuto $ do
 
 tryRun :: Chara.Character -> Condition -> Maybe Surprise -> GameMachine
 tryRun c con surprised = GameAuto $ do
+    msgF <- messageF
     np  <- length . party <$> world
     es  <- lastEnemies
     suc <- if isJust surprised then return True else happens $ 100 - length es * 3 - (np - 1) * 4
     let bm = Chara.name c ++ " flees."
-    if suc then run $ events [message bm] (afterRun con)
-           else run $ events [message bm, message $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
+    if suc then run $ events [msgF bm] (afterRun con)
+           else run $ events [msgF bm, msgF $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
 
 resetCommand :: GameState ()
 resetCommand = do
@@ -300,7 +301,7 @@ nextTurn con = GameAuto $ do
 
     msgs <- forM fcs $ \cid -> do
       c <- characterByID cid
-      return $ message (nameOf c ++ " was found by enemies.")
+      messageF <*> pure (nameOf c ++ " was found by enemies.")
 
     sortPartyAutoWith (defaultOrder con)
 
@@ -376,6 +377,7 @@ act (ByParties id a) next = GameAuto $ do
         Hide        -> hideOfCharacter id next
         Ambush l    -> ambushOfCharacter id l next
 act (ByEnemies l e a) next = GameAuto $ do
+    msgF <- messageF
     e_ <- currentEnemyByNo $ Enemy.noID e
     case e_ of
       Nothing -> run next
@@ -408,11 +410,11 @@ act (ByEnemies l e a) next = GameAuto $ do
               ps <- party <$> world
               ts <- castDamageSpell f attrs (Right e') (Left $ toPartyPos <$> [1..length ps])
               let acc (_, t, d, _) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
-                                     in if d then toEffect True msg else events [message msg] 
+                                     in if d then toEffect True msg else events [msgF msg] 
               run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
           Enemy.Run              -> do
               updateEnemy e' $ const e' { Enemy.hp = 0 }
-              run $ events [message $ nameOf e' ++ " flees."] next
+              run $ events [msgF $ nameOf e' ++ " flees."] next
 
 
 -- ==========================================================================

@@ -38,8 +38,6 @@ import qualified SampleScenario.Home as SampleScenario
 -- * other events
 -- * make backup data / load backup data
 --
--- * config (worldOption)
---
 -- * item encyclopedia
 -- * enemy encyclopedia
 
