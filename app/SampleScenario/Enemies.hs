@@ -24,7 +24,7 @@ enemies = Map.fromList [
         , Enemy.friendlyProb      = 0
         , Enemy.numOfOccurrences  = parse' "2d2"
         , Enemy.healPerTurn       = 2
-        , Enemy.moveFrontProb     = 20
+        , Enemy.moveFrontProb     = 40
 
         , Enemy.resistError       = [(Dead, read "6")]
         , Enemy.vsEffectLabels    = [(EffectLabel "fire", read "value*5")]

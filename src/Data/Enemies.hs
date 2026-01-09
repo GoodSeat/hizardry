@@ -91,7 +91,7 @@ data Action = Fight Int     -- ^ count of attack.
                     [(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
             | Spelling Formula -- ^ spel id.
             | Breath Formula [EffectLabel] -- ^ damage.
-            | CallBakup -- TODO:not implement
+            | CallBakup Formula -- ^ success probably. "num" means count of consist enemy group. -- TODO:not implement
             | Run
     deriving (Show, Eq, Read)
 

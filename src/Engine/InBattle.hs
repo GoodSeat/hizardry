@@ -288,20 +288,30 @@ nextTurn con = GameAuto $ do
                 modify $ fmap $ filter (\e -> Enemy.hp e > 0) -- remove dead or fleed enemy.
                 modify $ filter (not . null)                  -- remove null line.
             ) <$> lastEnemies
-    ess' <- tryDetermineEnemies ess
+
+    msgF <- messageF
+    (msgs1, ess') <- (\(a, b, _) -> (a, b)) <$> foldM (\(msgac, ess0, l) e -> do
+                         mf <- happens $ Enemy.moveFrontProb $ Enemy.define (head e)
+                         return $ if l <= 0 || not mf then
+                           (msgac, ess0, l + 1)
+                         else
+                           (msgac ++ [msgF $ nameOf (head e) ++ " has stepped forward."], [ess0 !! l] ++ take l ess0 ++ drop (l + 1) ess0, l + 1)
+                     ) ([], ess, 0) ess
+
+    ess'' <- tryDetermineEnemies ess'
 
     ps <- party <$> world
     fcs <- flip filterM ps $ \cid -> do
       c     <- characterByID cid
       r     <- randomNext 1 100
       param <- paramOf (Left c)
-      updateCharacter cid $ whenToNextTurn r (sum $ length <$> ess') param c
+      updateCharacter cid $ whenToNextTurn r (sum $ length <$> ess'') param c
       c'    <- characterByID cid
       return $ hasStatusError c Found /= hasStatusError c' Found
 
-    msgs <- forM fcs $ \cid -> do
+    msgs2 <- forM fcs $ \cid -> do
       c <- characterByID cid
-      messageF <*> pure (nameOf c ++ " was found by enemies.")
+      return $ msgF (nameOf c ++ " was found by enemies.")
 
     sortPartyAutoWith (defaultOrder con)
 
@@ -309,8 +319,8 @@ nextTurn con = GameAuto $ do
     if allDead then
       run totalAnnihilation
     else do
-      moveToBattle ess'
-      run $ if null ess' then wonBattle con' else events msgs (selectBattleCommand 1 [] con' Nothing)
+      moveToBattle ess''
+      run $ if null ess'' then wonBattle con' else events (msgs1 ++ msgs2) (selectBattleCommand 1 [] con' Nothing)
 
 updateCondition :: Condition -> GameState Condition
 updateCondition con = do
