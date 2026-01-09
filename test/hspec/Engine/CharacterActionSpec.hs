@@ -109,22 +109,23 @@ resistantEnemyInstance = testEnemyInstance
 
 testScenario :: Scenario
 testScenario = initScenario (InitScenario {
-      initScenarioName   = "TestScenario"
-    , initScenarioOption = ScenarioOption [] []
-    , initRacies         = [testRace]
-    , initJobs           = [testJob]
-    , initMazes          = []
-    , initEncountMap     = Map.empty
-    , initRoomBattleMap  = Map.empty
-    , initRoomDefine     = []
-    , initEventMap       = Map.empty
-    , initEventMapDir    = Map.empty
-    , initEventInspect   = Map.empty
-    , initMazeEvents     = Map.empty
-    , initEnemies        = Map.fromList [(EnemyID 1, testEnemyDefine), (EnemyID 2, resistantEnemyDefine)] -- Added resistant enemy
-    , initSpells         = Map.empty
-    , initItems          = Map.empty
-    , initEncKey         = ""
+      initScenarioName    = "TestScenario"
+    , initScenarioVersion = [1,0,0,0]
+    , initScenarioOption  = ScenarioOption [] []
+    , initRacies          = [testRace]
+    , initJobs            = [testJob]
+    , initMazes           = []
+    , initEncountMap      = Map.empty
+    , initRoomBattleMap   = Map.empty
+    , initRoomDefine      = []
+    , initEventMap        = Map.empty
+    , initEventMapDir     = Map.empty
+    , initEventInspect    = Map.empty
+    , initMazeEvents      = Map.empty
+    , initEnemies         = Map.fromList [(EnemyID 1, testEnemyDefine), (EnemyID 2, resistantEnemyDefine)] -- Added resistant enemy
+    , initSpells          = Map.empty
+    , initItems           = Map.empty
+    , initEncKey          = ""
     }) mockGameMachine
 
 initialCaster :: Chara.Character

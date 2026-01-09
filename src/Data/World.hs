@@ -2,7 +2,7 @@ module Data.World
 where
 
 import PreludeL
-import System.Random
+import System.Random (StdGen, mkStdGen, randomIO)
 import qualified Data.Map as Map
 import System.IO.Error (tryIOError)
 import Text.Read (readMaybe)
@@ -71,9 +71,9 @@ data InitWorld = InitWorld {
     , initAllCharacters   :: !Character.DB
 } deriving (Show)
 
-initWorld :: InitWorld -> StdGen -> Bool -> World
-initWorld i rnd debugMode = World {
-      randomGen       = rnd
+initWorld :: InitWorld -> Seed -> Bool -> World
+initWorld i seed debugMode = World {
+      randomGen       = mkStdGen seed
     , guideOn         = initGuideOn         i
     , statusOn        = initStatusOn        i
     , worldOption     = initWorldOption     i
@@ -147,6 +147,7 @@ defaultWorldOption = WorldOption {
     , waitTimeInBattle = 1000
     }
 
+type Seed = Int
 
 -- | Explicit saving world.
 --   belows contents are not save target.
@@ -163,11 +164,11 @@ defaultWorldOption = WorldOption {
 --     * when saving "randomGen", save random int(with random by getStdGen), and replace randomGen by made StdGen using mkStdGen it.
 --     * when loading "randomGen", restore by "mkStdGen :: Int -> RandomGen")
 --    TODO:save as json for enable to load data of different version.
-saveWorld :: World -> FilePath -> IO World
+saveWorld :: World -> FilePath -> IO (World, Seed)
 saveWorld w path = do
     r <- randomIO
     writeFile path (txt r)
-    return $ w { randomGen = mkStdGen r }
+    return (w { randomGen = mkStdGen r }, r)
   where
     txt :: Int -> String
     txt r = unlines [
@@ -217,14 +218,14 @@ saveWorld w path = do
       ]
 
 
-loadWorld :: FilePath -> IO (Either String World)
+loadWorld :: FilePath -> IO (Either String (World, Seed))
 loadWorld path = do
     contentResult <- tryIOError (readFile path)
     case contentResult of
         Left  e -> return $ Left ("Failed to read save file: " ++ show e)
         Right c -> return $ buildWorld (lines c)
 
-buildWorld :: [String] -> Either String World
+buildWorld :: [String] -> Either String (World, Seed)
 buildWorld ls = do
     let sections = parseSections ls
     
@@ -247,7 +248,7 @@ buildWorld ls = do
     pFlags       <- readSection sections "eventFlags"
     pDebug       <- readSection sections "debugMode"
 
-    return World {
+    return (World {
         randomGen       = mkStdGen rGenInt,
         guideOn         = guide,
         statusOn        = status,
@@ -271,7 +272,7 @@ buildWorld ls = do
         frameTrans      = id,
         debugMessage    = [],
         backUpSlotInfo  = []  -- MEMO:this is auto created in playing.
-    }
+    }, rGenInt)
 
 parseSections :: [String] -> Map.Map String String
 parseSections ls = Map.fromList $ mapMaybe processGroup (groupBy (\_ b -> not $ isHeader b) ls)

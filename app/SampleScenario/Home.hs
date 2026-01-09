@@ -66,15 +66,16 @@ initScenario = return (s, w)
         , enableMinimapType   = [Disable, Normal, AlwaysN]
         }
     s = InitScenario {
-          initScenarioName   = "SampleScenario"
-        , initScenarioOption = option
-        , initRacies         = SampleRacies.racies
-        , initJobs           = SampleJobs.jobs
-        , initMazes          = [
+          initScenarioName    = "SampleScenario"
+        , initScenarioVersion = [0,1,0,0]
+        , initScenarioOption  = option
+        , initRacies          = SampleRacies.racies
+        , initJobs            = SampleJobs.jobs
+        , initMazes           = [
               ("B1F", ( 4,  5), SampleMaze.maze1F)
             , ("B2F", (26, 25), SampleMaze.maze2F)
             ]
-        , initEncountMap     = Map.fromList [
+        , initEncountMap      = Map.fromList [
               ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
             , ((0, 1, 0), (10, [EnemyID 1, EnemyID 2]))
             , ((0, 2, 0), (10, [EnemyID 1, EnemyID 2]))
@@ -82,18 +83,18 @@ initScenario = return (s, w)
             , ((0, 4, 0), (10, [EnemyID 1, EnemyID 2]))
             , ((1, 2, 0), (10, [EnemyID 1, EnemyID 2]))
             ]
-        , initRoomBattleMap  = Map.fromList [
+        , initRoomBattleMap   = Map.fromList [
               ((1, 2, 0), (75, [EnemyID 1, EnemyID 2]))
             ]
-        , initRoomDefine     = []
-        , initMazeEvents     = SampleEvents.mazeEvents
-        , initEventMap       = SampleEvents.eventMap
-        , initEventMapDir    = SampleEvents.eventMapDir
-        , initEventInspect   = Map.fromList [ (Position E 2 1 0, GameEventID 02010101) ]
-        , initEnemies        = SampleEnemies.enemies
-        , initSpells         = SampleSpells.spells
-        , initItems          = SampleItems.items
-        , initEncKey         = "hizardry-secret-key"
+        , initRoomDefine      = []
+        , initMazeEvents      = SampleEvents.mazeEvents
+        , initEventMap        = SampleEvents.eventMap
+        , initEventMapDir     = SampleEvents.eventMapDir
+        , initEventInspect    = Map.fromList [ (Position E 2 1 0, GameEventID 02010101) ]
+        , initEnemies         = SampleEnemies.enemies
+        , initSpells          = SampleSpells.spells
+        , initItems           = SampleItems.items
+        , initEncKey          = "hizardry-secret-key"
         }
     param = Parameter {
           strength = 12

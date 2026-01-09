@@ -32,62 +32,65 @@ data ScenarioOption = ScenarioOption {
 
 -- | scenario immutable data.
 data Scenario = Scenario {
-      scenarioName   :: !String -- ^ use this name as save file path.
-    , scenarioOption :: !ScenarioOption
-    , scenarioHome   :: !GameMachine
-    , racies         :: ![Race]
-    , jobs           :: ![Job]
-    , mazes          :: Int -> GameState (String, Size2D, Maze)
-    , encountMap     :: !(Map.Map Coord (Int, [EnemyID]))
-    , roomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
-    , roomDefine     :: ![[Coord]]
-    , eventMap       :: !(Map.Map Coord GameEventID)
-    , eventMapDir    :: !(Map.Map Position GameEventID)
-    , eventInspect   :: !(Map.Map Position GameEventID)
-    , mazeEvents     :: !GameEvent.DB
-    , enemies        :: !Enemy.DB
-    , spells         :: !Spell.DB
-    , items          :: !Item.DB
-    , encKey         :: !String
+      scenarioName    :: !String -- ^ use this name as save file path.
+    , scenarioVersion :: ![Int]
+    , scenarioOption  :: !ScenarioOption
+    , scenarioHome    :: !GameMachine
+    , racies          :: ![Race]
+    , jobs            :: ![Job]
+    , mazes           :: Int -> GameState (String, Size2D, Maze)
+    , encountMap      :: !(Map.Map Coord (Int, [EnemyID]))
+    , roomBattleMap   :: !(Map.Map Coord (Int, [EnemyID]))
+    , roomDefine      :: ![[Coord]]
+    , eventMap        :: !(Map.Map Coord GameEventID)
+    , eventMapDir     :: !(Map.Map Position GameEventID)
+    , eventInspect    :: !(Map.Map Position GameEventID)
+    , mazeEvents      :: !GameEvent.DB
+    , enemies         :: !Enemy.DB
+    , spells          :: !Spell.DB
+    , items           :: !Item.DB
+    , encKey          :: !String
     }
 data InitScenario = InitScenario {
-      initScenarioName   :: !String
-    , initScenarioOption :: !ScenarioOption
-    , initRacies         :: ![Race]
-    , initJobs           :: ![Job]
-    , initMazes          :: ![(String, Size2D, Maze)]
-    , initEncountMap     :: !(Map.Map Coord (Int, [EnemyID]))
-    , initRoomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
-    , initRoomDefine     :: ![[Coord]]
-    , initEventMap       :: !(Map.Map Coord GameEventID)
-    , initEventMapDir    :: !(Map.Map Position GameEventID)
-    , initEventInspect   :: !(Map.Map Position GameEventID)
-    , initMazeEvents     :: !GameEvent.DB
-    , initEnemies        :: !Enemy.DB
-    , initSpells         :: !Spell.DB
-    , initItems          :: !Item.DB
-    , initEncKey         :: !String
+      initScenarioName    :: !String
+    , initScenarioVersion :: ![Int]
+    , initScenarioOption  :: !ScenarioOption
+    , initRacies          :: ![Race]
+    , initJobs            :: ![Job]
+    , initMazes           :: ![(String, Size2D, Maze)]
+    , initEncountMap      :: !(Map.Map Coord (Int, [EnemyID]))
+    , initRoomBattleMap   :: !(Map.Map Coord (Int, [EnemyID]))
+    , initRoomDefine      :: ![[Coord]]
+    , initEventMap        :: !(Map.Map Coord GameEventID)
+    , initEventMapDir     :: !(Map.Map Position GameEventID)
+    , initEventInspect    :: !(Map.Map Position GameEventID)
+    , initMazeEvents      :: !GameEvent.DB
+    , initEnemies         :: !Enemy.DB
+    , initSpells          :: !Spell.DB
+    , initItems           :: !Item.DB
+    , initEncKey          :: !String
     }
 
 initScenario :: InitScenario -> GameMachine -> Scenario
 initScenario i home = Scenario {
-      scenarioName              = initScenarioName   i
-    , scenarioOption            = initScenarioOption i
+      scenarioName              = initScenarioName    i
+    , scenarioVersion           = initScenarioVersion i
+    , scenarioOption            = initScenarioOption  i
     , scenarioHome              = home
-    , racies                    = initRacies         i
-    , jobs                      = initJobs           i
+    , racies                    = initRacies          i
+    , jobs                      = initJobs            i
     , mazes                     = \z -> pure $ initMazes i !! z 
-    , encountMap                = initEncountMap     i
-    , roomBattleMap             = initRoomBattleMap  i
-    , roomDefine                = initRoomDefine     i
-    , eventMap                  = initEventMap       i
-    , eventMapDir               = initEventMapDir    i
-    , eventInspect              = initEventInspect   i
-    , mazeEvents                = initMazeEvents     i
-    , enemies                   = initEnemies        i
-    , Engine.GameAuto.spells    = initSpells         i
-    , Engine.GameAuto.items     = initItems          i
-    , encKey                    = initEncKey         i
+    , encountMap                = initEncountMap      i
+    , roomBattleMap             = initRoomBattleMap   i
+    , roomDefine                = initRoomDefine      i
+    , eventMap                  = initEventMap        i
+    , eventMapDir               = initEventMapDir     i
+    , eventInspect              = initEventInspect    i
+    , mazeEvents                = initMazeEvents      i
+    , enemies                   = initEnemies         i
+    , Engine.GameAuto.spells    = initSpells          i
+    , Engine.GameAuto.items     = initItems           i
+    , encKey                    = initEncKey          i
 }
 
 -- ==========================================================================
