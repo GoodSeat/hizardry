@@ -35,6 +35,7 @@ enemies = Map.fromList [
                                      ,(read "lv*20-o.lv", Poison 2, [EffectLabel "mucus"])
                                      ]
                                     ,Enemy.Breath (read "hp/2") [EffectLabel "fire"]
+                                    ,Enemy.CallBakup (read "100 - num * 30")
                                     ]
 
         , Enemy.dropItem          = [(50, parse' "1d3")]

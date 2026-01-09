@@ -422,6 +422,23 @@ act (ByEnemies l e a) next = GameAuto $ do
               let acc (_, t, d, _) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
                                      in if d then toEffect True msg else events [msgF msg] 
               run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
+
+          Enemy.CallBakup f      -> do
+              ess <- lastEnemies
+              let num = length $ ess !! (l - 1)
+              m    <- Map.insert "num" num <$> formulaMapSO (Right e') (Right e')
+              call <- happens =<< evalWith m f
+              let nn = if call && num < 9 then 1 else 0
+              
+              nes <- createEnemyInstances nn l (Enemy.id e') False
+              let noID' = maximum (Enemy.noID <$> concat ess) + 1
+                  nes' = (\ei -> ei { Enemy.noID = noID', Enemy.determined = Enemy.determined e' }) <$> nes
+                  ess'' = take (l - 1) ess ++ [(ess !! (l - 1)) ++ nes'] ++ drop l ess
+              moveToBattle ess''
+              let msg1 = nameOf e' ++ " called for backup."
+                  msg2 = if null nes' then " -- but, no one came." else " -- and the backup arrived."
+              run $ events [msgF msg1, msgF (unlines [msg1, msg2])] next
+
           Enemy.Run              -> do
               updateEnemy e' $ const e' { Enemy.hp = 0 }
               run $ events [msgF $ nameOf e' ++ " flees."] next

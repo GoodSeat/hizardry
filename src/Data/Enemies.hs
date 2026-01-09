@@ -15,7 +15,7 @@ import qualified Data.Items as Item
 data Instance = Instance {
       id            :: !EnemyID -- ^ define id.
     , define        :: !Define  -- ^ define.
-    , noID          :: !Int     -- ^ number for identiry inscance.
+    , noID          :: !Int     -- ^ number for identify instance.
     , determined    :: !Bool
     , hp            :: !Int
     , maxhp         :: !Int
