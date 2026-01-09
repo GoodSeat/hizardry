@@ -130,7 +130,7 @@ data WorldOption = WorldOption {
       effectDumapic    :: !Spell.CheckLocationType
     , minimapType      :: !MiniMapType
     , hpHealType       :: !HPHealType  -- TODO
-    , ignoreAlignment  :: !Bool        -- TODO
+    , ignoreAlignment  :: !Bool
     , switchSE         :: !Bool
     , switchBGM        :: !Bool
     , waitTimeInBattle :: !Int  -- ^ wait time in battle message (ms). 0 means infinity.
