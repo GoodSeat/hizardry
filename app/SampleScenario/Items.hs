@@ -20,6 +20,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 0
+        , Item.itemInformation  = "ガラクタ。何の役にも立たない。"
     })
     ,
     (ItemID 1, Item.Define {
@@ -34,6 +35,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
+        , Item.itemInformation  = "Diosの効果を持つ薬。"
     })
     ,
     (ItemID 2, Item.Define {
@@ -48,6 +50,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
+        , Item.itemInformation  = "呪われた石。"
     })
     ,
     (ItemID 3, Item.Define {
@@ -62,6 +65,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
+        , Item.itemInformation  = "きれいな水。"
     })
     ,
     (ItemID 4, Item.Define {
@@ -76,6 +80,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
+        , Item.itemInformation  = "投げつけるとHalito相当の火炎を噴出する薬瓶。"
     })
     ,
     (ItemID 5, Item.Define {
@@ -90,6 +95,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
+        , Item.itemInformation  = "Kalkiの効果を噴出する薬瓶。"
     })
     ,
     (ItemID 11, Item.Define {
@@ -122,6 +128,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
+        , Item.itemInformation  = "鉄の剣。量産品。"
     })
     ,
     (ItemID 12, Item.Define {
@@ -144,6 +151,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
+        , Item.itemInformation  = "鉄の盾。量産品。"
     })
     ,
     (ItemID 13, Item.Define {
@@ -166,6 +174,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
+        , Item.itemInformation  = "鉄の兜。量産品。"
     })
     ,
     (ItemID 14, Item.Define {
@@ -188,6 +197,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
+        , Item.itemInformation  = "鉄の兜。量産品。"
     })
     ,
     (ItemID 15, Item.Define {
@@ -210,6 +220,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
+        , Item.itemInformation  = "鉄の兜。量産品。"
     })
     ,
     (ItemID 16, Item.Define {
@@ -232,6 +243,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
+        , Item.itemInformation  = "鉄の兜。量産品。"
     })
     ,
     (ItemID 17, Item.Define {
@@ -254,6 +266,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 4
+        , Item.itemInformation  = "呪いのこもった兜。"
     })
     ,
     (ItemID 103, Item.Define {
@@ -286,6 +299,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
+        , Item.itemInformation  = "手先な器用な物にしか扱えない小型の弓。威力は低い。"
     })
     ,
     (ItemID 104, Item.Define {
@@ -318,6 +332,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 3
+        , Item.itemInformation  = "火矢を放つ小型の弓。"
     })
     ,
     (ItemID 105, Item.Define {
@@ -350,6 +365,7 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 3
+        , Item.itemInformation  = "聖職者のみが扱う事を許された神聖な鞭。"
     })
     ,
     (ItemID 106, Item.Define {
@@ -382,5 +398,6 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 3
+        , Item.itemInformation  = "手先な器用な物にしか扱えない小型のブーメラン。威力は低い。"
     })
     ]
