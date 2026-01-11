@@ -129,7 +129,6 @@ main = bracket_ initSound quitSound $ do
     showCursor
 
     appendFile inputLogPath =<< crypt indx ekey (show Abort ++ "\n")
-    void $ saveWorld w' "world.dat"
 
 -- ==========================================================================
 

@@ -7,6 +7,7 @@ module Data.Formula (
 ) where
 
 import PreludeL
+import Prelude hiding (read)
 import System.Random
 import Text.ParserCombinators.Parsec hiding (token)
 import Text.Parsec.Expr
