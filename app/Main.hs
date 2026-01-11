@@ -17,6 +17,7 @@ import Data.Maybe (maybe)
 import Data.List (isSuffixOf)
 import Data.Char (ord, chr)
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef, writeIORef)
+import Text.Read (readMaybe)
 import qualified Data.Bits as Bits
 
 import Engine.GameAuto
@@ -89,9 +90,9 @@ main = bracket_ initSound quitSound $ do
         c  <- readFile inputLogPath
         ls <- lines <$> crypt indx ekey c
         if length ls > 3 &&
-           take 3 (read (ls !! 0) :: [Int]) == take 3 currentVersion  &&  -- 1:check app version.
-           take 3 (read (ls !! 1) :: [Int]) == take 3 currentVersionS &&  -- 2:check scenario version.
-           (read (ls !! 2) :: Int  ) == seed                              -- 3:check if seed is match.
+           (take 3 <$> (readMaybe (ls !! 0) :: Maybe [Int])) == Just (take 3 currentVersion)  &&  -- 1:check app version.
+           (take 3 <$> (readMaybe (ls !! 1) :: Maybe [Int])) == Just (take 3 currentVersionS) &&  -- 2:check scenario version.
+           (readMaybe (ls !! 2) :: Maybe Int) == Just seed                                        -- 3:check if seed is match.
         then do
           let is  = read <$> filter (not . null) (drop 3 ls)
               is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
