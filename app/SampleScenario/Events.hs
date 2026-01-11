@@ -46,13 +46,13 @@ mazeEvents = Map.fromList [
     , (GameEventID 010102, 
 --       Ev.Message "何者かが近づいてきた。" Nothing
          Ev.PlayBGM Encounter <> Ev.FlashMessageTime  "    Encounter!!    " (-1000)
---    <> Ev.PlayBGM (EventBGM "themeOfSoleil")
+      <> Ev.PlayBGM (EventBGM "themeOfSoleil")
       <> Ev.MessageT (-15) "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ Single $ PictureID 1002)
       <> Ev.Reference (GameEventID 010104)
        )
     , (GameEventID 010104, 
          Ev.Select "Party's Option\n  ^T)alk  ^L)eave" (Just $ Single $ PictureID 1002)
-         [("l", Ev.MessageT (-15) "さらばだ！！" (Just $ Single $ PictureID 1002))
+         [("l", Ev.MessageT (-15) "さらばだ！！" (Just $ Single $ PictureID 1002) <> Ev.PlayBGM Ambient)
          ,("t", Ev.Reference (GameEventID 010103))
          ]
        )
@@ -77,10 +77,19 @@ mazeEvents = Map.fromList [
                     <> Ev.Reference (GameEventID 010103))
          , ("くれ" ,  Ev.MessageT (-15) "強欲な奴だ、これをやろう。" (Just $ Single $ PictureID 1002)
                     <> Ev.GetItem Ev.Leader (read "3") True [
---                       Ev.PlaySoundEffect (EventSE "getitem") <>
-                         Ev.PlayBGM (EventBGMOnce "getitem") <>
-                         Ev.Message "あなたは水を手に入れた。"
+                         Ev.PlayBGM (EventBGMOnce "getitem")
+                      <> Ev.Message "あなたは水を手に入れた。"
                          (Just $ List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051), Single (PictureID 1002)])
+                      <> Ev.PlayBGM (EventBGM "themeOfSoleil")
+                       , Ev.MessageT (-15) "お前、もう持てないぞ、強欲すぎるだろ" (Just $ Single $ PictureID 1002)
+                       ]
+                    <> Ev.Reference (GameEventID 010103))
+         , ("みず" ,  Ev.MessageT (-15) "強欲な奴だ、これをやろう。" (Just $ Single $ PictureID 1002)
+                    <> Ev.GetItem Ev.All (read "3") True [
+                         Ev.PlayBGM (EventBGMOnce "getitem")
+                      <> Ev.Message "あなたは水を手に入れた。"
+                         (Just $ List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051), Single (PictureID 1002)])
+                      <> Ev.PlayBGM (EventBGM "themeOfSoleil")
                        , Ev.MessageT (-15) "お前、もう持てないぞ、強欲すぎるだろ" (Just $ Single $ PictureID 1002)
                        ]
                     <> Ev.Reference (GameEventID 010103))

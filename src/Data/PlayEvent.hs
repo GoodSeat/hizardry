@@ -71,6 +71,13 @@ changeMessage m None = message m
 changeMessage m (Resume c) = Resume (c . changeMessage m)
 changeMessage _ e = e
 
+changeWaitTime :: Int -> Event -> Event
+changeWaitTime t (General d) = General $ d { waitTime = Just t }
+changeWaitTime t (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { waitTime = Just t }
+changeWaitTime t None = General $ Display Nothing Nothing Nothing (Just t) Nothing False NoSE Ambient
+changeWaitTime t (Resume c) = Resume (c . changeWaitTime t)
+changeWaitTime _ e = e
+
 changeFlash :: String -> Event -> Event
 changeFlash f (General d) = General $ d { flashBox = adjustText f }
 changeFlash f (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = adjustText f }

@@ -263,5 +263,5 @@ bgmOf (op, otitle) np typeBGM =
           InMaze _              -> Just $ Right "res/inMaze1.mp3"
           InBattle _ _          -> Just $ Right "res/inBattle1.mp3"
           FindTreasureChest _ _ -> Just $ Right ""
-          Camping _ _           -> Just $ Right "res/inCamp.mp3" 
+          Camping _ t           -> if t == "" then Just $ Right "res/inCamp.mp3" else Nothing
           _                     -> Nothing

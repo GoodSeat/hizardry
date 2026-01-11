@@ -9,6 +9,7 @@ module UI.SoundControl (
 import PreludeL
 import Control.Monad (when)
 import Data.IORef (IORef, readIORef, writeIORef)
+import Data.List (isPrefixOf)
 import System.Directory (doesFileExist)
 
 import Engine.GameAuto
@@ -46,7 +47,8 @@ playBGM' cp typeB w bt
   | otherwise        = do
     let np = place w
     (op, opath) <- readIORef cp
-    let bgm = bt (op, opath) np typeB
+    let blockingAmbient = blockTag `isPrefixOf` opath
+    let bgm = bt (op, if blockingAmbient then drop (length blockTag) opath else opath) np typeB
     case bgm of
       Nothing           -> writeIORef cp (np, "")
       Just (Left path)  -> do
@@ -55,9 +57,15 @@ playBGM' cp typeB w bt
         writeIORef cp (np, "")
       Just (Right path) ->  do
         existBGM <- doesFileExist path
-        when (existBGM && opath /= path) $ (if opath == "" then playBGMIfNoMusic else playBGM) path
-        writeIORef cp (np, path)
+        when existBGM $ do
+          case typeB of
+            EventBGM _ -> (if opath == "" then playBGMIfNoMusic else playBGM) path
+                          >> writeIORef cp (np, blockTag ++ path) -- force eternal loop for event bgm until bgm stop.
+            _          -> when (not blockingAmbient && opath /= path) $ (if opath == "" then playBGMIfNoMusic else playBGM) path
+                          >> writeIORef cp (np, path)
 
+blockTag :: String
+blockTag = "/BLOCK/"
 
 validSE :: World -> Bool
 validSE = switchSE . worldOption
