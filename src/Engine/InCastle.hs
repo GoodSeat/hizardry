@@ -154,7 +154,7 @@ sleep id h g d birthday = GameAuto $ do
                                        ++ show (Character.gold c) ++ " G.P.\n\n"
                                        ++ "^W)ake up `[`E`S`C`]"
                                         ) Nothing)
-                      [(Key "w", events [Resume (changeFlashTime ("Happy Birthday, " ++ Character.name c ++ "!") (-1500)) | birthday]
+                      [(Key "w", events [Resume (changeFlash ("Happy Birthday, " ++ Character.name c ++ "!")) | birthday]
                                         (checkLvup id))
                       ,(Clock, next (Character.age c - if birthday then 1 else 0))]
   where
