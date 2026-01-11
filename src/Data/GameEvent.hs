@@ -6,6 +6,7 @@ import qualified Data.Map as Map
 import Data.Maze
 import Data.Primitive
 import Data.Formula
+import Data.PlayEvent (SEType, BGMType)
 import qualified Data.Spells as Spell
 import qualified Data.Characters as Character
 
@@ -27,6 +28,9 @@ data Define =
             | SelectT      Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
             | AskT         Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
+            | FlashMessage     String
+            | FlashMessageTime String Int
+
             -- happens
             | Switch [(Condition, Define)]
             | GetItem       TargetType Formula Bool [Define] -- item id, is wheter determined, if failed, go to second define.
@@ -39,6 +43,9 @@ data Define =
             | LearningSpell TargetType Formula
             | ChangeEventFlag Int Formula -- change index, post changed value
             | ChangeLeader  PartyPos -- temporary change leader in this event.
+
+            | PlaySoundEffect SEType
+            | PlayBGM         BGMType
 
             -- others
             | AsSpell SpellID

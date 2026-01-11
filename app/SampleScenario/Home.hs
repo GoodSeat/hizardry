@@ -238,16 +238,19 @@ seOf FightHitToP     = Just "res/hit1.mp3"
 seOf FightHitToE     = Just "res/hit2.mp3"
 seOf SpellHitToP     = Just "res/hit1.mp3"
 seOf SpellHitToE     = Just "res/hit2.mp3"
+seOf (EventSE s)     = Just ("res/" ++ s ++ ".mp3")
 seOf _               = Nothing
 
 bgmOf :: BGMTypeToFilePath
 bgmOf (op, otitle) np typeBGM = 
     case typeBGM of
-      TurnOff   -> Just $ Left ""
-      Encounter -> Just $ Left "res/encounter.mp3"
-      WinBattle -> Just $ Left "res/fanfare1.mp3"
-      LevelUp   -> Just $ Left "res/lvup.mp3"
-      AllDead   -> Just $ Right ""
+      TurnOff          -> Just $ Left ""
+      Encounter        -> Just $ Left "res/encounter.mp3"
+      WinBattle        -> Just $ Left "res/fanfare1.mp3"
+      LevelUp          -> Just $ Left "res/lvup.mp3"
+      AllDead          -> Just $ Right "res/annihilation.mp3"
+      (EventBGM s)     -> Just $ Right ("res/" ++ s ++ ".mp3")
+      (EventBGMOnce s) -> Just $ Left  ("res/" ++ s ++ ".mp3")
       _         -> case np of
           InCastle              -> Just $ Right "res/inCastle.mp3"
           Gilgamesh'sTavern     -> Just $ Right "res/inTavern.mp3"

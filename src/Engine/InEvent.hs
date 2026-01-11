@@ -79,6 +79,9 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     doEvent' (Ev.SelectT      dt msg picID ways) next = talkSelect msg dt picID (`select` candidates ways)
     doEvent' (Ev.AskT         dt msg picID ways) next = talkSelect msg dt picID $ const (select (ask msg picID) (candidates ways))
 
+    doEvent' (Ev.FlashMessage     msg)   next = events [flashMessageInf msg] (next False)
+    doEvent' (Ev.FlashMessageTime msg t) next = events [flashMessage (-1500) msg] (next False)
+
     -- happens
     doEvent' (Ev.Switch []) next = next isHidden
     doEvent' (Ev.Switch (c:cs)) next = GameAuto $ do
@@ -117,8 +120,10 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
         modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
         run $ next isHidden
 
-    doEvent' (Ev.ChangeLeader pos) next = next isHidden
+    doEvent' (Ev.ChangeLeader pos) next = next isHidden --MEMO:this event has no mean in this timing.
 
+    doEvent' (Ev.PlaySoundEffect s) next = addEff (withSE s) (next isHidden)
+    doEvent' (Ev.PlayBGM s) next         = addEff (withBGM s) (next isHidden)
 
     -- others
     doEvent' (Ev.AsSpell sid) next = GameAuto $ do
@@ -132,11 +137,14 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
                                     Just edef -> run $ doEvent' edef next
     doEvent' Ev.End    _ = whenEnd    isHidden
     doEvent' Ev.Escape _ = whenEscape isHidden
-    doEvent' (Ev.Events [])        next = next isHidden
+
+    doEvent' (Ev.Events [])         next = next isHidden
+    doEvent' (Ev.Events (Ev.End   :_)) _ = whenEnd    isHidden
+    doEvent' (Ev.Events (Ev.Escape:_)) _ = whenEscape isHidden
     doEvent' (Ev.Events (Ev.ChangeLeader pos:es)) next = GameAuto $ do
         cid <- characterIDInPartyAtS pos
-        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) whenEscape whenEnd spelling
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) whenEscape whenEnd spelling
+        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) next next spelling
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) next next spelling
 
     
     doEventToCharacter :: Ev.TargetType -> GameMachine -> (CharacterID -> GameState()) -> GameMachine

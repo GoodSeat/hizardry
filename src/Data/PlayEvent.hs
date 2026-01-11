@@ -49,6 +49,7 @@ data SEType = NoSE
             | FightHitToP
             | SpellHitToE
             | SpellHitToP
+            | EventSE String
   deriving (Show, Eq)
 
 data BGMType = Ambient
@@ -57,6 +58,8 @@ data BGMType = Ambient
              | WinBattle
              | AllDead
              | LevelUp
+             | EventBGM     String
+             | EventBGMOnce String
   deriving (Show, Eq)
 
 -- ==========================================================================
@@ -64,26 +67,36 @@ data BGMType = Ambient
 changeMessage :: String -> Event -> Event
 changeMessage m (General d) = General $ d { messageBox = Just m }
 changeMessage m (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { messageBox = Just m }
+changeMessage m None = message m
+changeMessage m (Resume c) = Resume (c . changeMessage m)
 changeMessage _ e = e
 
 changeFlash :: String -> Event -> Event
 changeFlash f (General d) = General $ d { flashBox = adjustText f }
 changeFlash f (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = adjustText f }
+changeFlash f None = flashMessageInf f
+changeFlash f (Resume c) = Resume (c . changeFlash f)
 changeFlash _ e = e
 
 changeFlashTime :: String -> Int -> Event -> Event
 changeFlashTime f t (General d) = General $ d { flashBox = adjustText f, waitTime = Just t }
 changeFlashTime f t (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { flashBox = adjustText f, waitTime = Just t }
+changeFlashTime f t None = flashMessage t f
+changeFlashTime f t (Resume c) = Resume (c . changeFlashTime f t)
 changeFlashTime _ _ e = e
 
 withSE :: SEType -> Event -> Event
 withSE se (General d) = General $ d { typeSE = se }
 withSE se (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { typeSE = se }
+withSE se None = onlySE se
+withSE se (Resume f) = Resume (f . withSE se)
 withSE _ e = e
 
 withBGM :: BGMType -> Event -> Event
 withBGM bgm (General d) = General $ d { typeBGM = bgm }
 withBGM bgm (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { typeBGM = bgm }
+withBGM bgm None = onlyBGM bgm
+withBGM bgm (Resume f) = Resume (f . withBGM bgm)
 withBGM _ e = e
 
 -- ==========================================================================
@@ -157,6 +170,16 @@ wait t p = General $ Display {
     , flashBox   = Nothing
     , waitTime   = Just t
     , picture    = p
+    , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = Ambient
+    }
+flashMessageInf s = General $ Display {
+      messageBox = Nothing
+    , commandBox = Nothing
+    , flashBox   = adjustText s
+    , waitTime   = Nothing
+    , picture    = Nothing
     , needPhrase = False
     , typeSE     = NoSE
     , typeBGM    = Ambient
@@ -263,3 +286,23 @@ showStatusEquip cid his msg = ShowStatus cid (Just his) $ Display {
     , typeBGM    = Ambient
 }
 
+onlySE se = General $ Display {
+      messageBox = Nothing
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+    , typeSE     = se
+    , typeBGM    = Ambient
+    }
+onlyBGM bgm = General $ Display {
+      messageBox = Nothing
+    , commandBox = Nothing
+    , flashBox   = Nothing
+    , waitTime   = Nothing
+    , picture    = Nothing
+    , needPhrase = False
+    , typeSE     = NoSE
+    , typeBGM    = bgm
+    }
