@@ -102,16 +102,12 @@ initAudio = do
 quitAudio :: IO ()
 quitAudio = do
     -- Stop BGM
-    mBgmHandle <- atomicModifyIORef' bgmHandle (\h -> (Nothing, h))
-    maybe (return ()) terminateProcess mBgmHandle
+    stopBGM
     -- Stop SE slave process
     mSeHandle <- atomicModifyIORef' soundEffectProcess (\h -> (Nothing, h))
     case mSeHandle of
         Just (ph, h) -> terminateProcess ph
         Nothing -> return ()
-        
-    writeIORef isLooping False
-    writeIORef reservation Nothing
 
 -- | Alias for quitAudio for semantic clarity.
 stopBGM :: IO ()
