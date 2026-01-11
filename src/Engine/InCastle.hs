@@ -129,19 +129,20 @@ selectStayPlan id = GameAuto $ do
                      ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inAdventure'sInn)
               ,(Key "p", with [poolGoldTo id] (selectStayPlan id))
-              ,(Key "a", sleep id  0   0 1)
-              ,(Key "b", sleep id  1  10 7)
-              ,(Key "c", sleep id  3  50 7)
-              ,(Key "d", sleep id  7 200 7)
-              ,(Key "e", sleep id 10 500 7)]
+              ,(Key "a", sleep id  0   0 1 False)
+              ,(Key "b", sleep id  1  10 7 False)
+              ,(Key "c", sleep id  3  50 7 False)
+              ,(Key "d", sleep id  7 200 7 False)
+              ,(Key "e", sleep id 10 500 7 False)]
     run $ selectEsc msg lst
 
 sleep :: CharacterID
       -> Int         -- ^ heal hp per week.
       -> Int         -- ^ charge per week.
       -> Int         -- ^ pass days per week.
+      -> Bool        -- ^ birthday?
       -> GameMachine
-sleep id h g d = GameAuto $ do
+sleep id h g d birthday = GameAuto $ do
     c <- characterByID id 
     if Character.gold c < g then
       run $ events [message "no more money."] $ selectStayPlan id
@@ -153,10 +154,14 @@ sleep id h g d = GameAuto $ do
                                        ++ show (Character.gold c) ++ " G.P.\n\n"
                                        ++ "^W)ake up `[`E`S`C`]"
                                         ) Nothing)
-                      [(Key "w", checkLvup id), (Clock, next)]
+                      [(Key "w", events [Resume (changeFlashTime ("Happy Birthday, " ++ Character.name c ++ "!") (-1500)) | birthday]
+                                        (checkLvup id))
+                      ,(Clock, next (Character.age c - if birthday then 1 else 0))]
   where
-    next = GameAuto $ updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
-                   >> run (sleep id h g $ if d == 1 then 0 else d)
+    next ageO = GameAuto $ do
+                   updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
+                   ageN <- Character.age <$> characterByID id
+                   run (sleep id h g (if d == 1 then 0 else d) (ageO /= ageN))
 
 checkLvup :: CharacterID -> GameMachine
 checkLvup id = GameAuto $ do
