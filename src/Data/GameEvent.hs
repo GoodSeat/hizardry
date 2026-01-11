@@ -29,10 +29,10 @@ data Define =
 
             -- happens
             | Switch [(Condition, Define)]
-            | GetItem       TargetType Formula Bool -- item id, is wheter determined.
-            | LostItem      TargetType Formula      -- item id.
+            | GetItem       TargetType Formula Bool [Define] -- item id, is wheter determined, if failed, go to second define.
+            | LostItem      TargetType Formula [Define]      -- item id, if failed, go to second define.
             | GetGold       TargetType Formula
-            | LostGold      TargetType Formula
+            | LostGold      TargetType Formula [Define]
             | ChangeHP      TargetType Formula
             | ChangeMP      TargetType Spell.Kind [Int] Formula -- target kind, Lv, heal point
             | ChangeJob     TargetType String -- job name.

@@ -86,10 +86,20 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
         run $ if match then doEvent' (snd c)        next
                        else doEvent' (Ev.Switch cs) next
 
-    doEvent' (Ev.GetItem targetType itemIdF isDetermined) next = undefined -- TODO
-    doEvent' (Ev.LostItem targetType itemIdF) next = undefined -- TODO
+    doEvent' (Ev.GetItem targetType itemIdF isDetermined ns) next = 
+        let next1 = if null ns then next isHidden else doEvent' (head ns) next
+            next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
+        in doEventToCharacterAny targetType next1 next2 $ \cid -> do
+            c   <- characterByID cid
+            map <- addEvFlagToFormulaMap =<< formulaMapC c
+            iid <- ItemID <$> evalWith map itemIdF
+            item <- itemByID iid
+            if Chara.hasMaxCountItem c then return False
+            else updateCharacterWith cid (\c -> c { Chara.items = Chara.items c ++ [ItemInf iid isDetermined] })
+                 >> return True
+    doEvent' (Ev.LostItem targetType itemIdF ns) next = undefined -- TODO
     doEvent' (Ev.GetGold targetType valF) next = undefined -- TODO
-    doEvent' (Ev.LostGold targetType valF) next = undefined -- TODO
+    doEvent' (Ev.LostGold targetType valF ns) next = undefined -- TODO
     doEvent' (Ev.ChangeHP targetType valF) next = undefined -- TODO
     doEvent' (Ev.ChangeMP targetType kind lvs valF) next = undefined -- TODO
     doEvent' (Ev.ChangeJob targetType jobName) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
@@ -134,6 +144,18 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     doEventToCharacter Ev.All    next' e = GameAuto $ do
         cids <- party <$> world
         run $ with (e <$> cids) next'
+
+    doEventToCharacterAny :: Ev.TargetType -> GameMachine -> GameMachine -> (CharacterID -> GameState Bool) -> GameMachine
+    doEventToCharacterAny Ev.Leader next1 next2 e = GameAuto $ do
+        suc <- e cidRep
+        run $ if suc then next1 else next2
+    doEventToCharacterAny Ev.All    next1 next2 e = GameAuto $ do
+        cids <- party <$> world
+        run $ doEventToCharacterAny' next1 next2 e cids
+    doEventToCharacterAny' next1 next2 e [] = next2
+    doEventToCharacterAny' next1 next2 e (cid:cids) = GameAuto $ do
+        suc <- e cidRep
+        run $ if suc then next1 else doEventToCharacterAny' next1 next2 e cids
 
 
 matchCondition :: Ev.Condition -> GameState Bool
