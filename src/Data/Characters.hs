@@ -206,7 +206,7 @@ addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age =
 
 
 canEquip :: Character -> Item.Define -> Bool
-canEquip c idef = case Item.enableToEquip idef of Item.All     -> True
+canEquip c idef = case Item.enableToEquip idef of Item.All     -> Item.itemType idef == Item.Equip
                                                   Item.Only js -> jobName (job c) `elem` js
 canUse :: Character -> Item.Define -> Bool
 canUse c idef = case Item.enableToUse idef of Item.All     -> True

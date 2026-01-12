@@ -400,4 +400,19 @@ items = Map.fromList [
         , Item.itemLv           = 3
         , Item.itemInformation  = "手先な器用な物にしか扱えない小型のブーメラン。威力は低い。"
     })
+    ,
+    (ItemID 107, Item.Define {
+          Item.name             = "コンパクト・ダイナマイト"
+        , Item.nameUndetermined = "?筒状のもの"
+        , Item.itemType         = Item.Misc
+        , Item.usingEffect      = Just (Item.EqSpell $ SpellID 11, (100, Item.Lost))
+        , Item.spEffect         = Nothing
+        , Item.attributes       = []
+        , Item.equipType        = Nothing
+        , Item.valueInShop      = 50
+        , Item.enableToEquip    = Item.All
+        , Item.enableToUse      = Item.Only ["Thief"]
+        , Item.itemLv           = 2
+        , Item.itemInformation  = "手先な器用な物にしか扱えない小型の爆弾。威力は低い。"
+    })
     ]

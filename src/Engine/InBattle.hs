@@ -167,6 +167,9 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
               . filter (if hasStatusError c Found  then (`notElem` [Chara.Hide, Chara.Ambush]) else const True)
               . filter (if surprise == Just PartySurprise then (/= Chara.Spell) else const True)
               $ cs
+          canHandle inf = do
+            def <- itemByID $ itemID inf
+            return $ Chara.canUse c def && identified inf
       let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
           cancel = selectBattleCommand i cmds con surprise
       if isCantFight c then
@@ -192,7 +195,7 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                    , inputSpell c spellCommand battleCommand (\s l -> next $ Spell s l) cancel
                    , Chara.Spell `elem` cs')
                   ,( Key "u"
-                   , selectItem battleCommand identified
+                   , selectItem battleCommand canHandle
                        (useItem battleCommand (\i l -> next $ UseItem i l)) c cancel
                    , Chara.UseItem `elem` cs')
                   ,( Key "r"

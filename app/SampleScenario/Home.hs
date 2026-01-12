@@ -51,7 +51,7 @@ initScenario = return (s, w)
               (ItemID 1, 10), (ItemID 2, 2), (ItemID 3, 2)
             , (ItemID 11, 3), (ItemID 12, 3), (ItemID 13, 3)
             , (ItemID 14, 3), (ItemID 15, 3), (ItemID 16, 3)
-            , (ItemID 17, 3), (ItemID 104,1), (ItemID 105,1), (ItemID 106,1)
+            , (ItemID 17, 3), (ItemID 104,1), (ItemID 105,1), (ItemID 106,1), (ItemID 107,100)
             ]
         , initAllCharacters   = Map.fromList [
               (CharacterID 1, testChara1)

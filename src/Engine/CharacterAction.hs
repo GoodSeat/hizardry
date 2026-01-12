@@ -3,7 +3,7 @@ module Engine.CharacterAction
 where
 
 import PreludeL hiding (lookup)
-import Control.Monad (when, join, forM, forM_)
+import Control.Monad (when, join, forM, forM_, filterM)
 import Control.Monad.Reader (asks)
 import Control.Monad.State (gets, modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
@@ -39,9 +39,17 @@ inspectCharacter h canSpell i = GameAuto $ do
         canIdentify = isJust (Chara.identifyItemChance (Chara.job c)) && not (c `hasStatusError` Fear 0) && hpOf c > 0
         canSpell' = canSpell && hpOf c > 0 && not (any (c `hasStatusError`) cantSpellStatus)
         cancel = inspectCharacter h canSpell i
-        iCast  = askInStatus cid
+        canUsePos pos = do
+            def <- itemByID $ Chara.itemAt c pos
+            return $ Chara.canUse c def
+        canHandle inf = do
+          def <- itemByID $ itemID inf
+          return $ Chara.canUse c def && identified inf
+    eips <- filterM canUsePos [(Chara.ItemA)..(toEnum $ length (Chara.items c) - 1)] 
+    let iCast  = askInStatus cid
         sCast  = showStatus cid
-        sItem  = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
+--      sItem  = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
+        sItem  = const (showStatusEquip cid eips $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
         dItem  = sCast
         eItem  = showStatusEquip cid
         msg   
@@ -63,7 +71,7 @@ inspectCharacter h canSpell i = GameAuto $ do
     run $ selectWhenEsc (showStatus cid msg)
                       $ (Key "l", h, True)
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell')
-                      : (Key "u", selectItem sItem identified (useItem sCast (useItemInCamp i cancel)) c cancel, True)
+                      : (Key "u", selectItem sItem canHandle (useItem sCast (useItemInCamp i cancel)) c cancel, True)
                       : (Key "d", selectDropItem dItem i c cancel, True)
                       : (Key "t", selectTradeItem eItem i cancel, True)
                       : (Key "e", equip           eItem i c cancel, True)
@@ -85,7 +93,7 @@ identifyItem msgForSelect src c cancel = GameAuto $ do
             events [msgForSelect "No unidentified items."] cancel
           else
             selectItem (const $ msgForSelect $ "Select target item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
-                       (not . identified) (doIdentifyItem cid cancel) c cancel
+                       (return . not . identified) (doIdentifyItem cid cancel) c cancel
 
 doIdentifyItem :: CharacterID
                -> GameMachine
@@ -235,11 +243,13 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
                                                                 spellInCampNoCost sdef src dst (with [breakItem bp cid i] n)
                                                               else
                                                                 events [showStatus cid "can't use it here."] n)
-useItemInCamp _ _ _ _ = error "invalid useItemInCamp"
+useItemInCamp src next _ _ = GameAuto $ do
+    cid <- characterIDInPartyAt src
+    run $ events [showStatus cid "can't use it here."] next
 
 
 selectItem :: (String -> Event)
-           -> (ItemInf -> Bool)
+           -> (ItemInf -> GameState Bool)
            -> (Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine)
            -> Chara.Character
            -> GameMachine
@@ -248,7 +258,7 @@ selectItem = selectItem' "l"
 
 selectItem' :: String
             -> (String -> Event)
-            -> (ItemInf -> Bool)
+            -> (ItemInf -> GameState Bool)
             -> (Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine)
             -> Chara.Character
             -> GameMachine
@@ -257,8 +267,8 @@ selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
     is <- asks items
     let nameOf id = Item.name (is ! id)
         its = Chara.items c
-        cs  = filter (isTarget . snd) (zip (toEnum <$> [0..]) its)
-        msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
+    cs  <- filterM (isTarget . snd) (zip (toEnum <$> [0..]) its)
+    let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
     return (msgForSelect $
               "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n"
               ++ unlines msg,
@@ -280,6 +290,7 @@ useItem msgForTargeting next c i cancel = GameAuto $ do
     def <- itemByID $ Chara.itemAt c i
     case Item.usingEffect def of
       Nothing                    -> run $ next i (Left F1) -- MEMO:target should be ignored...
+      Just (Item.Happens _, _)   -> run $ next i (Left F1) -- MEMO:target should be ignored...
       Just (Item.EqSpell ids, _) -> do
          sdef' <- spellByID ids
          case sdef' of
@@ -293,7 +304,7 @@ selectDropItem :: (String -> Event)
                -> GameMachine
                -> GameMachine
 selectDropItem msgForSelect src c =
-    selectItem (const $ msgForSelect $ "Select drop item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]") (const True) drop c
+    selectItem (const $ msgForSelect $ "Select drop item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]") (return . const True) drop c
   where
     drop :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     drop c i cancel = GameAuto $ do
@@ -329,7 +340,7 @@ selectTradeItem msgForSelect src cancel = GameAuto $ do
         let msg = const $ msgForSelect (canPoss c') $ "Select item to trade to " ++ Chara.name cdst ++ "(" ++ textItemCandidate c' ++ ").\n^L)eave `[`E`S`C`]"
         run $ if      null (Chara.items c')      then cancel
               else if Chara.hasMaxCountItem cdst then selectTradeItem msgForSelect src cancel
-                                                 else selectItem msg (const True) (trade dst) c' cancel
+                                                 else selectItem msg (return . const True) (trade dst) c' cancel
     trade :: CharacterID -> Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     trade dst c i cancel = GameAuto $ do
         let inf = Chara.itemInfAt c i
@@ -345,10 +356,16 @@ breakItem (prob, to) cid i = do
     when broken $ do
       p <- characterByID cid
       let is = Chara.items p
+          es = if i `elem` Chara.equipPoss p then delete1st (Chara.itemInfAt p i) (Chara.equips p)
+               else Chara.equips p
           ix = fromEnum i
           is' = case to of Item.Lost        -> take ix is ++ drop (ix + 1) is
                            Item.ChangeTo i' -> take ix is ++ [i'] ++ drop (ix + 1) is
-      updateCharacter cid (p { Chara.items = is' })
+      updateCharacter cid (p { Chara.items = is', Chara.equips = es })
+  where
+    delete1st :: Eq a => a -> [a] -> [a]
+    delete1st _ [] = []
+    delete1st a (b:bs) = if a == b then bs else b : delete1st a bs
 
 dropItem :: PartyPos -> Chara.ItemPos -> GameState ()
 dropItem src pos = do
@@ -396,7 +413,7 @@ releaseSP msgForSelect src c cancel = GameAuto $ do
             events [msgForSelect [] "No items to release special power."] cancel
           else
             selectItem (const $ msgForSelect (fst <$> releasable) $ "Select item to release SP(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
-                       (\inf -> itemID inf `elem` releasableIDs)
+                       (\inf -> return $ itemID inf `elem` releasableIDs)
                        (doReleaseSP cid cancel)
                        c
                        cancel
@@ -501,8 +518,8 @@ equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
         isCursed = any (\(p, _, def) -> p `elem` eps && Item.Cursed `elem` Item.attributes def) tgts
     run $ if null tgts then equip' msgForSelect src c rest next
           else if isCursed then events [msgForSelect [] ("* Your " ++ typeText ++ " is cursed and cannot be removed. *")] $ equip' msgForSelect src c rest next
-          else selectItem' "n" (const $ msgForSelect (fst3 <$> tgts) $ msgBase)
-                          ((`elem` (snd3 <$> tgts)) . itemID) selectEq c (eq Nothing)
+          else selectItem' "n" (const $ msgForSelect (fst3 <$> tgts) msgBase)
+                          (return . (`elem` (snd3 <$> tgts)) . itemID) selectEq c (eq Nothing)
   where
     msgBase = "Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip. `[`E`S`C`]"
     selectEq :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
@@ -630,6 +647,9 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.AddLight n s -> do
         efs <- castAddLight n s (Left c) (Left tgt)
         run $ with (fst4 <$> efs) (events [showStatus cid "done"] next)
+      Spell.AddStatusError effs -> do
+        efs <- castAddStatusErrorSpell effs (Left c) (Left tgt)
+        run $ with (fst4 <$> efs) (events [showStatus cid "done"] next)
       Spell.Event eid -> do
          edef' <- asks (lookup eid . mazeEvents)
          run $ case edef' of Nothing   -> next
@@ -722,10 +742,10 @@ castResurrectionSpell _ _ _ _ = undefined
 
 
 castAddStatusErrorSpell :: [(StatusError, Formula, String)] -> CastAction
-castAddStatusErrorSpell ses (Left src) (Right es) = concat <$> forM es (\e -> do
+castAddStatusErrorSpell ses src (Right es) = concat <$> forM es (\e -> do
     if Enemy.hp e <= 0 then return []
     else do
-        m <- formulaMapSO (Left src) (Right e)
+        m <- formulaMapSO src (Right e)
         results <- forM ses $ \(se, prob, msg) -> do
             p <- evalWith m prob
             resist <- resistStatusError m se (Enemy.resistError $ Enemy.define e)
@@ -740,12 +760,12 @@ castAddStatusErrorSpell ses (Left src) (Right es) = concat <$> forM es (\e -> do
                 return [(return (), nameOf e ++ " resisted.", False, False)]
         return $ concat results
     )
-castAddStatusErrorSpell ses (Right src) (Left cs) = concat <$> forM cs (\i -> do
+castAddStatusErrorSpell ses src (Left cs) = concat <$> forM cs (\i -> do
     c <- characterInPartyAt i
     if Chara.hp c <= 0 then return []
     else do
         cid <- characterIDInPartyAt i
-        m <- formulaMapSO (Right src) (Left c)
+        m <- formulaMapSO src (Left c)
         results <- forM ses $ \(se, prob, msg) -> do
             eats <- allValidEquipAttrs c
             p <- evalWith m prob
@@ -761,26 +781,25 @@ castAddStatusErrorSpell ses (Right src) (Left cs) = concat <$> forM cs (\i -> do
                 return [(return (), nameOf c ++ " resisted.", False, False)]
         return $ concat results
     )
-castAddStatusErrorSpell _ _ _ = undefined
 
 
 
 castParamChangeSpell :: AdParam -> Term -> String -> CastAction
-castParamChangeSpell ad term etxt (Left src) (Left is)
+castParamChangeSpell ad term etxt src (Left is)
     | null is = do
-          prmc <- toParamChange (Left src) (Left src) ad
+          prmc <- toParamChange src src ad
           return [(modify $ \w -> w { partyParamDelta = Spell.applyChangeParam term prmc (partyParamDelta w) }
                   , "party " ++ etxt ++ ".", False, False)]
     | otherwise = concat <$> forM is (\i -> do
           dst  <- characterIDInPartyAt i
           cdst <- characterInPartyAt i
-          prmc <- toParamChange (Left src) (Left cdst) ad
+          prmc <- toParamChange src (Left cdst) ad
           if hpOf cdst == 0 then return []
           else return [(updateCharacter dst $ cdst { Chara.paramDelta = Spell.applyChangeParam term prmc (Chara.paramDelta cdst) }
                       , nameOf cdst ++ " " ++ etxt ++ ".", False, False)]
           )
-castParamChangeSpell ad term etxt (Right src) (Right is) = concat <$> forM is (\dst -> do
-    prmc <- toParamChange (Right src) (Right dst) ad
+castParamChangeSpell ad term etxt src (Right is) = concat <$> forM is (\dst -> do
+    prmc <- toParamChange src (Right dst) ad
     if hpOf dst == 0 then return []
     else return [(updateEnemy dst $ const dst { Enemy.modParams = Spell.applyChangeParam term prmc (Enemy.modParams dst) }
                 , nameOf dst ++ " " ++ etxt ++ ".", False, False)]
