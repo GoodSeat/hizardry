@@ -101,7 +101,8 @@ mazeEvents = Map.fromList [
                          <> Ev.MessageTime        "\nちょっと待っとれ.."  (Just $ Single $ PictureID 1002) (500)
                          <> Ev.MessageTime        "\nちょっと待っとれ..." (Just $ Single $ PictureID 1002) (500)
                          <> Ev.MessageTimeT (-10) "\nMAPILO MAHAMA DILOMAT!!" (Just $ Single $ PictureID 1002) 750
-                         <> Ev.MessageTime        "\nMAPILO MAHAMA DILOMAT!! だったかな?" (Just $ Single $ PictureID 1002) 300 <> Ev.ReturnCastle)
+                         <> Ev.MessageTime        "\nMAPILO MAHAMA DILOMAT!! だったかな?" (Just $ Single $ PictureID 1002) 300
+                         <> Ev.PlayBGM Ambient <> Ev.ReturnCastle)
                        ,("n",
                            Ev.MessageT (-15) "そうなの?" (Just $ Single $ PictureID 1002) <> Ev.Reference (GameEventID 010103))
                        ])

@@ -85,7 +85,7 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     -- happens
     doEvent' (Ev.Switch []) next = next isHidden
     doEvent' (Ev.Switch (c:cs)) next = GameAuto $ do
-        match <- matchCondition (fst c)
+        match <- matchCondition cidRep (fst c)
         run $ if match then doEvent' (snd c)        next
                        else doEvent' (Ev.Switch cs) next
 
@@ -246,31 +246,46 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
         run $ if suc then next1 else doEventToCharacterAny' next1 next2 e cids
 
 
-matchCondition :: Ev.Condition -> GameState Bool
-matchCondition (Ev.PartyHasItem iid mustIdentified) = do
+matchCondition :: CharacterID -> Ev.Condition -> GameState Bool
+matchCondition _ (Ev.PartyHasItem iid mustIdentified) = do
     os  <- mapM characterByID . party =<< world
     let is = concatMap Chara.items os
     return $ any (\(ItemInf id identified) -> id == iid && (not mustIdentified || identified)) is
-matchCondition (Ev.PartyExistAlignment as) = do
+matchCondition _ (Ev.PartyExistAlignment as) = do
     os  <- mapM characterByID . party =<< world
     return $ any (`elem` as) (Chara.alignment <$> os)
-matchCondition (Ev.PartyNotExistAlignment as) = do
+matchCondition _ (Ev.PartyNotExistAlignment as) = do
     os  <- mapM characterByID . party =<< world
     return $ all (`notElem` as) (Chara.alignment <$> os)
-matchCondition (Ev.PartyPositionIs ps) = flip elem ps <$> currentPosition
-matchCondition (Ev.FormulaCheckParty f) = do
+matchCondition _ (Ev.PartyPositionIs ps) = flip elem ps <$> currentPosition
+matchCondition _ (Ev.FormulaCheckParty f) = do
     os  <- mapM characterByID . party =<< world
     map <- addEvFlagToFormulaMap Map.empty
     n   <- evalWith map f
     happens n
-matchCondition (Ev.FormulaCheckLeader f) = do
-    c   <- characterByID . head . party =<< world
+matchCondition cidRep (Ev.FormulaCheckLeader f) = do
+    c   <- characterByID cidRep
     map <- addEvFlagToFormulaMap =<< formulaMapS (Left c)
     n   <- evalWith map f
     happens n
-matchCondition (Ev.And cs) = and <$> mapM matchCondition cs
-matchCondition (Ev.Or  cs) = or  <$> mapM matchCondition cs
-matchCondition Ev.Otherwise = return True
+matchCondition cidRep (Ev.And cs) = and <$> mapM (matchCondition cidRep) cs
+matchCondition cidRep (Ev.Or  cs) = or  <$> mapM (matchCondition cidRep) cs
+matchCondition _ Ev.Otherwise = return True
+matchCondition cidRep (Ev.LeaderKnowSpell sid) = knowSpell cidRep sid
+matchCondition _ (Ev.AnyOneKnowSpell sid) = do
+    cids <- party <$> world
+    known <- filterM (`knowSpell` sid) cids
+    return $ not (null known)
+matchCondition cidRep (Ev.LeaderIsJobOf js) = do
+    c   <- characterByID cidRep
+    return $ Chara.jobName (Chara.job c) `elem` js
+matchCondition _ (Ev.AnyOneIsJobOf js) = do
+    cids <- party <$> world
+    matched <- filterM (\cid -> do
+        c <- characterByID cid
+        return $ Chara.jobName (Chara.job c) `elem` js
+        ) cids
+    return $ not (null matched)
 
 
 updownEffect :: Position -> Bool -> [(GameState (), Event)]
