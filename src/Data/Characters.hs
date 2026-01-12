@@ -3,6 +3,7 @@ where
 
 import PreludeL hiding (exp)
 import Data.List (nub)
+import Data.Maybe (isJust)
 import Data.Primitive
 import Data.Formula (Formula)
 import qualified Data.Map as Map
@@ -207,6 +208,12 @@ addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age =
 canEquip :: Character -> Item.Define -> Bool
 canEquip c idef = case Item.enableToEquip idef of Item.All     -> True
                                                   Item.Only js -> jobName (job c) `elem` js
+canUse :: Character -> Item.Define -> Bool
+canUse c idef = case Item.enableToUse idef of Item.All     -> True
+                                              Item.Only js -> jobName (job c) `elem` js
+canUse' :: Character -> Item.Define -> Bool
+canUse' c idef = case Item.enableToUse idef of Item.All     -> isJust $ Item.usingEffect idef
+                                               Item.Only js -> jobName (job c) `elem` js
 
 
 toText :: Int -> Character -> String
