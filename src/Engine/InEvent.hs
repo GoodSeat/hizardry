@@ -2,11 +2,11 @@ module Engine.InEvent
 where
 
 import PreludeL
-import Control.Monad (when, filterM)
+import Control.Monad (when, filterM, foldM_)
 import Control.Monad.State (modify, gets, forM_)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
-import Data.List (sort, find)
+import Data.List (sort, find, deleteBy)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
@@ -100,16 +100,95 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
             if Chara.hasMaxCountItem c then return False
             else updateCharacterWith cid (\c -> c { Chara.items = Chara.items c ++ [ItemInf iid isDetermined] })
                  >> return True
-    doEvent' (Ev.LostItem targetType itemIdF ns) next = undefined -- TODO
-    doEvent' (Ev.GetGold targetType valF) next = undefined -- TODO
-    doEvent' (Ev.LostGold targetType valF ns) next = undefined -- TODO
-    doEvent' (Ev.ChangeHP targetType valF) next = undefined -- TODO
-    doEvent' (Ev.ChangeMP targetType kind lvs valF) next = undefined -- TODO
+    doEvent' (Ev.LostItem targetType itemIdF ns) next =
+        let next1 = if null ns then next isHidden else doEvent' (head ns) next
+            next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
+        in doEventToCharacterAny targetType next1 next2 $ \cid -> do
+            c   <- characterByID cid
+            map <- addEvFlagToFormulaMap =<< formulaMapC c
+            iid <- ItemID <$> evalWith map itemIdF
+            let p (ItemInf iid' _) = iid' == iid
+            if not (any p (Chara.items c)) then return False
+            else do
+                updateCharacterWith cid (\c' -> c' {
+                    Chara.items = deleteBy (\(ItemInf iid1 _) (ItemInf iid2 _) -> iid1 == iid2) (ItemInf iid True) (Chara.items c')
+                })
+                return True
+    doEvent' (Ev.GetGold targetType valF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
+        c <- characterByID cid
+        n <- flip evalWith valF =<< addEvFlagToFormulaMap =<< formulaMapC c
+        updateCharacterWith cid (Chara.getGold n)
+    doEvent' (Ev.LostGold Ev.Leader valF ns) next =
+        let next1 = if null ns then next isHidden else doEvent' (head ns) next
+            next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
+        in doEventToCharacterAny Ev.Leader next1 next2 $ \cid -> do
+            c <- characterByID cid
+            n <- flip evalWith valF =<< addEvFlagToFormulaMap =<< formulaMapC c
+            let g = Chara.gold c
+            if g < n then return False
+            else updateCharacterWith cid (\c' -> c' { Chara.gold = g - n }) >> return True
+    doEvent' (Ev.LostGold Ev.All valF ns) next =
+        let next1 = if null ns then next isHidden else doEvent' (head ns) next
+            next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
+        in GameAuto $ do
+            c    <- characterByID cidRep
+            n    <- flip evalWith valF =<< addEvFlagToFormulaMap =<< formulaMapC c
+            cids <- party <$> world
+            gs   <- fmap Chara.gold <$> mapM characterByID cids
+            let g = sum gs
+            if g < n then run next2
+                     else foldM_ (\n' cid -> do
+                            gc <- Chara.gold <$> characterByID cid
+                            if gc >= n' then spentGold cid n' >> return 0
+                                        else spentGold cid gc >> return (n' - gc)
+                          ) g cids >> run next1
+    doEvent' (Ev.ChangeHP targetType valF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
+        c   <- characterByID cid
+        map <- addEvFlagToFormulaMap =<< formulaMapC c
+        n   <- evalWith map valF
+        updateCharacterWith cid (setHp (Chara.hp c + n))
+    doEvent' (Ev.ChangeMP targetType kind lvs valF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
+        c   <- characterByID cid
+        map <- addEvFlagToFormulaMap =<< formulaMapC c
+        n   <- evalWith map valF
+        updateCharacterWith cid (\c' ->
+            let (mageMps, priestMps) = Chara.mp c'
+                (maxMageMps, maxPriestMps) = Chara.maxmp c'
+
+                updateAt :: Int -> (a -> a) -> [a] -> [a]
+                updateAt idx f xs = take idx xs ++ [f (xs !! idx)] ++ drop (idx + 1) xs
+
+                updateLevels :: [Int] -> [Int] -> [Int] -> [Int]
+                updateLevels targetLvs currentLvMps maxLvMps = foldl (\mps lv ->
+                    let current = mps !! (lv - 1)
+                        maxi    = maxLvMps !! (lv - 1)
+                        new     = max 0 (min maxi (current + n))
+                    in updateAt (lv - 1) (const new) mps
+                    ) currentLvMps targetLvs
+
+                newMps = case kind of
+                    Spell.M -> (updateLevels lvs mageMps maxMageMps, priestMps)
+                    Spell.P -> (mageMps, updateLevels lvs priestMps maxPriestMps)
+            in c' { Chara.mp = newMps })
     doEvent' (Ev.ChangeJob targetType jobName) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
         j <- asks $ find ((== jobName) . Chara.jobName) . jobs
         case j of Just j' -> updateCharacterWith cid (\c -> c { Chara.equips = [], Chara.job = j' })
                   Nothing -> return ()
-    doEvent' (Ev.LearningSpell targetType spellIdF) next = undefined -- TODO
+    doEvent' (Ev.LearningSpell targetType spellIdF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
+        c   <- characterByID cid
+        map <- addEvFlagToFormulaMap =<< formulaMapC c
+        sid <- SpellID <$> evalWith map spellIdF
+        s   <- spellByID sid
+        case s of
+            Nothing -> return ()
+            Just spell -> do
+                let (mageMpFormula, priestMpFormula) = Chara.mpFormula (Chara.job c)
+                    canLearn = case Spell.kind spell of
+                        Spell.M -> not $ null mageMpFormula
+                        Spell.P -> not $ null priestMpFormula
+                    hasLearned = sid `elem` Chara.spells c
+                when (canLearn && not hasLearned) $ do
+                    updateCharacterWith cid (\c' -> c' { Chara.spells = sort (sid : Chara.spells c') })
 
     doEvent' (Ev.ChangeEventFlag idx f) next = GameAuto $ do
         efs <- eventFlags <$> world
@@ -195,7 +274,7 @@ matchCondition Ev.Otherwise = return True
 
 
 updownEffect :: Position -> Bool -> [(GameState (), Event)]
-updownEffect p toUp =[ (upStep 3, wait  75 Nothing)
+updownEffect p toUp =[(upStep 3, wait  75 Nothing)
                      , (upStep 2, wait  75 Nothing)
                      , (upStep 2, wait  50 Nothing)
                      , (upStep 1, wait  75 Nothing)
@@ -207,9 +286,10 @@ updownEffect p toUp =[ (upStep 3, wait  75 Nothing)
                      , (upStep 1, wait 150 Nothing)
                      , (upStep 1, wait  80 Nothing)
                      , (upStep 1, wait  80 Nothing)
-                     ] ++
-                     [(upRest >> movePlace (InMaze p), wait 150 Nothing)] ++
-                     [ (upStep 3, wait  50 Nothing)
+                     ] ++ 
+                     [(upRest >> movePlace (InMaze p), wait 150 Nothing)] ++ 
+                     [
+                       (upStep 3, wait  50 Nothing)
                      , (upStep 2, wait  75 Nothing)
                      , (upStep 2, wait  75 Nothing)
                      , (upStep 1, wait  75 Nothing)
@@ -227,4 +307,3 @@ updownEffect p toUp =[ (upStep 3, wait  75 Nothing)
     upStep :: Int -> GameState ()
     upStep n = modify (\w -> w { sceneTrans = sceneTrans w . translate (0, n * r) })
     upRest   = modify (\w -> w { sceneTrans = translate (0, -20 * r) })
-
