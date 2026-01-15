@@ -38,6 +38,7 @@ import qualified SampleScenario.Home as SampleScenario
 -- * other spells
 -- * other events
 -- * make backup data / load backup data
+-- * reset data(=delete auto save data, and reload).
 --
 -- * item encyclopedia
 -- * enemy encyclopedia

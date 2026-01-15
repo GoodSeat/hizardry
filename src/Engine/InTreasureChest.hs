@@ -137,14 +137,14 @@ effectTrap i Enemy.ExplodingBox = do
 effectTrap i Enemy.Stunner = do
     updateCharacterWith i (addStatusError Paralysis)
     return ("Ooops!! Stunner!!", Nothing, True)
-effectTrap i Enemy.Teleporter = do
+effectTrap _ Enemy.Teleporter = do
     p     <- currentPosition
     (w,h) <- mazeSizeAt $ Maze.z p
     x'    <- randomIn [1..w]
     y'    <- randomIn [1..h]
-    movePlace $ FindTreasureChest (p { Maze.x = x', Maze.y = y' }) False
+    movePlace $ FindTreasureChest (p { Maze.x = x' - 1, Maze.y = y' - 1 }) False
     return ("Ooops!! Teleporter!!", Nothing, False)
-effectTrap i Enemy.Alarm = do
+effectTrap _ Enemy.Alarm = do
     c    <- Maze.coordOf <$> currentPosition
     emap <- asks roomBattleMap
     case Map.lookup c emap of
