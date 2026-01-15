@@ -223,8 +223,8 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     doEvent' (Ev.Events (Ev.Escape:_)) _ = whenEscape isHidden
     doEvent' (Ev.Events (Ev.ChangeLeader pos:es)) next = GameAuto $ do
         cid <- characterIDInPartyAtS pos
-        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) next next spelling
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) next next spelling
+        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) whenEscape whenEnd spelling
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) whenEscape whenEnd spelling
 
     
     doEventToCharacter :: Ev.TargetType -> GameMachine -> (CharacterID -> GameState()) -> GameMachine
