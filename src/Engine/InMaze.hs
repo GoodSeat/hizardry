@@ -287,13 +287,17 @@ openCamp p = GameAuto $ do
     run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "r", reorderParty [] p, np > 1)
-          ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
-          ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
-          ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)
-          ,(Key "4", inspectCharacter (openCamp p) True B4, np >= 4)
-          ,(Key "5", inspectCharacter (openCamp p) True B5, np >= 5)
-          ,(Key "6", inspectCharacter (openCamp p) True B6, np >= 6)
+          ,(Key "1", inspectCharacter resumeCamp True F1, np >= 1)
+          ,(Key "2", inspectCharacter resumeCamp True F2, np >= 2)
+          ,(Key "3", inspectCharacter resumeCamp True F3, np >= 3)
+          ,(Key "4", inspectCharacter resumeCamp True B4, np >= 4)
+          ,(Key "5", inspectCharacter resumeCamp True B5, np >= 5)
+          ,(Key "6", inspectCharacter resumeCamp True B6, np >= 6)
           ]
+  where
+    resumeCamp = GameAuto $ do
+        p <- currentPosition
+        run $ openCamp p
 
 reorderParty :: [Int] -> Position -> GameMachine
 reorderParty ns p = GameAuto $ do

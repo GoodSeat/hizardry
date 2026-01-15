@@ -9,7 +9,7 @@ import Control.Monad.State (gets, modify)
 import Data.Map hiding (filter, null, foldl, take, drop)
 import Data.Function ((&), on)
 import Data.List (isInfixOf, unlines, sortBy, groupBy, intercalate, find, findIndex)
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (catMaybes, isJust, fromJust)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -665,16 +665,74 @@ spellInCampNoCost def src dst next = GameAuto $ do
         run $ case t of
           Spell.OnlyCoord -> events [ showStatus cid msg
                                     , showStatus cid "done"] next
-          Spell.ViewMap   -> showMap msg (0, 0) $ events [showStatus cid "done"] next
+          Spell.ViewMap   -> showMap msg (0, 0) (z p) $ events [showStatus cid "done"] next
+      Spell.MoveLocation t -> case t of
+          Spell.OnlyCoord -> run $ inputMove      (0, 0, 0) (moveTo cid next) $ events [showStatus cid "done"] next
+          Spell.ViewMap   -> run $ showMapForMove (0, 0, 0) (moveTo cid next) $ events [showStatus cid "done"] next
 
-showMap :: String -> (Int, Int) -> GameMachine -> GameMachine
-showMap msg (x,y) next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]") (x,y))
-                                   [(Key "l", next)
-                                   ,(Key "a", showMap msg (x+1,y) next)
-                                   ,(Key "s", showMap msg (x,y-1) next)
-                                   ,(Key "d", showMap msg (x-1,y) next)
-                                   ,(Key "w", showMap msg (x,y+1) next)
-                                   ]
+moveTo :: CharacterID -> GameMachine -> (Int, Int, Int) -> GameMachine
+moveTo cid next (x', y', z') = GameAuto $ do
+    p <- currentPosition
+    let p' = p { x = x', y = y', z = z' }
+    when (z' /= z p) resetRoomBattle
+    -- TODO:no exit maze at z', annihilation. if z' < 0, in air -> all dead, else in stone -> all lost.
+    movePlace (InMaze p')
+    run $ events [showStatus cid "done"] next
+
+showMap :: String -> (Int, Int) -> Int -> GameMachine -> GameMachine
+showMap msg (x,y) z next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]") (x,y) z False)
+                                     [(Key "l", next)
+                                     ,(Key "a", showMap msg (x-1,y) z next)
+                                     ,(Key "s", showMap msg (x,y-1) z next)
+                                     ,(Key "d", showMap msg (x+1,y) z next)
+                                     ,(Key "w", showMap msg (x,y+1) z next)
+                                     ]
+
+inputMove :: (Int, Int, Int) -> ((Int, Int, Int) -> GameMachine) -> GameMachine -> GameMachine
+inputMove (dx,dy,dz) next cancel = GameAuto $ do
+    p  <- currentPosition
+    let ew  = if dx >= 0 then "East" else "West"
+        ns  = if dy >= 0 then "North" else "South"
+        ud  = if dz >= 0 then "Below" else "Above"
+        msg = "^M)ove " ++ show (abs dx) ++ " " ++ ew ++ " and "
+                        ++ show (abs dy) ++ " " ++ ns ++ ", "
+                        ++ show (abs dz) ++ " " ++ ud ++ " floor \n" ++
+              " ^A-^W-^S-^D  ^N)ext Floor  ^P)revious Floor  ^L)eave `[`E`S`C`]"
+    run $ selectEsc (Resume (withNoPhrase . changeFlash msg))
+          [(Key "l", cancel)
+          ,(Key "a", inputMove (dx-1,dy,dz) next cancel)
+          ,(Key "s", inputMove (dx,dy-1,dz) next cancel)
+          ,(Key "d", inputMove (dx+1,dy,dz) next cancel)
+          ,(Key "w", inputMove (dx,dy+1,dz) next cancel)
+          ,(Key "n", inputMove (dx,dy,dz-1) next cancel)
+          ,(Key "p", inputMove (dx,dy,dz+1) next cancel)
+          ,(Key "m", next (x p + dx, y p + dy, z p + dz))
+          ]
+    
+
+showMapForMove :: (Int, Int, Int) -> ((Int, Int, Int) -> GameMachine) -> GameMachine -> GameMachine
+showMapForMove (dx,dy,dz) next cancel = GameAuto $ do
+    p  <- currentPosition
+    ms <- asks mazes
+    ds <- forM [0..1000] ms
+    let zc = z p
+        zt = zc + dz
+        ds'  = (\(z, d) -> (z, fromJust d)) <$> filter (isJust . snd) (zip [0..1000] ds)
+        tags = filter ((== zt) . fst) ds'
+        aboves = fst <$> filter ((< zt) . fst) ds'
+        belows = fst <$> (reverse . filter ((> zt) . fst)) ds'
+        nam  = fst3 . snd $ head tags
+    run $ selectWhenEsc (ShowMap ("^M)ove to [" ++ nam ++ "] (" ++ show (x p + dx) ++ ", " ++ show (y p + dy) ++ ")\n" ++
+                                  " ^A-^W-^S-^D  ^N)ext Floor  ^P)revious Floor  ^L)eave `[`E`S`C`]") (dx,dy) zt True)
+                        [(Key "l", cancel, True)
+                        ,(Key "a", showMapForMove (dx-1,dy,dz) next cancel, True)
+                        ,(Key "s", showMapForMove (dx,dy-1,dz) next cancel, True)
+                        ,(Key "d", showMapForMove (dx+1,dy,dz) next cancel, True)
+                        ,(Key "w", showMapForMove (dx,dy+1,dz) next cancel, True)
+                        ,(Key "n", showMapForMove (dx,dy,head belows - zc) next cancel, not (null belows))
+                        ,(Key "p", showMapForMove (dx,dy,head aboves - zc) next cancel, not (null aboves))
+                        ,(Key "m", next (x p + dx, y p + dy, z p + dz), True)
+                        ]
 
 -- --------------------------------------------------------------------------------
 

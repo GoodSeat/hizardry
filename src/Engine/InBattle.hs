@@ -374,22 +374,22 @@ startProgressBattle cmds con surprise = GameAuto $ run =<< nextProgressBattle <$
 nextProgressBattle :: [BattleAction]
                    -> Condition
                    -> GameMachine
-nextProgressBattle as con = foldr act (nextTurn con) as
+nextProgressBattle as con = foldr (act $ afterRun con) (nextTurn con) as
 
 
-act :: BattleAction -> GameMachine -> GameMachine
-act (ByParties id a) next = GameAuto $ do
+act :: GameMachine -> BattleAction -> GameMachine -> GameMachine
+act escape (ByParties id a) next = GameAuto $ do
     cantFight <- isCantFight <$> characterByID id
     run $ if cantFight then next else case a of
         Fight l     -> fightOfCharacter id l next
-        Spell s l   -> spell s (Left id) l next
+        Spell s l   -> spell escape s (Left id) l next
         Parry       -> with [updateCharacterWith id $ \c -> c { Chara.paramDelta = Spell.applyChangeParam (TillPastTime 1) parryParamChange (Chara.paramDelta c) }] next
         Run         -> next
         CantMove    -> next
-        UseItem i l -> useItemInBattle i (Left id) l next
+        UseItem i l -> useItemInBattle escape i (Left id) l next
         Hide        -> hideOfCharacter id next
         Ambush l    -> ambushOfCharacter id l next
-act (ByEnemies l e a) next = GameAuto $ do
+act escape (ByEnemies l e a) next = GameAuto $ do
     msgF <- messageF
     e_ <- currentEnemyByNo $ Enemy.noID e
     case e_ of
@@ -409,14 +409,14 @@ act (ByEnemies l e a) next = GameAuto $ do
                    if tt == Spell.OpponentSingle ||
                       tt == Spell.OpponentGroup  ||
                       tt == Spell.OpponentAll then
-                      run $ spell s (Right e') (Left cp) next
+                      run $ spell escape s (Right e') (Left cp) next
                    else if tt == Spell.AllySingle ||
                            tt == Spell.AllyGroup then do
                       ess <- lastEnemies
                       el  <- randomIn $ toEnemyLine <$> [1..length ess]
-                      run $ spell s (Right e') (Right el) next
+                      run $ spell escape s (Right e') (Right el) next
                    else
-                      run $ spell s (Right e') (Right L1) next
+                      run $ spell escape s (Right e') (Right L1) next
                 Nothing -> run $ asSpell castUnknown "?" (Right e') (Left cp) next
 
           Enemy.Breath f attrs   -> do

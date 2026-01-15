@@ -38,7 +38,7 @@ data Scenario = Scenario {
     , scenarioHome    :: !GameMachine
     , racies          :: ![Race]
     , jobs            :: ![Job]
-    , mazes           :: Int -> GameState (String, Size2D, Maze)
+    , mazes           :: Int -> GameState (Maybe (String, Size2D, Maze))
     , encountMap      :: !(Map.Map Coord (Int, [EnemyID]))
     , roomBattleMap   :: !(Map.Map Coord (Int, [EnemyID]))
     , roomDefine      :: ![[Coord]]
@@ -79,7 +79,7 @@ initScenario i home = Scenario {
     , scenarioHome              = home
     , racies                    = initRacies          i
     , jobs                      = initJobs            i
-    , mazes                     = \z -> pure $ initMazes i !! z 
+    , mazes                     = \z -> pure $ if z < length (initMazes i) then Just (initMazes i !! z) else Nothing
     , encountMap                = initEncountMap      i
     , roomBattleMap             = initRoomBattleMap   i
     , roomDefine                = initRoomDefine      i

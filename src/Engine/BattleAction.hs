@@ -32,6 +32,7 @@ import qualified Data.Enemies as Enemy
 import qualified Data.Characters as Chara
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
+import qualified Data.Maze as Maze
 
 import Control.CUI (translate)
 
@@ -273,8 +274,8 @@ fightMessageE e c (h, d, ses) = do
 
 verbForItem  = "uses"
 
-useItemInBattle :: Chara.ItemPos -> SpellEffect
-useItemInBattle i (Left cid) dst next = GameAuto $ do
+useItemInBattle :: GameMachine -> Chara.ItemPos -> SpellEffect
+useItemInBattle escape i (Left cid) dst next = GameAuto $ do
     c   <- characterByID cid
     def <- itemByID $ Chara.itemAt c i
     let n = Item.name def
@@ -283,19 +284,21 @@ useItemInBattle i (Left cid) dst next = GameAuto $ do
       Just (Item.EqSpell ids, bp) -> do
          sdef' <- spellByID ids
          case sdef' of
-           Just sdef -> run $ use n sdef (Left cid) dst (with [breakItem bp cid i] next)
+           Just sdef -> run $ use escape n sdef (Left cid) dst (with [breakItem bp cid i] next)
            Nothing   -> error "invalid spellId in useItemInBattle"
       Just (Item.Happens eid, bp) -> do
          let next' = with [breakItem bp cid i] next
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
-                       Just edef -> run $ doEvent (Just cid) edef (const next') (const next') (\sdef n -> spell' sdef (Left cid) dst n)
+                       Just edef -> run $ doEvent (Just cid) edef (const next') (const next')
+                                          (\sdef n -> spell' escape sdef (Left cid) dst n)
 
-useItemInBattle i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
+useItemInBattle escape i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
 
-use :: String -> Spell.Define -> SpellEffect
-use name def = if Spell.InBattle `elem` Spell.enableIn def then cast verbForItem name def 
-                                                           else asItem castUnknown name 
+use :: GameMachine -> String -> Spell.Define -> SpellEffect
+use escape name def = if Spell.InBattle `elem` Spell.enableIn def
+                      then cast escape verbForItem name def 
+                      else asItem castUnknown name 
 
 -- ================================================================================
 
@@ -307,8 +310,8 @@ type SpellEffect  = Either CharacterID Enemy.Instance
                  -> GameMachine
                  -> GameMachine
 
-spell :: Spell.Name -> SpellEffect
-spell s src dst next = GameAuto $ do
+spell :: GameMachine -> Spell.Name -> SpellEffect
+spell escape s src dst next = GameAuto $ do
     spellDef <- spellByName s
     case spellDef of
       Nothing  -> run $ asSpell castUnknown s src dst next
@@ -324,21 +327,21 @@ spell s src dst next = GameAuto $ do
                   else if not can   then asSpell castNoMP    s src dst next
                   else if isSilence then asSpell castButSilent s src dst next
                   else if isFear    then asSpell castButFear   s src dst next
-                  else                   with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
+                  else                   with [updateCharacter idc =<< costSpell' c def] (spell' escape def src dst next)
           Right e -> do
             let isSilence = e `hasStatusError` Silence
                 isFear    = e `hasStatusError` Fear 0
             run $ if      isSilence then asSpell castButSilent s src dst next
                   else if isFear    then asSpell castButFear   s src dst next
-                  else                   spell' def src dst next
+                  else                   spell' escape def src dst next
         else
           run $ asSpell castUnknown s src dst next
 
-spell' :: Spell.Define -> SpellEffect
-spell' def = cast verbForSpell (Spell.name def) def
+spell' :: GameMachine -> Spell.Define -> SpellEffect
+spell' escape def = cast escape verbForSpell (Spell.name def) def
 
-cast :: Verb -> String -> Spell.Define -> SpellEffect
-cast v name def = let as cast = cast v in case Spell.effect def of
+cast :: GameMachine -> Verb -> String -> Spell.Define -> SpellEffect
+cast escape v name def = let as cast = cast v in case Spell.effect def of
     Spell.Damage f  -> case Spell.target def of
       Spell.OpponentSingle -> castToSingle as name (castDamageSpell f $ Spell.attrLabels def)
       Spell.OpponentGroup  -> castToGroup  as name (castDamageSpell f $ Spell.attrLabels def)
@@ -366,16 +369,17 @@ cast v name def = let as cast = cast v in case Spell.effect def of
       _                    -> undefined
     Spell.AddLight n s     -> castToNull as name (castAddLight n s)
     Spell.CheckLocation _  -> as castUnknown name
-    Spell.Event eid        -> eventSpell eid
+    Spell.MoveLocation  _  -> as (castMalor escape) name
+    Spell.Event eid        -> eventSpell escape eid
 
-eventSpell :: GameEventID -> SpellEffect
-eventSpell eid s o next = addEff (withSE Spelled) $ GameAuto $ do
+eventSpell :: GameMachine -> GameEventID -> SpellEffect
+eventSpell escape eid s o next = addEff (withSE Spelled) $ GameAuto $ do
     evDB  <- asks mazeEvents
     let e = Map.lookup eid evDB
         cid = case s of Left cid' -> Just cid'
                         Right _   -> Nothing
     run $ case e of Nothing   -> next
-                    Just edef -> doEvent cid edef (const next) (const next) (\sdef n -> spell' sdef s o n)
+                    Just edef -> doEvent cid edef (const next) (const next) (\sdef n -> spell' escape sdef s o n)
 
 -- --------------------------------------------------------------------------------
 
@@ -466,6 +470,24 @@ castNoEffect v msg n src _ next = GameAuto $ do
         toMsg t = msgF $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
 
+castMalor :: GameMachine -> Verb -> String -> SpellEffect
+castMalor escape v n src _ next = GameAuto $ do
+    msgF <- messageF
+    case src of
+        Right e -> do
+            name <- Enemy.name <$> enemyDefineByID (Enemy.id e)
+            let ts      = ["", name ++ " has disappeared."]
+                toMsg t = msgF $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+            updateEnemy e $ const e { Enemy.hp = 0 }
+            run $ events (toMsg <$> ts) next
+        Left id -> do
+            name  <- Chara.name <$> characterByID id
+            p     <- currentPosition
+            (w,h) <- mazeSizeAt $ Maze.z p
+            x'    <- randomIn [1..w]
+            y'    <- randomIn [1..h]
+            run $ events [msgF $ name ++ " " ++ v ++ " " ++ n ++ ".\n"]
+                $ with [movePlace $ InBattle (p { Maze.x = x' - 1, Maze.y = y' - 1 }) []] escape
 
 -- ==========================================================================
 aliveEnemiesLine :: EnemyLine -> GameState [Enemy.Instance]

@@ -227,7 +227,7 @@ spells = Map.fromList [
         , Spell.lv          = 6
         , Spell.attrLabels  = [EffectLabel "mage"]
         , Spell.target      = Spell.AllyAll
-        , Spell.effect      = Spell.Event (GameEventID 10064)
+        , Spell.effect      = Spell.Event (GameEventID 10064) -- TODO:not imeplement haman.
         , Spell.enableIn    = [Spell.InBattle]
         , Spell.information = "何かが起こる"
     })
@@ -238,7 +238,8 @@ spells = Map.fromList [
         , Spell.lv          = 7
         , Spell.attrLabels  = [EffectLabel "mage"]
         , Spell.target      = Spell.AllyAll
-        , Spell.effect      = Spell.Event (GameEventID 10071)
+--      , Spell.effect      = Spell.MoveLocation Spell.OnlyCoord
+        , Spell.effect      = Spell.MoveLocation Spell.ViewMap
         , Spell.enableIn    = [Spell.InBattle, Spell.InCamp]
         , Spell.information = "座標指定テレポート。戦闘時はランダムテレポート"
     })
@@ -249,7 +250,7 @@ spells = Map.fromList [
         , Spell.lv          = 7
         , Spell.attrLabels  = [EffectLabel "mage"]
         , Spell.target      = Spell.AllyAll
-        , Spell.effect      = Spell.Event (GameEventID 10072)
+        , Spell.effect      = Spell.Event (GameEventID 10072) -- TODO:not imeplement mahaman.
         , Spell.enableIn    = [Spell.InBattle]
         , Spell.information = "何かが起こる"
     })
@@ -338,7 +339,7 @@ spells = Map.fromList [
         , Spell.lv          = 2
         , Spell.attrLabels  = [EffectLabel "priest"]
         , Spell.target      = Spell.AllyAll
-        , Spell.effect      = Spell.Event (GameEventID 0) -- TODO:not implmented.
+        , Spell.effect      = Spell.Event (GameEventID 0) -- TODO:not implmented calfo.
         , Spell.enableIn    = []
         , Spell.information = "宝箱に仕掛けられた罠の種類を95%で見抜く"
     })
@@ -494,7 +495,7 @@ spells = Map.fromList [
         , Spell.lv          = 5
         , Spell.attrLabels  = [EffectLabel "priest"]
         , Spell.target      = Spell.Party
-        , Spell.effect      = Spell.Event (GameEventID 0) -- TODO:not implmented.
+        , Spell.effect      = Spell.Event (GameEventID 0) -- TODO:not implmented kandi.
         , Spell.enableIn    = [Spell.InBattle]
         , Spell.information = "行方不明者の迷宮内の位置を大雑把に示す"
     })
@@ -560,7 +561,7 @@ spells = Map.fromList [
         , Spell.lv          = 6
         , Spell.attrLabels  = [EffectLabel "priest"]
         , Spell.target      = Spell.Party
-        , Spell.effect      = Spell.Event (GameEventID 100164) -- TODO:not implmented.
+        , Spell.effect      = Spell.Event (GameEventID 100164) -- TODO:not implmented loctofeit.
         , Spell.enableIn    = [Spell.InBattle]
         , Spell.information = "全ての装備とほとんどの金を失って城に戻る"
     })

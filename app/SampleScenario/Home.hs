@@ -73,7 +73,8 @@ initScenario = return (s, w)
         , initJobs            = SampleJobs.jobs
         , initMazes           = [
               ("B1F", ( 4,  5), SampleMaze.maze1F)
-            , ("B2F", (26, 25), SampleMaze.maze2F)
+--          , ("B2F", (26, 25), SampleMaze.maze2F)
+            , ("B2F", (6, 5), SampleMaze.maze2F)
             ]
         , initEncountMap      = Map.fromList [
               ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
@@ -160,6 +161,7 @@ initScenario = return (s, w)
         , Character.job      = SampleJobs.priest
         , Character.alignment= Character.N
         , Character.spells   = [SpellID 11, SpellID 13, SpellID 14, SpellID 15, SpellID 16, 
+                                SpellID 71,
                                 SpellID 112, SpellID 114 
                                ]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
@@ -206,7 +208,7 @@ modScenario s = let org = mazes s in s {
     mazes = \z -> do
         flg2 <- evFlag 2
         if z == 0 && flg2 == 1
-          then return ("B1F", ( 4,  5), SampleMaze.maze1F')
+          then return $ Just ("B1F", ( 4,  5), SampleMaze.maze1F')
           else org z
     }
 

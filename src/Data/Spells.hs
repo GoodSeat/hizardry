@@ -37,6 +37,7 @@ data Effect = Damage         Formula                          -- ^ damage hp.
             | AddStatusError [(StatusError, Formula, String)] -- ^ (status error, probability, message when kill exp:"is dead").
             | AddLight       Int Bool                         -- ^ time, super light or not.
             | CheckLocation  CheckLocationType
+            | MoveLocation   CheckLocationType
             | Event          GameEventID
     deriving (Show, Eq, Read)
 
