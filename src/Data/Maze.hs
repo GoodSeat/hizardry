@@ -147,7 +147,8 @@ fromText ls (w, h) (x, y) = Grid (fn, fe, fs, fw) ntc
     fe = sideWallFromText E (ts !! 5)
     fs = topWallFromText  S (ts !! 0, ts !! 1)
     fw = sideWallFromText W (ts !! 2)
-    ntc = noticeFromText [ts !! 3, ts !! 4]
+    ntc = if x < 0 || x >= w || y < 0 || y >= h then [Stone]
+          else noticeFromText [ts !! 3, ts !! 4]
 
 topWallFromText :: Direction -> (Char, Char) -> Face
 topWallFromText N (c1, c2) 

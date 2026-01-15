@@ -145,10 +145,18 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
     goStraight p f = GameAuto $ do
         w <- world
         modify $ \w -> w { globalTime = globalTime w + 1 }
-        lab <- mazeAt $ z p
+        (_, (sw, sh), lab) <- mazeInfAt $ z p
         case f lab p of
           Nothing -> run $ ouch p
           Just p' -> do 
+            let x' | x p' <   0 = sw - 1
+                   | x p' >= sw = 0
+                   | otherwise  = x p'
+            let y' | y p' <   0 = sh - 1
+                   | y p' >= sh = 0
+                   | otherwise  = y p'
+            let p'' = p' { x = x', y = y' }
+
             -- update milwa effect.
             setLightValueWith True  (\n -> n - 1)
             setLightValueWith False (\n -> n - 1)
@@ -161,7 +169,7 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
 
             allDead <- isTotalAnnihilation
             run $ if allDead then totalAnnihilation
-                  else enterMaybeEncount (withSE se $ flashMoveView " 1  ") p'
+                  else enterMaybeEncount (withSE se $ flashMoveView " 1  ") p''
 
 
 nextMiniMap :: GameState ()
