@@ -94,7 +94,7 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
             next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
         in doEventToCharacterAny targetType next1 next2 $ \cid -> do
             c   <- characterByID cid
-            map <- addEvFlagToFormulaMap =<< formulaMapC c
+            map <- formulaMapC c
             iid <- ItemID <$> evalWith map itemIdF
             item <- itemByID iid
             if Chara.hasMaxCountItem c then return False
@@ -105,7 +105,7 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
             next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
         in doEventToCharacterAny targetType next1 next2 $ \cid -> do
             c   <- characterByID cid
-            map <- addEvFlagToFormulaMap =<< formulaMapC c
+            map <- formulaMapC c
             iid <- ItemID <$> evalWith map itemIdF
             let p (ItemInf iid' _) = iid' == iid
             if not (any p (Chara.items c)) then return False
@@ -116,14 +116,14 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
                 return True
     doEvent' (Ev.GetGold targetType valF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
         c <- characterByID cid
-        n <- flip evalWith valF =<< addEvFlagToFormulaMap =<< formulaMapC c
+        n <- flip evalWith valF =<< formulaMapC c
         updateCharacterWith cid (Chara.getGold n)
     doEvent' (Ev.LostGold Ev.Leader valF ns) next =
         let next1 = if null ns then next isHidden else doEvent' (head ns) next
             next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
         in doEventToCharacterAny Ev.Leader next1 next2 $ \cid -> do
             c <- characterByID cid
-            n <- flip evalWith valF =<< addEvFlagToFormulaMap =<< formulaMapC c
+            n <- flip evalWith valF =<< formulaMapC c
             let g = Chara.gold c
             if g < n then return False
             else updateCharacterWith cid (\c' -> c' { Chara.gold = g - n }) >> return True
@@ -132,7 +132,7 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
             next2 = if length ns <= 1 then next1 else doEvent' (ns !! 1) next
         in GameAuto $ do
             c    <- characterByID cidRep
-            n    <- flip evalWith valF =<< addEvFlagToFormulaMap =<< formulaMapC c
+            n    <- flip evalWith valF =<< formulaMapC c
             cids <- party <$> world
             gs   <- fmap Chara.gold <$> mapM characterByID cids
             let g = sum gs
@@ -144,12 +144,12 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
                           ) g cids >> run next1
     doEvent' (Ev.ChangeHP targetType valF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
         c   <- characterByID cid
-        map <- addEvFlagToFormulaMap =<< formulaMapC c
+        map <- formulaMapC c
         n   <- evalWith map valF
         updateCharacterWith cid (setHp (Chara.hp c + n))
     doEvent' (Ev.ChangeMP targetType kind lvs valF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
         c   <- characterByID cid
-        map <- addEvFlagToFormulaMap =<< formulaMapC c
+        map <- formulaMapC c
         n   <- evalWith map valF
         updateCharacterWith cid (\c' ->
             let (mageMps, priestMps) = Chara.mp c'
@@ -176,7 +176,7 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
                   Nothing -> return ()
     doEvent' (Ev.LearningSpell targetType spellIdF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
         c   <- characterByID cid
-        map <- addEvFlagToFormulaMap =<< formulaMapC c
+        map <- formulaMapC c
         sid <- SpellID <$> evalWith map spellIdF
         s   <- spellByID sid
         case s of
@@ -194,7 +194,7 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
         efs <- eventFlags <$> world
         ps  <- party <$> world
         os  <- mapM characterByID ps
-        map <- addEvFlagToFormulaMap Map.empty
+        map <- formulaMapP
         n   <- evalWith map f
         modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
         run $ next isHidden
@@ -260,12 +260,12 @@ matchCondition _ (Ev.PartyNotExistAlignment as) = do
 matchCondition _ (Ev.PartyPositionIs ps) = flip elem ps <$> currentPosition
 matchCondition _ (Ev.FormulaCheckParty f) = do
     os  <- mapM characterByID . party =<< world
-    map <- addEvFlagToFormulaMap Map.empty
+    map <- formulaMapP
     n   <- evalWith map f
     happens n
 matchCondition cidRep (Ev.FormulaCheckLeader f) = do
     c   <- characterByID cidRep
-    map <- addEvFlagToFormulaMap =<< formulaMapS (Left c)
+    map <- formulaMapC c
     n   <- evalWith map f
     happens n
 matchCondition cidRep (Ev.And cs) = and <$> mapM (matchCondition cidRep) cs
