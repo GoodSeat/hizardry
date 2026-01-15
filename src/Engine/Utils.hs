@@ -469,7 +469,7 @@ acOf :: TargetSO -> GameState Int
 acOf (Right e) = return $ Enemy.ac (Enemy.define e) + deltaAC (Enemy.modParam e)
 acOf s@(Left c) = do
     eats <- allValidEquipAttrs c
-    let m = formulaMapSBase s
+    m    <- formulaMapSBase s
     acEq <- sum <$> mapM (evalWith m . Item.ac) eats
 
     acBase <- evalWith m (Chara.baseAC (Chara.job c))
@@ -556,50 +556,53 @@ addParamToMap prefix s m = do
            . insert (prefix ++ "luc") luc
            $ m
 
-addParamBase :: String -> TargetSO -> Map String Int -> Map String Int
-addParamBase prefix (Left  s) = addParamBase' prefix s
-addParamBase prefix (Right s) = addParamBase' prefix s
+addParamToMapBase :: String -> TargetSO -> Map String Int -> GameState (Map String Int)
+addParamToMapBase prefix so m = case so of
+    Left  s -> do 
+        cids <- party <$> world
+        ps   <- mapM characterByID cids
+        let idx = elemIndex s ps 
+        return $ addParamBase' prefix s . addParamBaseC prefix s . insert (prefix ++ "pos") idx $ m
+    Right s -> return $ addParamBase' prefix s m
+  where
+    addParamBase' :: Object o => String -> o -> Map String Int -> Map String Int
+    addParamBase' prefix o = insert (prefix ++ "lv"   ) (lvOf    o)
+                           . insert (prefix ++ "hp"   ) (hpOf    o)
+                           . insert (prefix ++ "maxhp") (maxhpOf o)
+    addParamBaseC :: String -> Chara.Character -> Map String Int -> Map String Int
+    addParamBaseC prefix o = insert (prefix ++ "age"  ) (Chara.age   o)
+                           . insert (prefix ++ "exp"  ) (Chara.exp   o)
+                           . insert (prefix ++ "gold" ) (Chara.gold  o)
+                           . insert (prefix ++ "marks") (Chara.marks o)
+                           . insert (prefix ++ "rips" ) (Chara.rips  o)
+    elemIndex :: Eq a => a -> [a] -> Int
+    elemIndex = elemIndex' 0
+    elemIndex' _ _ []     = -1
+    elemIndex' i a (b:bs) = if a == b then i else elemIndex' (i + 1) a bs
 
-addParamBase' :: Object o => String -> o -> Map String Int -> Map String Int
-addParamBase' prefix o = insert (prefix ++ "lv") (lvOf o)
-                       . insert (prefix ++ "hp") (hpOf o)
-                       . insert (prefix ++ "maxhp") (maxhpOf o)
+addBaseToMap :: Map String Int -> GameState (Map String Int)
+addBaseToMap m = do
+  n   <- length . party <$> world
+  efs <- eventFlags <$> world
+  ess <- concat <$> lastEnemies
+  return $ foldl (\acc i -> Data.Map.insert ("evf." ++ show i) (efs !! i) acc)
+           (insert "partySize" n . insert "enemyCount" (length ess) $ m) [0..99]
 
-
-formulaMapS :: TargetSO -> GameState (Map String Int)
-formulaMapS s = addParamToMap "" s (formulaMapSBase s)
-
+formulaMapS  :: TargetSO -> GameState (Map String Int)
+formulaMapS s    = formulaMapSBase s >>= addParamToMap "" s
 formulaMapSO :: TargetSO -> TargetSO -> GameState (Map String Int)
-formulaMapSO s o = addParamToMap "" s (formulaMapSOBase s o) >>= addParamToMap "o." o
+formulaMapSO s o = formulaMapSOBase s o >>= addParamToMap "" s >>= addParamToMap "o." o
 
-formulaMapSBase :: TargetSO -> Map String Int
-formulaMapSBase s = addParamBase "" s empty
-
-formulaMapSOBase :: TargetSO -> TargetSO -> Map String Int
-formulaMapSOBase s o = addParamBase "o." o . addParamBase "" s $ empty
+formulaMapSBase  :: TargetSO -> GameState (Map String Int)
+formulaMapSBase s    = addParamToMapBase "" s empty
+formulaMapSOBase :: TargetSO -> TargetSO -> GameState (Map String Int)
+formulaMapSOBase s o = addParamToMapBase "o." o =<< addParamToMapBase "" s empty
 
 formulaMapC :: Chara.Character -> GameState (Map String Int)
-formulaMapC o = do
-     m <- formulaMapS (Left o)
-     return $ insert "age"     (Chara.age  o)
-            . insert "exp"     (Chara.exp  o)
-            . insert "gold"    (Chara.gold o)
-            . insert "marks"   (Chara.marks o)
-            . insert "rips"    (Chara.rips o)
-            $ m
+formulaMapC o = formulaMapS (Left o)
 
-formulaMapCP :: Int -> Int -> Chara.Character -> GameState (Map String Int)
-formulaMapCP i n o = do
-     m <- formulaMapC o
-     return $ insert "order" i
-            . insert "partynum" n
-            . insert "partynum" n
-            $ m
-
-addEvFlagToFormulaMap :: Map String Int -> GameState (Map String Int)
-addEvFlagToFormulaMap m = do
-  efs <- eventFlags <$> world
-  return $ foldl (\acc i -> Data.Map.insert ("evf." ++ show i) (efs !! i) acc) m [0..99]
+formulaMapP :: GameState (Map String Int)
+formulaMapP = addBaseToMap empty
 
 
 -- =================================================================================

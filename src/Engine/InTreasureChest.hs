@@ -51,9 +51,9 @@ inspectTreasureChest ps con = GameAuto $ do
 inspectTreasureChestBy :: PartyPos -> [PartyPos] -> TreasureCondition -> GameMachine
 inspectTreasureChestBy i ps con = GameAuto $ do
     c <- characterInPartyAt i
-    m <- formulaMapS (Left c)
+    m <- formulaMapC c
     successed  <- happens =<< evalWith m (Chara.inspectTrapAbility $ Chara.job c)
-    invokeTrap <- happens =<< evalWith m (parse' "100*(19-agi)/20")
+    invokeTrap <- happens =<< evalWith m . parse' =<< asks (invokeTrapInspectProb . scenarioFormulas)
     trap'      <- randomIn [Enemy.NoTrap .. Enemy.Alarm]
     let afterInspect = actionForTreasureChest con $ i:ps
     run $ if      successed  then events [message $ inspectMessage (trap con)] afterInspect
@@ -77,10 +77,10 @@ disarmTrap con afterNotDisarm = GameAuto $ do
 tryDisarm :: TreasureCondition -> String -> PartyPos -> GameMachine -> GameMachine
 tryDisarm con t i afterNotDisarm = GameAuto $ do
     c <- characterInPartyAt i
-    m <- formulaMapS (Left c)
+    m <- formulaMapC c
     let matchTrap = (toLower <$> show (trap con)) == (toLower <$> t)
     sucessDisarming <- happens =<< evalWith m (Chara.disarmTrapAbility $ Chara.job c)
-    invokeTrap      <- happens =<< evalWith m (parse' "100*(20-agi)/20")
+    invokeTrap      <- happens =<< evalWith m . parse' =<< asks (invokeTrapDisarmProb . scenarioFormulas)
     run $ if      not matchTrap   then invokingTrap con i
           else if sucessDisarming then events [message "Trap successfully disarmed!"] (getTreasures con)
           else if invokeTrap      then invokingTrap con i
@@ -115,7 +115,7 @@ effectTrap i Enemy.GasBomb = do
     ps <- party <$> world
     forM_ ps $ \i -> do
       c   <- characterByID i
-      m   <- formulaMapS (Left c)
+      m   <- formulaMapC c
       hit <- happens =<< evalWith m (parse' "100*(20-luc)/20")
       when hit $ updateCharacterWith i (addPoison 1)
     return ("Ooops!! Gas Bomb!!", Nothing, True)

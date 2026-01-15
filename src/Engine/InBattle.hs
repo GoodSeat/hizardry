@@ -7,6 +7,7 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader (asks)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -236,7 +237,9 @@ tryRun c con surprised = GameAuto $ do
     msgF <- messageF
     np  <- length . party <$> world
     es  <- lastEnemies
-    suc <- if isJust surprised then return True else happens $ 100 - length es * 3 - (np - 1) * 4
+    m   <- formulaMapP
+    suc <- if isJust surprised then return True
+           else happens =<< evalWith m . parse' =<< asks (fleeSucceedProb . scenarioFormulas)
     let bm = Chara.name c ++ " flees."
     if suc then run $ events [msgF bm] (afterRun con)
            else run $ events [msgF bm, msgF $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
