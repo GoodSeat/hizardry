@@ -31,6 +31,8 @@ data Define =
             | FlashMessage     String
             | FlashMessageTime String Int
 
+--          | SelectItem [(Maybe Formula, Define)] -- item id (Nothing mean cancel) TODO
+
             -- happens
             | Switch [(Condition, Define)]
             | GetItem       TargetType Formula Bool [Define] -- item id, is wheter determined, if failed, go to second define.

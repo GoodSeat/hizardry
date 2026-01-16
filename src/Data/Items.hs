@@ -22,7 +22,7 @@ data Define = Define {
     , enableToEquip    :: UserType
     , enableToUse      :: UserType
     , itemLv           :: Int
-    , itemInformation  :: String
+    , itemInformation  :: (String, PictureInf)
 } deriving (Show, Eq, Read)
 
 

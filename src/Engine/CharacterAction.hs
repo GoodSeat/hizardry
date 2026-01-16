@@ -675,7 +675,7 @@ moveTo cid next (x', y', z') = GameAuto $ do
     p <- currentPosition
     let p' = p { x = x', y = y', z = z' }
     when (z' /= z p) resetRoomBattle
-    -- TODO:no exit maze at z', annihilation. if z' < 0, in air -> all dead, else in stone -> all lost.
+    -- TODO:no exist maze at z', annihilation. if z' < 0, in air -> all dead, else in stone -> all lost.
     movePlace (InMaze p')
     run $ events [showStatus cid "done"] next
 

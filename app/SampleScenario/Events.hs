@@ -42,6 +42,11 @@ mazeEvents = Map.fromList [
          ]
        ])
 
+    , (GameEventID 000003, 
+         Ev.Message "綺麗な水だ。"
+         (Just $ List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051)])
+      )
+
     -- like NPC
     , (GameEventID 010102, 
 --       Ev.Message "何者かが近づいてきた。" Nothing
