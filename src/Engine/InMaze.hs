@@ -71,21 +71,24 @@ enterGrid e probEncount evMoved p = GameAuto $ do
     resetEffectInOnlyBattle
     -- record visit history.
     modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
-    -- TODO!:all character lost if they are in stone.
     lab <- mazeAt $ z p
-    let c = coordOf p
-    when (Dark `elem` noticesInView lab p 0 0) $ setLightValue False 0
-    encount <- if probEncount then
-                 if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
-                 else fmap (,False) <$> checkEncount c False
-               else return Nothing
-    case e of Just edef -> run $ doEvent Nothing edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
-              Nothing   -> case encount of
-                Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
-                Just (ei, isRB) -> run $ encountEnemy ei isRB
+    if Stone `elem` noticesInView lab p 0 0 then run enterStone
+    else do
+      when (Dark `elem` noticesInView lab p 0 0) $ setLightValue False 0
+      let c = coordOf p
+      encount <- if probEncount then
+                   if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
+                   else fmap (,False) <$> checkEncount c False
+                 else return Nothing
+      case e of Just edef -> run $ doEvent Nothing edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
+                Nothing   -> case encount of
+                  Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
+                  Just (ei, isRB) -> run $ encountEnemy ei isRB
   where
     cantSpelling _ = events [message "can't spelling at this place."]
               
+enterStone :: GameMachine
+enterStone = events [General emptyDisplay] $ totalAnnihilation Lost
 
 checkRoomBattle :: Coord -> GameState (Maybe (EnemyID, Bool))
 checkRoomBattle c = do
@@ -168,7 +171,7 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
             sortPartyAuto
 
             allDead <- isTotalAnnihilation
-            run $ if allDead then totalAnnihilation
+            run $ if allDead then totalAnnihilation Dead
                   else enterMaybeEncount (withSE se $ flashMoveView " 1  ") p''
 
 

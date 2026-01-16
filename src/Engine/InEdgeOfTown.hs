@@ -259,11 +259,12 @@ doChangeJob :: CharacterID -> Character.Job -> GameState ()
 doChangeJob cid newJob = do
     c <- characterByID cid
     updateCharacter cid $ c {
-          Character.job   = newJob
-        , Character.lv    = 1
-        , Character.exp   = 0
-        , Character.age   = Character.age c + 1
-        , Character.param = Character.initialParam (Character.race c)
+          Character.job    = newJob
+        , Character.lv     = 1
+        , Character.exp    = 0
+        , Character.age    = Character.age c + 1
+        , Character.param  = Character.initialParam (Character.race c)
+        , Character.equips = []
     }
 
 -- -----------------------------------------------------------------------

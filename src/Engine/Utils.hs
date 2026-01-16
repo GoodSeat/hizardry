@@ -609,19 +609,13 @@ formulaMapP = addBaseToMap empty
 -- General GameMachine
 -- ---------------------------------------------------------------------------------
 
-totalAnnihilation :: GameMachine
-totalAnnihilation = GameAuto $ do
+totalAnnihilation :: StatusError -> GameMachine
+totalAnnihilation se = GameAuto $ do
     p <- currentPosition
     movePlace TotalAnnihilation
     ps <- party <$> world
-    mapM_ dead ps
+    forM_ ps $ flip updateCharacterWith (addStatusError se)
     run $ events [withBGM AllDead $ message "パーティは全滅しました"] (suspendMazing p)
-  where
-    dead cid = do
-      c <- characterByID cid
-      let c' = if any (>= Dead) (statusErrorsOf c) then c
-               else c { Chara.statusErrors = [Dead] }
-      updateCharacter cid c'
 
 suspendMazing :: Position -> GameMachine
 suspendMazing p = GameAuto $ do

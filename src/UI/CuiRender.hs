@@ -161,9 +161,10 @@ visibleStatusWindow w = (statusOn w && inMaze) || showStatusAlways
   where
     inMaze = case place w of InMaze _ -> True
                              _        -> False
-    showStatusAlways = case place w of InMaze _        -> False
-                                       TrainingGrounds -> False
-                                       _               -> True
+    showStatusAlways = case place w of InMaze _          -> False
+                                       TrainingGrounds   -> False
+                                       TotalAnnihilation -> False
+                                       _                 -> True
 
 visibleGuideWindow :: World -> Bool
 visibleGuideWindow w = let inMaze = case place w of InMaze _ -> True
