@@ -16,7 +16,7 @@ import Engine.CharacterAction (inputSpell, selectItem, useItem, castDamageSpell,
 import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), getTreasures)
 import Data.World
 import Data.Primitive
-import Data.Formula (parse')
+import Data.Formula (parse', Formula)
 import qualified Data.Characters as Chara
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
@@ -30,7 +30,7 @@ data Action = Fight EnemyLine
             | Spell String SpellTarget
             | Hide
             | Ambush EnemyLine
---          | Dispell EnemyLine    -- TODO:not implement
+            | Dispell Formula EnemyLine
             | Run
             | Parry
             | UseItem Chara.ItemPos SpellTarget
@@ -159,8 +159,8 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
       let els = take (length ess) $ toEnemyLine <$> [1..]
           fts = filter (`elem` els) $ if i <= 3 then Item.targetF wep else Item.targetB wep
           fts'= filter (`elem` els) $ Item.targetF wep
-          cs  = Chara.enableBattleCommands $ Chara.job c
-          cs' = filter (if null fts  then (/= Chara.Fight) else const True)
+      cs <- concat <$> mapM (toValidCommand c) (Chara.enableBattleCommands $ Chara.job c)
+      let cs' = filter (if null fts  then (/= Chara.Fight) else const True)
               . filter (if null fts' then (/= Chara.Ambush) else const True)
               . filter (if any (hasStatusError c) cantSpellStatus then (/= Chara.Spell) else const True)
               . filter (if not (hasStatusError c Hidden) then (/= Chara.Ambush) else const True)
@@ -180,18 +180,11 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                                 [(Key "l", selectBattleCommand i cmds con surprise)
                                 ,(Key "r", readSpell inspect cid)
                                 ]
-            cms = [( Key "a"
-                   , selectFightTarget c fts' next cancel
-                   , Chara.Ambush `elem` cs')
-                  ,( Key "f"
-                   , selectFightTarget c fts next cancel
-                   , Chara.Fight `elem` cs')
-                  ,( Key "h"
-                   , next Hide
-                   , Chara.Hide `elem` cs')
-                  ,( Key "p"
-                   , next Parry
-                   , Chara.Parry `elem` cs')
+            cms = [( Key "a", selectFightTarget c fts' next cancel, Chara.Ambush `elem` cs')
+                  ,( Key "f", selectFightTarget c fts  next cancel, Chara.Fight `elem` cs')
+                  ,( Key "h", next Hide , Chara.Hide  `elem` cs')
+                  ,( Key "p", next Parry, Chara.Parry `elem` cs')
+                  ,( Key "d", selectDispellTarget c (dispellProb cs') next cancel, any isDispellCmd cs')
                   ,( Key "s"
                    , inputSpell c spellCommand battleCommand (\s l -> next $ Spell s l) cancel
                    , Chara.Spell `elem` cs')
@@ -199,27 +192,35 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                    , selectItem battleCommand canHandle
                        (useItem battleCommand (\i l -> next $ UseItem i l)) c cancel
                    , Chara.UseItem `elem` cs')
-                  ,( Key "r"
-                   , tryRun c con surprise
-                   , Chara.Run `elem` cs')
+                  ,( Key "r", tryRun c con surprise, Chara.Run `elem` cs')
                   ,( Key "\16128", inspect, True) -- code of "?" ?
                   ,( Key "?", inspect, True)
-                  ,( Key "\ESC"
-                   , events [None] (selectBattleCommand i cmds con surprise)
-                   , True)
-                  ,( Key "b"
-                   , with [resetCommand] $ selectBattleCommand (i - 1) (drop 1 cmds) con surprise
-                   , i > 1)
+                  ,( Key "\ESC", events [None] (selectBattleCommand i cmds con surprise), True)
+                  ,( Key "b", with [resetCommand] $ selectBattleCommand (i - 1) (drop 1 cmds) con surprise, i > 1)
                   ]
-            toMsg cmd = case cmd of Chara.Fight   -> if Chara.Ambush `elem` cs' then "^F)ight\n" else "^F)ight`*\n"
-                                    Chara.Spell   -> "^S)pell\n"
-                                    Chara.Hide    -> if Chara.Fight `elem` cs' then "^H)ide\n" else"^H)ide`*\n" 
-                                    Chara.Ambush  -> "^A)mbush`*\n"
-                                    Chara.Dispell -> "^D)ispell\n"
-                                    Chara.Run     -> "^R)un\n"
-                                    Chara.Parry   -> if Chara.Fight `elem` cs' || Chara.Hide `elem` cs' || Chara.Ambush `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
-                                    Chara.UseItem -> "^U)se Item\n"
+            toMsg cmd = case cmd of Chara.Fight          -> if Chara.Ambush `elem` cs' then "^F)ight\n" else "^F)ight`*\n"
+                                    Chara.Spell          -> "^S)pell\n"
+                                    Chara.Hide           -> if Chara.Fight `elem` cs' then "^H)ide\n" else"^H)ide`*\n" 
+                                    Chara.Ambush         -> "^A)mbush`*\n"
+                                    Chara.Dispell _      -> "^D)ispell\n"
+                                    Chara.Run            -> "^R)un\n"
+                                    Chara.Parry          -> if Chara.Fight `elem` cs' || Chara.Hide `elem` cs' || Chara.Ambush `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
+                                    Chara.UseItem        -> "^U)se Item\n"
+                                    Chara.EnableWhen _ _ -> error "logic error"
         in run $ selectWhen1 (battleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs' ++ (if i == 1 then "" else "^B)ack\n")) cms
+  where
+    toValidCommand :: Chara.Character -> Chara.BattleCommand -> GameState [Chara.BattleCommand]
+    toValidCommand c (Chara.EnableWhen cmd judge) = do
+        enable <- flip evalWith judge =<< formulaMapC c
+        return [cmd | enable /= 0]
+    toValidCommand _ cmd = return [cmd]
+    dispellProb :: [Chara.BattleCommand] -> Formula
+    dispellProb []     = read "0"
+    dispellProb (c:cs) = case c of Chara.Dispell f -> f
+                                   _               -> dispellProb cs
+    isDispellCmd c = case c of Chara.Dispell _ -> True
+                               _               -> False
+    
 
 selectFightTarget :: Chara.Character -> [EnemyLine] -> (Action -> GameMachine) -> GameMachine -> GameMachine
 selectFightTarget c fts next cancel = GameAuto $ do
@@ -231,6 +232,14 @@ selectFightTarget c fts next cancel = GameAuto $ do
     run $ if length ess == 1 || Item.targetRange wattr == Item.ToAll then next (Fight L1)
           else selectWhen1 (battleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")\n\n^L)eave `[`E`S`C`]")
                            (cmds ++ [(Key "l", cancel, True), (Key "\ESC", cancel, True)])
+
+selectDispellTarget :: Chara.Character -> Formula -> (Action -> GameMachine) -> GameMachine -> GameMachine
+selectDispellTarget c f next cancel = GameAuto $ do
+    el <- length <$> lastEnemies
+    let cmds = cmdNums el (next . Dispell f . toEnemyLine)
+    run $ if el == 1 then next (Dispell f L1)
+          else select1 (battleCommand $ "Target group?\n(^1`*~^" ++ show el ++ ")\n\n^L)eave `[`E`S`C`]")
+                       (cmds ++ [(Key "l", cancel), (Key "\ESC", cancel)])
 
 tryRun :: Chara.Character -> Condition -> Maybe Surprise -> GameMachine
 tryRun c con surprised = GameAuto $ do
@@ -258,6 +267,7 @@ updateCommand ((cid, act):cs) = do
     updateCommand cs
   where
     toS (Fight _)     = "Fight"
+    toS (Dispell _ _) = "Dispell"
     toS (Spell s _)   = s
     toS Hide          = "Hide"
     toS (Ambush _)    = "Ambush"
@@ -386,6 +396,7 @@ act escape (ByParties id a) next = GameAuto $ do
     run $ if cantFight then next else case a of
         Fight l     -> fightOfCharacter id l next
         Spell s l   -> spell escape s (Left id) l next
+        Dispell f l -> dispellOfCharacter f id l next
         Parry       -> with [updateCharacterWith id $ \c -> c { Chara.paramDelta = Spell.applyChangeParam (TillPastTime 1) parryParamChange (Chara.paramDelta c) }] next
         Run         -> next
         CantMove    -> next

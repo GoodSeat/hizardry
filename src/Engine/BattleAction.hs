@@ -65,7 +65,8 @@ fightOfCharacter id el next = GameAuto $ do
     c     <- characterByID id
     wattr <- weaponAttrOf c
     let range = Item.targetRange wattr
-    if null ea || (range /= Item.ToAll && null es) then run next else do
+    if null ea || (range /= Item.ToAll && null es) then run next
+    else do
       let es' | range == Item.ToSingle = [head es]
               | range == Item.ToGroup  = es
               | range == Item.ToAll    = ea
@@ -143,6 +144,22 @@ weaponAttrOf c = do
       Just def -> do
         case Item.equipType def of Just (Item.Weapon _ w) -> return w
                                    _                      -> err $ "invalid weaponAttrOf for " ++ show c ++ "."
+
+dispellOfCharacter :: Formula -> ActionOfCharacter
+dispellOfCharacter f id el next = GameAuto $ do
+    msgF <- messageF
+    es   <- aliveEnemiesLine el
+    c    <- characterByID id
+    if null es then run next
+    else do
+      n <- length . filter (==True) <$> forM es (\e -> do
+        let isUndead = EnemyLabel "undead" `elem` (Enemy.attrLabels . Enemy.define $ e)
+        s <- happens =<< flip evalWith f =<< formulaMapSO (Left c) (Right e)
+        if not isUndead || not s then return False
+                                 else updateEnemy e (const e { Enemy.hp = 0 }) >> return True)
+      let bm = Chara.name c ++ " attempted to dispell " ++ nameOf (head es) ++ ".\n" 
+          rm = if n == 0 then "but failed." else show n ++ " " ++ nameOf (head es) ++ " have been purified."
+      run $ events [msgF bm, msgF (bm ++ rm)] next
 
 hideOfCharacter :: CharacterID -> GameMachine -> GameMachine
 hideOfCharacter cid next = GameAuto $ do

@@ -178,9 +178,10 @@ data BattleCommand = Fight
                    | Hide
                    | Ambush
                    | Run
-                   | Dispell
+                   | Dispell Formula -- ^ probability succeed.
                    | Parry
                    | UseItem
+                   | EnableWhen BattleCommand Formula
     deriving (Show, Eq, Read)
 
 -- =================================================================================
