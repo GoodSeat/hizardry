@@ -10,7 +10,7 @@ import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import System.Random (mkStdGen)
 
-import Engine.GameAuto (GameState, Scenario(..), ScenarioOption(..), InitScenario(..), initScenario, GameMachine)
+import Engine.GameAuto (GameState, Scenario(..), ScenarioOption(..), InitScenario(..), initScenario, GameMachine, defaultFormulas)
 import Data.World
 import Data.Primitive
 import Data.Formula (Formula, parse')
@@ -109,23 +109,24 @@ resistantEnemyInstance = testEnemyInstance
 
 testScenario :: Scenario
 testScenario = initScenario (InitScenario {
-      initScenarioName    = "TestScenario"
-    , initScenarioVersion = [1,0,0,0]
-    , initScenarioOption  = ScenarioOption [] []
-    , initRacies          = [testRace]
-    , initJobs            = [testJob]
-    , initMazes           = []
-    , initEncountMap      = Map.empty
-    , initRoomBattleMap   = Map.empty
-    , initRoomDefine      = []
-    , initEventMap        = Map.empty
-    , initEventMapDir     = Map.empty
-    , initEventInspect    = Map.empty
-    , initMazeEvents      = Map.empty
-    , initEnemies         = Map.fromList [(EnemyID 1, testEnemyDefine), (EnemyID 2, resistantEnemyDefine)] -- Added resistant enemy
-    , initSpells          = Map.empty
-    , initItems           = Map.empty
-    , initEncKey          = ""
+      initScenarioName     = "TestScenario"
+    , initScenarioVersion  = [1,0,0,0]
+    , initScenarioOption   = ScenarioOption [] []
+    , initRacies           = [testRace]
+    , initJobs             = [testJob]
+    , initMazes            = []
+    , initEncountMap       = Map.empty
+    , initRoomBattleMap    = Map.empty
+    , initRoomDefine       = []
+    , initEventMap         = Map.empty
+    , initEventMapDir      = Map.empty
+    , initEventInspect     = Map.empty
+    , initMazeEvents       = Map.empty
+    , initEnemies          = Map.fromList [(EnemyID 1, testEnemyDefine), (EnemyID 2, resistantEnemyDefine)] -- Added resistant enemy
+    , initSpells           = Map.empty
+    , initItems            = Map.empty
+    , initScenarioFormulas = defaultFormulas
+    , initEncKey           = ""
     }) mockGameMachine
 
 initialCaster :: Chara.Character
