@@ -318,7 +318,7 @@ talkSelect msg t picInf lastStep = ac msgs
     msgs = reverse $ reverse <$> foldr (\c acc -> (c:head acc):acc) [[]] (reverse msg)
     lstep = lastStep $ messagePic msg picInf
     ac ms = let nstep = if length ms <= 1 then lstep else ac (tail ms);
-                cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)]
+                cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)] ++ [(Key [s], lstep) | s <- ['a'..'z']]
             in select (messageTime t (head ms) picInf) cs
 
 
