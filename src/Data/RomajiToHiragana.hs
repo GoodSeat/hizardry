@@ -1,9 +1,10 @@
 module Data.RomajiToHiragana (romajiToHiragana) where
 
-import           Data.Char (isAscii, isControl)
-import           Data.Function (on)
-import           Data.List (find, isPrefixOf, sortBy)
-import           Data.Ord  (comparing)
+import PreludeL
+import Data.Char (isAscii, isControl)
+import Data.Function (on)
+import Data.List (find, isPrefixOf, sortBy)
+import Data.Ord  (comparing)
 
 romajiToHiraganaMap :: [(String, String)]
 romajiToHiraganaMap = sortBy (flip (comparing length) `on` fst) $

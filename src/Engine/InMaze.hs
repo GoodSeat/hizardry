@@ -1,6 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 module Engine.InMaze (openCamp) where
 
+import PreludeL
 import Control.Monad (when)
 import Control.Monad.State (modify, forM_, guard, gets)
 import Control.Monad.Reader (asks)
@@ -13,7 +14,7 @@ import qualified Data.Map as Map
 import Engine.GameAuto
 import Engine.Utils
 import Engine.InBattle
-import Engine.InEvent (doEvent, setLightValueWith, setLightValue, resetEffectInOnlyBattle, returnToCastle)
+import Engine.InEvent (doEvent)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
@@ -70,21 +71,24 @@ enterGrid e probEncount evMoved p = GameAuto $ do
     resetEffectInOnlyBattle
     -- record visit history.
     modify $ \w -> w { visitHitory = Map.insert (coordOf p) True (visitHitory w) }
-    -- TODO!:all character lost if they are in stone.
     lab <- mazeAt $ z p
-    let c = coordOf p
-    when (Dark `elem` noticesInView lab p 0 0) $ setLightValue False 0
-    encount <- if probEncount then
-                 if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
-                 else fmap (,False) <$> checkEncount c False
-               else return Nothing
-    case e of Just edef -> run $ doEvent Nothing edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
-              Nothing   -> case encount of
-                Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
-                Just (ei, isRB) -> run $ encountEnemy ei isRB
+    if Stone `elem` noticesInView lab p 0 0 then run enterStone
+    else do
+      when (Dark `elem` noticesInView lab p 0 0) $ setLightValue False 0
+      let c = coordOf p
+      encount <- if probEncount then
+                   if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
+                   else fmap (,False) <$> checkEncount c False
+                 else return Nothing
+      case e of Just edef -> run $ doEvent Nothing edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
+                Nothing   -> case encount of
+                  Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
+                  Just (ei, isRB) -> run $ encountEnemy ei isRB
   where
     cantSpelling _ = events [message "can't spelling at this place."]
               
+enterStone :: GameMachine
+enterStone = events [General emptyDisplay] $ totalAnnihilation Lost
 
 checkRoomBattle :: Coord -> GameState (Maybe (EnemyID, Bool))
 checkRoomBattle c = do
@@ -107,7 +111,7 @@ checkEncount c checkRoomBattle = do
 ouch :: Position -> GameMachine
 ouch p = ouch1
   where
-    ouch1 = with [d1] $ select (flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
+    ouch1 = with [d1] $ select (withSE HitWall $ flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
     ouch2 = with [d2] $ select (flashMessage' ( -20) " Ouch !! ") $ (Clock, ouch3) : moves'
     ouch3 = with [d3] $ select (flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch4) : moves'
     ouch4 = with [d4] $ select (flashMessage' (-330) " Ouch !! ") $ moves p
@@ -126,12 +130,12 @@ flashMoveView :: String -> Event
 flashMoveView = flashMessage' (-100)
 
 moves :: Position -> [(Input, GameMachine)]
-moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
-          ,(Key "d", enterMaybeEncount' (flashMoveView " -> ") $ turnRight p)
+moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " <- ") $ turnLeft p)
+          ,(Key "d", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " -> ") $ turnRight p)
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
-          ,(Key "q", suspend p)
+          ,(Key "q", suspendMazing p)
           ,(Key "i", inspect p)
           ,(Key "s", with [modify (\w -> w { statusOn = not $ statusOn w })] (select None $ moves p))
           ,(Key "o", with [modify (\w -> w { guideOn  = not $ guideOn  w })] (select None $ moves p))
@@ -144,19 +148,31 @@ moves p = [(Key "a", enterMaybeEncount' (flashMoveView " <- ") $ turnLeft p)
     goStraight p f = GameAuto $ do
         w <- world
         modify $ \w -> w { globalTime = globalTime w + 1 }
-        lab <- mazeAt $ z p
+        (_, (sw, sh), lab) <- mazeInfAt $ z p
         case f lab p of
           Nothing -> run $ ouch p
           Just p' -> do 
+            let x' | x p' <   0 = sw - 1
+                   | x p' >= sw = 0
+                   | otherwise  = x p'
+            let y' | y p' <   0 = sh - 1
+                   | y p' >= sh = 0
+                   | otherwise  = y p'
+            let p'' = p' { x = x', y = y' }
+
             -- update milwa effect.
             setLightValueWith True  (\n -> n - 1)
             setLightValueWith False (\n -> n - 1)
             -- update party status.
             ps <- party <$> world
             forM_ ps (`updateCharacterWith` whenWalking)
+            let se = case walkForward lab p of Nothing -> KickDoor
+                                               _       -> Walk
             sortPartyAuto
-            -- TODO!:if all character dead, move to gameover.
-            run $ enterMaybeEncount (flashMoveView " 1  ") p'
+
+            allDead <- isTotalAnnihilation
+            run $ if allDead then totalAnnihilation Dead
+                  else enterMaybeEncount (withSE se $ flashMoveView " 1  ") p''
 
 
 nextMiniMap :: GameState ()
@@ -173,12 +189,6 @@ nextMiniMap = do
                       | n /= a = next a org ns
 
 -- =======================================================================
-
-suspend :: Position -> GameMachine
-suspend p = GameAuto $ do
-    modify $ \w -> w { inMazeMember = inMazeMember w ++ ((,p) <$> party w), party = [] }
-    toCastle <- home
-    returnToCastle >> run toCastle
 
 inspect :: Position -> GameMachine
 inspect p = GameAuto $ do
@@ -288,13 +298,17 @@ openCamp p = GameAuto $ do
     run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "r", reorderParty [] p, np > 1)
-          ,(Key "1", inspectCharacter (openCamp p) True F1, np >= 1)
-          ,(Key "2", inspectCharacter (openCamp p) True F2, np >= 2)
-          ,(Key "3", inspectCharacter (openCamp p) True F3, np >= 3)
-          ,(Key "4", inspectCharacter (openCamp p) True B4, np >= 4)
-          ,(Key "5", inspectCharacter (openCamp p) True B5, np >= 5)
-          ,(Key "6", inspectCharacter (openCamp p) True B6, np >= 6)
+          ,(Key "1", inspectCharacter resumeCamp True F1, np >= 1)
+          ,(Key "2", inspectCharacter resumeCamp True F2, np >= 2)
+          ,(Key "3", inspectCharacter resumeCamp True F3, np >= 3)
+          ,(Key "4", inspectCharacter resumeCamp True B4, np >= 4)
+          ,(Key "5", inspectCharacter resumeCamp True B5, np >= 5)
+          ,(Key "6", inspectCharacter resumeCamp True B6, np >= 6)
           ]
+  where
+    resumeCamp = GameAuto $ do
+        p <- currentPosition
+        run $ openCamp p
 
 reorderParty :: [Int] -> Position -> GameMachine
 reorderParty ns p = GameAuto $ do

@@ -4,6 +4,7 @@ module UI.CuiRender (
     , render
     ) where
 
+import PreludeL
 import Control.Monad
 import Data.List (isPrefixOf, intersperse)
 
@@ -41,19 +42,25 @@ renderWithCache cache showDebugWindow = if showDebugWindow then drawWithCache (w
 -- ========================================================================
 
 cuiRender :: RenderMethod -> (Maybe PictureInf -> Craphic) -> Scenario -> DisplayIO
-cuiRender rm picOf s (General            (Display m c f t p n)) w = rendering rm picOf s (toT m) (toT f) (toT c) Nothing p w
-cuiRender rm picOf s (ShowStatus cid his (Display m c f t p n)) w = rendering rm picOf s (toT m) (toT f) (toT c) (Just (cid, his)) p w
-cuiRender rm picOf s None                                       w = cuiRender rm picOf s (wait 0 Nothing) w
-cuiRender rm _ s (ShowMap m trans) w = rm (debugMode w) (mapView m (place w) trans (visitHitory w) $ mazeInf s w)
-cuiRender rm _ _ (SaveGame _ _)    w = rm (debugMode w) (flashMsgBox "  ** NOW SAVING ... **  ")
-cuiRender rm _ _ (LoadGame _  )    w = rm (debugMode w) (flashMsgBox "  ** NOW LOADING... **  ")
-cuiRender rm _ _ Exit              w = undefined
+cuiRender rm picOf s (General            (Display m c f t p n _ _)) w = rendering rm picOf s (toT m) (toT f) (toT c) Nothing p w
+cuiRender rm picOf s (ShowStatus cid his (Display m c f t p n _ _)) w = rendering rm picOf s (toT m) (toT f) (toT c) (Just (cid, his)) p w
+cuiRender rm picOf s None                                           w = cuiRender rm picOf s (wait 0 Nothing) w
+cuiRender rm _ s (ShowMap m trans z mark) w = rm (debugMode w) (mapView m (place w) z trans mark (visitHitory w) $ mazeInfZ z s w)
+cuiRender rm _ _ (SaveGame _ _)           w = rm (debugMode w) (flashMsgBox "  ** NOW SAVING ... **  ")
+cuiRender rm _ _ (LoadGame _  )           w = rm (debugMode w) (flashMsgBox "  ** NOW LOADING... **  ")
+cuiRender rm _ _ Exit                     w = undefined
 
 mazeInf :: Scenario -> World -> MazeInf
 mazeInf s w = case runGameState s w mazeInf' of (Right m, w') -> m
                                                 (Left  _, w') -> ("", (0,0), undefined)
   where
     mazeInf' = currentPosition >>= mazeInfAt . thd3 . coordOf
+
+mazeInfZ :: Int -> Scenario -> World -> MazeInf
+mazeInfZ z s w = case runGameState s w mazeInf' of (Right m, w') -> m
+                                                   (Left  _, w') -> ("", (0,0), undefined)
+  where
+    mazeInf' = mazeInfAt z
 
 toT :: Maybe String -> String
 toT (Just s) = s
@@ -154,9 +161,10 @@ visibleStatusWindow w = (statusOn w && inMaze) || showStatusAlways
   where
     inMaze = case place w of InMaze _ -> True
                              _        -> False
-    showStatusAlways = case place w of InMaze _        -> False
-                                       TrainingGrounds -> False
-                                       _               -> True
+    showStatusAlways = case place w of InMaze _          -> False
+                                       TrainingGrounds   -> False
+                                       TotalAnnihilation -> False
+                                       _                 -> True
 
 visibleGuideWindow :: World -> Bool
 visibleGuideWindow w = let inMaze = case place w of InMaze _ -> True
@@ -412,6 +420,7 @@ scene (Camping p _)           onLight superLight = do
 scene InCastle                _       _          = const $ translate (0, 2) city2
 scene InEdgeOfTown            _       _          = const $ translate (0, 2) edgeOfTown
 scene EnteringMaze            onLight superLight = scene InEdgeOfTown onLight superLight
+scene TotalAnnihilation       _       _          = const mempty -- TODO:
 scene Gilgamesh'sTavern       _       _          = const $ translate (0, 2) tavern
 scene _                       _       _          = const mempty
 
@@ -421,22 +430,28 @@ scene _                       _       _          = const mempty
 type MazeInf = (String, Size2D, Maze)
 
 -- mapView
-mapView :: String -> Place -> (Int, Int) -> Map.Map Coord Bool -> MazeInf -> Craphic
-mapView msg place (dx, dy) mvt (_, (w, h), m) = case place of
-    InMaze   p   -> mapView' p
-    Camping  p _ -> mapView' p
-    InBattle p _ -> mapView' p
+mapView :: String -> Place -> Int -> (Int, Int) -> Bool -> Map.Map Coord Bool -> MazeInf -> Craphic
+mapView msg place zt (dx', dy') showMark mvt (_, (w, h), m) = case place of
+    InMaze   p   -> mapView' $ p { z = zt }
+    Camping  p _ -> mapView' $ p { z = zt }
+    InBattle p _ -> mapView' $ p { z = zt }
     _            -> mempty
   where
+    dx = dx' * 3
+    dy = dy' * 2
     mapView' p = 
          translate (0, -4) (msgBox msg) <> frame <>
-         (translate (1 + dx, 3 + dy) .
+         (translate (1 - dx, 3 + dy) .
           translate (windowW `div` 2 - pcx * 3 - 2, windowH `div` 2 - (h - pcy) * 2 + 1))
-         (coord <> noVisitArea mvt size (z p) <> fromTextsA '*' 'c' (showMaze size p m))
+         ((if showMark then mark else mempty) <> coord <> noVisitArea mvt size zt <> fromTextsA '*' 'c' (showMaze size p m))
       where
         size = (w, h)
         pcx  = if w <= 20 then w `div` 2 else x p
         pcy  = if h <= 16 then h `div` 2 else y p
+        mark = Craphic $ \(sx, sy) ->
+          if      sx == (x p + dx') * 3 + 2 && sy == (h - y p - dy') * 2 then DrawSGR '>' (fromJust $ toSGR 'm')
+          else if sx == (x p + dx') * 3 + 3 && sy == (h - y p - dy') * 2 then DrawSGR '<' (fromJust $ toSGR 'm')
+          else                                                                Blank
         coord = Craphic $ \(sx, sy) ->
           let cx = (sx - 3) `div` 3;
               cy = (h * 2 - sy) `div` 2  in

@@ -1,11 +1,13 @@
 {-# LANGUAGE TupleSections #-}
 module Engine.InBattle (startBattle) where
 
-import Data.List
+import PreludeL
+import Data.List hiding ((!!))
 import Data.Maybe
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader (asks)
 
 import Engine.GameAuto
 import Engine.Utils
@@ -14,7 +16,7 @@ import Engine.CharacterAction (inputSpell, selectItem, useItem, castDamageSpell,
 import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), getTreasures)
 import Data.World
 import Data.Primitive
-import Data.Formula (parse')
+import Data.Formula (parse', Formula)
 import qualified Data.Characters as Chara
 import qualified Data.Enemies as Enemy
 import qualified Data.Spells as Spell
@@ -28,7 +30,7 @@ data Action = Fight EnemyLine
             | Spell String SpellTarget
             | Hide
             | Ambush EnemyLine
---          | Dispell EnemyLine    -- TODO:not implement
+            | Dispell Formula EnemyLine
             | Run
             | Parry
             | UseItem Chara.ItemPos SpellTarget
@@ -114,7 +116,7 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
         return $ if      r < partySurpriseProb                     then PartySurprise
                  else if r < partySurpriseProb + enemySurpriseProb then EnemySurprise
                  else                                                   NoSurprise
-    let msg = flashMessage (-1000) "    Encounter!!    "
+    let msg = withBGM Encounter $ flashMessage (-1000) "    Encounter!!    "
         con = Condition {
                 afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
               }
@@ -157,8 +159,8 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
       let els = take (length ess) $ toEnemyLine <$> [1..]
           fts = filter (`elem` els) $ if i <= 3 then Item.targetF wep else Item.targetB wep
           fts'= filter (`elem` els) $ Item.targetF wep
-          cs  = Chara.enableBattleCommands $ Chara.job c
-          cs' = filter (if null fts  then (/= Chara.Fight) else const True)
+      cs <- concat <$> mapM (toValidCommand c) (Chara.enableBattleCommands $ Chara.job c)
+      let cs' = filter (if null fts  then (/= Chara.Fight) else const True)
               . filter (if null fts' then (/= Chara.Ambush) else const True)
               . filter (if any (hasStatusError c) cantSpellStatus then (/= Chara.Spell) else const True)
               . filter (if not (hasStatusError c Hidden) then (/= Chara.Ambush) else const True)
@@ -166,6 +168,9 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
               . filter (if hasStatusError c Found  then (`notElem` [Chara.Hide, Chara.Ambush]) else const True)
               . filter (if surprise == Just PartySurprise then (/= Chara.Spell) else const True)
               $ cs
+          canHandle inf = do
+            def <- itemByID $ itemID inf
+            return $ Chara.canUse c def && identified inf
       let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
           cancel = selectBattleCommand i cmds con surprise
       if isCantFight c then
@@ -175,46 +180,47 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                                 [(Key "l", selectBattleCommand i cmds con surprise)
                                 ,(Key "r", readSpell inspect cid)
                                 ]
-            cms = [( Key "a"
-                   , selectFightTarget c fts' next cancel
-                   , Chara.Ambush `elem` cs')
-                  ,( Key "f"
-                   , selectFightTarget c fts next cancel
-                   , Chara.Fight `elem` cs')
-                  ,( Key "h"
-                   , next Hide
-                   , Chara.Hide `elem` cs')
-                  ,( Key "p"
-                   , next Parry
-                   , Chara.Parry `elem` cs')
+            cms = [( Key "a", selectFightTarget c fts' next cancel, Chara.Ambush `elem` cs')
+                  ,( Key "f", selectFightTarget c fts  next cancel, Chara.Fight `elem` cs')
+                  ,( Key "h", next Hide , Chara.Hide  `elem` cs')
+                  ,( Key "p", next Parry, Chara.Parry `elem` cs')
+                  ,( Key "d", selectDispellTarget c (dispellProb cs') next cancel, any isDispellCmd cs')
                   ,( Key "s"
                    , inputSpell c spellCommand battleCommand (\s l -> next $ Spell s l) cancel
                    , Chara.Spell `elem` cs')
                   ,( Key "u"
-                   , selectItem battleCommand identified
+                   , selectItem battleCommand canHandle
                        (useItem battleCommand (\i l -> next $ UseItem i l)) c cancel
                    , Chara.UseItem `elem` cs')
-                  ,( Key "r"
-                   , tryRun c con surprise
-                   , Chara.Run `elem` cs')
+                  ,( Key "r", tryRun c con surprise, Chara.Run `elem` cs')
                   ,( Key "\16128", inspect, True) -- code of "?" ?
                   ,( Key "?", inspect, True)
-                  ,( Key "\ESC"
-                   , events [None] (selectBattleCommand i cmds con surprise)
-                   , True)
-                  ,( Key "b"
-                   , with [resetCommand] $ selectBattleCommand (i - 1) (drop 1 cmds) con surprise
-                   , i > 1)
+                  ,( Key "\ESC", events [None] (selectBattleCommand i cmds con surprise), True)
+                  ,( Key "b", with [resetCommand] $ selectBattleCommand (i - 1) (drop 1 cmds) con surprise, i > 1)
                   ]
-            toMsg cmd = case cmd of Chara.Fight   -> if Chara.Ambush `elem` cs' then "^F)ight\n" else "^F)ight`*\n"
-                                    Chara.Spell   -> "^S)pell\n"
-                                    Chara.Hide    -> if Chara.Fight `elem` cs' then "^H)ide\n" else"^H)ide`*\n" 
-                                    Chara.Ambush  -> "^A)mbush`*\n"
-                                    Chara.Dispell -> "^D)ispell\n"
-                                    Chara.Run     -> "^R)un\n"
-                                    Chara.Parry   -> if Chara.Fight `elem` cs' || Chara.Hide `elem` cs' || Chara.Ambush `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
-                                    Chara.UseItem -> "^U)se Item\n"
+            toMsg cmd = case cmd of Chara.Fight          -> if Chara.Ambush `elem` cs' then "^F)ight\n" else "^F)ight`*\n"
+                                    Chara.Spell          -> "^S)pell\n"
+                                    Chara.Hide           -> if Chara.Fight `elem` cs' then "^H)ide\n" else"^H)ide`*\n" 
+                                    Chara.Ambush         -> "^A)mbush`*\n"
+                                    Chara.Dispell _      -> "^D)ispell\n"
+                                    Chara.Run            -> "^R)un\n"
+                                    Chara.Parry          -> if Chara.Fight `elem` cs' || Chara.Hide `elem` cs' || Chara.Ambush `elem` cs' then "^P)arry\n" else "^P)arry`*\n"
+                                    Chara.UseItem        -> "^U)se Item\n"
+                                    Chara.EnableWhen _ _ -> error "logic error"
         in run $ selectWhen1 (battleCommand $ Chara.name c ++ "'s Option\n\n" ++ concatMap toMsg cs' ++ (if i == 1 then "" else "^B)ack\n")) cms
+  where
+    toValidCommand :: Chara.Character -> Chara.BattleCommand -> GameState [Chara.BattleCommand]
+    toValidCommand c (Chara.EnableWhen cmd judge) = do
+        enable <- flip evalWith judge =<< formulaMapC c
+        return [cmd | enable /= 0]
+    toValidCommand _ cmd = return [cmd]
+    dispellProb :: [Chara.BattleCommand] -> Formula
+    dispellProb []     = read "0"
+    dispellProb (c:cs) = case c of Chara.Dispell f -> f
+                                   _               -> dispellProb cs
+    isDispellCmd c = case c of Chara.Dispell _ -> True
+                               _               -> False
+    
 
 selectFightTarget :: Chara.Character -> [EnemyLine] -> (Action -> GameMachine) -> GameMachine -> GameMachine
 selectFightTarget c fts next cancel = GameAuto $ do
@@ -227,14 +233,25 @@ selectFightTarget c fts next cancel = GameAuto $ do
           else selectWhen1 (battleCommand $ "Target group?\n(^" ++ show minl ++ "`*~^" ++ show maxl ++ ")\n\n^L)eave `[`E`S`C`]")
                            (cmds ++ [(Key "l", cancel, True), (Key "\ESC", cancel, True)])
 
+selectDispellTarget :: Chara.Character -> Formula -> (Action -> GameMachine) -> GameMachine -> GameMachine
+selectDispellTarget c f next cancel = GameAuto $ do
+    el <- length <$> lastEnemies
+    let cmds = cmdNums el (next . Dispell f . toEnemyLine)
+    run $ if el == 1 then next (Dispell f L1)
+          else select1 (battleCommand $ "Target group?\n(^1`*~^" ++ show el ++ ")\n\n^L)eave `[`E`S`C`]")
+                       (cmds ++ [(Key "l", cancel), (Key "\ESC", cancel)])
+
 tryRun :: Chara.Character -> Condition -> Maybe Surprise -> GameMachine
 tryRun c con surprised = GameAuto $ do
+    msgF <- messageF
     np  <- length . party <$> world
     es  <- lastEnemies
-    suc <- if isJust surprised then return True else happens $ 100 - length es * 3 - (np - 1) * 4
+    m   <- formulaMapP
+    suc <- if isJust surprised then return True
+           else happens =<< evalWith m . parse' =<< asks (fleeSucceedProb . scenarioFormulas)
     let bm = Chara.name c ++ " flees."
-    if suc then run $ events [message bm] (afterRun con)
-           else run $ events [message bm, message $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
+    if suc then run $ events [msgF bm] (afterRun con)
+           else run $ events [msgF bm, msgF $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
 
 resetCommand :: GameState ()
 resetCommand = do
@@ -250,6 +267,7 @@ updateCommand ((cid, act):cs) = do
     updateCommand cs
   where
     toS (Fight _)     = "Fight"
+    toS (Dispell _ _) = "Dispell"
     toS (Spell s _)   = s
     toS Hide          = "Hide"
     toS (Ambush _)    = "Ambush"
@@ -286,26 +304,39 @@ nextTurn con = GameAuto $ do
                 modify $ fmap $ filter (\e -> Enemy.hp e > 0) -- remove dead or fleed enemy.
                 modify $ filter (not . null)                  -- remove null line.
             ) <$> lastEnemies
-    ess' <- tryDetermineEnemies ess
+
+    msgF <- messageF
+    (msgs1, ess') <- (\(a, b, _) -> (a, b)) <$> foldM (\(msgac, ess0, l) e -> do
+                         mf <- happens $ Enemy.moveFrontProb $ Enemy.define (head e)
+                         return $ if l <= 0 || not mf then
+                           (msgac, ess0, l + 1)
+                         else
+                           (msgac ++ [msgF $ nameOf (head e) ++ " has stepped forward."], [ess0 !! l] ++ take l ess0 ++ drop (l + 1) ess0, l + 1)
+                     ) ([], ess, 0) ess
+
+    ess'' <- tryDetermineEnemies ess'
 
     ps <- party <$> world
     fcs <- flip filterM ps $ \cid -> do
       c     <- characterByID cid
       r     <- randomNext 1 100
       param <- paramOf (Left c)
-      updateCharacter cid $ whenToNextTurn r (sum $ length <$> ess') param c
+      updateCharacter cid $ whenToNextTurn r (sum $ length <$> ess'') param c
       c'    <- characterByID cid
       return $ hasStatusError c Found /= hasStatusError c' Found
 
-    msgs <- forM fcs $ \cid -> do
+    msgs2 <- forM fcs $ \cid -> do
       c <- characterByID cid
-      return $ message (nameOf c ++ " was found by enemies.")
+      return $ msgF (nameOf c ++ " was found by enemies.")
 
     sortPartyAutoWith (defaultOrder con)
-    -- TODO!:if all character dead, move to gameover.
 
-    moveToBattle ess'
-    run $ if null ess' then wonBattle con' else events msgs (selectBattleCommand 1 [] con' Nothing)
+    allDead <- isTotalAnnihilation
+    if allDead then
+      run $ totalAnnihilation Dead
+    else do
+      moveToBattle ess''
+      run $ if null ess'' then wonBattle con' else events (msgs1 ++ msgs2) (selectBattleCommand 1 [] con' Nothing)
 
 updateCondition :: Condition -> GameState Condition
 updateCondition con = do
@@ -330,7 +361,7 @@ wonBattle con = GameAuto $ do
     let e  = gotExps con `div` length ps
         ft = isRoomBattle con && (dropGold con > 0 || not (null $ dropItems con))
     forM_ ps $ flip updateCharacterWith (Chara.getExp e)
-    run $ events [message $ "Each survivor got " ++ show e ++ " E.P."]
+    run $ events [withBGM WinBattle $ message $ "Each survivor got " ++ show e ++ " E.P."]
                  (if ft then findTreasureChest con else findTreasures con)
 
 findTreasureChest :: Condition -> GameMachine
@@ -356,22 +387,24 @@ startProgressBattle cmds con surprise = GameAuto $ run =<< nextProgressBattle <$
 nextProgressBattle :: [BattleAction]
                    -> Condition
                    -> GameMachine
-nextProgressBattle as con = foldr act (nextTurn con) as
+nextProgressBattle as con = foldr (act $ afterRun con) (nextTurn con) as
 
 
-act :: BattleAction -> GameMachine -> GameMachine
-act (ByParties id a) next = GameAuto $ do
+act :: GameMachine -> BattleAction -> GameMachine -> GameMachine
+act escape (ByParties id a) next = GameAuto $ do
     cantFight <- isCantFight <$> characterByID id
     run $ if cantFight then next else case a of
         Fight l     -> fightOfCharacter id l next
-        Spell s l   -> spell s (Left id) l next
+        Spell s l   -> spell escape s (Left id) l next
+        Dispell f l -> dispellOfCharacter f id l next
         Parry       -> with [updateCharacterWith id $ \c -> c { Chara.paramDelta = Spell.applyChangeParam (TillPastTime 1) parryParamChange (Chara.paramDelta c) }] next
         Run         -> next
         CantMove    -> next
-        UseItem i l -> useItemInBattle i (Left id) l next
+        UseItem i l -> useItemInBattle escape i (Left id) l next
         Hide        -> hideOfCharacter id next
         Ambush l    -> ambushOfCharacter id l next
-act (ByEnemies l e a) next = GameAuto $ do
+act escape (ByEnemies l e a) next = GameAuto $ do
+    msgF <- messageF
     e_ <- currentEnemyByNo $ Enemy.noID e
     case e_ of
       Nothing -> run next
@@ -390,25 +423,42 @@ act (ByEnemies l e a) next = GameAuto $ do
                    if tt == Spell.OpponentSingle ||
                       tt == Spell.OpponentGroup  ||
                       tt == Spell.OpponentAll then
-                      run $ spell s (Right e') (Left cp) next
+                      run $ spell escape s (Right e') (Left cp) next
                    else if tt == Spell.AllySingle ||
                            tt == Spell.AllyGroup then do
                       ess <- lastEnemies
                       el  <- randomIn $ toEnemyLine <$> [1..length ess]
-                      run $ spell s (Right e') (Right el) next
+                      run $ spell escape s (Right e') (Right el) next
                    else
-                      run $ spell s (Right e') (Right L1) next
+                      run $ spell escape s (Right e') (Right L1) next
                 Nothing -> run $ asSpell castUnknown "?" (Right e') (Left cp) next
 
           Enemy.Breath f attrs   -> do
               ps <- party <$> world
               ts <- castDamageSpell f attrs (Right e') (Left $ toPartyPos <$> [1..length ps])
               let acc (_, t, d, _) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
-                                     in if d then toEffect True msg else events [message msg] 
+                                     in if d then toEffect True msg else events [msgF msg] 
               run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
+
+          Enemy.CallBakup f      -> do
+              ess <- lastEnemies
+              let num = length $ ess !! (l - 1)
+              m    <- Map.insert "num" num <$> formulaMapSO (Right e') (Right e')
+              call <- happens =<< evalWith m f
+              let nn = if call && num < 9 then 1 else 0
+              
+              nes <- createEnemyInstances nn l (Enemy.id e') False
+              let noID' = maximum (Enemy.noID <$> concat ess) + 1
+                  nes' = (\ei -> ei { Enemy.noID = noID', Enemy.determined = Enemy.determined e' }) <$> nes
+                  ess'' = take (l - 1) ess ++ [(ess !! (l - 1)) ++ nes'] ++ drop l ess
+              moveToBattle ess''
+              let msg1 = nameOf e' ++ " called for backup."
+                  msg2 = if null nes' then " -- but, no one came." else " -- and the backup arrived."
+              run $ events [msgF msg1, msgF (unlines [msg1, msg2])] next
+
           Enemy.Run              -> do
               updateEnemy e' $ const e' { Enemy.hp = 0 }
-              run $ events [message $ nameOf e' ++ " flees."] next
+              run $ events [msgF $ nameOf e' ++ " flees."] next
 
 
 -- ==========================================================================

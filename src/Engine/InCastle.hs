@@ -1,7 +1,6 @@
 module Engine.InCastle (inCastle) where
 
 import PreludeL
-import Prelude hiding ((!!))
 import Control.Monad (when)
 import Control.Monad.State (put, filterM, modify)
 import qualified Data.Map as Map
@@ -130,19 +129,20 @@ selectStayPlan id = GameAuto $ do
                      ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inAdventure'sInn)
               ,(Key "p", with [poolGoldTo id] (selectStayPlan id))
-              ,(Key "a", sleep id  0   0 1)
-              ,(Key "b", sleep id  1  10 7)
-              ,(Key "c", sleep id  3  50 7)
-              ,(Key "d", sleep id  7 200 7)
-              ,(Key "e", sleep id 10 500 7)]
+              ,(Key "a", sleep id  0   0 1 False)
+              ,(Key "b", sleep id  1  10 7 False)
+              ,(Key "c", sleep id  3  50 7 False)
+              ,(Key "d", sleep id  7 200 7 False)
+              ,(Key "e", sleep id 10 500 7 False)]
     run $ selectEsc msg lst
 
 sleep :: CharacterID
       -> Int         -- ^ heal hp per week.
       -> Int         -- ^ charge per week.
       -> Int         -- ^ pass days per week.
+      -> Bool        -- ^ birthday?
       -> GameMachine
-sleep id h g d = GameAuto $ do
+sleep id h g d birthday = GameAuto $ do
     c <- characterByID id 
     if Character.gold c < g then
       run $ events [message "no more money."] $ selectStayPlan id
@@ -154,10 +154,14 @@ sleep id h g d = GameAuto $ do
                                        ++ show (Character.gold c) ++ " G.P.\n\n"
                                        ++ "^W)ake up `[`E`S`C`]"
                                         ) Nothing)
-                      [(Key "w", checkLvup id), (Clock, next)]
+                      [(Key "w", events [Resume (changeFlash ("Happy Birthday, " ++ Character.name c ++ "!")) | birthday]
+                                        (checkLvup id))
+                      ,(Clock, next (Character.age c - if birthday then 1 else 0))]
   where
-    next = GameAuto $ updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
-                   >> run (sleep id h g $ if d == 1 then 0 else d)
+    next ageO = GameAuto $ do
+                   updateCharacterWith id (Character.healHp h . Character.useGold g . Character.addDay d)
+                   ageN <- Character.age <$> characterByID id
+                   run (sleep id h g (if d == 1 then 0 else d) (ageO /= ageN))
 
 checkLvup :: CharacterID -> GameMachine
 checkLvup id = GameAuto $ do
@@ -172,7 +176,7 @@ checkLvup id = GameAuto $ do
 doLvup :: CharacterID -> GameMachine
 doLvup id = GameAuto $ do
     (txt, c') <- lvup =<< characterByID id
-    run $ with [updateCharacter id c'] (events [message txt] $ selectStayPlan id)
+    run $ with [updateCharacter id c'] (events [withBGM LevelUp $ message txt] $ selectStayPlan id)
 
 -- =======================================================================
 
@@ -221,6 +225,7 @@ buyItem cid (-1) = GameAuto $ do
     mxPage <- lastPage
     run $ buyItem cid mxPage
 buyItem cid page = GameAuto $ do
+    c <- characterByID cid
     lstItem <- fmap fst . filter ((/= 0) . snd) . sortOn fst . Map.toList . shopItems <$> world
     let lstItem' = take sizePage . drop (page * sizePage) $ lstItem
     if      null lstItem  then run $ selectShopAction cid
@@ -229,12 +234,14 @@ buyItem cid page = GameAuto $ do
       mxPage <- lastPage
       gp     <- Character.gold <$> characterByID cid
       defs   <- mapM itemByID lstItem'
-      let items = zipWith (++) (takeChar 43 . (++ repeat ' ') . Item.name <$> defs)
+      let canMs  = (\def -> if Character.canEquip c def || Character.canUse' c def then "  " else " #") <$> defs
+      let items0 = zipWith (++) (takeChar 43 . (++ repeat ' ') . Item.name <$> defs)
                                (rightTxt 10 . Item.valueInShop <$> defs)
+          items  = zipWith (++) items0 canMs
           lst  = "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
                ++ unlines (zipWith (++) ((++") ") . show <$> [1..]) items) ++ "\n"
           txt  = "Select item to buy. You have " ++ show gp ++ " G.P.\n\n"
-              ++ "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave [Esc]" ++ lst
+              ++ "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave `[E`s`c`]" ++ lst
           msg  = message txt 
           cmds = cmdNums (length lstItem')
                $ buy cid (buyItem cid page) . (lstItem' !!) . flip (-) 1
@@ -246,27 +253,40 @@ buyItem cid page = GameAuto $ do
 
 buy :: CharacterID -> GameMachine -> ItemID -> GameMachine
 buy cid next idItem = GameAuto $ do
-    w  <- world
-    v  <- Item.valueInShop <$> itemByID idItem
-    is <- Character.items <$> characterByID cid
-    g  <- Character.gold  <$> characterByID cid
+    w   <- world
+    def <- itemByID idItem
+    c   <- characterByID cid
+    let canTreat = Character.canEquip c def || Character.canUse' c def
+    v   <- Item.valueInShop <$> itemByID idItem
+    is  <- Character.items <$> characterByID cid
+    g   <- Character.gold  <$> characterByID cid
     if length is >= 10 then run $ events [toMsg "You can't have any more item."] next
     else if v > g then run $ events [toMsg "You don't have enough gold."] next
     else do
-      let map  = shopItems w
-          pair = Map.lookup idItem map
-          n'   = case pair of Nothing -> undefined
-                              Just n  -> n - 1
-          map' = if n' == 0 then Map.delete idItem map
-                            else Map.insert idItem n' map
-          msg  = if n' == 0 then "It is last one." else "you must favorite in it."
-      put $ w { shopItems = map' }
-      updateCharacterWith cid $ \c -> c { Character.items = is ++ [ItemInf idItem True]
-                                        , Character.gold  = g - v }
-      run $ events [toMsg msg] next
-   -- TODO:you can't equip this. OK? -> no people take no mistake.
+      let map   = shopItems w
+          pair  = Map.lookup idItem map
+          n'    = case pair of Nothing -> undefined
+                               Just n  -> n - 1
+          map'  = if n' == 0 then Map.delete idItem map
+                             else Map.insert idItem n' map
+          msg   = if n' == 0 then "It is last one." else "you must favorite in it."
+          is'   = is ++ [ItemInf idItem True]
+          restG = g - v
+      if not canTreat then
+        run $ select (Resume (changeFlash "You can't use or equip it.\n... but would you still buy it?\n\n^Y)es  ^N)o"))
+                     [ (Key "y", doBuy msg restG is' map')
+                     , (Key "n", events [toMsg "Don't worry about it - mistakes happen to everyone."] next)]
+      else run $ doBuy msg restG is' map'
   where
     toMsg m = Resume (changeFlashTime m (-1500))
+
+    doBuy :: String -> Int -> [ItemInf] -> Map.Map ItemID Int -> GameMachine
+    doBuy msg restGP is mapShop = GameAuto $ do
+      w <- world
+      put $ w { shopItems = mapShop }
+      updateCharacterWith cid $ \c -> c { Character.items = is
+                                        , Character.gold  = restGP }
+      run $ events [toMsg msg] next
 
 -----
 
@@ -496,7 +516,7 @@ cureCharacter cid cidDst = GameAuto $ do
     let lst =[(Key "l", selectCureTarget cid 0)
              ,(Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
              ,(Key "y", if canSpent then with [spentGold cid fee] $ tryCureCharacter cid cidDst
-                                    else events [flashMessage (-1000) "  Get out! You cheap traitor!  "] $ selectCureTarget cid 0)]
+                                    else events [Resume (changeFlashTime "  Get out! You cheap traitor!  " (-1000))] $ selectCureTarget cid 0)]
     run $ selectEsc msg lst
 
 tryCureCharacter :: CharacterID -> CharacterID -> GameMachine

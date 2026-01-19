@@ -2,6 +2,7 @@
 module Data.Enemies
 where
 
+import PreludeL
 import Data.List (nub)
 import qualified Data.Map as Map
 
@@ -14,7 +15,7 @@ import qualified Data.Items as Item
 data Instance = Instance {
       id            :: !EnemyID -- ^ define id.
     , define        :: !Define  -- ^ define.
-    , noID          :: !Int     -- ^ number for identiry inscance.
+    , noID          :: !Int     -- ^ number for identify instance.
     , determined    :: !Bool
     , hp            :: !Int
     , maxhp         :: !Int
@@ -90,7 +91,7 @@ data Action = Fight Int     -- ^ count of attack.
                     [(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
             | Spelling Formula -- ^ spel id.
             | Breath Formula [EffectLabel] -- ^ damage.
-            | CallBakup -- TODO:not implement
+            | CallBakup Formula -- ^ success probably. "num" means count of consist enemy group.
             | Run
     deriving (Show, Eq, Read)
 

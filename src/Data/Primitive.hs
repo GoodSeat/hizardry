@@ -1,6 +1,7 @@
 module Data.Primitive
 where
 
+import PreludeL
 import Data.Formula
 
 import GHC.Stack (HasCallStack)
@@ -57,6 +58,12 @@ data PictureInf = Null
                 | List   [PictureInf]
   deriving (Show, Eq, Read)
 
+instance Semigroup PictureInf where
+    v1 <> v2 = List [v1, v2]
+
+instance Monoid PictureInf where
+    mempty  = Null
+    mappend = (<>)
 
 -- ==========================================================================
 -- label

@@ -1,8 +1,9 @@
-module PreludeL (module Prelude, (!!))
+module PreludeL (module Prelude, (!!), read)
 where
 
 import GHC.Stack (HasCallStack)
-import Prelude hiding ((!!))
+import Prelude hiding ((!!), read)
+import Text.Read (readMaybe)
 
 -- | List index (subscript) operator, starting from 0.
 -- It is an instance of the more general 'Data.List.genericIndex',
@@ -22,3 +23,16 @@ import Prelude hiding ((!!))
 (e:es) !! n = if n < 0 then error "negative index" else es !! (n - 1)
 []     !! n = error "index too large"
 
+-- | The 'read' function reads input from a string, which must be
+-- completely consumed by the input process. 'read' fails with an 'error' if the
+-- parse is unsuccessful, and it is therefore discouraged from being used in
+-- real applications. Use 'readMaybe' or 'readEither' for safe alternatives.
+--
+-- >>> read "123" :: Int
+-- 123
+--
+-- >>> read "hello" :: Int
+-- *** Exception: Prelude.read: no parse
+read :: HasCallStack => Read a => String -> a
+read s = case readMaybe s of Just r  -> r
+                             Nothing -> error "no parse"

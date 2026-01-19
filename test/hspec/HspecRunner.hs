@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Prelude
 import Test.Hspec
 import qualified Spec
 import qualified Engine.CharacterActionSpec

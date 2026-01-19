@@ -1,10 +1,12 @@
 module Data.GameEvent
 where
 
+import PreludeL
 import qualified Data.Map as Map
 import Data.Maze
 import Data.Primitive
 import Data.Formula
+import Data.PlayEvent (SEType, BGMType)
 import qualified Data.Spells as Spell
 import qualified Data.Characters as Character
 
@@ -26,18 +28,26 @@ data Define =
             | SelectT      Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
             | AskT         Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
+            | FlashMessage     String
+            | FlashMessageTime String Int
+
+--          | SelectItem [(Maybe Formula, Define)] -- item id (Nothing mean cancel) TODO
+
             -- happens
             | Switch [(Condition, Define)]
-            | GetItem       TargetType Formula Bool -- item id, is wheter determined.
-            | LostItem      TargetType Formula      -- item id.
+            | GetItem       TargetType Formula Bool [Define] -- item id, is wheter determined, if failed, go to second define.
+            | LostItem      TargetType Formula [Define]      -- item id, if failed, go to second define.
             | GetGold       TargetType Formula
-            | LostGold      TargetType Formula
+            | LostGold      TargetType Formula [Define]
             | ChangeHP      TargetType Formula
             | ChangeMP      TargetType Spell.Kind [Int] Formula -- target kind, Lv, heal point
             | ChangeJob     TargetType String -- job name.
             | LearningSpell TargetType Formula
             | ChangeEventFlag Int Formula -- change index, post changed value
             | ChangeLeader  PartyPos -- temporary change leader in this event.
+
+            | PlaySoundEffect SEType
+            | PlayBGM         BGMType
 
             -- others
             | AsSpell SpellID

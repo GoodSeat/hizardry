@@ -2,7 +2,6 @@
 module Engine.Utils where
 
 import PreludeL
-import Prelude hiding ((!!))
 import System.Random
 import Control.Monad.Except
 import Control.Monad.State
@@ -67,6 +66,9 @@ parse'D s help next = GameAuto $ do
                                               in next $ parse' (if null s'' then s else s'))
                    else run $ next (parse' s)
 
+isNullKey :: String -> Bool
+isNullKey = null . filter (/= '\n') . filter (/= '\r')
+
 fst3 (t1, _, _) = t1
 snd3 (_, t2, _) = t2
 thd3 (_, _, t3) = t3
@@ -123,7 +125,7 @@ randomsIn n as
 -- ---------------------------------------------------------------------------------
 
 mazeInfAt :: Int -> GameState (String, Size2D, Maze)
-mazeInfAt z = join (asks mazes <*> pure z)
+mazeInfAt z = fromJust <$> join (asks mazes <*> pure z)
 
 mazeAt :: Int -> GameState Maze
 mazeAt = fmap thd3 <$> mazeInfAt
@@ -345,6 +347,12 @@ sortPartyAutoWith psOrg = do
         p1s = filter (`notElem` p2s) ps'
     put $ w { party = fst <$> (p1s ++ p2s) }
 
+isTotalAnnihilation :: GameState Bool
+isTotalAnnihilation = do
+    cids <- party <$> world
+    pcs  <- mapM characterByID cids
+    return $ all mustGotoTemple pcs
+
 -- =================================================================================
 -- for Enemies.
 -- ---------------------------------------------------------------------------------
@@ -461,7 +469,7 @@ acOf :: TargetSO -> GameState Int
 acOf (Right e) = return $ Enemy.ac (Enemy.define e) + deltaAC (Enemy.modParam e)
 acOf s@(Left c) = do
     eats <- allValidEquipAttrs c
-    let m = formulaMapSBase s
+    m    <- formulaMapSBase s
     acEq <- sum <$> mapM (evalWith m . Item.ac) eats
 
     acBase <- evalWith m (Chara.baseAC (Chara.job c))
@@ -548,50 +556,124 @@ addParamToMap prefix s m = do
            . insert (prefix ++ "luc") luc
            $ m
 
-addParamBase :: String -> TargetSO -> Map String Int -> Map String Int
-addParamBase prefix (Left  s) = addParamBase' prefix s
-addParamBase prefix (Right s) = addParamBase' prefix s
+addParamToMapBase :: String -> TargetSO -> Map String Int -> GameState (Map String Int)
+addParamToMapBase prefix so m = case so of
+    Left  s -> do 
+        cids <- party <$> world
+        ps   <- mapM characterByID cids
+        let idx = elemIndex s ps 
+        return $ addParamBase' prefix s . addParamBaseC prefix s . insert (prefix ++ "pos") idx $ m
+    Right s -> return $ addParamBase' prefix s m
+  where
+    addParamBase' :: Object o => String -> o -> Map String Int -> Map String Int
+    addParamBase' prefix o = insert (prefix ++ "lv"   ) (lvOf    o)
+                           . insert (prefix ++ "hp"   ) (hpOf    o)
+                           . insert (prefix ++ "maxhp") (maxhpOf o)
+    addParamBaseC :: String -> Chara.Character -> Map String Int -> Map String Int
+    addParamBaseC prefix o = insert (prefix ++ "age"  ) (Chara.age   o)
+                           . insert (prefix ++ "exp"  ) (Chara.exp   o)
+                           . insert (prefix ++ "gold" ) (Chara.gold  o)
+                           . insert (prefix ++ "marks") (Chara.marks o)
+                           . insert (prefix ++ "rips" ) (Chara.rips  o)
+    elemIndex :: Eq a => a -> [a] -> Int
+    elemIndex = elemIndex' 0
+    elemIndex' _ _ []     = -1
+    elemIndex' i a (b:bs) = if a == b then i else elemIndex' (i + 1) a bs
 
-addParamBase' :: Object o => String -> o -> Map String Int -> Map String Int
-addParamBase' prefix o = insert (prefix ++ "lv") (lvOf o)
-                       . insert (prefix ++ "hp") (hpOf o)
-                       . insert (prefix ++ "maxhp") (maxhpOf o)
+addBaseToMap :: Map String Int -> GameState (Map String Int)
+addBaseToMap m = do
+  n   <- length . party <$> world
+  efs <- eventFlags <$> world
+  ess <- concat <$> lastEnemies
+  return $ foldl (\acc i -> Data.Map.insert ("evf." ++ show i) (efs !! i) acc)
+           (insert "partySize" n . insert "enemyCount" (length ess) $ m) [0..99]
 
-
-formulaMapS :: TargetSO -> GameState (Map String Int)
-formulaMapS s = addParamToMap "" s (formulaMapSBase s)
-
+formulaMapS  :: TargetSO -> GameState (Map String Int)
+formulaMapS s    = formulaMapSBase s >>= addParamToMap "" s
 formulaMapSO :: TargetSO -> TargetSO -> GameState (Map String Int)
-formulaMapSO s o = addParamToMap "" s (formulaMapSOBase s o) >>= addParamToMap "o." o
+formulaMapSO s o = formulaMapSOBase s o >>= addParamToMap "" s >>= addParamToMap "o." o
 
-formulaMapSBase :: TargetSO -> Map String Int
-formulaMapSBase s = addParamBase "" s empty
-
-formulaMapSOBase :: TargetSO -> TargetSO -> Map String Int
-formulaMapSOBase s o = addParamBase "o." o . addParamBase "" s $ empty
+formulaMapSBase  :: TargetSO -> GameState (Map String Int)
+formulaMapSBase s    = addParamToMapBase "" s empty
+formulaMapSOBase :: TargetSO -> TargetSO -> GameState (Map String Int)
+formulaMapSOBase s o = addParamToMapBase "o." o =<< addParamToMapBase "" s empty
 
 formulaMapC :: Chara.Character -> GameState (Map String Int)
-formulaMapC o = do
-     m <- formulaMapS (Left o)
-     return $ insert "age"     (Chara.age  o)
-            . insert "exp"     (Chara.exp  o)
-            . insert "gold"    (Chara.gold o)
-            . insert "marks"   (Chara.marks o)
-            . insert "rips"    (Chara.rips o)
-            $ m
+formulaMapC o = formulaMapS (Left o)
 
-formulaMapCP :: Int -> Int -> Chara.Character -> GameState (Map String Int)
-formulaMapCP i n o = do
-     m <- formulaMapC o
-     return $ insert "order" i
-            . insert "partynum" n
-            . insert "partynum" n
-            $ m
+formulaMapP :: GameState (Map String Int)
+formulaMapP = addBaseToMap empty
 
-addEvFlagToFormulaMap :: Map String Int -> GameState (Map String Int)
-addEvFlagToFormulaMap m = do
-  efs <- eventFlags <$> world
-  return $ foldl (\acc i -> Data.Map.insert ("evf." ++ show i) (efs !! i) acc) m [0..99]
+
+-- =================================================================================
+-- General GameMachine
+-- ---------------------------------------------------------------------------------
+
+totalAnnihilation :: StatusError -> GameMachine
+totalAnnihilation se = GameAuto $ do
+    p <- currentPosition
+    movePlace TotalAnnihilation
+    ps <- party <$> world
+    forM_ ps $ flip updateCharacterWith (addStatusError se)
+    run $ events [withBGM AllDead $ message "パーティは全滅しました"] (suspendMazing p)
+
+suspendMazing :: Position -> GameMachine
+suspendMazing p = GameAuto $ do
+    modify $ \w -> w { inMazeMember = inMazeMember w ++ ((,p) <$> party w), party = [] }
+    toCastle <- home
+    returnToCastle >> run toCastle
+
+
+-- =================================================================================
+-- Change World.
+-- ---------------------------------------------------------------------------------
+
+-- | state machine when return to castle.
+returnToCastle :: GameState ()
+returnToCastle = do
+    resetRoomBattle
+    setLightValue True  0
+    setLightValue False 0
+
+    resetEffectInOnlyBattle
+
+    ps <- party <$> world
+    forM_ ps $ \p -> do
+      c <- characterByID p
+      updateCharacter p c { Chara.paramDelta = [] }
+      updateCharacterWith p whenReturnCastle
+
+    -- remove dead/stoned/staned characters etc.
+    rcis <- flip filterM ps $ fmap mustGotoTemple . characterByID
+
+    modify $ \w -> w {
+        partyParamDelta = []
+      , party           = filter (not . (`elem` rcis)) $ party w
+      , inTavernMember  = sort $ inTavernMember w ++ rcis
+      }
+
+
+-- | remove effects that is valid in battle only.
+resetEffectInOnlyBattle :: GameState ()
+resetEffectInOnlyBattle = do
+    ps <- party <$> world
+    mapM_ (`updateCharacterWith` (\ca -> ca { Chara.paramDelta = filter ((/= OnlyInBattle) . fst) (Chara.paramDelta ca) })) ps
+    w <- world
+    modify $ \w -> w { partyParamDelta = filter ((/= OnlyInBattle) . fst) (partyParamDelta w) }
+
+
+
+resetRoomBattle :: GameState ()
+resetRoomBattle = modify $ \w -> w { roomBattled = [] }
+
+setLightValue :: Bool -> Int -> GameState ()
+setLightValue super n = modify $ \w -> if super then w { partyLight' = n }
+                                                else w { partyLight = n }
+
+setLightValueWith :: Bool -> (Int -> Int) -> GameState ()
+setLightValueWith super f = do
+    n <- gets (f . if super then partyLight' else partyLight)
+    when (n >= 0) $ setLightValue super n
 
 
 -- =================================================================================
@@ -607,8 +689,4 @@ currentPosition = do
                 Camping p _           -> return p
                 _                     -> err "failed on currentPosition."
 --              _                     -> return (Position N 0 0 0)
-
-
-isNullKey :: String -> Bool
-isNullKey = null . filter (/= '\n') . filter (/= '\r')
 

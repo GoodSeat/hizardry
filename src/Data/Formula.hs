@@ -6,6 +6,8 @@ module Data.Formula (
     , evalFormula
 ) where
 
+import PreludeL
+import Prelude hiding (read)
 import System.Random
 import Text.ParserCombinators.Parsec hiding (token)
 import Text.Parsec.Expr
@@ -108,6 +110,14 @@ data Formula = Value Int
 -- >>> let f4 = parse' "min(60, 4+1d5+max(0,1d10-9)*10+max(0,1d100-99)*20+max(0,1d1000-999)*30)"
 -- >>> read (show [f3, f4]) == [f3, f4]
 -- True
+--
+-- >>> let f5 = parse' "min(95,max(50+5*lv-10*o.lv-20,5))"
+-- >>> read (show f5) == f5
+-- True
+--
+-- >>> let f6 = parse' "lv>=4"
+-- >>> read (show f6) == f6
+-- True
 instance Show Formula where
     show (Value n)       = show n
     show (Operate o n m) = "(" ++ show n ++ show o ++ show m ++ ")"
@@ -136,8 +146,10 @@ cmpr = buildExpressionParser table (token factor) <?> "expression"
              [binary "*" (Operate Production ) AssocLeft, binary "/"  (Operate Division      ) AssocLeft, binary "%" (Operate Surplus   ) AssocLeft]
             ,[binary "+" (Operate Addition   ) AssocLeft, binary "-"  (Operate Subtraction   ) AssocLeft]
             ,[binary "=" (Operate Equal      ) AssocLeft
-             ,binary "<" (Operate LesserThan ) AssocLeft, binary "<=" (Operate LesserOrEqual ) AssocLeft
-             ,binary ">" (Operate GreaterThan) AssocLeft, binary ">=" (Operate GreaterOrEqual) AssocLeft
+             ,binary "<=" (Operate LesserOrEqual ) AssocLeft
+             ,binary "<" (Operate LesserThan ) AssocLeft
+             ,binary ">=" (Operate GreaterOrEqual) AssocLeft
+             ,binary ">" (Operate GreaterThan) AssocLeft
              ]
             ]
     binary mark fun = Infix (string mark >> return fun)

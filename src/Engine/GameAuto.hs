@@ -4,6 +4,7 @@ module Engine.GameAuto (
     , module Engine.GameAuto
     ) where
 
+import PreludeL
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Reader
@@ -31,63 +32,82 @@ data ScenarioOption = ScenarioOption {
 
 -- | scenario immutable data.
 data Scenario = Scenario {
-      scenarioName   :: !String -- ^ use this name as save file path.
-    , scenarioOption :: !ScenarioOption
-    , scenarioHome   :: !GameMachine
-    , racies         :: ![Race]
-    , jobs           :: ![Job]
-    , mazes          :: Int -> GameState (String, Size2D, Maze)
-    , encountMap     :: !(Map.Map Coord (Int, [EnemyID]))
-    , roomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
-    , roomDefine     :: ![[Coord]]
-    , eventMap       :: !(Map.Map Coord GameEventID)
-    , eventMapDir    :: !(Map.Map Position GameEventID)
-    , eventInspect   :: !(Map.Map Position GameEventID)
-    , mazeEvents     :: !GameEvent.DB
-    , enemies        :: !Enemy.DB
-    , spells         :: !Spell.DB
-    , items          :: !Item.DB
-    , encKey         :: !String
+      scenarioName     :: !String -- ^ use this name as save file path.
+    , scenarioVersion  :: ![Int]
+    , scenarioOption   :: !ScenarioOption
+    , scenarioHome     :: !GameMachine
+    , racies           :: ![Race]
+    , jobs             :: ![Job]
+    , mazes            :: Int -> GameState (Maybe (String, Size2D, Maze))
+    , encountMap       :: !(Map.Map Coord (Int, [EnemyID]))
+    , roomBattleMap    :: !(Map.Map Coord (Int, [EnemyID]))
+    , roomDefine       :: ![[Coord]]
+    , eventMap         :: !(Map.Map Coord GameEventID)
+    , eventMapDir      :: !(Map.Map Position GameEventID)
+    , eventInspect     :: !(Map.Map Position GameEventID)
+    , mazeEvents       :: !GameEvent.DB
+    , enemies          :: !Enemy.DB
+    , spells           :: !Spell.DB
+    , items            :: !Item.DB
+    , scenarioFormulas :: !ScenarioFormulas
+    , encKey           :: !String
     }
+
 data InitScenario = InitScenario {
-      initScenarioName   :: !String
-    , initScenarioOption :: !ScenarioOption
-    , initRacies         :: ![Race]
-    , initJobs           :: ![Job]
-    , initMazes          :: ![(String, Size2D, Maze)]
-    , initEncountMap     :: !(Map.Map Coord (Int, [EnemyID]))
-    , initRoomBattleMap  :: !(Map.Map Coord (Int, [EnemyID]))
-    , initRoomDefine     :: ![[Coord]]
-    , initEventMap       :: !(Map.Map Coord GameEventID)
-    , initEventMapDir    :: !(Map.Map Position GameEventID)
-    , initEventInspect   :: !(Map.Map Position GameEventID)
-    , initMazeEvents     :: !GameEvent.DB
-    , initEnemies        :: !Enemy.DB
-    , initSpells         :: !Spell.DB
-    , initItems          :: !Item.DB
-    , initEncKey         :: !String
+      initScenarioName     :: !String
+    , initScenarioVersion  :: ![Int]
+    , initScenarioOption   :: !ScenarioOption
+    , initRacies           :: ![Race]
+    , initJobs             :: ![Job]
+    , initMazes            :: ![(String, Size2D, Maze)]
+    , initEncountMap       :: !(Map.Map Coord (Int, [EnemyID]))
+    , initRoomBattleMap    :: !(Map.Map Coord (Int, [EnemyID]))
+    , initRoomDefine       :: ![[Coord]]
+    , initEventMap         :: !(Map.Map Coord GameEventID)
+    , initEventMapDir      :: !(Map.Map Position GameEventID)
+    , initEventInspect     :: !(Map.Map Position GameEventID)
+    , initMazeEvents       :: !GameEvent.DB
+    , initEnemies          :: !Enemy.DB
+    , initSpells           :: !Spell.DB
+    , initItems            :: !Item.DB
+    , initScenarioFormulas :: !ScenarioFormulas
+    , initEncKey           :: !String
     }
 
 initScenario :: InitScenario -> GameMachine -> Scenario
 initScenario i home = Scenario {
-      scenarioName              = initScenarioName   i
-    , scenarioOption            = initScenarioOption i
+      scenarioName              = initScenarioName     i
+    , scenarioVersion           = initScenarioVersion  i
+    , scenarioOption            = initScenarioOption   i
     , scenarioHome              = home
-    , racies                    = initRacies         i
-    , jobs                      = initJobs           i
-    , mazes                     = \z -> pure $ initMazes i !! z 
-    , encountMap                = initEncountMap     i
-    , roomBattleMap             = initRoomBattleMap  i
-    , roomDefine                = initRoomDefine     i
-    , eventMap                  = initEventMap       i
-    , eventMapDir               = initEventMapDir    i
-    , eventInspect              = initEventInspect   i
-    , mazeEvents                = initMazeEvents     i
-    , enemies                   = initEnemies        i
-    , Engine.GameAuto.spells    = initSpells         i
-    , Engine.GameAuto.items     = initItems          i
-    , encKey                    = initEncKey         i
+    , racies                    = initRacies           i
+    , jobs                      = initJobs             i
+    , mazes                     = \z -> pure $ if z < length (initMazes i) then Just (initMazes i !! z) else Nothing
+    , encountMap                = initEncountMap       i
+    , roomBattleMap             = initRoomBattleMap    i
+    , roomDefine                = initRoomDefine       i
+    , eventMap                  = initEventMap         i
+    , eventMapDir               = initEventMapDir      i
+    , eventInspect              = initEventInspect     i
+    , mazeEvents                = initMazeEvents       i
+    , enemies                   = initEnemies          i
+    , Engine.GameAuto.spells    = initSpells           i
+    , Engine.GameAuto.items     = initItems            i
+    , scenarioFormulas          = initScenarioFormulas i
+    , encKey                    = initEncKey           i
 }
+
+data ScenarioFormulas = ScenarioFormulas {
+      invokeTrapInspectProb :: !String -- ^ probality when invoke trap when failed inspect trap(%).
+    , invokeTrapDisarmProb  :: !String -- ^ probality when invoke trap when failed disarm trap(%).
+    , fleeSucceedProb       :: !String -- ^ probality succeed to flee(%).
+    }
+defaultFormulas ::ScenarioFormulas
+defaultFormulas = ScenarioFormulas {
+      invokeTrapInspectProb = "100*(19-agi)/20"
+    , invokeTrapDisarmProb  = "100*(20-agi)/20"
+    , fleeSucceedProb       = "100-enemyCount/2-partySize*3"
+    }
 
 -- ==========================================================================
 
@@ -121,6 +141,11 @@ instance Monad (GameAuto i) where
       
 -- | GameMachine by Automaton.
 type GameMachine = GameAuto Input Event
+
+addEff :: (Event -> Event) -> GameMachine -> GameMachine
+addEff f g = GameAuto $ do
+  (o, next) <- run g
+  return (f o, next)
 
 -- ==========================================================================
 --
@@ -221,11 +246,11 @@ stepGame s w g = let (res, w') = runGameState s w $ run g in case res of
 
 nextInputType :: Event -> InputType
 nextInputType e = case e of
-    General (Display _ _ _ w _ n)
+    General (Display _ _ _ w _ n _ _)
       | isJust w  -> WaitClock $ fromJust w 
       | n         -> SequenceKey
       | otherwise -> SingleKey
-    ShowStatus _ _ (Display _ _ _ w _ n)
+    ShowStatus _ _ (Display _ _ _ w _ n _ _)
       | isJust w  -> WaitClock $ fromJust w 
       | n         -> SequenceKey
       | otherwise -> SingleKey
@@ -293,7 +318,7 @@ talkSelect msg t picInf lastStep = ac msgs
     msgs = reverse $ reverse <$> foldr (\c acc -> (c:head acc):acc) [[]] (reverse msg)
     lstep = lastStep $ messagePic msg picInf
     ac ms = let nstep = if length ms <= 1 then lstep else ac (tail ms);
-                cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)]
+                cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)] ++ [(Key [s], lstep) | s <- ['a'..'z']]
             in select (messageTime t (head ms) picInf) cs
 
 

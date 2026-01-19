@@ -1,5 +1,6 @@
 module SampleScenario.Home where
 
+import PreludeL
 import Engine.GameAuto
 import Engine.InCastle
 import Engine.Utils
@@ -8,6 +9,8 @@ import Data.World
 import Data.Maze
 import Data.Formula
 import Control.CUI
+import UI.CuiRender
+import UI.SoundControl
 
 import qualified Data.Map as Map
 
@@ -48,7 +51,7 @@ initScenario = return (s, w)
               (ItemID 1, 10), (ItemID 2, 2), (ItemID 3, 2)
             , (ItemID 11, 3), (ItemID 12, 3), (ItemID 13, 3)
             , (ItemID 14, 3), (ItemID 15, 3), (ItemID 16, 3)
-            , (ItemID 17, 3), (ItemID 104,1), (ItemID 105,1), (ItemID 106,1)
+            , (ItemID 17, 3), (ItemID 104,1), (ItemID 105,1), (ItemID 106,1), (ItemID 107,100)
             ]
         , initAllCharacters   = Map.fromList [
               (CharacterID 1, testChara1)
@@ -63,15 +66,17 @@ initScenario = return (s, w)
         , enableMinimapType   = [Disable, Normal, AlwaysN]
         }
     s = InitScenario {
-          initScenarioName   = "SampleScenario"
-        , initScenarioOption = option
-        , initRacies         = SampleRacies.racies
-        , initJobs           = SampleJobs.jobs
-        , initMazes          = [
+          initScenarioName     = "SampleScenario"
+        , initScenarioVersion  = [0,1,0,0]
+        , initScenarioOption   = option
+        , initRacies           = SampleRacies.racies
+        , initJobs             = SampleJobs.jobs
+        , initMazes            = [
               ("B1F", ( 4,  5), SampleMaze.maze1F)
-            , ("B2F", (26, 25), SampleMaze.maze2F)
+--          , ("B2F", (26, 25), SampleMaze.maze2F)
+            , ("B2F", (6, 5), SampleMaze.maze2F)
             ]
-        , initEncountMap     = Map.fromList [
+        , initEncountMap       = Map.fromList [
               ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
             , ((0, 1, 0), (10, [EnemyID 1, EnemyID 2]))
             , ((0, 2, 0), (10, [EnemyID 1, EnemyID 2]))
@@ -79,18 +84,19 @@ initScenario = return (s, w)
             , ((0, 4, 0), (10, [EnemyID 1, EnemyID 2]))
             , ((1, 2, 0), (10, [EnemyID 1, EnemyID 2]))
             ]
-        , initRoomBattleMap  = Map.fromList [
+        , initRoomBattleMap    = Map.fromList [
               ((1, 2, 0), (75, [EnemyID 1, EnemyID 2]))
             ]
-        , initRoomDefine     = []
-        , initMazeEvents     = SampleEvents.mazeEvents
-        , initEventMap       = SampleEvents.eventMap
-        , initEventMapDir    = SampleEvents.eventMapDir
-        , initEventInspect   = Map.fromList [ (Position E 2 1 0, GameEventID 02010101) ]
-        , initEnemies        = SampleEnemies.enemies
-        , initSpells         = SampleSpells.spells
-        , initItems          = SampleItems.items
-        , initEncKey         = "hizardry-secret-key"
+        , initRoomDefine       = []
+        , initMazeEvents       = SampleEvents.mazeEvents
+        , initEventMap         = SampleEvents.eventMap
+        , initEventMapDir      = SampleEvents.eventMapDir
+        , initEventInspect     = Map.fromList [ (Position E 2 1 0, GameEventID 02010101) ]
+        , initEnemies          = SampleEnemies.enemies
+        , initSpells           = SampleSpells.spells
+        , initItems            = SampleItems.items
+        , initScenarioFormulas = defaultFormulas
+        , initEncKey           = "hizardry-secret-key"
         }
     param = Parameter {
           strength = 12
@@ -156,6 +162,7 @@ initScenario = return (s, w)
         , Character.job      = SampleJobs.priest
         , Character.alignment= Character.N
         , Character.spells   = [SpellID 11, SpellID 13, SpellID 14, SpellID 15, SpellID 16, 
+                                SpellID 71,
                                 SpellID 112, SpellID 114 
                                ]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
@@ -202,10 +209,12 @@ modScenario s = let org = mazes s in s {
     mazes = \z -> do
         flg2 <- evFlag 2
         if z == 0 && flg2 == 1
-          then return ("B1F", ( 4,  5), SampleMaze.maze1F')
+          then return $ Just ("B1F", ( 4,  5), SampleMaze.maze1F')
           else org z
     }
 
+
+-- ==========================================================================
 
 pic :: PictureInf -> Craphic
 pic Null = mempty
@@ -221,3 +230,41 @@ pic (Diff p1 p2)     = diff (pic p1) (pic p2)
 pic (List [])        = mempty
 pic (List (pi:pis))  = pic pi <> pic (List pis)
 
+
+seOf :: SETypeToFilePath
+seOf Walk            = Just "res/walk.mp3"
+seOf TurnLeftOrRight = Just "res/walk.mp3"
+seOf HitWall         = Just "res/hit1.mp3"
+seOf KickDoor        = Just "res/kickDoor.mp3"
+seOf Spelled         = Just "res/spell1.mp3"
+seOf FightHitToP     = Just "res/hit1.mp3"
+seOf FightHitToE     = Just "res/hit2.mp3"
+seOf SpellHitToP     = Just "res/hit1.mp3"
+seOf SpellHitToE     = Just "res/hit2.mp3"
+seOf (EventSE s)     = Just ("res/" ++ s ++ ".mp3")
+seOf _               = Nothing
+
+bgmOf :: BGMTypeToFilePath
+bgmOf (op, otitle) np typeBGM = 
+    case typeBGM of
+      TurnOff          -> Just $ Left ""
+      Encounter        -> Just $ Left "res/encounter.mp3"
+      WinBattle        -> Just $ Left "res/fanfare1.mp3"
+      LevelUp          -> Just $ Left "res/lvup.mp3"
+      AllDead          -> Just $ Right "res/annihilation.mp3"
+      (EventBGM s)     -> Just $ Right ("res/" ++ s ++ ".mp3")
+      (EventBGMOnce s) -> Just $ Left  ("res/" ++ s ++ ".mp3")
+      _         -> case np of
+          InCastle              -> Just $ Right "res/inCastle.mp3"
+          Gilgamesh'sTavern     -> Just $ Right "res/inTavern.mp3"
+          Adventure'sInn        -> Just $ Right "res/inAdventuresInn.mp3"
+          Boltac'sTradingPost   -> Just $ Right "res/inPost.mp3"
+          TempleOfCant          -> Just $ Right "res/inTemple.mp3"
+          InEdgeOfTown          -> Just $ Right "res/inEdgeOfTown.mp3"
+          TrainingGrounds       -> Just $ Right "res/inEdgeOfTown.mp3"
+          EnteringMaze          -> Just $ Left ""
+          InMaze _              -> Just $ Right "res/inMaze1.mp3"
+          InBattle _ _          -> Just $ Right "res/inBattle1.mp3"
+          FindTreasureChest _ _ -> Just $ Right ""
+          Camping _ t           -> if t == "" then Just $ Right "res/inCamp.mp3" else Nothing
+          _                     -> Nothing

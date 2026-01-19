@@ -1,6 +1,7 @@
 module Control.CUI
 where
 
+import PreludeL
 import Control.Monad
 import Data.Char
 import Data.Maybe (fromMaybe)

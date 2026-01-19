@@ -1,5 +1,6 @@
 module SampleScenario.Enemies where
 
+import PreludeL
 import qualified Data.Enemies as Enemy
 import qualified Data.Map as Map
 
@@ -23,7 +24,7 @@ enemies = Map.fromList [
         , Enemy.friendlyProb      = 0
         , Enemy.numOfOccurrences  = parse' "2d2"
         , Enemy.healPerTurn       = 2
-        , Enemy.moveFrontProb     = 20
+        , Enemy.moveFrontProb     = 40
 
         , Enemy.resistError       = [(Dead, read "6")]
         , Enemy.vsEffectLabels    = [(EffectLabel "fire", read "value*5")]
@@ -34,6 +35,7 @@ enemies = Map.fromList [
                                      ,(read "lv*20-o.lv", Poison 2, [EffectLabel "mucus"])
                                      ]
                                     ,Enemy.Breath (read "hp/2") [EffectLabel "fire"]
+                                    ,Enemy.CallBakup (read "100 - num * 30")
                                     ]
 
         , Enemy.dropItem          = [(50, parse' "1d3")]

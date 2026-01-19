@@ -1,6 +1,7 @@
 module Data.Items
 where
 
+import PreludeL
 import Data.Primitive
 import Data.Formula
 import qualified Data.Map as Map
@@ -21,6 +22,7 @@ data Define = Define {
     , enableToEquip    :: UserType
     , enableToUse      :: UserType
     , itemLv           :: Int
+    , itemInformation  :: (String, PictureInf)
 } deriving (Show, Eq, Read)
 
 

@@ -1,11 +1,13 @@
 module SampleScenario.Events where
 
+import PreludeL
 import qualified Data.Map as Map
 import qualified Data.GameEvent as Ev
 
 import Data.Primitive
 import Data.Maze
 import Data.Formula
+import Data.PlayEvent
 
 mazeEvents :: Ev.DB
 mazeEvents = Map.fromList [
@@ -40,15 +42,22 @@ mazeEvents = Map.fromList [
          ]
        ])
 
+    , (GameEventID 000003, 
+         Ev.Message "綺麗な水だ。"
+         (Just $ List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051)])
+      )
+
     -- like NPC
     , (GameEventID 010102, 
-         Ev.Message "何者かが近づいてきた。" Nothing
+--       Ev.Message "何者かが近づいてきた。" Nothing
+         Ev.PlayBGM Encounter <> Ev.FlashMessageTime  "    Encounter!!    " (-1000)
+      <> Ev.PlayBGM (EventBGM "themeOfSoleil")
       <> Ev.MessageT (-15) "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ Single $ PictureID 1002)
       <> Ev.Reference (GameEventID 010104)
        )
     , (GameEventID 010104, 
          Ev.Select "Party's Option\n  ^T)alk  ^L)eave" (Just $ Single $ PictureID 1002)
-         [("l", Ev.MessageT (-15) "さらばだ！！" (Just $ Single $ PictureID 1002))
+         [("l", Ev.MessageT (-15) "さらばだ！！" (Just $ Single $ PictureID 1002) <> Ev.PlayBGM Ambient)
          ,("t", Ev.Reference (GameEventID 010103))
          ]
        )
@@ -71,6 +80,24 @@ mazeEvents = Map.fromList [
                     <> Ev.Reference (GameEventID 010103))
          , ("place" ,  Ev.MessageT (-15) "自分で探すのだ!" (Just $ Single $ PictureID 1002)
                     <> Ev.Reference (GameEventID 010103))
+         , ("くれ" ,  Ev.MessageT (-15) "強欲な奴だ、これをやろう。" (Just $ Single $ PictureID 1002)
+                    <> Ev.GetItem Ev.Leader (read "3") True [
+                         Ev.PlayBGM (EventBGMOnce "getitem")
+                      <> Ev.Message "あなたは水を手に入れた。"
+                         (Just $ List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051), Single (PictureID 1002)])
+                      <> Ev.PlayBGM (EventBGM "themeOfSoleil")
+                       , Ev.MessageT (-15) "お前、もう持てないぞ、強欲すぎるだろ" (Just $ Single $ PictureID 1002)
+                       ]
+                    <> Ev.Reference (GameEventID 010103))
+         , ("みず" ,  Ev.MessageT (-15) "強欲な奴だ、これをやろう。" (Just $ Single $ PictureID 1002)
+                    <> Ev.GetItem Ev.All (read "3") True [
+                         Ev.PlayBGM (EventBGMOnce "getitem")
+                      <> Ev.Message "あなたは水を手に入れた。"
+                         (Just $ List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051), Single (PictureID 1002)])
+                      <> Ev.PlayBGM (EventBGM "themeOfSoleil")
+                       , Ev.MessageT (-15) "お前、もう持てないぞ、強欲すぎるだろ" (Just $ Single $ PictureID 1002)
+                       ]
+                    <> Ev.Reference (GameEventID 010103))
 
          , ("goodbye\nbye", Ev.MessageT (-15) "またいつでも来ると良い!!" (Just $ Single $ PictureID 1002) <> Ev.Reference (GameEventID 010104))
          , ("castle\nしろ" , Ev.SelectT (-15) "なんだ、城に帰りたいのか？\n(^Y/^N)" (Just $ Single $ PictureID 1002)
@@ -79,7 +106,8 @@ mazeEvents = Map.fromList [
                          <> Ev.MessageTime        "\nちょっと待っとれ.."  (Just $ Single $ PictureID 1002) (500)
                          <> Ev.MessageTime        "\nちょっと待っとれ..." (Just $ Single $ PictureID 1002) (500)
                          <> Ev.MessageTimeT (-10) "\nMAPILO MAHAMA DILOMAT!!" (Just $ Single $ PictureID 1002) 750
-                         <> Ev.MessageTime        "\nMAPILO MAHAMA DILOMAT!! だったかな?" (Just $ Single $ PictureID 1002) 300 <> Ev.ReturnCastle)
+                         <> Ev.MessageTime        "\nMAPILO MAHAMA DILOMAT!! だったかな?" (Just $ Single $ PictureID 1002) 300
+                         <> Ev.PlayBGM Ambient <> Ev.ReturnCastle)
                        ,("n",
                            Ev.MessageT (-15) "そうなの?" (Just $ Single $ PictureID 1002) <> Ev.Reference (GameEventID 010103))
                        ])

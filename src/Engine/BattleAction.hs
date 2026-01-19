@@ -2,9 +2,9 @@
 module Engine.BattleAction
 where
 
-import Prelude hiding (lookup)
+import PreludeL hiding (lookup)
 import qualified Data.Map as Map
-import Data.List hiding (lookup)
+import Data.List hiding (lookup, (!!))
 import Data.Maybe (fromJust)
 import Data.Function ((&))
 import Data.Map hiding (filter, null, foldl, foldl', foldr, take, drop)
@@ -24,7 +24,7 @@ import Engine.CharacterAction (
     , castAddStatusErrorSpell
     , breakItem
     )
-import Engine.InEvent (setLightValue, doEvent)
+import Engine.InEvent (doEvent)
 import Data.World
 import Data.Formula
 import Data.Primitive
@@ -32,6 +32,7 @@ import qualified Data.Enemies as Enemy
 import qualified Data.Characters as Chara
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
+import qualified Data.Maze as Maze
 
 import Control.CUI (translate)
 
@@ -40,30 +41,43 @@ type ActionOfCharacter = CharacterID  -- ^ id of actor.
                       -> GameMachine  -- ^ next game auto.
                       -> GameMachine  -- ^ game auto.
 
-msgBlink :: [String] -> [Event]
-msgBlink [] = []
-msgBlink (m:ms) = messageTime 2 (unlines $ head ls : ("" <$ tail ls)) Nothing : (message <$> m : ms)
-  where ls = lines m
+messageBlink :: GameState ([String] -> [Event])
+messageBlink = do
+    msgF <- messageF
+    return $ \ms -> messageBlink' msgF ms
+  where
+    messageBlink' :: (String -> Event) -> [String] -> [Event]
+    messageBlink' msgF [] = []
+    messageBlink' msgF (m:ms) = messageTime 2 (unlines $ head ls : ("" <$ tail ls)) Nothing : (msgF <$> m : ms)
+      where ls = lines m
+
+messageF :: GameState (String -> Event)
+messageF = do
+    tw <- waitTimeInBattle . worldOption <$> world
+    return $ if tw == 0 then message else flip (messageTime (-tw)) Nothing
 
 fightOfCharacter :: ActionOfCharacter
 fightOfCharacter id el next = GameAuto $ do
+    msgBlink <- messageBlink
+    msgF     <- messageF
     es <- aliveEnemiesLine el
     ea <- filter (\e -> Enemy.hp e > 0) . join <$> lastEnemies
     c     <- characterByID id
     wattr <- weaponAttrOf c
     let range = Item.targetRange wattr
-    if null ea || (range /= Item.ToAll && null es) then run next else do
+    if null ea || (range /= Item.ToAll && null es) then run next
+    else do
       let es' | range == Item.ToSingle = [head es]
               | range == Item.ToGroup  = es
               | range == Item.ToAll    = ea
-          toM = if length es' <= 1 then fmap message else msgBlink
+          toM = if length es' <= 1 then fmap msgF else msgBlink
       nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 0
         let e' = damageHp d e
         ms <- fightMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
         return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
-                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+                                       else with [update] . toEffect False (head ms) . events (msgF <$> tail ms)
       run $ foldr ($) next nexts
 
 fightDamage :: EnemyLine
@@ -131,19 +145,38 @@ weaponAttrOf c = do
         case Item.equipType def of Just (Item.Weapon _ w) -> return w
                                    _                      -> err $ "invalid weaponAttrOf for " ++ show c ++ "."
 
+dispellOfCharacter :: Formula -> ActionOfCharacter
+dispellOfCharacter f id el next = GameAuto $ do
+    msgF <- messageF
+    es   <- aliveEnemiesLine el
+    c    <- characterByID id
+    if null es then run next
+    else do
+      n <- length . filter (==True) <$> forM es (\e -> do
+        let isUndead = EnemyLabel "undead" `elem` (Enemy.attrLabels . Enemy.define $ e)
+        s <- happens =<< flip evalWith f =<< formulaMapSO (Left c) (Right e)
+        if not isUndead || not s then return False
+                                 else updateEnemy e (const e { Enemy.hp = 0 }) >> return True)
+      let bm = Chara.name c ++ " attempted to dispell " ++ nameOf (head es) ++ ".\n" 
+          rm = if n == 0 then "but failed." else show n ++ " " ++ nameOf (head es) ++ " have been purified."
+      run $ events [msgF bm, msgF (bm ++ rm)] next
+
 hideOfCharacter :: CharacterID -> GameMachine -> GameMachine
 hideOfCharacter cid next = GameAuto $ do
+    msgF     <- messageF
     c     <- characterByID cid
     param <- paramOf (Left c)
     couldHide <- happens $ 50 + agility param
     if couldHide then do
         updateCharacter cid (addStatusError Hidden c)
-        run $ events [message $ Chara.name c ++ " has hidden in the shadows."] next
+        run $ events [msgF $ Chara.name c ++ " has hidden in the shadows."] next
     else
-        run $ events [message $ Chara.name c ++ " tried to hide, but couldn't."] next
+        run $ events [msgF $ Chara.name c ++ " tried to hide, but couldn't."] next
 
 ambushOfCharacter :: ActionOfCharacter
 ambushOfCharacter id el next = GameAuto $ do
+    msgBlink <- messageBlink
+    msgF     <- messageF
     es <- aliveEnemiesLine el
     ea <- filter (\e -> Enemy.hp e > 0) . join <$> lastEnemies
     c     <- characterByID id
@@ -153,14 +186,14 @@ ambushOfCharacter id el next = GameAuto $ do
       let es' | range == Item.ToSingle = [head es]
               | range == Item.ToGroup  = es
               | range == Item.ToAll    = ea
-          toM = if length es' <= 1 then fmap message else msgBlink
+          toM = if length es' <= 1 then fmap msgF else msgBlink
       nexts <- forM es' $ \e -> do
         (h, d, ses) <- fightDamage el c e 2
         let e' = damageHp d e
         ms <- ambushMessage c e' (h, d, ses)
         let update = updateEnemy e (const e') >> when (Enemy.hp e' <= 0) (addMarks id)
         return $ if d == 0 || el /= L1 then with [update] . events (toM ms)
-                                       else with [update] . toEffect False (head ms) . events (message <$> tail ms)
+                                       else with [update] . toEffect False (head ms) . events (msgF <$> tail ms)
       run $ foldr ($) next nexts
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
@@ -185,6 +218,7 @@ fightOfEnemy :: Enemy.Instance                          -- ^ attacker enemy.
              -> GameMachine                             -- ^ next game auto.
              -> GameMachine                             -- ^ game auto.
 fightOfEnemy e n dmg tgt sts next = GameAuto $ do
+    msgF <- messageF
     ps   <- party <$> world
     vcids <- filterM (\cid -> do
         c <- characterByID cid
@@ -194,7 +228,8 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
     if null vcids then run next
     else do
       tind <- eval tgt
-      let cid' = ps !! (tind `mod` length ps - 1)
+      let idx  = tind `mod` length ps - 1
+          cid' = ps !! (if idx >= 0 then idx else length ps - 1)
       cid <- if cid' `elem` vcids then return cid' else randomIn (take tind vcids)
       c   <- characterByID cid
       if hpOf c == 0 then run next
@@ -203,8 +238,8 @@ fightOfEnemy e n dmg tgt sts next = GameAuto $ do
         let c' = foldl (&) (damageHp d c) (addStatusError <$> ses)
         ms <- fightMessageE e c' (h, d, ses)
         let next' = with [updateCharacter cid c'] next
-        run $ if d == 0 then events (message <$> ms) next'
-                        else toEffect True (head ms) (events (message <$> tail ms) next')
+        run $ if d == 0 then events (msgF <$> ms) next'
+                        else toEffect True (head ms) (events (msgF <$> tail ms) next')
 
 fightDamageE :: Int             -- ^ count of attack.
              -> Enemy.Instance  -- ^ attacker enemy.
@@ -256,8 +291,8 @@ fightMessageE e c (h, d, ses) = do
 
 verbForItem  = "uses"
 
-useItemInBattle :: Chara.ItemPos -> SpellEffect
-useItemInBattle i (Left cid) dst next = GameAuto $ do
+useItemInBattle :: GameMachine -> Chara.ItemPos -> SpellEffect
+useItemInBattle escape i (Left cid) dst next = GameAuto $ do
     c   <- characterByID cid
     def <- itemByID $ Chara.itemAt c i
     let n = Item.name def
@@ -266,19 +301,21 @@ useItemInBattle i (Left cid) dst next = GameAuto $ do
       Just (Item.EqSpell ids, bp) -> do
          sdef' <- spellByID ids
          case sdef' of
-           Just sdef -> run $ use n sdef (Left cid) dst (with [breakItem bp cid i] next)
+           Just sdef -> run $ use escape n sdef (Left cid) dst (with [breakItem bp cid i] next)
            Nothing   -> error "invalid spellId in useItemInBattle"
       Just (Item.Happens eid, bp) -> do
          let next' = with [breakItem bp cid i] next
          edef' <- asks (lookup eid . mazeEvents)
          case edef' of Nothing   -> run next'
-                       Just edef -> run $ doEvent (Just cid) edef (const next') (const next') (\sdef n -> spell' sdef (Left cid) dst n)
+                       Just edef -> run $ doEvent (Just cid) edef (const next') (const next')
+                                          (\sdef n -> spell' escape sdef (Left cid) dst n)
 
-useItemInBattle i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
+useItemInBattle escape i (Right ei) dst next = undefined -- TODO!:considering possible using item by ememy, first argument must change to item id.
 
-use :: String -> Spell.Define -> SpellEffect
-use name def = if Spell.InBattle `elem` Spell.enableIn def then cast verbForItem name def 
-                                                           else asItem castUnknown name 
+use :: GameMachine -> String -> Spell.Define -> SpellEffect
+use escape name def = if Spell.InBattle `elem` Spell.enableIn def
+                      then cast escape verbForItem name def 
+                      else asItem castUnknown name 
 
 -- ================================================================================
 
@@ -290,8 +327,8 @@ type SpellEffect  = Either CharacterID Enemy.Instance
                  -> GameMachine
                  -> GameMachine
 
-spell :: Spell.Name -> SpellEffect
-spell s src dst next = GameAuto $ do
+spell :: GameMachine -> Spell.Name -> SpellEffect
+spell escape s src dst next = GameAuto $ do
     spellDef <- spellByName s
     case spellDef of
       Nothing  -> run $ asSpell castUnknown s src dst next
@@ -307,21 +344,21 @@ spell s src dst next = GameAuto $ do
                   else if not can   then asSpell castNoMP    s src dst next
                   else if isSilence then asSpell castButSilent s src dst next
                   else if isFear    then asSpell castButFear   s src dst next
-                  else                   with [updateCharacter idc =<< costSpell' c def] (spell' def src dst next)
+                  else                   with [updateCharacter idc =<< costSpell' c def] (spell' escape def src dst next)
           Right e -> do
             let isSilence = e `hasStatusError` Silence
                 isFear    = e `hasStatusError` Fear 0
             run $ if      isSilence then asSpell castButSilent s src dst next
                   else if isFear    then asSpell castButFear   s src dst next
-                  else                   spell' def src dst next
+                  else                   spell' escape def src dst next
         else
           run $ asSpell castUnknown s src dst next
 
-spell' :: Spell.Define -> SpellEffect
-spell' def = cast verbForSpell (Spell.name def) def
+spell' :: GameMachine -> Spell.Define -> SpellEffect
+spell' escape def = cast escape verbForSpell (Spell.name def) def
 
-cast :: Verb -> String -> Spell.Define -> SpellEffect
-cast v name def = let as cast = cast v in case Spell.effect def of
+cast :: GameMachine -> Verb -> String -> Spell.Define -> SpellEffect
+cast escape v name def = let as cast = cast v in case Spell.effect def of
     Spell.Damage f  -> case Spell.target def of
       Spell.OpponentSingle -> castToSingle as name (castDamageSpell f $ Spell.attrLabels def)
       Spell.OpponentGroup  -> castToGroup  as name (castDamageSpell f $ Spell.attrLabels def)
@@ -349,50 +386,51 @@ cast v name def = let as cast = cast v in case Spell.effect def of
       _                    -> undefined
     Spell.AddLight n s     -> castToNull as name (castAddLight n s)
     Spell.CheckLocation _  -> as castUnknown name
-    Spell.Event eid        -> eventSpell eid
+    Spell.MoveLocation  _  -> as (castMalor escape) name
+    Spell.Event eid        -> eventSpell escape eid
 
-eventSpell :: GameEventID -> SpellEffect
-eventSpell eid s o next = GameAuto $ do
+eventSpell :: GameMachine -> GameEventID -> SpellEffect
+eventSpell escape eid s o next = addEff (withSE Spelled) $ GameAuto $ do
     evDB  <- asks mazeEvents
     let e = Map.lookup eid evDB
         cid = case s of Left cid' -> Just cid'
                         Right _   -> Nothing
     run $ case e of Nothing   -> next
-                    Just edef -> doEvent cid edef (const next) (const next) (\sdef n -> spell' sdef s o n)
+                    Just edef -> doEvent cid edef (const next) (const next) (\sdef n -> spell' escape sdef s o n)
 
 -- --------------------------------------------------------------------------------
 
 castToNull :: CastAs -> String -> CastAction -> SpellEffect
-castToNull as n ca src (Left l)  next = as castInBattle n ca src (Left []) next
-castToNull as n ca src (Right _) next = GameAuto $ do
+castToNull as n ca src (Left l)  next = addEff (withSE Spelled) $ as castInBattle n ca src (Left []) next
+castToNull as n ca src (Right _) next = addEff (withSE Spelled) $ GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
     run $ as castInBattle n ca src (Right $ concat es) next
 
 castToSingle :: CastAs -> String -> CastAction -> SpellEffect
-castToSingle as n ca (Left id) (Left l) next = as castInBattle n ca (Left id) (Left [l]) next
-castToSingle as n ca (Left id) (Right el) next = GameAuto $ do
+castToSingle as n ca (Left id) (Left l) next = addEff (withSE Spelled) $ as castInBattle n ca (Left id) (Left [l]) next
+castToSingle as n ca (Left id) (Right el) next = addEff (withSE Spelled) $ GameAuto $ do
     e1 <- aliveEnemyLineRandom el
     case e1 of Nothing -> run next
                Just e  -> run $ as castInBattle n ca (Left id) (Right [e]) next
-castToSingle as n ca (Right e) (Left l) next = as castInBattle n ca (Right e) (Left [l]) next
-castToSingle as n ca (Right se) (Right el) next = GameAuto $ do
+castToSingle as n ca (Right e) (Left l) next = addEff (withSE Spelled) $ as castInBattle n ca (Right e) (Left [l]) next
+castToSingle as n ca (Right se) (Right el) next = addEff (withSE Spelled) $ GameAuto $ do
     e1 <- aliveEnemyLineRandom el
     case e1 of Nothing -> run next
                Just e  -> run $ as castInBattle n ca (Right se) (Right [e]) next
 
 castToGroup :: CastAs -> String -> CastAction -> SpellEffect
-castToGroup as n ca src (Right el) next = GameAuto $ do
+castToGroup as n ca src (Right el) next = addEff (withSE Spelled) $ GameAuto $ do
     es <- aliveEnemiesLine el
     run $ as castInBattle n ca src (Right es) next
-castToGroup as n ca src (Left _) next = GameAuto $ do
+castToGroup as n ca src (Left _) next = addEff (withSE Spelled) $ GameAuto $ do
     ps <- party <$> world
     run $ as castInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
 
 castToAll :: CastAs -> String -> CastAction -> SpellEffect
-castToAll as n ca src (Left _) next = GameAuto $ do
+castToAll as n ca src (Left _) next = addEff (withSE Spelled) $ GameAuto $ do
     ps <- party <$> world
     run $ as castInBattle n ca src (Left $ toPartyPos <$> [1..length ps]) next
-castToAll as n ca src (Right _) next = GameAuto $ do
+castToAll as n ca src (Right _) next = addEff (withSE Spelled) $ GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
     run $ as castInBattle n ca src (Right $ concat es) next
 
@@ -406,16 +444,18 @@ type Cast = String -- object (spell name or item name).
 
 castInBattle :: Verb -> Cast
 castInBattle v n ca (Left cid) dst next = GameAuto $ do
+    msgF <- messageF
     src <- characterByID cid
     ts  <- ca (Left src) dst
     let acc (_, t, d, k) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                           in with [when k (addMarks cid)] . (if d then toEffect False msg else events [message msg])
+                           in with [when k (addMarks cid)] . (if d then toEffect False msg else events [msgF msg])
     run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
 
 castInBattle v n ca (Right e) dst next = GameAuto $ do
+    msgF <- messageF
     ts <- ca (Right e) dst
     let acc (_, t, d, _) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
-                           in if d then toEffect True msg else events [message msg] 
+                           in if d then toEffect True msg else events [msgF msg] 
     run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
 
 
@@ -440,12 +480,31 @@ castButFear v = castNoEffect v "but couldn't voice well by fear."
 
 castNoEffect :: Verb -> String -> String -> SpellEffect
 castNoEffect v msg n src _ next = GameAuto $ do
+    msgF <- messageF
     name <- case src of Left id -> Chara.name <$> characterByID id
                         Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
     let ts      = ["", msg]
-        toMsg t = message $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+        toMsg t = msgF $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
 
+castMalor :: GameMachine -> Verb -> String -> SpellEffect
+castMalor escape v n src _ next = GameAuto $ do
+    msgF <- messageF
+    case src of
+        Right e -> do
+            name <- Enemy.name <$> enemyDefineByID (Enemy.id e)
+            let ts      = ["", name ++ " has disappeared."]
+                toMsg t = msgF $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
+            updateEnemy e $ const e { Enemy.hp = 0 }
+            run $ events (toMsg <$> ts) next
+        Left id -> do
+            name  <- Chara.name <$> characterByID id
+            p     <- currentPosition
+            (w,h) <- mazeSizeAt $ Maze.z p
+            x'    <- randomIn [1..w]
+            y'    <- randomIn [1..h]
+            run $ events [msgF $ name ++ " " ++ v ++ " " ++ n ++ ".\n"]
+                $ with [movePlace $ InBattle (p { Maze.x = x' - 1, Maze.y = y' - 1 }) []] escape
 
 -- ==========================================================================
 aliveEnemiesLine :: EnemyLine -> GameState [Enemy.Instance]
@@ -468,22 +527,25 @@ aliveEnemyLineRandom el = do
 -- ================================================================================
 
 toEffect :: Bool -> String -> GameMachine -> GameMachine
-toEffect fromEnemy msg next = e0
-  where
-    d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
+toEffect fromEnemy msg next = GameAuto $ do
+    msgBlink <- messageBlink
+    msgF     <- messageF
+    let d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
                                              , sceneTrans = sceneTrans w . translate ( 0,  1) }
                                       else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
-    d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
-                                             , sceneTrans = sceneTrans w . translate (-1,  0) }
-                                      else w { enemyTrans = enemyTrans w . translate (-1,  0) }
-    d3  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 2, -1)
-                                             , sceneTrans = sceneTrans w . translate ( 2, -1) }
-                                      else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
-    d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
-                                             , sceneTrans = id }
-                                      else w { enemyTrans = id }
-    e0  =             select (head $ msgBlink [msg])         [(Clock, e1), (AnyKey, with [d4] next)]
-    e1  = with [d1] $ select (messageTime (-40) msg Nothing) [(Clock, e2), (AnyKey, with [d4] next)]
-    e2  = with [d2] $ select (messageTime (-30) msg Nothing) [(Clock, e3), (AnyKey, with [d4] next)]
-    e3  = with [d3] $ select (messageTime (-40) msg Nothing) [(Clock, e4), (AnyKey, with [d4] next)]
-    e4  = with [d4] $ events [message msg] next
+        d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
+                                                 , sceneTrans = sceneTrans w . translate (-1,  0) }
+                                          else w { enemyTrans = enemyTrans w . translate (-1,  0) }
+        d3  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 2, -1)
+                                                 , sceneTrans = sceneTrans w . translate ( 2, -1) }
+                                          else w { enemyTrans = enemyTrans w . translate ( 2, -1) }
+        d4  = modify $ \w -> if fromEnemy then w { frameTrans = id 
+                                                 , sceneTrans = id }
+                                          else w { enemyTrans = id }
+        e0  =             select (withSE se $ head $ msgBlink [msg]) [(Clock, e1), (AnyKey, with [d4] next)]
+        e1  = with [d1] $ select (messageTime (-40) msg Nothing)     [(Clock, e2), (AnyKey, with [d4] next)]
+        e2  = with [d2] $ select (messageTime (-30) msg Nothing)     [(Clock, e3), (AnyKey, with [d4] next)]
+        e3  = with [d3] $ select (messageTime (-40) msg Nothing)     [(Clock, e4), (AnyKey, with [d4] next)]
+        e4  = with [d4] $ events [msgF msg] next
+        se  = if fromEnemy then FightHitToP else FightHitToE
+    run e0
