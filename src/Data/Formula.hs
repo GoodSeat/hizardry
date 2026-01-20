@@ -133,6 +133,7 @@ instance Read Formula where
                                   _       -> []
       where
         takeNextComma (',':_)  0 = []
+        takeNextComma (')':_)  0 = []
         takeNextComma (']':_)  _ = []
         takeNextComma ('}':_)  _ = []
         takeNextComma ('(':cs) n = '(' : takeNextComma cs (n + 1)

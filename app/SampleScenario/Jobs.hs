@@ -23,7 +23,7 @@ fighter = Chara.Job {
     , Chara.baseAC               = read "10"
     , Chara.identifyItemChance   = Nothing
     , Chara.lvupExps             = [1000, 1480, 2190, 3241, 4797, 7100, 10508, 15553, 23021, 34076]
-    , Chara.hpFormula            = read "(lv)d10 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
+    , Chara.hpFormula            = read "(lv)d10 + lv*max(vit-15,min(-(vit=5)+vit-5,0))"
     , Chara.mpFormula            = ([], [])
     , Chara.learningSpells       = []
 }
@@ -59,7 +59,7 @@ priest = Chara.Job {
     , Chara.baseAC               = read "10"
     , Chara.identifyItemChance   = Nothing
     , Chara.lvupExps             = [1050, 1554, 2300, 3404, 5038, 7456, 11035, 16332, 24172, 35777]
-    , Chara.hpFormula            = read "(lv)d8 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
+    , Chara.hpFormula            = read "(lv)d8 + lv*max(vit-15,min(-(vit=5)+vit-5,0))"
     , Chara.mpFormula            = ( replicate 7 (read "0")
                                        , read "min(9,max(1,lv*2-mlv*4+pie/6+1d3))"
                                        : replicate 6 (read "min(9,lv*2-mlv*4+pie/6+1d3)"))
@@ -86,7 +86,7 @@ thief = Chara.Job {
     , Chara.baseAC               = read "10"
     , Chara.identifyItemChance   = Nothing
     , Chara.lvupExps             = [900, 1332, 1971, 2917, 4318, 6390, 9458, 13998, 20718, 30664]
-    , Chara.hpFormula            = read "(lv)d6 + lv*max(vit-15,min(-(vit=5)+vit-5,0)))"
+    , Chara.hpFormula            = read "(lv)d6 + lv*max(vit-15,min(-(vit=5)+vit-5,0))"
     , Chara.mpFormula            = ([], [])
     , Chara.learningSpells       = []
 }
