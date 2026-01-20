@@ -675,9 +675,14 @@ moveTo cid next (x', y', z') = GameAuto $ do
     p <- currentPosition
     let p' = p { x = x', y = y', z = z' }
     when (z' /= z p) resetRoomBattle
-    -- TODO:no exist maze at z', annihilation. if z' < 0, in air -> all dead, else in stone -> all lost.
+    exist <- existMazeInfAt z'
     movePlace (InMaze p')
-    run $ events [showStatus cid "done"] next
+    if      not exist && z' > 0 then
+      run $ events [flashMessageInf "You jumped into a void!"] $ totalAnnihilation False Lost
+    else if not exist && z' <= 0 then
+      run $ events [flashMessageInf "You've taken to the sky!"] $ totalAnnihilation True Dead
+    else do
+      run $ events [showStatus cid "done"] next
 
 showMap :: String -> (Int, Int) -> Int -> GameMachine -> GameMachine
 showMap msg (x,y) z next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]") (x,y) z False)
@@ -704,8 +709,8 @@ inputMove (dx,dy,dz) next cancel = GameAuto $ do
           ,(Key "s", inputMove (dx,dy-1,dz) next cancel)
           ,(Key "d", inputMove (dx+1,dy,dz) next cancel)
           ,(Key "w", inputMove (dx,dy+1,dz) next cancel)
-          ,(Key "n", inputMove (dx,dy,dz-1) next cancel)
-          ,(Key "p", inputMove (dx,dy,dz+1) next cancel)
+          ,(Key "n", inputMove (dx,dy,dz+1) next cancel)
+          ,(Key "p", inputMove (dx,dy,dz-1) next cancel)
           ,(Key "m", next (x p + dx, y p + dy, z p + dz))
           ]
     

@@ -9,7 +9,7 @@ import Control.Monad.Reader hiding (ask)
 
 import Data.List (find, sort)
 import Data.Map hiding (filter, null, foldl, drop, take)
-import Data.Maybe (fromMaybe, fromJust, catMaybes)
+import Data.Maybe (fromMaybe, isJust, fromJust, catMaybes)
 
 import Engine.GameAuto
 import Data.Primitive
@@ -123,6 +123,9 @@ randomsIn n as
 -- =================================================================================
 -- General commands.
 -- ---------------------------------------------------------------------------------
+
+existMazeInfAt :: Int -> GameState Bool
+existMazeInfAt z = isJust <$> join (asks mazes <*> pure z)
 
 mazeInfAt :: Int -> GameState (String, Size2D, Maze)
 mazeInfAt z = fromJust <$> join (asks mazes <*> pure z)
@@ -609,13 +612,14 @@ formulaMapP = addBaseToMap empty
 -- General GameMachine
 -- ---------------------------------------------------------------------------------
 
-totalAnnihilation :: StatusError -> GameMachine
-totalAnnihilation se = GameAuto $ do
+totalAnnihilation :: Bool -> StatusError -> GameMachine
+totalAnnihilation returnCastle se = GameAuto $ do
     p <- currentPosition
     movePlace TotalAnnihilation
     ps <- party <$> world
     forM_ ps $ flip updateCharacterWith (addStatusError se)
-    run $ events [withBGM AllDead $ message "パーティは全滅しました"] (suspendMazing p)
+    run $ events [withBGM AllDead $ message "パーティは全滅しました"]
+          (if returnCastle then returnCastleSilent else suspendMazing p)
 
 suspendMazing :: Position -> GameMachine
 suspendMazing p = GameAuto $ do
@@ -623,6 +627,11 @@ suspendMazing p = GameAuto $ do
     toCastle <- home
     returnToCastle >> run toCastle
 
+returnCastleSilent :: GameMachine
+returnCastleSilent = GameAuto $ do
+    modify $ \w -> w { inTavernMember = sort (inTavernMember w ++ party w), party = [] }
+    toCastle <- home
+    returnToCastle >> run toCastle
 
 -- =================================================================================
 -- Change World.

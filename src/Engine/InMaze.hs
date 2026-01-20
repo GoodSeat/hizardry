@@ -88,7 +88,7 @@ enterGrid e probEncount evMoved p = GameAuto $ do
     cantSpelling _ = events [message "can't spelling at this place."]
               
 enterStone :: GameMachine
-enterStone = events [General emptyDisplay] $ totalAnnihilation Lost
+enterStone = events [General emptyDisplay] $ totalAnnihilation False Lost
 
 checkRoomBattle :: Coord -> GameState (Maybe (EnemyID, Bool))
 checkRoomBattle c = do
@@ -171,7 +171,7 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
             sortPartyAuto
 
             allDead <- isTotalAnnihilation
-            run $ if allDead then totalAnnihilation Dead
+            run $ if allDead then totalAnnihilation False Dead
                   else enterMaybeEncount (withSE se $ flashMoveView " 1  ") p''
 
 

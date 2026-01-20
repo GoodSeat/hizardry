@@ -82,7 +82,7 @@ initScenario i home = Scenario {
     , scenarioHome              = home
     , racies                    = initRacies           i
     , jobs                      = initJobs             i
-    , mazes                     = \z -> pure $ if z < length (initMazes i) then Just (initMazes i !! z) else Nothing
+    , mazes                     = \z -> pure $ if z < length (initMazes i) && z >= 0 then Just (initMazes i !! z) else Nothing
     , encountMap                = initEncountMap       i
     , roomBattleMap             = initRoomBattleMap    i
     , roomDefine                = initRoomDefine       i

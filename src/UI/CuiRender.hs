@@ -6,6 +6,7 @@ module UI.CuiRender (
 
 import PreludeL
 import Control.Monad
+import Control.Monad.Except (throwError)
 import Data.List (isPrefixOf, intersperse)
 
 import Control.CUI
@@ -52,15 +53,25 @@ cuiRender rm _ _ Exit                     w = undefined
 
 mazeInf :: Scenario -> World -> MazeInf
 mazeInf s w = case runGameState s w mazeInf' of (Right m, w') -> m
-                                                (Left  _, w') -> ("", (0,0), undefined)
+                                                (Left  _, w') -> ("", (0,0), nihil)
   where
-    mazeInf' = currentPosition >>= mazeInfAt . thd3 . coordOf
+    mazeInf' = do
+      z <- thd3 . coordOf <$> currentPosition
+      exist <- existMazeInfAt z
+      if exist then mazeInfAt z
+               else throwError $ "no maze at Z" ++ show z
 
 mazeInfZ :: Int -> Scenario -> World -> MazeInf
 mazeInfZ z s w = case runGameState s w mazeInf' of (Right m, w') -> m
-                                                   (Left  _, w') -> ("", (0,0), undefined)
+                                                   (Left  _, w') -> ("", (0,0), nihil)
   where
-    mazeInf' = mazeInfAt z
+    mazeInf' = do
+      exist <- existMazeInfAt z
+      if exist then mazeInfAt z
+               else throwError $ "no maze at Z" ++ show z
+
+nihil :: Maze
+nihil = const (Grid (Passage, Passage, Passage, Passage) [])
 
 toT :: Maybe String -> String
 toT (Just s) = s

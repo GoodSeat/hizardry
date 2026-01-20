@@ -333,7 +333,7 @@ nextTurn con = GameAuto $ do
 
     allDead <- isTotalAnnihilation
     if allDead then
-      run $ totalAnnihilation Dead
+      run $ totalAnnihilation False Dead
     else do
       moveToBattle ess''
       run $ if null ess'' then wonBattle con' else events (msgs1 ++ msgs2) (selectBattleCommand 1 [] con' Nothing)
