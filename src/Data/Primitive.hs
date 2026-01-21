@@ -276,6 +276,8 @@ class Eq o => Object o where
   setHp           :: Int -> o -> o
   setStatusErrors :: [StatusError] -> o -> o
 
+  updateLvByDrain :: o -> o
+
 addStatusError :: Object o => StatusError -> o -> o
 addStatusError (Poison n) o = addPoison n o
 addStatusError (Drain  n) o = addDrain  n o
@@ -352,7 +354,7 @@ whenBattleEnd c = foldl (&) c (whenBattleEnd' <$> statusErrorsOf c)
     whenBattleEnd' :: Object o => StatusError -> o -> o
     whenBattleEnd' Silence     = removeStatusError Silence
     whenBattleEnd' Sleep       = removeStatusError Sleep
-    whenBattleEnd' (Drain n)   = removeStatusError (Drain n) -- MEMO:in classic mode, must lose exp.
+    whenBattleEnd' (Drain n)   = removeStatusError (Drain n) . updateLvByDrain
     whenBattleEnd' Hidden      = removeStatusError Hidden
     whenBattleEnd' (Command s) = removeStatusError (Command s)
     whenBattleEnd' Found       = removeStatusError Found

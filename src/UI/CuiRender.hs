@@ -315,7 +315,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
                      . replaceText "H)#" ((if ItemH `elem` his' then "H)" else "  ") ++ equipMarks !! 7) (Left 3)
                      . replaceText "I)#" ((if ItemI `elem` his' then "I)" else "  ") ++ equipMarks !! 8) (Left 3)
                      . replaceText "J)#" ((if ItemJ `elem` his' then "J)" else "  ") ++ equipMarks !! 9) (Left 3)
-                     . replaceText "[Lv]"    (show $ lv c)            (Right 4)
+                     . replaceText "[Lv]"    (show $ lvOf c)          (Right 4)
                      . replaceText "[STR]"   (show $ strength st)     (Right 3)
                      . replaceText "[IQ]"    (show $ iq       st)     (Right 3)
                      . replaceText "[PIE]"   (show $ piety    st)     (Right 3)

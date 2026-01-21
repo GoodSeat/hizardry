@@ -61,6 +61,7 @@ instance Object Character where
      else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] c'
      else                                         c'
 
+  updateLvByDrain c = let nl = lvOf c in c { lv = nl, exp = totalExpToLv (job c) nl }
 
 data Race = Race {
       raceName     :: !String

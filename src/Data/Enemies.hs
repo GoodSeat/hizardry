@@ -84,6 +84,7 @@ instance Object Instance where
      else if Dead `elem` ss && length ss > 1 then setStatusErrors [Dead] e'
      else                                         e'
 
+  updateLvByDrain  = PreludeL.id -- MEMO:don't need to consider for enemy.
 
 data Action = Fight Int     -- ^ count of attack.
                     Formula -- ^ damage per hit.
