@@ -1,5 +1,6 @@
-module Engine.InEvent
-where
+module Engine.InEvent (
+    doEvent
+) where
 
 import PreludeL
 import Control.Monad (when, filterM, foldM_)
@@ -23,10 +24,12 @@ import Control.CUI (translate)
 
 -- =======================================================================
 
+type IsImplicit = Bool
+
 doEvent :: Maybe CharacterID
         -> Ev.Define
-        -> (Bool -> GameMachine)                        -- ^ when Escape Event
-        -> (Bool -> GameMachine)                        -- ^ when End Event
+        -> (IsImplicit -> GameMachine)                  -- ^ when Escape Event
+        -> (IsImplicit -> GameMachine)                  -- ^ when End Event
         -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
         -> GameMachine
 doEvent cidRep edef whenEscape whenEnd spelling = GameAuto $ do
@@ -34,11 +37,11 @@ doEvent cidRep edef whenEscape whenEnd spelling = GameAuto $ do
     run $ doEventInner True (fromMaybe cid cidRep) edef whenEscape whenEnd spelling
     
 
-doEventInner :: Bool
+doEventInner :: IsImplicit                                   -- ^ player can't notice this event or not (= implicit event or not)
              -> CharacterID
              -> Ev.Define
-             -> (Bool -> GameMachine)                        -- ^ when Escape Event
-             -> (Bool -> GameMachine)                        -- ^ when End Event
+             -> (IsImplicit -> GameMachine)                  -- ^ when Escape Event
+             -> (IsImplicit -> GameMachine)                  -- ^ when End Event
              -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
              -> GameMachine
 doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef whenEscape
@@ -47,7 +50,7 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False cidRep edef whenEscape whenEnd spelling)
                                           | x <- if m == "" || m == "\n" then [m] else if m == "\r" then ["\n"] else lines m])
 
-    doEvent' :: Ev.Define -> (Bool -> GameMachine) -> GameMachine
+    doEvent' :: Ev.Define -> (IsImplicit -> GameMachine) -> GameMachine
     -- moving
     doEvent' Ev.ReturnCastle _ = GameAuto $ do
         toCastle <- home
