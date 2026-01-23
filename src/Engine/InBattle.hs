@@ -89,7 +89,8 @@ createEnemyInstances n l eid dropItem = do
 
 tryDetermineEnemies :: [[Enemy.Instance]] -> GameState [[Enemy.Instance]]
 tryDetermineEnemies = mapM $ \es -> do
-    determine <- (<=) <$> randomNext 1 10 <*> (length . party <$> world)
+    cs <- mapM characterByID . party =<< world
+    determine <- (<=) <$> randomNext 1 10 <*> pure (length $ filter (not . mustGotoTemple) cs)
     return $ if determine then fmap (\e -> e { Enemy.determined = True }) es else es
 
 -- ==========================================================================
