@@ -101,12 +101,14 @@ data ScenarioFormulas = ScenarioFormulas {
       invokeTrapInspectProb :: !String -- ^ probality when invoke trap when failed inspect trap(%).
     , invokeTrapDisarmProb  :: !String -- ^ probality when invoke trap when failed disarm trap(%).
     , fleeSucceedProb       :: !String -- ^ probality succeed to flee(%).
+    , changeAlignmentProb   :: !String -- ^ probality change alignment when encount friendly enemy(%).
     }
 defaultFormulas ::ScenarioFormulas
 defaultFormulas = ScenarioFormulas {
       invokeTrapInspectProb = "100*(19-agi)/20"
     , invokeTrapDisarmProb  = "100*(20-agi)/20"
     , fleeSucceedProb       = "100-enemyCount/2-partySize*3"
+    , changeAlignmentProb   = "5"
     }
 
 -- ==========================================================================

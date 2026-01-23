@@ -130,12 +130,22 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
 
 startBattleMaybeFriendly :: Bool -> [[Enemy.Instance]] -> Condition -> GameMachine -> GameMachine
 startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else
-    select (message msg) [(Key "a", core), (Key "l", whenLeave)]  -- TODO:may change alignment
+    select (message msg) [(Key "a", with [mayChangeAlignmentTo Chara.E] core)
+                         ,(Key "l", with [mayChangeAlignmentTo Chara.G] whenLeave)]
   where
     erep = head . head $ es
     msg  = "A friendly group of " ++ nameOf erep ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
     core = with [moveToBattle es] $ addEff (specialBGM es) $ selectBattleCommand 1 [] con (Just NoSurprise)
   
+mayChangeAlignmentTo :: Chara.Alignment -> GameState ()
+mayChangeAlignmentTo align = do
+  cids <- party <$> world
+  forM_ cids $ \cid -> do
+    c <- characterByID cid
+    m <- formulaMapC c
+    change <- happens =<< evalWith m . parse' =<< asks (changeAlignmentProb . scenarioFormulas)
+    when (Chara.alignment c /= Chara.N && change) $ updateCharacter cid (c { Chara.alignment = align })
+
 specialBGM :: [[Enemy.Instance]] -> (Event -> Event)
 specialBGM es = let bs = filter isJust (Enemy.enemyBGM . Enemy.define <$> concat es)
                 in if null bs then id

@@ -85,6 +85,8 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     doEvent' (Ev.FlashMessage     msg)   next = events [flashMessageInf msg] (next False)
     doEvent' (Ev.FlashMessageTime msg t) next = events [flashMessage (-1500) msg] (next False)
 
+    doEvent' (Ev.SelectItem msg cds) next = undefined -- TODO:not implemented
+
     -- happens
     doEvent' (Ev.Switch []) next = next isHidden
     doEvent' (Ev.Switch (c:cs)) next = GameAuto $ do

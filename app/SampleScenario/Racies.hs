@@ -8,7 +8,7 @@ import Data.Formula
 import qualified Data.Characters as Character
 
 
-racies = [dwarf, gnome, hobbit, human, elf]
+racies = [human, elf, dwarf, gnome, hobbit]
 
 human = Character.Race {
     Character.raceName = "Human"

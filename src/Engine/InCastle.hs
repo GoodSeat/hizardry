@@ -551,6 +551,6 @@ tryCureCharacter cid cidDst = GameAuto $ do
                                         ," MURMUR - CHANT - PRAY           "
                                         ," MURMUR - CHANT - PRAY - INVOKE! "]
             mg' = " MURMUR - CHANT - PRAY - INVOKE! \n\n   " ++ mg
-        run $ events (ms ++ [flashMessage (-100000) mg']) $ selectCureTarget cid 0
+        run $ events (ms ++ [flashMessageInf mg']) $ selectCureTarget cid 0
         )
 
