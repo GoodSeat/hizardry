@@ -531,8 +531,8 @@ toEffect fromEnemy msg next = GameAuto $ do
     msgBlink <- messageBlink
     msgF     <- messageF
     let d1  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate ( 0,  1)
-                                             , sceneTrans = sceneTrans w . translate ( 0,  1) }
-                                      else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
+                                                 , sceneTrans = sceneTrans w . translate ( 0,  1) }
+                                          else w { enemyTrans = enemyTrans w . translate ( 0,  1) }
         d2  = modify $ \w -> if fromEnemy then w { frameTrans = frameTrans w . translate (-1,  0)
                                                  , sceneTrans = sceneTrans w . translate (-1,  0) }
                                           else w { enemyTrans = enemyTrans w . translate (-1,  0) }

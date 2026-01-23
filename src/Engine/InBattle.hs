@@ -3,7 +3,7 @@ module Engine.InBattle (startBattle) where
 
 import PreludeL
 import Data.List hiding ((!!))
-import Data.Maybe
+import Data.Maybe (isJust, fromJust)
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
@@ -122,9 +122,9 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
               }
     run $ case surprise of
         PartySurprise -> events [msg, flashMessage (-3000) "    The monsters are unaware of you.    "]
-                         (with [moveToBattle es] $ selectBattleCommand 1 [] con (Just PartySurprise))
+                         (with [moveToBattle es] $ addEff (specialBGM es) $ selectBattleCommand 1 [] con (Just PartySurprise))
         EnemySurprise -> events [msg, flashMessage (-3000) "    The monsters surprised you!    "]
-                         (with [moveToBattle es] $ startProgressBattle [] con (Just EnemySurprise))
+                         (with [moveToBattle es] $ addEff (specialBGM es) $ startProgressBattle [] con (Just EnemySurprise))
         NoSurprise    -> events [msg]
                          (startBattleMaybeFriendly isFriendly es con g1)
 
@@ -134,9 +134,12 @@ startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then co
   where
     erep = head . head $ es
     msg  = "A friendly group of " ++ nameOf erep ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
-    core = with [moveToBattle es] $ selectBattleCommand 1 [] con (Just NoSurprise)
+    core = with [moveToBattle es] $ addEff (specialBGM es) $ selectBattleCommand 1 [] con (Just NoSurprise)
   
-    
+specialBGM :: [[Enemy.Instance]] -> (Event -> Event)
+specialBGM es = let bs = filter isJust (Enemy.enemyBGM . Enemy.define <$> concat es)
+                in if null bs then id
+                   else withBGM $ EventBGM (head $ fromJust <$> bs)
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
 moveToBattle es = movePlace =<< InBattle <$> currentPosition <*> pure es
@@ -245,13 +248,14 @@ tryRun :: Chara.Character -> Condition -> Maybe Surprise -> GameMachine
 tryRun c con surprised = GameAuto $ do
     msgF <- messageF
     np  <- length . party <$> world
-    es  <- lastEnemies
+    es  <- concat <$> lastEnemies
     m   <- formulaMapP
+    let canFlee = all (Enemy.enableRun . Enemy.define) es
     suc <- if isJust surprised then return True
            else happens =<< evalWith m . parse' =<< asks (fleeSucceedProb . scenarioFormulas)
     let bm = Chara.name c ++ " flees."
-    if suc then run $ events [msgF bm] (afterRun con)
-           else run $ events [msgF bm, msgF $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
+    if suc && canFlee then run $ events [msgF bm] (afterRun con)
+                      else run $ events [msgF bm, msgF $ bm ++ "\n\nBut failed!!"] (startProgressBattle [] con surprised)
 
 resetCommand :: GameState ()
 resetCommand = do

@@ -69,14 +69,14 @@ parse'D s help next = GameAuto $ do
 isNullKey :: String -> Bool
 isNullKey = null . filter (/= '\n') . filter (/= '\r')
 
-fst3 (t1, _, _) = t1
-snd3 (_, t2, _) = t2
-thd3 (_, _, t3) = t3
+fst3 (t1,  _,  _) = t1
+snd3 ( _, t2,  _) = t2
+thd3 ( _,  _, t3) = t3
 
-fst4 (t1, _, _, _) = t1
-snd4 (_, t2, _, _) = t2
-thd4 (_, _, t3, _) = t3
-fot4 (_, _,  _,t4) = t4
+fst4 (t1,  _,  _,  _) = t1
+snd4 ( _, t2,  _,  _) = t2
+thd4 ( _,  _, t3,  _) = t3
+fot4 ( _,  _,  _, t4) = t4
 
 -- =================================================================================
 

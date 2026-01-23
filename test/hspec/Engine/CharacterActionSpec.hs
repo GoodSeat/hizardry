@@ -58,11 +58,9 @@ mockGameMachine :: GameMachine
 mockGameMachine = error "mockGameMachine should not be evaluated"
 
 testEnemyDefine :: Enemy.Define
-testEnemyDefine = Enemy.Define {
+testEnemyDefine = Enemy.emptyDefine {
       Enemy.name              = "TestGoblin"
     , Enemy.nameUndetermined  = "Unknown"
-    , Enemy.pic               = PictureID 0
-    , Enemy.picUndetermined   = PictureID 0
     , Enemy.lv                = 1
     , Enemy.hpFormula         = parse' "10"
     , Enemy.param             = Parameter { strength = 5, iq = 5, piety = 5, vitality = 5, agility = 5, luck = 5 }

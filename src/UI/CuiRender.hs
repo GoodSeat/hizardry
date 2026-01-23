@@ -162,8 +162,8 @@ enemyScene :: (Maybe PictureInf -> Craphic) -> Scenario -> Place -> Craphic
 enemyScene picOf s (InBattle _ (es:_)) =
     let e    = head es
         edef = enemies s Map.! Enemy.id e
-    in if Enemy.determined e then picOf (Just $ Single $ Enemy.pic edef)
-                             else changeSGR 'B' $ picOf (Just $ Single $ Enemy.picUndetermined edef)
+    in if Enemy.determined e then picOf (Just $ Enemy.pic edef)
+                             else changeSGR 'B' $ picOf (Just $ Enemy.picUndetermined edef)
 enemyScene _ _ _ = mempty
 
 

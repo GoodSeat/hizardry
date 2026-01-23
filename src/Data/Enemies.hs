@@ -33,8 +33,8 @@ instance Eq Instance where
 data Define = Define {
       name              :: !String
     , nameUndetermined  :: !String
-    , pic               :: !PictureID
-    , picUndetermined   :: !PictureID
+    , pic               :: !PictureInf
+    , picUndetermined   :: !PictureInf
     , lv                :: !Int
     , hpFormula         :: !Formula
 
@@ -62,7 +62,45 @@ data Define = Define {
     , enableRun         :: !Bool
     , trapCandidate     :: ![Trap]
 
+    , enemyBGM          :: !(Maybe String)
+
 } deriving (Show, Eq, Read)
+
+emptyDefine :: Define
+emptyDefine = Define {
+      name              = "undefined"
+    , nameUndetermined  = "undefined"
+    , pic               = Null
+    , picUndetermined   = Null
+    , lv                = 0
+    , hpFormula         = read "1"
+
+    , param             = Parameter 5 8 8 8 8 8
+    , ac                = 10
+
+    , Data.Enemies.exp  = 0
+    , friendlyProb      = 0
+    , numOfOccurrences  = read "1"
+    , healPerTurn       = 0
+    , moveFrontProb     = 0
+
+    , resistError       = []
+    , vsEffectLabels    = [] -- ^ damage or probablity ratio. using "value" variable.
+    , attrLabels        = []
+
+    , actions           = [Run]
+
+    , dropItem          = [] -- ^ drop probablity, and it's item ID.
+    , dropGold          = read "0"
+
+    , withBackProb      = 0
+    , backEnemyID       = read "0"
+
+    , enableRun         = True
+    , trapCandidate     = allTraps
+
+    , enemyBGM          = Nothing
+}
 
 instance Object Instance where
   nameOf o          = (if determined o then name else nameUndetermined) $ define o
@@ -108,6 +146,20 @@ data Trap = DropDirectly
           | PriestBlaster
           | Alarm
     deriving (Show, Eq, Enum, Read)
+
+allTraps :: [Trap]
+allTraps = [ DropDirectly
+           , NoTrap
+           , PoisonNeedle
+           , GasBomb
+           , CrossbowBolt
+           , ExplodingBox
+           , Stunner
+           , Teleporter
+           , MageBlaster
+           , PriestBlaster
+           , Alarm
+           ]
 
 -- | data base of enemies.
 type DB = Map.Map EnemyID Define

@@ -9,11 +9,11 @@ import Data.Formula
 
 enemies :: Enemy.DB
 enemies = Map.fromList [
-    (EnemyID 1, Enemy.Define {
+    (EnemyID 1, Enemy.emptyDefine {
           Enemy.name              = "slime"
         , Enemy.nameUndetermined  = "moving object"
-        , Enemy.pic               = PictureID 1001
-        , Enemy.picUndetermined   = PictureID 2001
+        , Enemy.pic               = Single $ PictureID 1001
+        , Enemy.picUndetermined   = Single $ PictureID 2001
         , Enemy.lv                = 1
         , Enemy.hpFormula         = parse' "1d6"
 
@@ -47,11 +47,11 @@ enemies = Map.fromList [
         , Enemy.enableRun         = True
         , Enemy.trapCandidate     = [Enemy.NoTrap, Enemy.PoisonNeedle, Enemy.GasBomb, Enemy.CrossbowBolt, Enemy.ExplodingBox]
     })
-    , (EnemyID 2, Enemy.Define {
+    , (EnemyID 2, Enemy.emptyDefine {
           Enemy.name              = "goblin"
         , Enemy.nameUndetermined  = "humanoid creature"
-        , Enemy.pic               = PictureID 1002
-        , Enemy.picUndetermined   = PictureID 2002
+        , Enemy.pic               = Single $ PictureID 1002
+        , Enemy.picUndetermined   = Single $ PictureID 2002
         , Enemy.lv                = 2
         , Enemy.hpFormula         = parse' "2d3+1"
 
@@ -85,11 +85,11 @@ enemies = Map.fromList [
         , Enemy.enableRun         = True
         , Enemy.trapCandidate     = [Enemy.Alarm, Enemy.Teleporter, Enemy.Stunner]
     })
-    , (EnemyID 3, Enemy.Define {
+    , (EnemyID 3, Enemy.emptyDefine {
           Enemy.name              = "zombie"
         , Enemy.nameUndetermined  = "humanoid creature"
-        , Enemy.pic               = PictureID 1002
-        , Enemy.picUndetermined   = PictureID 2002
+        , Enemy.pic               = Single $ PictureID 1002
+        , Enemy.picUndetermined   = Single $ PictureID 2002
         , Enemy.lv                = 2
         , Enemy.hpFormula         = parse' "2d3+1"
 
