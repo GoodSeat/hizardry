@@ -724,8 +724,8 @@ showMapForMove (dx,dy,dz) next cancel = GameAuto $ do
         zt = zc + dz
         ds'  = (\(z, d) -> (z, fromJust d)) <$> filter (isJust . snd) (zip [0..1000] ds)
         tags = filter ((== zt) . fst) ds'
-        aboves = fst <$> filter ((< zt) . fst) ds'
-        belows = fst <$> (reverse . filter ((> zt) . fst)) ds'
+        aboves = fst <$> (reverse . filter ((< zt) . fst)) ds'
+        belows = fst <$> (          filter ((> zt) . fst)) ds'
         nam  = fst3 . snd $ head tags
     run $ selectWhenEsc (ShowMap ("^M)ove to [" ++ nam ++ "] (" ++ show (x p + dx) ++ ", " ++ show (y p + dy) ++ ")\n" ++
                                   " ^A-^W-^S-^D  ^N)ext Floor  ^P)revious Floor  ^L)eave `[`E`S`C`]") (dx,dy) zt True)
