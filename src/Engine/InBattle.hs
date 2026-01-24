@@ -119,7 +119,7 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
                  else                                                   NoSurprise
     let msg = withBGM Encounter $ flashMessage (-1000) "    Encounter!!    "
         con = Condition {
-                afterWin = g1, afterRun = g2, gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
+                afterWin = g1', afterRun = g2', gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
               }
     run $ case surprise of
         PartySurprise -> events [msg, flashMessage (-3000) "    The monsters are unaware of you.    "]
@@ -127,7 +127,10 @@ startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
         EnemySurprise -> events [msg, flashMessage (-3000) "    The monsters surprised you!    "]
                          (with [moveToBattle es] $ addEff (specialBGM es) $ startProgressBattle [] con (Just EnemySurprise))
         NoSurprise    -> events [msg]
-                         (startBattleMaybeFriendly isFriendly es con g1)
+                         (startBattleMaybeFriendly isFriendly es con g1')
+  where
+    g1' = stopSpecialBGM g1
+    g2' = stopSpecialBGM g2
 
 startBattleMaybeFriendly :: Bool -> [[Enemy.Instance]] -> Condition -> GameMachine -> GameMachine
 startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else
@@ -151,6 +154,9 @@ specialBGM :: [[Enemy.Instance]] -> (Event -> Event)
 specialBGM es = let bs = filter isJust (Enemy.enemyBGM . Enemy.define <$> concat es)
                 in if null bs then id
                    else withBGM $ EventBGM (head $ fromJust <$> bs)
+
+stopSpecialBGM :: GameMachine -> GameMachine
+stopSpecialBGM = addEff (withBGM TurnOff) . events [Resume (changeWaitTime 1)]
 
 moveToBattle :: [[Enemy.Instance]] -> GameState ()
 moveToBattle es = movePlace =<< InBattle <$> currentPosition <*> pure es

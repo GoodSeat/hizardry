@@ -207,7 +207,8 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     doEvent' (Ev.ChangeLeader pos) next = next isHidden --MEMO:this event has no mean in this timing.
 
     doEvent' (Ev.PlaySoundEffect s) next = addEff (withSE s) (next isHidden)
-    doEvent' (Ev.PlayBGM Ambient) next   = addEff (withBGM TurnOff) (events [Resume (changeWaitTime 1)] $ addEff (withBGM Ambient) (next isHidden))
+    doEvent' (Ev.PlayBGM Ambient) next   = addEff (withBGM TurnOff) (events [Resume (changeWaitTime 1)]
+                                         $ addEff (withBGM Ambient) (next isHidden))
     doEvent' (Ev.PlayBGM s) next         = addEff (withBGM s) (next isHidden)
 
     -- others

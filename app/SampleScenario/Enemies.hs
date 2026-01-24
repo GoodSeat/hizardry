@@ -84,6 +84,7 @@ enemies = Map.fromList [
 
         , Enemy.enableRun         = True
         , Enemy.trapCandidate     = [Enemy.Alarm, Enemy.Teleporter, Enemy.Stunner]
+        , Enemy.enemyBGM          = Just "themeOfSoleil"
     })
     , (EnemyID 3, Enemy.emptyDefine {
           Enemy.name              = "zombie"
