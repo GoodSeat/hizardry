@@ -141,9 +141,9 @@ effectTrap i Enemy.Stunner = do
 effectTrap _ Enemy.Teleporter = do
     p       <- currentPosition
     size    <- mazeSizeAt $ Maze.z p
-    (x',y') <- case size of Just (w, h) -> (,) <$> randomIn [1..w] <*> randomIn [1..h]
-                            Nothing     -> (,) <$> randomNext (-100) 100 <*> randomNext (-100) 100
-    movePlace $ FindTreasureChest (p { Maze.x = x' - 1, Maze.y = y' - 1 }) False
+    (x',y') <- case size of Just ((x0, y0), (w, h)) -> (,) <$> randomIn [x0..(x0+w-1)] <*> randomIn [y0..(y0+h-1)]
+                            Nothing                 -> (,) <$> randomIn [(Maze.x p-100)..(Maze.x p+100)] <*> randomIn [(Maze.y p-100)..(Maze.y p+100)]
+    movePlace $ FindTreasureChest (p { Maze.x = x', Maze.y = y' }) False
     return ("Ooops!! Teleporter!!", Nothing, False)
 effectTrap _ Enemy.MageBlaster = undefined -- TODO
 effectTrap _ Enemy.PriestBlaster = undefined -- TODO

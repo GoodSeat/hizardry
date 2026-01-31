@@ -127,13 +127,13 @@ randomsIn n as
 existMazeInfAt :: Int -> GameState Bool
 existMazeInfAt z = isJust <$> join (asks mazes <*> pure z)
 
-mazeInfAt :: Int -> GameState (String, Maybe Size2D, Maze)
+mazeInfAt :: Int -> GameState (String, Maybe (Coord2D, Size2D), Maze)
 mazeInfAt z = fromJust <$> join (asks mazes <*> pure z)
 
 mazeAt :: Int -> GameState Maze
 mazeAt = fmap thd3 <$> mazeInfAt
 
-mazeSizeAt :: Int -> GameState (Maybe Size2D)
+mazeSizeAt :: Int -> GameState (Maybe (Coord2D, Size2D))
 mazeSizeAt = fmap snd3 <$> mazeInfAt
 
 

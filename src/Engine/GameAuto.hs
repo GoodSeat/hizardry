@@ -38,7 +38,7 @@ data Scenario = Scenario {
     , scenarioHome     :: !GameMachine
     , racies           :: ![Race]
     , jobs             :: ![Job]
-    , mazes            :: Int -> GameState (Maybe (String, Maybe Size2D, Maze)) -- ^ nothing size means infinity maze.
+    , mazes            :: Int -> GameState (Maybe (String, Maybe (Coord2D, Size2D), Maze)) -- ^ name, (origin coord, size)*, maze. *:nothing size means infinity maze.
     , encountMap       :: !(Map.Map Coord (Int, [EnemyID]))
     , roomBattleMap    :: !(Map.Map Coord (Int, [EnemyID]))
     , roomDefine       :: ![[Coord]]
@@ -59,7 +59,7 @@ data InitScenario = InitScenario {
     , initScenarioOption   :: !ScenarioOption
     , initRacies           :: ![Race]
     , initJobs             :: ![Job]
-    , initMazes            :: ![(String, Maybe Size2D, Maze)]
+    , initMazes            :: ![(String, Maybe (Coord2D, Size2D), Maze)]
     , initEncountMap       :: !(Map.Map Coord (Int, [EnemyID]))
     , initRoomBattleMap    :: !(Map.Map Coord (Int, [EnemyID]))
     , initRoomDefine       :: ![[Coord]]

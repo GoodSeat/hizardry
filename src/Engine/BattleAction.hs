@@ -501,10 +501,10 @@ castMalor escape v n src _ next = GameAuto $ do
             name    <- Chara.name <$> characterByID id
             p       <- currentPosition
             size    <- mazeSizeAt $ Maze.z p
-            (x',y') <- case size of Just (w, h) -> (,) <$> randomIn [1..w] <*> randomIn [1..h]
-                                    Nothing     -> (,) <$> randomNext (-100) 100 <*> randomNext (-100) 100
+            (x',y') <- case size of Just ((x0, y0), (w, h)) -> (,) <$> randomIn [x0..(x0+w-1)] <*> randomIn [y0..(y0+h-1)]
+                                    Nothing                 -> (,) <$> randomIn [(Maze.x p-100)..(Maze.x p+100)] <*> randomIn [(Maze.y p-100)..(Maze.y p+100)]
             run $ events [msgF $ name ++ " " ++ v ++ " " ++ n ++ ".\n"]
-                $ with [movePlace $ InBattle (p { Maze.x = x' - 1, Maze.y = y' - 1 }) []] escape
+                $ with [movePlace $ InBattle (p { Maze.x = x', Maze.y = y' }) []] escape
 
 -- ==========================================================================
 aliveEnemiesLine :: EnemyLine -> GameState [Enemy.Instance]
