@@ -108,6 +108,7 @@ invokingTrap con i = GameAuto $ do
 
 effectTrap :: CharacterID -> Enemy.Trap -> GameState (String, Maybe EnemyID, Bool)
 effectTrap _ Enemy.NoTrap = return ("No traps were set.", Nothing, True)
+effectTrap _ Enemy.DropDirectly = undefined
 effectTrap i Enemy.PoisonNeedle = do
     updateCharacterWith i (addPoison 1)
     return ("Ooops!! Poison Needle!!", Nothing, True)
@@ -138,12 +139,14 @@ effectTrap i Enemy.Stunner = do
     updateCharacterWith i (addStatusError Paralysis)
     return ("Ooops!! Stunner!!", Nothing, True)
 effectTrap _ Enemy.Teleporter = do
-    p     <- currentPosition
-    (w,h) <- mazeSizeAt $ Maze.z p
-    x'    <- randomIn [1..w]
-    y'    <- randomIn [1..h]
+    p       <- currentPosition
+    size    <- mazeSizeAt $ Maze.z p
+    (x',y') <- case size of Just (w, h) -> (,) <$> randomIn [1..w] <*> randomIn [1..h]
+                            Nothing     -> (,) <$> randomNext (-100) 100 <*> randomNext (-100) 100
     movePlace $ FindTreasureChest (p { Maze.x = x' - 1, Maze.y = y' - 1 }) False
     return ("Ooops!! Teleporter!!", Nothing, False)
+effectTrap _ Enemy.MageBlaster = undefined -- TODO
+effectTrap _ Enemy.PriestBlaster = undefined -- TODO
 effectTrap _ Enemy.Alarm = do
     c    <- Maze.coordOf <$> currentPosition
     emap <- asks roomBattleMap

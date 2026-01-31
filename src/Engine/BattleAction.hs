@@ -498,11 +498,11 @@ castMalor escape v n src _ next = GameAuto $ do
             updateEnemy e $ const e { Enemy.hp = 0 }
             run $ events (toMsg <$> ts) next
         Left id -> do
-            name  <- Chara.name <$> characterByID id
-            p     <- currentPosition
-            (w,h) <- mazeSizeAt $ Maze.z p
-            x'    <- randomIn [1..w]
-            y'    <- randomIn [1..h]
+            name    <- Chara.name <$> characterByID id
+            p       <- currentPosition
+            size    <- mazeSizeAt $ Maze.z p
+            (x',y') <- case size of Just (w, h) -> (,) <$> randomIn [1..w] <*> randomIn [1..h]
+                                    Nothing     -> (,) <$> randomNext (-100) 100 <*> randomNext (-100) 100
             run $ events [msgF $ name ++ " " ++ v ++ " " ++ n ++ ".\n"]
                 $ with [movePlace $ InBattle (p { Maze.x = x' - 1, Maze.y = y' - 1 }) []] escape
 

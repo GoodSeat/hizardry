@@ -148,14 +148,17 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
     goStraight p f = GameAuto $ do
         w <- world
         modify $ \w -> w { globalTime = globalTime w + 1 }
-        (_, (sw, sh), lab) <- mazeInfAt $ z p
+        (_, size, lab) <- mazeInfAt $ z p
         case f lab p of
           Nothing -> run $ ouch p
           Just p' -> do 
-            let x' | x p' <   0 = sw - 1
+            let (sw, sh) = fromMaybe (-1, -1) size
+            let x' | sw < 0     = x p'
+                   | x p' <   0 = sw - 1
                    | x p' >= sw = 0
                    | otherwise  = x p'
-            let y' | y p' <   0 = sh - 1
+            let y' | sh < 0     = y p'
+                   | y p' <   0 = sh - 1
                    | y p' >= sh = 0
                    | otherwise  = y p'
             let p'' = p' { x = x', y = y' }

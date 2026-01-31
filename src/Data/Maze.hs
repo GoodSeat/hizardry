@@ -44,6 +44,17 @@ faceOf (Grid (n, e, s, w) _) W = w
 -- | maze (group of grid).
 type Maze = Coord2D -> Grid
 
+translateMaze :: (Int, Int) -> Maze -> Maze
+translateMaze (dx, dy) m (x, y) = m (x - dx, y - dy)
+
+reverseHMaze :: Int -> Maze -> Maze
+reverseHMaze cx = translateMaze (cx, 0) . reverseH' . translateMaze (-cx, 0)
+  where reverseH' m (x, y) = m (-x, y)
+
+reverseVMaze :: Int -> Maze -> Maze
+reverseVMaze cy = translateMaze (0, cy) . reverseV' . translateMaze (0, -cy)
+  where reverseV' m (x, y) = m (x, -y)
+
 rotate :: Direction -> Size2D -> Maze -> Maze
 rotate N _ m = m
 rotate newN (w, h) m = \(x, y) ->
