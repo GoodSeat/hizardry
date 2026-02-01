@@ -3,8 +3,11 @@ module SampleScenario.Maze where
 import PreludeL
 import Data.Maze
 
+
+origin = (0, 0)
+
 maze1F :: Maze
-maze1F = fromText (lines txt) (4, 5)
+maze1F = fromText (lines txt) origin (4, 5)
   where
     txt = "+--------+--+\n" ++
           "|     K  |[]|\n" ++
@@ -19,7 +22,7 @@ maze1F = fromText (lines txt) (4, 5)
           "+-----+-----+\n"
 
 maze1F' :: Maze
-maze1F' = fromText (lines txt) (4, 5)
+maze1F' = fromText (lines txt) origin (4, 5)
   where
     txt = "+--------+--+\n" ++
           "|     K  |[]|\n" ++
@@ -34,18 +37,22 @@ maze1F' = fromText (lines txt) (4, 5)
           "+-----+-----+\n"
 
 maze2F :: Maze
-maze2F = fromText (lines txt) (6, 5)
+maze2F = fromText (lines txt) (-1, -2) (7, 7)
   where
-    txt = "+--------+--+--+--+\n" ++
-          "|     K  |[]|[]|[]|\n" ++
-          "|  +^-+  +--+--+  +\n" ++
-          "   |~ >  |## ##    \n" ++
-          "|  |   ^^|        |\n" ++
-          "|  D     =## ##   |\n" ++
-          "|++|     |        |\n" ++
-          "|  |     |        |\n" ++
-          "|  +v-+vv+        |\n" ++
-          "|  <  =  |_       |\n" ++
-          "+-----+-----+--+--+\n"
+    txt = "+--+--------+--+--+--+\n" ++
+          "|  |_    K  |[]|[]|[]|\n" ++
+          "|  |  +^-+  +--+--+  +\n" ++
+          "      |~ >  |## ##    \n" ++
+          "|  |  |   ^^|        |\n" ++
+          "|  |  D     =## ##   |\n" ++
+          "|  |++|     |        |\n" ++
+          "|  |  |     |        |\n" ++
+          "|  |  +v-+vv+        |\n" ++
+          "|  |  <  =  |_       |\n" ++
+          "+  +-----+-----+--+--+\n" ++
+          "|                    |\n" ++
+          "+  +-----+-----+--+--+\n" ++
+          "|                    |\n" ++
+          "+--+-----+-----+--+--+\n"
 
 

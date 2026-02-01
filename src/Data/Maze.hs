@@ -44,49 +44,66 @@ faceOf (Grid (n, e, s, w) _) W = w
 -- | maze (group of grid).
 type Maze = Coord2D -> Grid
 
-rotate :: Direction -> Size2D -> Maze -> Maze
+translateMaze :: (Int, Int) -> Maze -> Maze
+translateMaze (dx, dy) m (x, y) = m (x - dx, y - dy)
+
+reverseHMaze :: Int -> Maze -> Maze
+reverseHMaze cx = translateMaze (cx, 0) . reverseH' . translateMaze (-cx, 0)
+  where reverseH' m (x, y) = m (-x, y)
+
+reverseVMaze :: Int -> Maze -> Maze
+reverseVMaze cy = translateMaze (0, cy) . reverseV' . translateMaze (0, -cy)
+  where reverseV' m (x, y) = m (x, -y)
+
+rotate :: Direction -> (Coord2D, Size2D) -> Maze -> Maze
 rotate N _ m = m
-rotate newN (w, h) m = \(x, y) ->
+rotate newN ((x0, y0), (w, h)) m = \(x, y) ->
     let w' = (case newN of Data.Maze.E -> h
                            Data.Maze.W -> h
                            _           -> w);
         h' = (case newN of Data.Maze.E -> w
                            Data.Maze.W -> w
                            _           -> h);
-        Position _ x' y' _ = rotatePositionRev newN (w', h') (Position N x y 0)
+        x0'= (case newN of Data.Maze.E -> y0
+                           Data.Maze.W -> y0
+                           _           -> x0);
+        y0'= (case newN of Data.Maze.E -> x0
+                           Data.Maze.W -> x0
+                           _           -> y0);
+        Position _ x' y' _ = rotatePositionRev newN ((x0', y0'), (w', h')) (Position N x y 0)
     in rotateGrid newN $ m (x', y')
 
-rotatePositionRev newN (w, h) p
+rotatePositionRev newN ((x0, y0), (w, h)) p
   | newN == E = let d' = case direction p of N -> W
                                              E -> N
                                              S -> E
                                              W -> S
-                in  Position d' (y p) (w - x p - 1) (z p)
+                in  Position d' (y p) (w + 2 * x0 - x p - 1) (z p)
   | newN == W = let d' = case direction p of N -> E
                                              E -> S
                                              S -> W
                                              W -> N
-                in Position d' (h - y p - 1) (x p) (z p)
-  | otherwise = rotatePosition newN (w, h) p
+                in Position d' (h + 2 * y0 - y p - 1) (x p) (z p)
+  | otherwise = rotatePosition newN ((x0, y0), (w, h)) p
 
-rotatePosition :: Direction -> Size2D -> Position -> Position
+rotatePosition :: Direction -> (Coord2D, Size2D) -> Position -> Position
 rotatePosition N _ p = p
-rotatePosition newN (w, h) p
+rotatePosition newN ((x0, y0), (w, h)) p
   | newN == S = let d' = case direction p of N -> S
                                              E -> W
                                              W -> E
                                              S -> N
-                in Position d' (w - x p - 1) (h - y p - 1) (z p)
+                in Position d' (w + 2 * x0 - x p - 1) (h + 2 * y0 - y p - 1) (z p)
   | newN == E = let d' = case direction p of N -> W
                                              E -> N
                                              S -> E
                                              W -> S
-                in Position d' (h - y p - 1) (x p) (z p)
+                in Position d' (h + 2 * y0 - y p - 1) (x p) (z p)
   | newN == W = let d' = case direction p of N -> E
                                              E -> S
                                              S -> W
                                              W -> N
-                in  Position d' (y p) (w - x p - 1) (z p)
+                in  Position d' (y p) (w + 2 * x0 - x p - 1) (z p)
   | otherwise = undefined
 
 rotateGrid :: Direction -> Grid -> Grid
@@ -136,10 +153,13 @@ rotateGrid newN (Grid (fN, fE, fS, fW) ns)
      0123456789012
 -}
 fromText :: [String] -- ^ text lines to parse.
+         -> Coord2D  -- ^ origin of maze.
          -> Size2D   -- ^ size of maze.
          -> Maze
-fromText ls (w, h) (x, y) = Grid (fn, fe, fs, fw) ntc
+fromText ls (x0, y0) (w, h) (xo, yo) = Grid (fn, fe, fs, fw) ntc
   where
+    x  = xo - x0
+    y  = yo - y0
     x' = x `mod` w + 1
     y' = y `mod` h + 1
     ts = blockText ls (x', y')
@@ -309,20 +329,23 @@ walkForward mz p = if visiblityAt mz p 0 0 F == Passage then Just $ moveForward 
 
 -- ==========================================================================
 
-makeMazeMask :: (Coord -> Bool) -> Char -> Char -> Int -> Size2D -> [String]
-makeMazeMask isVisited mask blank z (_, 0) = []
-makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow (h - 1) w ++ makeMazeMask isVisited mask blank z (w, h - 1)
+makeMazeMask :: (Coord -> Bool) -> Char -> Char -> Int -> (Coord2D, Size2D) -> [String]
+makeMazeMask isVisited mask blank z ((x0, y0), (w, h)) 
+  | h == 0    = []
+  | otherwise = makeMazeMaskRow (y0 + h - 1) w ++ makeMazeMask isVisited mask blank z ((x0, y0), (w, h - 1))
   where
     makeMazeMaskRow :: Int -> Int -> [String]
-    makeMazeMaskRow 0 w = [makeMazeMaskCol 1 0 (w - 1)
-                          ,makeMazeMaskCol 2 0 (w - 1)
-                          ,makeMazeMaskCol 3 0 (w - 1)]
-    makeMazeMaskRow y w = [makeMazeMaskCol 1 y (w - 1)
-                          ,makeMazeMaskCol 2 y (w - 1)]
+    makeMazeMaskRow y w 
+      | y == y0   = [makeMazeMaskCol 1 y0 (x0 + w - 1)
+                    ,makeMazeMaskCol 2 y0 (x0 + w - 1)
+                    ,makeMazeMaskCol 3 y0 (x0 + w - 1)]
+      | otherwise = [makeMazeMaskCol 1 y  (x0 + w - 1)
+                    ,makeMazeMaskCol 2 y  (x0 + w - 1)]
         
     makeMazeMaskCol :: Int -> Int -> Int -> String
-    makeMazeMaskCol n y 0 = makeMask' (0, y) !! (n - 1)
-    makeMazeMaskCol n y x = makeMazeMaskCol n y (x - 1) ++ tail (makeMask' (x, y) !! (n - 1))
+    makeMazeMaskCol n y x
+      | x == x0   = makeMask' (x, y) !! (n - 1)
+      | otherwise = makeMazeMaskCol n y (x - 1) ++ tail (makeMask' (x, y) !! (n - 1))
     
     makeMask' :: (Int, Int) -> [String]
     makeMask' (x, y) = [[nw] ++ n ++ [ne]
@@ -350,22 +373,24 @@ makeMazeMask isVisited mask blank z (w, h) = makeMazeMaskRow (h - 1) w ++ makeMa
 
 
 
-showMaze :: Size2D -> Position -> Maze -> [String]
-showMaze (_, 0) p _ = []
-showMaze (w, h) p m = showMazeRow (h - 1) w p m ++ showMaze (w, h - 1) p m
+showMaze :: (Coord2D, Size2D) -> Position -> Maze -> [String]
+showMaze ((x0, y0), (w, h)) p m 
+    | h == 0    = []
+    | otherwise = showMazeRow (y0 + h - 1) w p m ++ showMaze ((x0, y0), (w, h - 1)) p m
 
   where
     showMazeRow :: Int -> Int -> Position -> Maze -> [String]
-    showMazeRow 0 w p m = [showMazeCol 1 0 (w - 1) p m
-                          ,showMazeCol 2 0 (w - 1) p m
-                          ,showMazeCol 3 0 (w - 1) p m]
-    showMazeRow y w p m = [showMazeCol 1 y (w - 1) p m
-                          ,showMazeCol 2 y (w - 1) p m]
+    showMazeRow y w p m 
+      | y == y0   = [showMazeCol 1 y0 (w - 1) p m
+                    ,showMazeCol 2 y0 (w - 1) p m
+                    ,showMazeCol 3 y0 (w - 1) p m]
+      | otherwise = [showMazeCol 1 y  (w - 1) p m
+                    ,showMazeCol 2 y  (w - 1) p m]
     
     showMazeCol :: Int -> Int -> Int -> Position -> Maze -> String
-    showMazeCol n y 0 p m = showMaze' (0, y) p m !! (n - 1)
-    showMazeCol n y x p m = showMazeCol n y (x - 1) p m ++ tail (showMaze' (x, y) p m !! (n - 1))
-    
+    showMazeCol n y w p m
+      | w == 0    = showMaze' (x0, y) p m !! (n - 1)
+      | otherwise = showMazeCol n y (w - 1) p m ++ tail (showMaze' (x0 + w, y) p m !! (n - 1))
     
     showMaze' :: (Int, Int) -> Position -> Maze -> [String]
     showMaze' (x, y) p m = [[nw] ++ n ++ [ne]

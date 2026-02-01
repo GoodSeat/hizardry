@@ -148,16 +148,19 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
     goStraight p f = GameAuto $ do
         w <- world
         modify $ \w -> w { globalTime = globalTime w + 1 }
-        (_, (sw, sh), lab) <- mazeInfAt $ z p
+        (_, size, lab) <- mazeInfAt $ z p
         case f lab p of
           Nothing -> run $ ouch p
           Just p' -> do 
-            let x' | x p' <   0 = sw - 1
-                   | x p' >= sw = 0
-                   | otherwise  = x p'
-            let y' | y p' <   0 = sh - 1
-                   | y p' >= sh = 0
-                   | otherwise  = y p'
+            let ((x0, y0), (sw, sh)) = fromMaybe ((0, 0), (-1, -1)) size
+            let x' | sw < x0         = x p'
+                   | x p' <  x0      = x0 + sw - 1
+                   | x p' >= x0 + sw = x0
+                   | otherwise       = x p'
+            let y' | sh < y0         = y p'
+                   | y p' <  y0      = y0 + sh - 1
+                   | y p' >= y0 + sh = y0
+                   | otherwise       = y p'
             let p'' = p' { x = x', y = y' }
 
             -- update milwa effect.

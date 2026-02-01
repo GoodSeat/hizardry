@@ -498,13 +498,13 @@ castMalor escape v n src _ next = GameAuto $ do
             updateEnemy e $ const e { Enemy.hp = 0 }
             run $ events (toMsg <$> ts) next
         Left id -> do
-            name  <- Chara.name <$> characterByID id
-            p     <- currentPosition
-            (w,h) <- mazeSizeAt $ Maze.z p
-            x'    <- randomIn [1..w]
-            y'    <- randomIn [1..h]
+            name    <- Chara.name <$> characterByID id
+            p       <- currentPosition
+            size    <- mazeSizeAt $ Maze.z p
+            (x',y') <- case size of Just ((x0, y0), (w, h)) -> (,) <$> randomIn [x0..(x0+w-1)] <*> randomIn [y0..(y0+h-1)]
+                                    Nothing                 -> (,) <$> randomIn [(Maze.x p-100)..(Maze.x p+100)] <*> randomIn [(Maze.y p-100)..(Maze.y p+100)]
             run $ events [msgF $ name ++ " " ++ v ++ " " ++ n ++ ".\n"]
-                $ with [movePlace $ InBattle (p { Maze.x = x' - 1, Maze.y = y' - 1 }) []] escape
+                $ with [movePlace $ InBattle (p { Maze.x = x', Maze.y = y' }) []] escape
 
 -- ==========================================================================
 aliveEnemiesLine :: EnemyLine -> GameState [Enemy.Instance]

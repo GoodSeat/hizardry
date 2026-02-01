@@ -671,8 +671,8 @@ spellInCampNoCost def src dst next = GameAuto $ do
                                                               else
                                                                 events [showStatus cid "can't use it here."] n)
       Spell.CheckLocation t -> do
-        p              <- currentPosition
-        (fn, (w,h), m) <- mazeInfAt $ z p
+        p          <- currentPosition
+        (fn, _, m) <- mazeInfAt $ z p
         let msg = "you are at " ++ fn ++ "(" ++ show (x p) ++ ", " ++ show (y p) ++ ": " ++ show (direction p) ++ ")."
         run $ case t of
           Spell.OnlyCoord -> events [ showStatus cid msg

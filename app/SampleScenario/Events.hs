@@ -35,6 +35,20 @@ mazeEvents = Map.fromList [
          , ("n", Ev.Escape)
          ]
        ])
+
+    , (GameEventID 000401, Ev.Events [
+         Ev.Select "there is ladder to go down.\n...go down?\n\n(^Y/^N)" Nothing [
+           ("y", Ev.StairsToLower (0, 4, 2) <> Ev.End)
+         , ("n", Ev.Escape)
+         ]
+       ])
+    , (GameEventID 000402, Ev.Events [
+         Ev.Select "there is ladder to go up.\n...go up?\n\n(^Y/^N)" Nothing [
+           ("y", Ev.StairsToUpper (0, 4, 1) <> Ev.End)
+         , ("n", Ev.Escape)
+         ]
+       ])
+
     , (GameEventID 010101, Ev.Events [
          Ev.Ask "what's your name?" (Just $ Single $ PictureID 1001) [
            ("werdna", Ev.Message "OH MY GOD!" (Just $ Single $ PictureID 1002))
@@ -212,6 +226,8 @@ eventMap = Map.fromList [
       ((0, 0, 0), GameEventID 010100)
     , ((1, 3, 0), GameEventID 020400)
     , ((1, 3, 1), GameEventID 020401)
+    , ((0, 4, 1), GameEventID 000401)
+    , ((0, 4, 2), GameEventID 000402)
     , ((0, 0, 1), GameEventID 010101)
     , ((3, 0, 1), GameEventID 010102)
     ]

@@ -50,10 +50,11 @@ cuiRender rm _ s (ShowMap m trans z mark) w = rm (debugMode w) (mapView m (place
 cuiRender rm _ _ (SaveGame _ _)           w = rm (debugMode w) (flashMsgBox "  ** NOW SAVING ... **  ")
 cuiRender rm _ _ (LoadGame _  )           w = rm (debugMode w) (flashMsgBox "  ** NOW LOADING... **  ")
 cuiRender rm _ _ Exit                     w = undefined
+cuiRender rm _ _ (Resume _)               w = undefined
 
 mazeInf :: Scenario -> World -> MazeInf
 mazeInf s w = case runGameState s w mazeInf' of (Right m, w') -> m
-                                                (Left  _, w') -> ("", (0,0), nihil)
+                                                (Left  _, w') -> ("", Nothing, nihil)
   where
     mazeInf' = do
       z <- thd3 . coordOf <$> currentPosition
@@ -63,7 +64,7 @@ mazeInf s w = case runGameState s w mazeInf' of (Right m, w') -> m
 
 mazeInfZ :: Int -> Scenario -> World -> MazeInf
 mazeInfZ z s w = case runGameState s w mazeInf' of (Right m, w') -> m
-                                                   (Left  _, w') -> ("", (0,0), nihil)
+                                                   (Left  _, w') -> ("", Nothing, nihil)
   where
     mazeInf' = do
       exist <- existMazeInfAt z
@@ -438,73 +439,97 @@ scene _                       _       _          = const mempty
 
 -- ========================================================================
 
-type MazeInf = (String, Size2D, Maze)
+type MazeInf = (String, Maybe (Coord2D, Size2D), Maze)
+type MazeInf' = (String, (Coord2D, Size2D), Maze)
+
+
+getPosition :: Place -> Maybe Position
+getPosition place = case place of
+      InMaze   p   -> Just p
+      Camping  p _ -> Just p
+      InBattle p _ -> Just p
+      _            -> Nothing
 
 -- mapView
 mapView :: String -> Place -> Int -> (Int, Int) -> Bool -> Map.Map Coord Bool -> MazeInf -> Craphic
-mapView msg place zt (dx', dy') showMark mvt (_, (w, h), m) = case place of
-    InMaze   p   -> mapView' $ p { z = zt }
-    Camping  p _ -> mapView' $ p { z = zt }
-    InBattle p _ -> mapView' $ p { z = zt }
-    _            -> mempty
+mapView msg place zt (dx', dy') showMark mvt (t, size, m) = case size of 
+    Just s  -> mapViewInner msg place zt (dx', dy') showMark mvt (t, s, m)
+    Nothing -> case getPosition place of -- special logic for inifinity maze.
+      Just p -> mapViewInner msg place zt (dx', dy') showMark mvt (t, ((x p - (w' `div` 2), y p - (h' `div` 2)), (w', h')), m)
+      _      -> mempty
   where
-    dx = dx' * 3
-    dy = dy' * 2
-    mapView' p = 
+    w' = 51
+    h' = 51
+
+mapViewInner :: String -> Place -> Int -> (Int, Int) -> Bool -> Map.Map Coord Bool -> MazeInf' -> Craphic
+mapViewInner msg place zt (dx, dy) showMark mvt (_, ((x0, y0), (w, h)), m) = case getPosition place of
+    Just p  -> mapView' p $ p { x = x p - x0, y = y p - y0, z = zt }
+    Nothing -> mempty
+  where
+    mapView' rp p = 
          translate (0, -4) (msgBox msg) <> frame <>
-         (translate (1 - dx, 3 + dy) .
+         (translate (1 - dx * 3, 3 + dy * 2) .
           translate (windowW `div` 2 - pcx * 3 - 2, windowH `div` 2 - (h - pcy) * 2 + 1))
-         ((if showMark then mark else mempty) <> coord <> noVisitArea mvt size zt <> fromTextsA '*' 'c' (showMaze size p m))
+         ((if showMark then mark else mempty) <> coord <> noVisitArea mvt size zt <> fromTextsA '*' 'c' (showMaze size rp m))
       where
-        size = (w, h)
+        size = ((x0, y0), (w, h))
         pcx  = if w <= 20 then w `div` 2 else x p
         pcy  = if h <= 16 then h `div` 2 else y p
         mark = Craphic $ \(sx, sy) ->
-          if      sx == (x p + dx') * 3 + 2 && sy == (h - y p - dy') * 2 then DrawSGR '>' (fromJust $ toSGR 'm')
-          else if sx == (x p + dx') * 3 + 3 && sy == (h - y p - dy') * 2 then DrawSGR '<' (fromJust $ toSGR 'm')
-          else                                                                Blank
+          if      sx == (x p + dx) * 3 + 2 && sy == (h - y p - dy) * 2 then DrawSGR '>' (fromJust $ toSGR 'm')
+          else if sx == (x p + dx) * 3 + 3 && sy == (h - y p - dy) * 2 then DrawSGR '<' (fromJust $ toSGR 'm')
+          else                                                              Blank
         coord = Craphic $ \(sx, sy) ->
           let cx = (sx - 3) `div` 3;
               cy = (h * 2 - sy) `div` 2  in
           if      sy == h * 2 + 2 && cx >=   0 && sx `mod` 3 == 0 && cx < w then
-            DrawSGR (head $ show cx) (fromJust $ toSGR 'c')
-          else if sy == h * 2 + 3 && cx >=  10 && sx `mod` 3 == 0 && cx < w then
-            DrawSGR (head $ show $ cx `mod` 10) (fromJust $ toSGR 'c')
-          else if sy == h * 2 + 4 && cx >= 100 && sx `mod` 3 == 0 && cx < w then
-            DrawSGR (head $ show $ cx `mod` 100) (fromJust $ toSGR 'c')
+            DrawSGR (head $ show $ abs (cx + x0)) (fromJust $ toSGR 'c')
+          else if sy == h * 2 + 3 && cx >=   0 && abs (cx + x0) >=  10 && sx `mod` 3 == 0 && cx < w then
+            DrawSGR (head $ show $ abs (cx + x0) `mod` 10) (fromJust $ toSGR 'c')
+          else if sy == h * 2 + 4 && cx >=   0 && abs (cx + x0) >= 100 && sx `mod` 3 == 0 && cx < w then
+            DrawSGR (head $ show $ abs (cx + x0) `mod` 100) (fromJust $ toSGR 'c')
           else if sx ==   0  && cy >=   0 && sy `mod` 2 == 0 && cy < h then
-            DrawSGR (head $ show $ cy `mod`   10) (fromJust $ toSGR 'c')
-          else if sx == (-1) && cy >=  10 && sy `mod` 2 == 0 && cy < h then
-            DrawSGR (head $ show $ cy `mod`  100) (fromJust $ toSGR 'c')
-          else if sx == (-2) && cy >= 100 && sy `mod` 2 == 0 && cy < h then
-            DrawSGR (head $ show $ cy `mod` 1000) (fromJust $ toSGR 'c')
+            DrawSGR (head $ show $ abs (cy + y0) `mod`   10) (fromJust $ toSGR 'c')
+          else if sx == (-1) && cy >=   0 && abs (cy + y0) >=  10 && sy `mod` 2 == 0 && cy < h then
+            DrawSGR (head $ show $ abs (cy + y0) `mod`  100) (fromJust $ toSGR 'c')
+          else if sx == (-2) && cy >=   0 && abs (cy + y0) >= 100 && sy `mod` 2 == 0 && cy < h then
+            DrawSGR (head $ show $ abs (cy + y0) `mod` 1000) (fromJust $ toSGR 'c')
           else
             Blank
-
 
 -- mini map view.
 miniMapView :: Place
             -> Map.Map Coord Bool
-            -> (Int, Int)
+            -> Size2D
             -> Bool
             -> MazeInf
             -> Craphic
-miniMapView place mvt (viewW, viewH) isTransparent (fn, (w, h), m) = case place of
-    (InMaze p) ->
-      let vw = (viewW - 1) * 3 + 1 + 4;
-          vh = (viewH - 1) * 2 + 1 + 2;
-          size = (w, h);
-          filter    = if isTransparent then addSGR 'c' else id;
-          rectBack  = if isTransparent then Blank      else Draw ' ';
-          blankChar = if isTransparent then ' '        else '*'
-      in filter (text (1, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ")")) <>
-         translate (1, 1) ((trim (1, 1) (vw, vh) .
-                            translate (vw `div` 2 - x p * 3 - 2, vh `div` 2 - (h - y p) * 2 + 1))
-                           (noVisitArea mvt size (z p) <> fromTextsA blankChar 'c' (showMaze size p m))
-                          <> filter (rect (0, 0) (vw + 2, vh + 2) rectBack))
-    _          -> mempty
+miniMapView place mvt (viewW, viewH) isTransparent (t, size, m) = case size of
+    Just s  -> miniMapViewInner (t, s, m)
+    Nothing -> case getPosition place of -- special logic for inifinity maze.
+      Just p -> miniMapViewInner (t, ((x p - (w' `div` 2), y p - (h' `div` 2)), (w', h')), m)
+      _      -> mempty
+  where
+    w' = 51
+    h' = 51
+    miniMapViewInner :: MazeInf' -> Craphic
+    miniMapViewInner (t, ((x0, y0), (w, h)), m) = case place of
+        (InMaze p) ->
+          let p' = p { x = x p - x0, y = y p - y0 };
+              vw = (viewW - 1) * 3 + 1 + 4;
+              vh = (viewH - 1) * 2 + 1 + 2;
+              size = ((x0, y0), (w, h));
+              filter    = if isTransparent then addSGR 'c' else id;
+              rectBack  = if isTransparent then Blank      else Draw ' ';
+              blankChar = if isTransparent then ' '        else '*'
+          in filter (text (1, vh+2) (t ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ")")) <>
+             translate (1, 1) ((trim (1, 1) (vw, vh) .
+                                translate (vw `div` 2 - x p' * 3 - 2, vh `div` 2 - (h - y p') * 2 + 1))
+                               (noVisitArea mvt size (z p)  <> fromTextsA blankChar 'c' (showMaze size p m))
+                              <> filter (rect (0, 0) (vw + 2, vh + 2) rectBack))
+        _          -> mempty
 
-noVisitArea :: Map.Map Coord Bool -> Size -> Int -> Craphic
+noVisitArea :: Map.Map Coord Bool -> (Coord2D, Size) -> Int -> Craphic
 noVisitArea mvt = noVisitAreaR mvt Data.Maze.N
 
 
@@ -516,33 +541,48 @@ miniMapViewN :: Place
              -> Bool
              -> MazeInf
              -> Craphic
-miniMapViewN place mvt (viewW, viewH) isTransparent (fn, (w, h), m) = case place of
-    (InMaze p) ->
-      let vw = (viewW - 1) * 3 + 1 + 4;
-          vh = (viewH - 1) * 2 + 1 + 2;
-          d  = direction p;
-          w' = (case d of Data.Maze.E -> h
-                          Data.Maze.W -> h
-                          _           -> w);
-          h' = (case d of Data.Maze.E -> w
-                          Data.Maze.W -> w
-                          _           -> h);
-          size  = (w,  h );
-          size' = (w', h');
-          p'    = rotatePosition d size p;
-          filter    = if isTransparent then addSGR 'c' else id;
-          rectBack  = if isTransparent then Blank      else Draw ' ';
-          blankChar = if isTransparent then ' '        else '*'
-      in filter (text (1, vh+2) (fn ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")")) <>
-         translate (1, 1) ((trim (1, 1) (vw, vh) .
-                            translate (vw `div` 2 - x p' * 3 - 2, vh `div` 2 - (h' - y p') * 2 + 1))
-                           (noVisitAreaR mvt d size' (z p') <> fromTextsA blankChar 'c' (showMaze size' p' $ rotate d size m))
-                          <> filter (rect (0, 0) (vw + 2, vh + 2) Blank))
-    _          -> mempty
+miniMapViewN place mvt (viewW, viewH) isTransparent (t, size, m) = case size of
+    Just s  -> miniMapViewNInner (t, s, m)
+    Nothing -> case getPosition place of -- special logic for inifinity maze.
+      Just p -> miniMapViewNInner (t, ((x p - (w' `div` 2), y p - (h' `div` 2)), (w', h')), m)
+      _      -> mempty
+  where
+    w' = 51
+    h' = 51
+    miniMapViewNInner (t, ((x0, y0), (w, h)), m) = case place of
+        (InMaze p) ->
+          let vw = (viewW - 1) * 3 + 1 + 4;
+              vh = (viewH - 1) * 2 + 1 + 2;
+              d  = direction p;
+              w' = (case d of Data.Maze.E -> h
+                              Data.Maze.W -> h
+                              _           -> w);
+              h' = (case d of Data.Maze.E -> w
+                              Data.Maze.W -> w
+                              _           -> h);
+              x0'= (case d of Data.Maze.E -> y0
+                              Data.Maze.W -> y0
+                              _           -> x0);
+              y0'= (case d of Data.Maze.E -> x0
+                              Data.Maze.W -> x0
+                              _           -> y0);
+              size  = ((x0 , y0 ), (w,  h ));
+              size' = ((x0', y0'), (w', h'));
+              p'    = rotatePosition d size p;
+              p''   = p' { x = x p' - x0', y = y p' - y0' };
+              filter    = if isTransparent then addSGR 'c' else id;
+              rectBack  = if isTransparent then Blank      else Draw ' ';
+              blankChar = if isTransparent then ' '        else '*'
+          in filter (text (1, vh+2) (t ++ "(" ++ show (x p) ++ "," ++ show (y p) ++ ":" ++ show d ++ ")")) <>
+             translate (1, 1) ((trim (1, 1) (vw, vh) .
+                                translate (vw `div` 2 - x p'' * 3 - 2, vh `div` 2 - (h' - y p'') * 2 + 1))
+                               (noVisitAreaR mvt d size' (z p') <> fromTextsA blankChar 'c' (showMaze size' p' $ rotate d size m))
+                              <> filter (rect (0, 0) (vw + 2, vh + 2) Blank))
+        _          -> mempty
 
 
-noVisitAreaR :: Map.Map Coord Bool -> Direction -> Size -> Int -> Craphic
-noVisitAreaR mvt newN size z = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' ' ' z size
+noVisitAreaR :: Map.Map Coord Bool -> Direction -> (Coord2D, Size) -> Int -> Craphic
+noVisitAreaR mvt newN size z  = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' ' ' z size
   where
     isVisited (x, y, z) = let p = Position newN x y z
                               p'= rotatePositionRev newN size p

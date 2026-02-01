@@ -72,9 +72,10 @@ initScenario = return (s, w)
         , initRacies           = SampleRacies.racies
         , initJobs             = SampleJobs.jobs
         , initMazes            = [
-              ("B1F", ( 4,  5), SampleMaze.maze1F)
---          , ("B2F", (26, 25), SampleMaze.maze2F)
-            , ("B2F", (6, 5), SampleMaze.maze2F)
+              ("B1F", Just ((0, 0), (4, 5)), SampleMaze.maze1F)
+--          , ("B2F", Just ((0, 0), (26, 25)), SampleMaze.maze2F)
+            , ("B2F", Just ((-1, -2), (7, 7)), SampleMaze.maze2F)
+            , ("B3F", Nothing, const $ Grid (Passage, Passage, Passage, Passage) [])
             ]
         , initEncountMap       = Map.fromList [
               ((0, 0, 0), (10, [EnemyID 1, EnemyID 2]))
@@ -207,10 +208,10 @@ initScenario = return (s, w)
 modScenario :: Scenario -> Scenario
 modScenario s = let org = mazes s in s {
     mazes = \z -> do
-        flg2 <- evFlag 2
-        if z == 0 && flg2 == 1
-          then return $ Just ("B1F", ( 4,  5), SampleMaze.maze1F')
-          else org z
+       flg2 <- evFlag 2
+       if z == 0 && flg2 == 1
+         then return $ Just ("B1F", Just ((0, 0), (4, 5)), SampleMaze.maze1F')
+         else org z
     }
 
 
