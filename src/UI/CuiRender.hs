@@ -95,15 +95,15 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
     <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox') mMsg')
     <> t1 (if null cMsg  || isJust cid' then mempty else cmdBox cMsg )
     <> t1 (if visibleStatusWindow w && not hideStatus then status s w (catMaybes ps) else mempty)
-    <> t1 (if visibleGuideWindow w then guide else mempty)
+    <> t1 (if visibleGuideWindow w && null mMsg then guide else mempty)
     <>    (if null cMsg && null mMsg && isNothing picInf then minimapScreen else mempty)
 --  <> t1 location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
-    <> t1 statusScene
     <> t1 (debugWindow $ debugMessage w) -- MEMO:forDebug
+    <> t1 (picOf picInf)
+    <> t1 statusScene
     <> t1 (frameTrans w $ frame)
     <> t1 (enemyTrans w $ enemyScene picOf s (place w))
     <> t1 treasureScene
-    <> t1 (picOf picInf)
     <> t1 (sceneTrans w $ scene (place w) (partyLight w > 0) (partyLight' w > 0) (thd3 $ mazeInf s w))
   where
     t1    = translate (1, 1)

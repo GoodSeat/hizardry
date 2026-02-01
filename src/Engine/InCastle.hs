@@ -207,7 +207,7 @@ selectShopAction id = GameAuto $ do
                      ++ "^L)eave `[`E`S`C`]\n"
         lst = [(Key "l", inBoltac'sTradingPost)
               ,(Key "p", with [poolGoldTo id] (selectShopAction id))
-              ,(Key "b", buyItem id 0)
+              ,(Key "b", buyItem id 0 True)
               ,(Key "s", sellItem id)
               ,(Key "i", determineItem id)
               ,(Key "u", uncurseItem id)
@@ -220,16 +220,16 @@ sizePage = 9
 lastPage :: GameState Int
 lastPage = flip div sizePage . flip (-) 1 . length . filter ((/= 0) . snd) . Map.toList . shopItems <$> world
 
-buyItem :: CharacterID -> Int -> GameMachine
-buyItem cid (-1) = GameAuto $ do 
+buyItem :: CharacterID -> Int -> Bool -> GameMachine
+buyItem cid (-1) bi = GameAuto $ do 
     mxPage <- lastPage
-    run $ buyItem cid mxPage
-buyItem cid page = GameAuto $ do
+    run $ buyItem cid mxPage bi
+buyItem cid page bi = GameAuto $ do
     c <- characterByID cid
     lstItem <- fmap fst . filter ((/= 0) . snd) . sortOn fst . Map.toList . shopItems <$> world
     let lstItem' = take sizePage . drop (page * sizePage) $ lstItem
     if      null lstItem  then run $ selectShopAction cid
-    else if null lstItem' then run $ buyItem cid 0 
+    else if null lstItem' then run $ buyItem cid 0 bi
     else do
       mxPage <- lastPage
       gp     <- Character.gold <$> characterByID cid
@@ -240,15 +240,23 @@ buyItem cid page = GameAuto $ do
           items  = zipWith (++) items0 canMs
           lst  = "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
                ++ unlines (zipWith (++) ((++") ") . show <$> [1..]) items) ++ "\n"
-          txt  = "Select item to buy. You have " ++ show gp ++ " G.P.\n\n"
-              ++ "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave `[E`s`c`]" ++ lst
+          txt  = if bi then
+                   "Select item to buy. You have " ++ show gp ++ " G.P.\n\n" ++ 
+                   "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave `[`E`s`c`]" ++ lst
+                 else
+                   "Select item to inspect. You have " ++ show gp ++ " G.P.\n\n" ++ 
+                   "^N)ext list  ^P)revious list  ^?)Buy  ^L)eave `[`E`s`c`]" ++ lst
           msg  = message txt 
+           
           cmds = cmdNums (length lstItem')
-               $ buy cid (buyItem cid page) . (lstItem' !!) . flip (-) 1
+               $ if bi then buy cid (buyItem cid page bi) . (lstItem' !!) . flip (-) 1
+                       else \n -> let (ifm, pic) =Item.itemInformation $ defs !! (n - 1)
+                                  in events [Resume (changeFlash ifm . withPicture (Just pic))] (buyItem cid page bi)
       run $ selectEsc msg $ (Key "l", selectShopAction cid)
-                          : (Key "n", buyItem cid (page + 1))
-                          : (Key "p", buyItem cid (page - 1))
---                        : (Key "?", infoItem cid page)  -- TODO
+                          : (Key "n", buyItem cid (page + 1) bi)
+                          : (Key "p", buyItem cid (page - 1) bi)
+                          : (Key "\16128", buyItem cid page (not bi))
+                          : (Key "?", buyItem cid page (not bi))
                           : cmds
 
 buy :: CharacterID -> GameMachine -> ItemID -> GameMachine
@@ -317,9 +325,6 @@ sellItem cid = GameAuto $ do
       run $ selectEsc (message greet)
           $ (Key "l", selectShopAction cid)
           : fmap (\pos -> (Key (toLower <$> Character.itemPosToText pos), sell cid pos)) pis
-  where
-    sellName :: ItemInf -> GameState String
-    sellName (ItemInf id determined) = (if determined then Item.name else Item.nameUndetermined) <$> itemByID id
 
 sellValue :: ItemInf -> GameState Int
 sellValue (ItemInf _ False) = return 0

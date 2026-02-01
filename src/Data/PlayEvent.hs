@@ -118,6 +118,13 @@ withNoPhrase None = withNoPhrase $ General emptyDisplay
 withNoPhrase (Resume c) = Resume (c . withNoPhrase)
 withNoPhrase e = e
 
+withPicture :: Maybe PictureInf -> Event -> Event
+withPicture pic (General d) = General $ d { picture = pic }
+withPicture pic (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { picture = pic }
+withPicture pic None = withPicture pic $ General emptyDisplay
+withPicture pic (Resume c) = Resume (c . withPicture pic)
+withPicture pic e = e
+
 withSE :: SEType -> Event -> Event
 withSE se (General d) = General $ d { typeSE = se }
 withSE se (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { typeSE = se }

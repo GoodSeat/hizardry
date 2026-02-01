@@ -48,7 +48,7 @@ inspectCharacter h canSpell i = GameAuto $ do
     eips <- filterM canUsePos [(Chara.ItemA)..(toEnum $ length (Chara.items c) - 1)] 
     let iCast  = askInStatus cid
         sCast  = showStatus cid
---      sItem  = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
+        sItemA = const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
         sItem  = const (showStatusEquip cid eips $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave")
         dItem  = sCast
         eItem  = showStatusEquip cid
@@ -56,18 +56,19 @@ inspectCharacter h canSpell i = GameAuto $ do
          | canSpell' && not canIdentify =
                    "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
                    "^R)ead Spell   ^S)pell        ^P)ool Money             \n" ++
-                   "^#)Inspect     ^L)eave `[`E`S`C`]                         "
+                   "^#)Inspect     ^?)Check Item  ^L)eave `[`E`S`C`]         "
          | not canSpell' && not canIdentify =
                    "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
-                   "^R)ead Spell   ^P)ool Money   ^#)Inspect     ^L)eave `[`E`S`C`]"
+                   "^R)ead Spell   ^P)ool Money   ^#)Inspect               \n" ++
+                   "^?)Check Item  ^L)eave `[`E`S`C`]                        "
          | canSpell' && canIdentify =
                    "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
                    "^R)ead Spell   ^S)pell        ^P)ool Money   ^I)dentify\n" ++
-                   "^#)Inspect     ^L)eave `[`E`S`C`]                         "
+                   "^#)Inspect     ^?)Check Item  ^L)eave `[`E`S`C`]         "
          | otherwise =
                    "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
                    "^R)ead Spell   ^P)ool Money   ^I)dentify               \n" ++
-                   "^#)Inspect     ^L)eave `[`E`S`C`]"
+                   "^#)Inspect     ^?)Check Item  ^L)eave `[`E`S`C`]         "
     run $ selectWhenEsc (showStatus cid msg)
                       $ (Key "l", h, True)
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell')
@@ -79,7 +80,19 @@ inspectCharacter h canSpell i = GameAuto $ do
                       : (Key "r", readSpell cancel cid, True)
                       : (Key "g", with [msgDebug $ show (Chara.spells c)] cancel, True)
                       : (Key "p", GameAuto (poolGoldTo cid >> run cancel), True)
+                      : (Key "\16128", selectItem sItemA (const $ return True) checkItem c cancel, True)
+                      : (Key "?"     , selectItem sItemA (const $ return True) checkItem c cancel, True)
                       : cmdsInspect
+
+checkItem :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
+checkItem c i next = GameAuto $ do
+    let known = identified $ Chara.itemInfAt c i
+    if not known then
+      run $ events [Resume (changeFlash "** you must identify what it is. **")] next
+    else do
+      def <- itemByID $ Chara.itemAt c i
+      let (ifm, pic) = Item.itemInformation def
+      run $ events [Resume (changeFlash ifm . withPicture (Just pic))] next
 
 identifyItem :: (String -> Event)
              -> PartyPos
@@ -265,18 +278,17 @@ selectItem' :: String
             -> GameMachine
 selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
     is <- asks items
-    let nameOf id = Item.name (is ! id)
+    let nameOf inf = (if identified inf then Item.name else Item.nameUndetermined) (is ! itemID inf)
         its = Chara.items c
     cs  <- filterM (isTarget . snd) (zip (toEnum <$> [0..]) its)
-    let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf (itemID inf)) <$> cs
-    return (msgForSelect $
-              "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n"
-              ++ unlines msg,
+    let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf inf) <$> cs
+        next' = selectItem' cancelKey msgForSelect isTarget next c cancel
+    return (msgForSelect $ "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n" ++ unlines msg,
             \(Key s) -> if s == cancelKey || s == "\ESC" then cancel
                         else case Chara.itemPosByChar s of
-                          Nothing -> selectItem' cancelKey msgForSelect isTarget next c cancel
-                          Just i  -> if i `elem` (fst <$> cs) then next c i cancel
-                                     else selectItem' cancelKey msgForSelect isTarget next c cancel
+                          Nothing -> next'
+                          Just i  -> if i `elem` (fst <$> cs) then next c i next'
+                                     else next'
            )
 
 useItem :: (String -> Event)

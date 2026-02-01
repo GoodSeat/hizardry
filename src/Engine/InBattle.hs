@@ -12,7 +12,7 @@ import Control.Monad.Reader (asks)
 import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
-import Engine.CharacterAction (inputSpell, selectItem, useItem, castDamageSpell, readSpell)
+import Engine.CharacterAction (inputSpell, selectItem, useItem, checkItem, castDamageSpell, readSpell, textItemCandidate)
 import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), getTreasures)
 import Data.World
 import Data.Primitive
@@ -191,14 +191,17 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
           canHandle inf = do
             def <- itemByID $ itemID inf
             return $ Chara.canUse c def && identified inf
-      let next a = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
-          cancel = selectBattleCommand i cmds con surprise
+      let next a  = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
+          cancel  = selectBattleCommand i cmds con surprise
+          msgItem = "Select item(" ++ textItemCandidate c ++ ")  ^L)eave"
       if isCantFight c then
         run $ next CantMove
       else
-        let inspect = selectEsc (showStatus cid "^R)ead Spell   ^L)eave `[`E`S`C`]")
-                                [(Key "l", selectBattleCommand i cmds con surprise)
+        let inspect = selectEsc (showStatus cid "^R)ead Spell   ^?)Check Item   ^L)eave `[`E`S`C`]")
+                                [(Key "l", cancel)
                                 ,(Key "r", readSpell inspect cid)
+                                ,(Key "\16128", selectItem (const $ showStatus cid msgItem) (const $ return True) checkItem c cancel)
+                                ,(Key "?"     , selectItem (const $ showStatus cid msgItem) (const $ return True) checkItem c cancel)
                                 ]
             cms = [( Key "a", selectFightTarget c fts' next cancel, Chara.Ambush `elem` cs')
                   ,( Key "f", selectFightTarget c fts  next cancel, Chara.Fight `elem` cs')
@@ -215,7 +218,7 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
                   ,( Key "r", tryRun c con surprise, Chara.Run `elem` cs')
                   ,( Key "\16128", inspect, True) -- code of "?" ?
                   ,( Key "?", inspect, True)
-                  ,( Key "\ESC", events [None] (selectBattleCommand i cmds con surprise), True)
+                  ,( Key "\ESC", events [None] cancel, True)
                   ,( Key "b", with [resetCommand] $ selectBattleCommand (i - 1) (drop 1 cmds) con surprise, i > 1)
                   ]
             toMsg cmd = case cmd of Chara.Fight          -> if Chara.Ambush `elem` cs' then "^F)ight\n" else "^F)ight`*\n"

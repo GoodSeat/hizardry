@@ -35,7 +35,8 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
-        , Item.itemInformation  = ("Diosの効果を持つ薬。", Null)
+        , Item.itemInformation  = ("Diosの効果を持つ薬。"
+                                  , List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051)])
     })
     ,
     (ItemID 2, Item.Define {
