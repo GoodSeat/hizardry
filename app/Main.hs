@@ -14,7 +14,7 @@ import Control.Concurrent.Async (race)
 import Control.Monad (void, when, forM)
 import qualified Data.Map as Map
 import Data.Maybe (maybe)
-import Data.List (isSuffixOf)
+import Data.List (isSuffixOf, intersperse)
 import Data.Char (ord, chr)
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef, writeIORef)
 import Text.Read (readMaybe)
@@ -23,10 +23,11 @@ import qualified Data.Bits as Bits
 import Engine.GameAuto
 import Engine.InCastle (inCastle)
 import Engine.InEdgeOfTown (inEdgeOfTown)
-import Data.World (World(..), Place(..), place, saveWorld, loadWorld, initWorld, Seed)
+import Data.World (World(..), Place(..), place, saveWorld, loadWorld, initWorld, Seed, switchBGM)
 import Data.PlayEvent
 
 import Control.CUI
+import Control.Sound (playBGM, stopBGM)
 import UI.CuiRender (cuiRender, renderWithCache)
 import UI.SoundControl
 
@@ -74,12 +75,12 @@ main = bracket_ initSound quitSound $ do
 
     -- restore from save data.
     infData0 <- findData s 0
-    (w, seed) <- case infData0 of
-        Nothing        -> return (w0, seed0)
+    (wOrg, seedOrg, canLoad) <- case infData0 of
+        Nothing        -> return (w0, seed0, False)
         Just (path, _) -> do
             res <- loadWorld path
-            case res of Right ws -> return ws
-                        Left  _  -> return (w0, seed0)
+            case res of Right ws -> return (fst ws, snd ws, True)
+                        Left  _  -> return (w0, seed0, False)
 
     -- restore from input log.
     existInputLog <- doesFileExist inputLogPath
@@ -87,49 +88,61 @@ main = bracket_ initSound quitSound $ do
     let ekey = encKey s
 --  let ekey = ""
     
-    (run, needResetInputLog) <- if not existInputLog then return (runGame, True) else do
+    (runOrg, canResume) <- if not existInputLog then return (runGame, True) else do
         c  <- readFile inputLogPath
         ls <- lines <$> crypt indx ekey c
         if length ls > 3 &&
            (take 3 <$> (readMaybe (ls !! 0) :: Maybe [Int])) == Just (take 3 currentVersion)  &&  -- 1:check app version.
            (take 3 <$> (readMaybe (ls !! 1) :: Maybe [Int])) == Just (take 3 currentVersionS) &&  -- 2:check scenario version.
-           (readMaybe (ls !! 2) :: Maybe Int) == Just seed                                        -- 3:check if seed is match.
+           (readMaybe (ls !! 2) :: Maybe Int) == Just seedOrg                                     -- 3:check if seed is match.
         then do
           let is  = read <$> filter (not . null) (drop 3 ls)
               is' = foldl (\acc i -> if i == Abort then tail acc else i:acc) [] is
-          return (loadGame (reverse is'), False)
+          return (loadGame (reverse is'), True)
         else
-          return (runGame, True)
+          return (runGame, False)
 
-    let resetInputLog sd = writeIORef indx 0 >> (writeFile inputLogPath =<< crypt indx ekey (
-                            show currentVersion  ++ "\n"    -- 1:save app version.
-                         ++ show currentVersionS ++ "\n"    -- 2:save scenario version.
-                         ++ show sd ++ "\n"                 -- 3:save seed for check data.
-                        ))
+    -- show title
+    when (switchBGM $ worldOption wOrg) $ playBGM "res/openingTitle.mp3"
+    startOp <- title (scenarioName s) canLoad canResume
+    stopBGM
+    case startOp of
+      Nothing -> return ()
+      Just op -> do
+        let resetInputLog sd = writeIORef indx 0 >> (writeFile inputLogPath =<< crypt indx ekey (
+                                show currentVersion  ++ "\n"    -- 1:save app version.
+                             ++ show currentVersionS ++ "\n"    -- 2:save scenario version.
+                             ++ show sd ++ "\n"                 -- 3:save seed for check data.
+                            ))
+        
+        let (w, seed) | op == NewGame = (w0  , seed0  )
+                      | otherwise     = (wOrg, seedOrg)
+        let run | op == ResumeGame = runOrg
+                | otherwise        = runGame
 
-    when needResetInputLog (resetInputLog seed)
+        when (op /= ResumeGame) (resetInputLog seed)
 
-    let start | place w == InEdgeOfTown = inEdgeOfTown
-              | otherwise               = inCastle
-             
-    -- setting for CUI
-    cacheSound <- newIORef (EnteringMaze, "")
-    let picOf = maybe mempty SampleScenario.pic
-        seOf  = SampleScenario.seOf
-        bgmOf = SampleScenario.bgmOf
-    drawCache <- newDrawCache
-    let renderMethod = renderWithCache drawCache
-        display      = cuiRender renderMethod picOf s
-        display' e w = playSound cacheSound seOf bgmOf e w
-                    >> setCursorPosition 0 0 >> display e w
-    let cmd          = getKey indx ekey (clearCache drawCache)
+        let start | place w == InEdgeOfTown = inEdgeOfTown
+                  | otherwise               = inCastle
+                 
+        -- setting for CUI
+        cacheSound <- newIORef (EnteringMaze, "")
+        let picOf = maybe mempty SampleScenario.pic
+            seOf  = SampleScenario.seOf
+            bgmOf = SampleScenario.bgmOf
+        drawCache <- newDrawCache
+        let renderMethod = renderWithCache drawCache
+            display      = cuiRender renderMethod picOf s
+            display' e w = playSound cacheSound seOf bgmOf e w
+                        >> setCursorPosition 0 0 >> display e w
+        let cmd          = getKey indx ekey (clearCache drawCache)
 
-    clearScreen
-    hideCursor
-    w' <- run display' cmd updateBackUpList (savingGame resetInputLog) (loadingGame resetInputLog) s w start
-    showCursor
+        clearScreen
+        hideCursor
+        w' <- run display' cmd updateBackUpList (savingGame resetInputLog) (loadingGame resetInputLog) s w start
+        showCursor
 
-    appendFile inputLogPath =<< crypt indx ekey (show Abort ++ "\n")
+        appendFile inputLogPath =<< crypt indx ekey (show Abort ++ "\n")
 
 -- ==========================================================================
 
@@ -216,6 +229,82 @@ ignoreKey = do
 
 -- ==========================================================================
 
+data GameStart = NewGame | Loading | ResumeGame deriving Eq
 
+title :: String -> Bool -> Bool -> IO (Maybe GameStart) -- ^ resume or not
+title name canLoad canResume = do
+    clearScreen
+    hideCursor
+    setCursorPosition 0 0
+    draw (90, 40) (title' name canLoad canResume)
+    hSetBuffering stdin NoBuffering
+    ask
+  where
+    ask = do
+      x <- getChar
+      if      x == 'r' && canResume then showCursor >> return (Just ResumeGame)
+      else if x == 'l' && canLoad   then checkLoad name canLoad canResume
+      else if x == 'n'              then checkNew  name canLoad canResume
+      else if x == 'q'              then showCursor >> return Nothing
+      else ask
+
+checkLoad :: String -> Bool -> Bool -> IO (Maybe GameStart)
+checkLoad name canLoad canResume =
+    if not canResume then showCursor >> return (Just Loading)
+    else do
+      setCursorPosition 0 0
+      draw (90, 40) (inform <> title' name canLoad canResume)
+      ask
+  where
+    inform =  text (17,31) "オートセーブのデータを読み込むと、継続データは失われます。"
+           <> text (17,32) "           よろしいですか？  ( Y / N )                    "
+           <> rect (15,29) (63,  6) (Draw ' ')
+    ask = do
+      x <- getChar
+      if      x == 'y' then showCursor >> return (Just Loading)
+      else if x == 'n' then title name canLoad canResume
+      else ask
+    
+checkNew :: String -> Bool -> Bool -> IO (Maybe GameStart)
+checkNew name canLoad canResume =
+    if not canLoad then showCursor >> return (Just NewGame)
+    else do
+      setCursorPosition 0 0
+      draw (90, 40) (inform <> title' name canLoad canResume)
+      ask
+  where
+    inform =  text (17,31) "新規ゲームを開始すると、オートセーブのデータは失われます。"
+           <> text (17,32) "  (スロット1～9にバックアップしているデータは残ります)    "
+           <> text (17,33) "             よろしいですか？  ( Y / N )                  "
+           <> rect (15,29) (63,  7) (Draw ' ')
+    ask = do
+      x <- getChar
+      if      x == 'y' then showCursor >> return (Just NewGame)
+      else if x == 'n' then title name canLoad canResume
+      else ask
+    
+
+title' :: String -> Bool -> Bool -> Craphic
+title' name canLoad canResume = translate (2, 5) (fromTexts ' ' (lines logo))
+                             <> text ((90 - len name) `div` 2,15) name
+                             <> (if canResume then text (33,34) "R) e s u m e   G a m e" else mempty)
+                             <> (if canLoad   then text (33,35) "L) o a d       G a m e" else mempty)
+                             <> text (33,36 - dlt) "N) e w         G a m e"
+                             <> text (33,37 - dlt) "Q) u i t       G a m e"
+                             <> text (14,32) (intersperse ' ' "Welcome to the world of Hizardry")
+                             <> rect (11,31) (71,  8) (Draw ' ')
+                             <> rect ( 1, 1) (89, 40) (Draw ' ')
+  where dlt = if canLoad then 0 else 1
+
+
+logo :: String
+logo = "Hb      dM                                                                ...         \n"
+    ++ "@b      dM .Qmk XQQQmp  .mp   QkQa,  QkQQJ, .mQQa, .NNNp,WQQ&    .gQQ%    dMF         \n"
+    ++ "Hb      dM  ,N    .dY  .H%H[  M) .M` M)  .M[.@_ .#   TMMN,4HHh. .HH#'     dMF         \n"
+    ++ "Hb .+QQ dM  ,N >.JY`,C dNQdM, MYTM,  M).=.H%.HYTN,(QQm?MMMe/M@MH@@Y.Qkkk) dMMNNNNNNNN \n"
+    ++ "@b  ?77 dM .UMk.MMWWWSJ@   (N.M|  TN,MHWWY^ .M~ .Th.?77 MMMb.MH@M^ ?????! dM#!!!!!!!! \n"
+    ++ "Mb      dM                                            .dMM@(dH@P(d@ggggg[ dMF         \n"
+    ++ "Mb      dM                                           .MMMt.MHM^           ?'t         \n"
+    ++ "                                                   .jMM#_dHH@`                        "
 
 -- ==========================================================================
