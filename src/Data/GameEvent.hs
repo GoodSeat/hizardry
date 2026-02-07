@@ -49,6 +49,8 @@ data Define =
             | PlaySoundEffect SEType
             | PlayBGM         BGMType
 
+            | StartBattle Formula Define Define -- enemy id, when win, when run
+
             -- others
             | AsSpell SpellID
             | Reference GameEventID

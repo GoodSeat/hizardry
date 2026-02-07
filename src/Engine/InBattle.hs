@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module Engine.InBattle (startBattle) where
+module Engine.InBattle (startBattle, startBattle') where
 
 import PreludeL
 import Data.List hiding ((!!))
@@ -98,19 +98,21 @@ startBattle :: EnemyID                    -- ^ encounted enemy.
             -> Bool                       -- ^ is room battle or not.
             -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
             -> GameMachine
-startBattle eid isRB gms = startBattle' eid isRB gms 0 []
+startBattle eid isRB gms = startBattle' eid isRB True True gms 0 []
 
 startBattle' :: EnemyID                    -- ^ encounted enemy.
              -> Bool                       -- ^ is room battle or not.
+             -> Bool                       -- ^ maybe friendly
+             -> Bool                       -- ^ maybe surprise
              -> (GameMachine, GameMachine) -- ^ after battle won, run from battle.
              -> Int                        -- ^ pre gained gold.
              -> [Int]                      -- ^ pre gained items.
              -> GameMachine
-startBattle' eid isRB (g1, g2) gold items = GameAuto $ do
+startBattle' eid isRB maybeFriendly maybeSurprise (g1, g2) gold items = GameAuto $ do
     es <- decideEnemyInstance eid
     ps <- party <$> world
     isFriendly <- happens $ (Enemy.friendlyProb . Enemy.define . head . head) es
-    surprise   <- if isFriendly then return NoSurprise else do
+    surprise   <- if not maybeSurprise || (maybeFriendly && isFriendly) then return NoSurprise else do
         r <- randomNext 0 99
         let partySurpriseProb = 32 - length ps * 2
             enemySurpriseProb = 22 - length ps
@@ -392,7 +394,7 @@ findTreasureChest :: Condition -> GameMachine
 findTreasureChest con = GameAuto $ do
     trap <- randomIn $ [Enemy.DropDirectly | null $ traps con] ++ traps con
     movePlace =<< FindTreasureChest <$> currentPosition <*> pure False
-    let whenAlarm eid = startBattle' eid False (afterWin con, afterRun con) (dropGold con) (dropItems con)
+    let whenAlarm eid = startBattle' eid False False False (afterWin con, afterRun con) (dropGold con) (dropItems con)
     run $ actionForTreasureChest (TreasureCondition (afterWin con) (dropGold con) (dropItems con) trap whenAlarm) []
 
 findTreasures :: Condition -> GameMachine

@@ -119,10 +119,10 @@ enemies = Map.fromList [
         , Enemy.dropItem          = [(50, parse' "1d3")]
         , Enemy.dropGold          = parse' "2d10"
 
-        , Enemy.withBackProb      = 15
+        , Enemy.withBackProb      = 0
         , Enemy.backEnemyID       = parse' "1"
 
         , Enemy.enableRun         = True
-        , Enemy.trapCandidate     = [Enemy.Alarm, Enemy.Teleporter, Enemy.Stunner]
+        , Enemy.trapCandidate     = [Enemy.DropDirectly]
     })
     ]

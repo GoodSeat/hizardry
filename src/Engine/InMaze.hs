@@ -13,8 +13,8 @@ import qualified Data.Map as Map
 
 import Engine.GameAuto
 import Engine.Utils
-import Engine.InBattle
-import Engine.InEvent (doEvent)
+import Engine.InBattle (startBattle, startBattle')
+import Engine.InEvent (doEventMaybeEncountEnemy)
 import Engine.CharacterAction (inspectCharacter)
 import Data.World
 import Data.Maze
@@ -61,6 +61,9 @@ eventOn' p = do
 
 -- =======================================================================
 
+toBattle :: Position -> EnemyID -> (GameMachine, GameMachine) -> GameMachine
+toBattle p eid (g1, g2) = startBattle' eid True False False (with [movePlace $ InMaze p] g1, with [movePlace $ InMaze p] g2) 0 []
+
 enterGrid :: Maybe Ev.Define -- ^ happened event.
           -> Bool            -- ^ probably encount enemy.
           -> Event           -- ^ event when moved.
@@ -80,7 +83,7 @@ enterGrid e probEncount evMoved p = GameAuto $ do
                    if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
                    else fmap (,False) <$> checkEncount c False
                  else return Nothing
-      case e of Just edef -> run $ doEvent Nothing edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling
+      case e of Just edef -> run $ doEventMaybeEncountEnemy Nothing edef (escapeEvent evMoved) (endEvent evMoved) cantSpelling (toBattle p)
                 Nothing   -> case encount of
                   Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
                   Just (ei, isRB) -> run $ encountEnemy ei isRB
@@ -212,7 +215,7 @@ searchSurroundings p = GameAuto $ do
             evDef <- asks ((Map.! eid) . mazeEvents)
             let returnToInspect _ = inspect p
                 cantSpelling _ _  = inspect p
-            run $ events searchMsgs (doEvent Nothing evDef returnToInspect returnToInspect cantSpelling)
+            run $ events searchMsgs (doEventMaybeEncountEnemy Nothing evDef returnToInspect returnToInspect cantSpelling (toBattle p))
 
 searchCharacter :: Position -> GameMachine
 searchCharacter p = GameAuto $ do

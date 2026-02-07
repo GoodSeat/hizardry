@@ -1,5 +1,5 @@
 module Engine.InEvent (
-    doEvent
+    doEvent, doEventMaybeEncountEnemy
 ) where
 
 import PreludeL
@@ -32,22 +32,32 @@ doEvent :: Maybe CharacterID
         -> (IsImplicit -> GameMachine)                  -- ^ when End Event
         -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
         -> GameMachine
-doEvent cidRep edef whenEscape whenEnd spelling = GameAuto $ do
-    cid <- characterIDInPartyAt F1
-    run $ doEventInner True (fromMaybe cid cidRep) edef whenEscape whenEnd spelling
+doEvent cidRep edef whenEscape whenEnd spelling = 
+    doEventMaybeEncountEnemy cidRep edef whenEscape whenEnd spelling (\_ _ -> GameAuto (err "Battles at this time are not supported."))
     
+doEventMaybeEncountEnemy :: Maybe CharacterID
+                         -> Ev.Define
+                         -> (IsImplicit -> GameMachine)                            -- ^ when Escape Event
+                         -> (IsImplicit -> GameMachine)                            -- ^ when End Event
+                         -> (Spell.Define -> GameMachine -> GameMachine)           -- ^ GameMachine for spelling
+                         -> (EnemyID -> (GameMachine, GameMachine) -> GameMachine) -- ^ GameMachine to battle
+                         -> GameMachine
+doEventMaybeEncountEnemy cidRep edef whenEscape whenEnd spelling toBattle = GameAuto $ do
+    cid <- characterIDInPartyAt F1
+    run $ doEventInner True (fromMaybe cid cidRep) edef whenEscape whenEnd spelling toBattle
 
 doEventInner :: IsImplicit                                   -- ^ player can't notice this event or not (= implicit event or not)
              -> CharacterID
              -> Ev.Define
-             -> (IsImplicit -> GameMachine)                  -- ^ when Escape Event
-             -> (IsImplicit -> GameMachine)                  -- ^ when End Event
-             -> (Spell.Define -> GameMachine -> GameMachine) -- ^ GameMachine for spelling
+             -> (IsImplicit -> GameMachine)                            -- ^ when Escape Event
+             -> (IsImplicit -> GameMachine)                            -- ^ when End Event
+             -> (Spell.Define -> GameMachine -> GameMachine)           -- ^ GameMachine for spelling
+             -> (EnemyID -> (GameMachine, GameMachine) -> GameMachine) -- ^ GameMachine to battle
              -> GameMachine
-doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef whenEscape
+doEventInner isHidden cidRep edef whenEscape whenEnd spelling toBattle = doEvent' edef whenEscape
   where
     candidates :: [(String, Ev.Define)] -> [(Input, GameMachine)]
-    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False cidRep edef whenEscape whenEnd spelling)
+    candidates = concatMap (\(m, edef) -> [(Key x, doEventInner False cidRep edef whenEscape whenEnd spelling toBattle)
                                           | x <- if m == "" || m == "\n" then [m] else if m == "\r" then ["\n"] else lines m])
 
     doEvent' :: Ev.Define -> (IsImplicit -> GameMachine) -> GameMachine
@@ -197,8 +207,6 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
 
     doEvent' (Ev.ChangeEventFlag idx f) next = GameAuto $ do
         efs <- eventFlags <$> world
-        ps  <- party <$> world
-        os  <- mapM characterByID ps
         map <- formulaMapP
         n   <- evalWith map f
         modify $ \w -> w { eventFlags = take idx efs ++ [n] ++ drop (idx + 1) efs }
@@ -210,6 +218,11 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     doEvent' (Ev.PlayBGM Ambient) next   = addEff (withBGM TurnOff) (events [Resume (changeWaitTime 1)]
                                          $ addEff (withBGM Ambient) (next isHidden))
     doEvent' (Ev.PlayBGM s) next         = addEff (withBGM s) (next isHidden)
+
+    doEvent' (Ev.StartBattle f nextWin nextRun) next = GameAuto $ do
+        map <- formulaMapP
+        eid <- EnemyID <$> evalWith map f
+        run $ toBattle eid (doEvent' nextWin next, doEvent' nextRun next)
 
     -- others
     doEvent' (Ev.AsSpell sid) next = GameAuto $ do
@@ -229,8 +242,8 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling = doEvent' edef wh
     doEvent' (Ev.Events (Ev.Escape:_)) _ = whenEscape isHidden
     doEvent' (Ev.Events (Ev.ChangeLeader pos:es)) next = GameAuto $ do
         cid <- characterIDInPartyAtS pos
-        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) next whenEnd spelling
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) next whenEnd spelling
+        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) next whenEnd spelling toBattle
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) next whenEnd spelling toBattle
 
     
     doEventToCharacter :: Ev.TargetType -> GameMachine -> (CharacterID -> GameState()) -> GameMachine

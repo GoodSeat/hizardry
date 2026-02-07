@@ -297,7 +297,8 @@ addPoison d s = let ss = statusErrorsOf s in case find isPoison ss of
 
 addDrain :: Object o => Int -> o -> o
 addDrain d s = let ss = statusErrorsOf s in case find (`areSameStatusError` Drain 0) ss of
-    Just (Drain n) -> setStatusErrors (Drain (n + d) : statusErrorsOf (removeStatusError (Drain n) s)) s
+    Just (Drain n) -> if n + d >= lvOf s then setStatusErrors [Lost] s
+                      else setStatusErrors (Drain (n + d) : statusErrorsOf (removeStatusError (Drain n) s)) s
     _              -> setStatusErrors (Drain d : statusErrorsOf s) s
 
 getDrainLv :: Object o => o -> Int

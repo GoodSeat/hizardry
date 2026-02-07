@@ -86,6 +86,18 @@ mazeEvents = Map.fromList [
                     <> Ev.Reference (GameEventID 010103))
          , ("fight", Ev.MessageT (-15) "私は平和主義者だ。\n戦いは好まない。" (Just $ Single $ PictureID 1002)
                   <> Ev.Reference (GameEventID 010103))
+         , ("battle", Ev.MessageT (-15) "戦いたいのなら仕方ない。" (Just $ Single $ PictureID 1002)
+                   <> Ev.StartBattle (read "3")
+                      (Ev.PlayBGM TurnOff <>
+                       Ev.MessageT (-15) "暴力反対!" (Just $ Single $ PictureID 1002) <>
+                       Ev.PlayBGM Ambient <>
+                       Ev.Escape
+                       )
+                      (Ev.PlayBGM TurnOff <>
+                       Ev.MessageT (-15) "逃げるくらいなら挑むな。" (Just $ Single $ PictureID 1002) <>
+                       Ev.PlayBGM (EventBGM "themeOfSoleil") <>
+                       Ev.Reference (GameEventID 010103))
+                       )
          , ("dance"  , Ev.MessageTimeT (-15) "\nそれなら知っている.\n" (Just $ Single $ PictureID 1002) (-500)
                     <> Ev.MessageTime        "\nそれなら知っている..\n" (Just $ Single $ PictureID 1002) (-500)
                     <> Ev.MessageTime        "\nそれなら知っている...\n" (Just $ Single $ PictureID 1002) (-500)

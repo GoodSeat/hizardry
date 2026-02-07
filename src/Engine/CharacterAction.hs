@@ -638,7 +638,6 @@ spellInCamp' def src dst next = GameAuto $ do
 spellInCampNoCost :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
 spellInCampNoCost def src dst next = GameAuto $ do
     pn  <- length . party <$> world
-    cid <- characterIDInPartyAt src
     c   <- characterInPartyAt src
     let tgt = case Spell.target def of
                 Spell.AllySingle -> [dst]
