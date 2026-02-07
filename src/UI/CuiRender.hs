@@ -239,7 +239,7 @@ toTextSGR :: String -> String
 toTextSGR = reverse . foldl (\acc t -> if      t == '^' || t == '`'              then t : acc
                                        else if not (null acc) && head acc == '^' then 'W' : tail acc
                                        else if not (null acc) && head acc == '`' then 'B' : tail acc
-                                       else                                           '_' : acc) []
+                                       else                                           replicate (len [t]) '_' ++ acc) []
 
 
 
