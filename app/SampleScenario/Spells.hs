@@ -339,7 +339,7 @@ spells = Map.fromList [
         , Spell.lv          = 2
         , Spell.attrLabels  = [EffectLabel "priest"]
         , Spell.target      = Spell.AllyAll
-        , Spell.effect      = Spell.Event (GameEventID 0) -- TODO:not implmented calfo.
+        , Spell.effect      = Spell.IdentifyTrap (read "95")
         , Spell.enableIn    = []
         , Spell.information = "宝箱に仕掛けられた罠の種類を95%で見抜く"
     })

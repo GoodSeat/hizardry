@@ -389,6 +389,7 @@ cast escape v name def = let as cast = cast v in case Spell.effect def of
     Spell.CheckLocation t  -> as (castCheckLocation t) name
     Spell.MoveLocation  _  -> as (castMalor escape) name
     Spell.Event eid        -> eventSpell escape eid
+    Spell.IdentifyTrap _   -> castUnknown v name
 
 eventSpell :: GameMachine -> GameEventID -> SpellEffect
 eventSpell escape eid s o next = addEff (withSE Spelled) $ GameAuto $ do

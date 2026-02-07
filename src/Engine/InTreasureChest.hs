@@ -2,7 +2,7 @@ module Engine.InTreasureChest
 where
 
 import PreludeL
-import Control.Monad (forM, forM_, when)
+import Control.Monad (forM, forM_, when, join)
 import Control.Monad.Reader (asks)
 import Engine.GameAuto
 import Engine.Utils
@@ -14,6 +14,7 @@ import qualified Data.Enemies as Enemy
 import qualified Data.Items as Item
 import qualified Data.Maze as Maze
 import qualified Data.Map as Map
+import qualified Data.Spells as Spell
 import Data.Formula (parse')
 import Data.List (find)
 import Data.Char (toLower)
@@ -33,9 +34,10 @@ actionForTreasureChest :: TreasureCondition
                        -> GameMachine
 actionForTreasureChest con ps =
     if trap con == Enemy.DropDirectly then getTreasures con
-    else selectEsc (battleCommand "^I)nspect\n^D)isarm Trap\n^O)pen\n^L)eave `[`E`s`c`]")
+    else selectEsc (battleCommand "^I)nspect\n^S)pell\n^D)isarm Trap\n^O)pen\n^L)eave `[`E`s`c`]")
                    [ (Key "l", afterChest con                                       )
                    , (Key "i", inspectTreasureChest ps con                          )
+                   , (Key "s", spellToTreasureChest ps con                          )
                    , (Key "d", disarmTrap con (actionForTreasureChest con ps)       )
                    , (Key "o", openTreasureChest con (actionForTreasureChest con ps))]
 
@@ -59,11 +61,47 @@ inspectTreasureChestBy i ps con = GameAuto $ do
     run $ if      successed  then events [message $ inspectMessage (trap con)] afterInspect
           else if invokeTrap then invokingTrap con i
           else                    events [message $ inspectMessage trap'] afterInspect
-  where
-    inspectMessage :: Enemy.Trap -> String
-    inspectMessage trap = case trap of Enemy.NoTrap -> "No traps."
-                                       _            -> show trap ++ "."
 
+inspectMessage :: Enemy.Trap -> String
+inspectMessage trap = case trap of Enemy.NoTrap -> "No traps."
+                                   _            -> show trap ++ "."
+
+spellToTreasureChest :: [PartyPos] -> TreasureCondition -> GameMachine
+spellToTreasureChest ps con = GameAuto $ do
+    cmds <- cmdNumPartiesWhen $ bimap spell' (not . isCantSpell)
+    run $ selectWhenEsc (message "^#)Spell\n^L)eave `[`E`S`C`]") $ (Key "l", actionForTreasureChest con ps, True)
+                                                                 : cmds
+  where
+    spell' p = spellToTreasureChestBy p ps con
+
+spellToTreasureChestBy :: PartyPos -> [PartyPos] -> TreasureCondition -> GameMachine
+spellToTreasureChestBy i ps con = GameAuto $ 
+    return (spellCommand "Input spell.\n(Empty to cancel.)", \(Key s) -> if isNullKey s then next else trySpell s)
+  where
+    next = actionForTreasureChest con ps
+    trySpell s = GameAuto $ do
+      spellDef <- spellByName s
+      case spellDef of
+        Nothing -> run $ events [Resume $ changeMessage "what?"] next
+        Just def -> do
+          c <- characterInPartyAt i
+          know <- knowSpell' c def
+          can  <- canSpell'  c def
+          if      not know then
+            run $ events [Resume $ changeMessage "you can't casting it."] next
+          else if not can  then
+            run $ events [Resume $ changeMessage "no more MP."] next
+          else do
+            case Spell.effect def of
+              Spell.IdentifyTrap t -> do
+                join $ updateCharacter <$> characterIDInPartyAt i <*> costSpell' c def
+                m <- formulaMapC c
+                successed  <- happens =<< evalWith m t
+                trap'      <- randomIn [Enemy.NoTrap .. Enemy.Alarm]
+                run $ if successed  then events [message $ inspectMessage (trap con)] next
+                      else               events [message $ inspectMessage trap'] next
+              _ -> run $ events [Resume $ changeMessage "can't use it here."] next
+  
 
 disarmTrap :: TreasureCondition -> GameMachine -> GameMachine
 disarmTrap con afterNotDisarm = GameAuto $ do

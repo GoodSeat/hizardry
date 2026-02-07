@@ -676,6 +676,7 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.MoveLocation t -> case t of
           Spell.OnlyCoord -> run $ inputMove      (0, 0, 0) (moveTo next) $ events [Resume $ changeMessage "done"] next
           Spell.ViewMap   -> run $ showMapForMove (0, 0, 0) (moveTo next) $ events [Resume $ changeMessage "done"] next
+      Spell.IdentifyTrap _ -> undefined
 
 moveTo :: GameMachine -> (Int, Int, Int) -> GameMachine
 moveTo next (x', y', z') = GameAuto $ do

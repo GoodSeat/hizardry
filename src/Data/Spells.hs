@@ -38,6 +38,7 @@ data Effect = Damage         Formula                          -- ^ damage hp.
             | AddLight       Int Bool                         -- ^ time, super light or not.
             | CheckLocation  CheckLocationType
             | MoveLocation   CheckLocationType
+            | IdentifyTrap   Formula                          -- ^ success probability
             | Event          GameEventID
     deriving (Show, Eq, Read)
 

@@ -374,6 +374,9 @@ hasStatusError o s = any (areSameStatusError s) (statusErrorsOf o)
 isCantFight :: Object o => o -> Bool
 isCantFight o = any (hasStatusError o) cantFightStatus
 
+isCantSpell :: Object o => o -> Bool
+isCantSpell o = any (hasStatusError o) cantSpellStatus
+
 mustGotoTemple :: Object o => o -> Bool
 mustGotoTemple = any (\s -> s >= Dead || s == Paralysis || s == Stoned) . statusErrorsOf
 

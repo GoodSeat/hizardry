@@ -164,7 +164,7 @@ initScenario = return (s, w)
         , Character.alignment= Character.N
         , Character.spells   = [SpellID 11, SpellID 13, SpellID 14, SpellID 15, SpellID 16, 
                                 SpellID 71,
-                                SpellID 112, SpellID 114 
+                                SpellID 112, SpellID 114, SpellID 122 
                                ]
         , Character.items    = [ItemInf (ItemID 2) True, ItemInf (ItemID 2) False]
         , Character.mp       = (replicate 7 5, replicate 7 5)
