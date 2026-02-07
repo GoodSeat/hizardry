@@ -50,7 +50,7 @@ spells = Map.fromList [
         , Spell.target      = Spell.AllyAll
         --, Spell.effect      = Spell.CheckLocation Spell.OnlyCoord
         , Spell.effect      = Spell.CheckLocation Spell.ViewMap
-        , Spell.enableIn   = [Spell.InCamp]
+        , Spell.enableIn   = [Spell.InCamp, Spell.InBattle]
         , Spell.information = "城への階段からの座標を東、北、高さで示す"
     })
     ,

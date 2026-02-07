@@ -22,6 +22,7 @@ import Engine.CharacterAction (
     , castAddLight
     , castResurrectionSpell
     , castAddStatusErrorSpell
+    , checkLocation
     , breakItem
     )
 import Engine.InEvent (doEvent)
@@ -385,7 +386,7 @@ cast escape v name def = let as cast = cast v in case Spell.effect def of
       Spell.OpponentAll    -> castToAll    as name (castAddStatusErrorSpell ts)
       _                    -> undefined
     Spell.AddLight n s     -> castToNull as name (castAddLight n s)
-    Spell.CheckLocation _  -> as castUnknown name
+    Spell.CheckLocation t  -> as (castCheckLocation t) name
     Spell.MoveLocation  _  -> as (castMalor escape) name
     Spell.Event eid        -> eventSpell escape eid
 
@@ -486,6 +487,13 @@ castNoEffect v msg n src _ next = GameAuto $ do
     let ts      = ["", msg]
         toMsg t = msgF $ (name ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
     run $ events (toMsg <$> ts) next
+
+castCheckLocation :: Spell.CheckLocationType -> Verb -> String -> SpellEffect
+castCheckLocation t v n src _ next = GameAuto $ do
+    msgF <- messageF
+    name <- case src of Left id -> Chara.name <$> characterByID id
+                        Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
+    run $ events [msgF $ name ++ " " ++ v ++ " " ++ n ++ ".\n"] (checkLocation t next)
 
 castMalor :: GameMachine -> Verb -> String -> SpellEffect
 castMalor escape v n src _ next = GameAuto $ do

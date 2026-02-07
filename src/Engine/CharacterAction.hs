@@ -648,42 +648,38 @@ spellInCampNoCost def src dst next = GameAuto $ do
       Spell.Damage _  -> undefined
       Spell.Cure f ss -> do
         efs <- castCureSpell f ss (Left c) (Left tgt)
-        run $ with (fst4 <$> efs) (events [showStatus cid "done"] next)
+        run $ with (fst4 <$> efs) (events [Resume $ changeMessage "done"] next)
       Spell.Resurrection hp ts -> do
         efs <- castResurrectionSpell hp ts (Left c) (Left tgt)
         let msgs = snd4 <$> efs
-        run $ with (fst4 <$> efs) (events [showStatus cid (unlines msgs)] next)
+        run $ with (fst4 <$> efs) (events [Resume $ changeMessage (unlines msgs)] next)
       Spell.ChangeParam ad term etxt -> do
         efs <- castParamChangeSpell ad term etxt (Left c) (Left tgt)
-        run $ with (fst4 <$> efs) (events [showStatus cid "done"] next)
+        run $ with (fst4 <$> efs) (events [Resume $ changeMessage "done"] next)
       Spell.AddLight n s -> do
         efs <- castAddLight n s (Left c) (Left tgt)
-        run $ with (fst4 <$> efs) (events [showStatus cid "done"] next)
+        run $ with (fst4 <$> efs) (events [Resume $ changeMessage "done"] next)
       Spell.AddStatusError effs -> do
         efs <- castAddStatusErrorSpell effs (Left c) (Left tgt)
-        run $ with (fst4 <$> efs) (events [showStatus cid "done"] next)
+        run $ with (fst4 <$> efs) (events [Resume $ changeMessage "done"] next)
       Spell.Event eid -> do
-         edef' <- asks (lookup eid . mazeEvents)
-         run $ case edef' of Nothing   -> next
-                             Just edef -> doEvent (Just cid) edef (const next) (const next)
-                                                  (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
-                                                                spellInCampNoCost sdef src dst n
-                                                              else
-                                                                events [showStatus cid "can't use it here."] n)
+        edef' <- asks (lookup eid . mazeEvents)
+        cid   <- characterIDInPartyAt src
+        run $ case edef' of Nothing   -> next
+                            Just edef -> doEvent (Just cid) edef (const next) (const next)
+                                                 (\sdef n -> if Spell.InCamp `elem` Spell.enableIn sdef then
+                                                               spellInCampNoCost sdef src dst n
+                                                             else
+                                                               events [Resume $ changeMessage "can't use it here."] n)
       Spell.CheckLocation t -> do
-        p          <- currentPosition
-        (fn, _, m) <- mazeInfAt $ z p
-        let msg = "you are at " ++ fn ++ "(" ++ show (x p) ++ ", " ++ show (y p) ++ ": " ++ show (direction p) ++ ")."
-        run $ case t of
-          Spell.OnlyCoord -> events [ showStatus cid msg
-                                    , showStatus cid "done"] next
-          Spell.ViewMap   -> showMap msg (0, 0) (z p) $ events [showStatus cid "done"] next
+        cid <- characterIDInPartyAt src
+        run $ checkLocation t (events [showStatus cid "done"] next)
       Spell.MoveLocation t -> case t of
-          Spell.OnlyCoord -> run $ inputMove      (0, 0, 0) (moveTo cid next) $ events [showStatus cid "done"] next
-          Spell.ViewMap   -> run $ showMapForMove (0, 0, 0) (moveTo cid next) $ events [showStatus cid "done"] next
+          Spell.OnlyCoord -> run $ inputMove      (0, 0, 0) (moveTo next) $ events [Resume $ changeMessage "done"] next
+          Spell.ViewMap   -> run $ showMapForMove (0, 0, 0) (moveTo next) $ events [Resume $ changeMessage "done"] next
 
-moveTo :: CharacterID -> GameMachine -> (Int, Int, Int) -> GameMachine
-moveTo cid next (x', y', z') = GameAuto $ do
+moveTo :: GameMachine -> (Int, Int, Int) -> GameMachine
+moveTo next (x', y', z') = GameAuto $ do
     p <- currentPosition
     let p' = p { x = x', y = y', z = z' }
     when (z' /= z p) resetRoomBattle
@@ -694,7 +690,16 @@ moveTo cid next (x', y', z') = GameAuto $ do
     else if not exist && z' <= 0 then
       run $ events [flashMessageInf "You've taken to the sky!"] $ totalAnnihilation True Dead
     else do
-      run $ events [showStatus cid "done"] next
+      run $ events [Resume $ changeMessage "done"] next
+
+checkLocation :: Spell.CheckLocationType -> GameMachine -> GameMachine
+checkLocation t next = GameAuto $ do
+    p          <- currentPosition
+    (fn, _, m) <- mazeInfAt $ z p
+    let msg = "you are at " ++ fn ++ "(" ++ show (x p) ++ ", " ++ show (y p) ++ ": " ++ show (direction p) ++ ")."
+    run $ case t of
+      Spell.OnlyCoord -> events [Resume $ changeMessage msg] next
+      Spell.ViewMap   -> showMap msg (0, 0) (z p) next
 
 showMap :: String -> (Int, Int) -> Int -> GameMachine -> GameMachine
 showMap msg (x,y) z next = selectEsc (ShowMap (msg ++ "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]") (x,y) z False)
