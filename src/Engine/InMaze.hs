@@ -7,7 +7,7 @@ import Control.Monad.State (modify, forM_, guard, gets)
 import Control.Monad.Reader (asks)
 import Data.Function ((&))
 import Data.List (find, nub)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, catMaybes)
 import Data.Char (toLower)
 import qualified Data.Map as Map
 
@@ -217,8 +217,20 @@ searchSurroundings p = GameAuto $ do
 searchCharacter :: Position -> GameMachine
 searchCharacter p = GameAuto $ do
     cs <- gets inMazeMember
-    let ts = fst <$> filter ((== coordOf p) . (coordOf . snd)) cs
+    ps <- candidatePoss p
+    let ts = fst <$> filter ((`elem` (coordOf <$> ps)) . (coordOf . snd)) cs
     run $ events searchMsgs (editParty p 0 ts)
+  where
+    candidatePoss p = do
+        m <- mazeAt $ z p
+        return $ catMaybes [
+              Just p
+            , walkForward m . turnBack =<< kickForward m . turnBack =<< walkForward m p
+            , walkForward m . turnBack =<< kickForward m . turnBack =<< walkForward m (turnLeft p)
+            , walkForward m . turnBack =<< kickForward m . turnBack =<< walkForward m (turnBack p)
+            , walkForward m . turnBack =<< kickForward m . turnBack =<< walkForward m (turnRight p)
+            ]
+    turnBack = turnLeft . turnLeft
 
 searchMsgs = [ messageTime 400 " Searching.    " Nothing
              , messageTime 400 " Searching..   " Nothing
