@@ -22,6 +22,8 @@ data Define =
             | MessageTime String (Maybe PictureInf) Int
             | Select      String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
             | Ask         String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | SelectC     String String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | AskC        String String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
             | MessageT     Int String (Maybe PictureInf)
             | MessageTimeT Int String (Maybe PictureInf) Int
@@ -31,7 +33,7 @@ data Define =
             | FlashMessage     String
             | FlashMessageTime String Int
 
-            | SelectItem String [(Maybe Formula, Define)] -- item id (Nothing mean cancel)
+            | SelectItem String (Maybe PictureInf) [(Maybe Formula, Define)] -- item id (Nothing mean other items, must be last one)
 
             -- happens
             | Switch [(Condition, Define)]

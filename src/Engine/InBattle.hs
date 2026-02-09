@@ -12,7 +12,7 @@ import Control.Monad.Reader (asks)
 import Engine.GameAuto
 import Engine.Utils
 import Engine.BattleAction
-import Engine.CharacterAction (inputSpell, selectItem, useItem, checkItem, castDamageSpell, readSpell, textItemCandidate)
+import Engine.CharacterAction (inputSpell, useItem, checkItem, castDamageSpell, readSpell)
 import Engine.InTreasureChest (actionForTreasureChest, TreasureCondition (TreasureCondition), getTreasures)
 import Data.World
 import Data.Primitive

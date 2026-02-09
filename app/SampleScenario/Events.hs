@@ -70,10 +70,23 @@ mazeEvents = Map.fromList [
       <> Ev.Reference (GameEventID 010104)
        )
     , (GameEventID 010104, 
-         Ev.Select "Party's Option\n  ^T)alk  ^L)eave" (Just $ Single $ PictureID 1002)
-         [("l", Ev.MessageT (-15) "さらばだ！！" (Just $ Single $ PictureID 1002) <> Ev.PlayBGM Ambient)
+         Ev.SelectC "デバッグ用NPC" "Party's Option\n\n  ^T)alk\n  ^G)ive Item\n  ^L)eave" (Just $ Single $ PictureID 1002)
+         [("l", Ev.MessageT (-15) "さらばだ！！" (Just $ Single $ PictureID 1002) <> Ev.PlayBGM Ambient <> Ev.Escape)
+         ,("g", Ev.Reference (GameEventID 010105))
          ,("t", Ev.Reference (GameEventID 010103))
          ]
+       )
+    , (GameEventID 010105, 
+         Ev.SelectItem "デバッグ用NPC" (Just $ Single $ PictureID 1002)
+         [(Just (read "3")
+              , Ev.MessageT (-15) "私があげた水じゃないか・・・\nまぁ、貰っておくけど。" (Just $ Single $ PictureID 1002)
+             <> Ev.LostItem Ev.Leader (read "3") [Ev.Reference (GameEventID 010105)]
+             <> Ev.Reference (GameEventID 010105))
+         ,(Nothing
+              , Ev.MessageT (-15) "それがどうしたのだ？" (Just $ Single $ PictureID 1002)
+             <> Ev.Reference (GameEventID 010105))
+         ]
+         <> Ev.Reference (GameEventID 010104)
        )
     , (GameEventID 010103, Ev.Ask "何について話す？ (say \"bye\" to exit.)" (Just $ Single $ PictureID 1002)
          [ ("hello\nhi\nこんにちは", Ev.MessageT (-15) "私はデバッグ用NPC\n\nHaskellを賛美せよ!!" (Just $ Single $ PictureID 1002)

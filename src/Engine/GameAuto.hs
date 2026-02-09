@@ -317,7 +317,7 @@ talk msg t picInf next = talkSelect msg t picInf (\ev -> events [ev] next)
 talkSelect :: String -> Int -> Maybe PictureInf -> (Event -> GameMachine) -> GameMachine
 talkSelect msg t picInf lastStep = ac msgs
   where
-    msgs = reverse $ reverse <$> foldr (\c acc -> (c:head acc):acc) [[]] (reverse msg)
+    msgs = tail $ reverse $ reverse <$> foldr (\c acc -> (c:head acc):acc) [[]] (reverse msg)
     lstep = lastStep $ messagePic msg picInf
     ac ms = let nstep = if length ms <= 1 then lstep else ac (tail ms);
                 cs = [(Key "\ESC", lstep), (Key " ", lstep), (Clock, nstep)] ++ [(Key [s], lstep) | s <- ['a'..'z']]

@@ -104,6 +104,13 @@ changeFlashTime f t None = flashMessage t f
 changeFlashTime f t (Resume c) = Resume (c . changeFlashTime f t)
 changeFlashTime _ _ e = e
 
+changeCommand :: String -> Event -> Event
+changeCommand f (General d) = General $ d { commandBox = Just f }
+changeCommand f (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { commandBox = Just f }
+changeCommand f None = battleCommand f
+changeCommand f (Resume c) = Resume (c . changeCommand f)
+changeCommand _ e = e
+
 withPhrase :: Event -> Event
 withPhrase (General d) = General $ d { needPhrase = True }
 withPhrase (ShowStatus cid ipos d) = ShowStatus cid ipos $ d { needPhrase = True }

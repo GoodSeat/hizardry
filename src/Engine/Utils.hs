@@ -259,6 +259,39 @@ costSpell' :: Chara.Character -> Spell.Define -> GameState Chara.Character
 costSpell' c def = asks (Chara.costSpell' . spells) <*> pure def <*> pure c
 
 
+selectItem :: (String -> Event)
+           -> (ItemInf -> GameState Bool)
+           -> (Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine)
+           -> Chara.Character
+           -> GameMachine
+           -> GameMachine
+selectItem = selectItem' "l"
+
+selectItem' :: String
+            -> (String -> Event)
+            -> (ItemInf -> GameState Bool)
+            -> (Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine)
+            -> Chara.Character
+            -> GameMachine
+            -> GameMachine
+selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
+    is <- asks items
+    let nameOf inf = (if identified inf then Item.name else Item.nameUndetermined) (is ! itemID inf)
+        its = Chara.items c
+    cs  <- filterM (isTarget . snd) (zip (toEnum <$> [0..]) its)
+    let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf inf) <$> cs
+        next' = selectItem' cancelKey msgForSelect isTarget next c cancel
+    return (msgForSelect $ "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n" ++ unlines msg,
+            \(Key s) -> if s == cancelKey || s == "\ESC" then cancel
+                        else case Chara.itemPosByChar s of
+                          Nothing -> next'
+                          Just i  -> if i `elem` (fst <$> cs) then next c i next'
+                                     else next'
+           )
+
+textItemCandidate :: Chara.Character -> String
+textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . toEnum) (length (Chara.items c) - 1)
+
 
 lvup :: Chara.Character -> GameState (String, Chara.Character)
 lvup c = do

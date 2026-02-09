@@ -14,6 +14,7 @@ import qualified Data.Map as Map
 import Data.Maze
 import Data.World
 import Data.Primitive
+import Data.Formula
 import Engine.GameAuto
 import Engine.Utils
 import qualified Data.GameEvent as Ev
@@ -86,6 +87,8 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling toBattle = doEvent
     doEvent' (Ev.MessageTime msg picID t   ) next = events [messageTime t msg picID] (next False)
     doEvent' (Ev.Select      msg picID ways) next = select (messagePic msg picID) (candidates ways)
     doEvent' (Ev.Ask         msg picID ways) next = select (ask msg picID) (candidates ways)
+    doEvent' (Ev.SelectC     msg cmd picID ways) next = select (changeCommand cmd $ messagePic msg picID) (candidates ways)
+    doEvent' (Ev.AskC        msg cmd picID ways) next = select (changeCommand cmd $ ask msg picID) (candidates ways)
 
     doEvent' (Ev.MessageT     dt msg picID     ) next = talk msg dt picID (next False)
     doEvent' (Ev.MessageTimeT dt msg picID t   ) next = talkSelect msg dt picID $ const (events [messageTime t msg picID] (next False))
@@ -95,7 +98,26 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling toBattle = doEvent
     doEvent' (Ev.FlashMessage     msg)   next = events [flashMessageInf msg] (next False)
     doEvent' (Ev.FlashMessageTime msg t) next = events [flashMessage (-1500) msg] (next False)
 
-    doEvent' (Ev.SelectItem msg cds) next = undefined -- TODO:not implemented
+    doEvent' (Ev.SelectItem msg picID cds) next = GameAuto $ do
+        cmds <- cmdNumParties $ \(i, c) -> selectItem (withPicture picID . changeMessage msg . battleCommand) (const $ return True)
+                                           (onItem i) c (doEvent' (Ev.SelectItem msg picID cds) next)
+        run $ selectEsc (withPicture picID . changeMessage msg $ battleCommand "^#)Select character.\n^L)eave `[`E`S`C`]")
+                      $ (Key "l", next isHidden) : cmds
+      where
+        findEv :: [(Maybe Formula, Ev.Define)] -> Chara.Character -> ItemID -> GameState (Maybe Ev.Define)
+        findEv [] _ _ = return Nothing
+        findEv ((f, def):last) c iid = case f of
+          Nothing -> return (Just def)
+          Just f' -> do
+            map <- formulaMapC c
+            tid <- evalWith map f'
+            if iid == ItemID tid then return (Just def) else findEv last c iid
+        onItem :: PartyPos -> Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
+        onItem pos c i nextStep = GameAuto $ do
+            let inf     = Chara.itemInfAt c i
+            ev <- findEv cds c (Chara.itemAt c i)
+            run $ case ev of Nothing -> next isHidden
+                             Just e  -> doEvent' (Ev.Events [Ev.ChangeLeader pos, e]) next
 
     -- happens
     doEvent' (Ev.Switch []) next = next isHidden
@@ -242,8 +264,8 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling toBattle = doEvent
     doEvent' (Ev.Events (Ev.Escape:_)) _ = whenEscape isHidden
     doEvent' (Ev.Events (Ev.ChangeLeader pos:es)) next = GameAuto $ do
         cid <- characterIDInPartyAtS pos
-        run $ doEvent' edef $ \isHidden' -> doEventInner isHidden' (fromMaybe cidRep cid) (Ev.Events es) next whenEnd spelling toBattle
-    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEventInner isHidden' cidRep (Ev.Events es) next whenEnd spelling toBattle
+        run $ doEventInner isHidden (fromMaybe cidRep cid) (Ev.Events es) whenEscape whenEnd spelling toBattle
+    doEvent' (Ev.Events (edef:es)) next = doEvent' edef $ \isHidden' -> doEvent' (Ev.Events es) next
 
     
     doEventToCharacter :: Ev.TargetType -> GameMachine -> (CharacterID -> GameState()) -> GameMachine
