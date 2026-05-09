@@ -104,7 +104,7 @@ checkEncount c checkRoomBattle = do
     emap <- if checkRoomBattle then asks roomBattleMap else asks encountMap
     r    <- randomNext 1 100
     let es' = do {
-        (prob, es) <- Map.lookup c emap;
+        (prob, es) <- emap c;
         guard $ r < prob;
         return es
         }

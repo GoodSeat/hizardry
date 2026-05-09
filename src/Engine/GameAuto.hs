@@ -39,8 +39,8 @@ data Scenario = Scenario {
     , racies           :: ![Race]
     , jobs             :: ![Job]
     , mazes            :: Int -> GameState (Maybe (String, Maybe (Coord2D, Size2D), Maze)) -- ^ name, (origin coord, size)*, maze. *:nothing size means infinity maze.
-    , encountMap       :: !(Map.Map Coord (Int, [EnemyID]))
-    , roomBattleMap    :: !(Map.Map Coord (Int, [EnemyID]))
+    , encountMap       :: Coord -> Maybe (Int, [EnemyID]) -- !(Map.Map Coord (Int, [EnemyID]))
+    , roomBattleMap    :: Coord -> Maybe (Int, [EnemyID]) -- !(Map.Map Coord (Int, [EnemyID]))
     , roomDefine       :: ![[Coord]]
     , eventMap         :: !(Map.Map Coord GameEventID)
     , eventMapDir      :: !(Map.Map Position GameEventID)
@@ -83,8 +83,8 @@ initScenario i home = Scenario {
     , racies                    = initRacies           i
     , jobs                      = initJobs             i
     , mazes                     = \z -> pure $ if z < length (initMazes i) && z >= 0 then Just (initMazes i !! z) else Nothing
-    , encountMap                = initEncountMap       i
-    , roomBattleMap             = initRoomBattleMap    i
+    , encountMap                = \c -> Map.lookup c (initEncountMap i)
+    , roomBattleMap             = \c -> Map.lookup c (initRoomBattleMap i)
     , roomDefine                = initRoomDefine       i
     , eventMap                  = initEventMap         i
     , eventMapDir               = initEventMapDir      i

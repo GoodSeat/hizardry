@@ -188,7 +188,7 @@ effectTrap _ Enemy.PriestBlaster = undefined -- TODO
 effectTrap _ Enemy.Alarm = do
     c    <- Maze.coordOf <$> currentPosition
     emap <- asks roomBattleMap
-    case Map.lookup c emap of
+    case emap c of
       Nothing      -> return ("No traps were set.", Nothing, True)
       Just (_, es) -> do
         eid <- randomIn es
