@@ -144,10 +144,12 @@ sleep :: CharacterID
       -> GameMachine
 sleep id h g d birthday = GameAuto $ do
     c <- characterByID id 
+    autoHeal <- (== CureWhenInn) <$> (hpHealType . worldOption <$> world)
     if Character.gold c < g then
       run $ events [message "no more money."] $ selectStayPlan id
     else do
       updateCharacterWith id Character.healMp
+      when autoHeal $ updateCharacterWith id (Character.healHp $ Character.maxhp c)
       run $ selectEsc (messageTime (-1000) ( Character.name c
                                        ++ " is napping. \n\n"
                                        ++ show (Character.name c) ++ " has "

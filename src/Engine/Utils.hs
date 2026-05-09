@@ -679,11 +679,15 @@ returnToCastle = do
 
     resetEffectInOnlyBattle
 
+    autoHeal <- (== CureWhenReturnCastle) <$> (hpHealType . worldOption <$> world)
+
     ps <- party <$> world
     forM_ ps $ \p -> do
       c <- characterByID p
       updateCharacter p c { Chara.paramDelta = [] }
       updateCharacterWith p whenReturnCastle
+      when autoHeal $ updateCharacterWith p Chara.healMp
+      when (autoHeal && Chara.hp c /= 0) $ updateCharacterWith p (Chara.healHp $ Chara.maxhp c)
 
     -- remove dead/stoned/staned characters etc.
     rcis <- flip filterM ps $ fmap mustGotoTemple . characterByID

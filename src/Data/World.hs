@@ -129,7 +129,7 @@ data HPHealType = Classic
 data WorldOption = WorldOption {
       effectDumapic    :: !Spell.CheckLocationType
     , minimapType      :: !MiniMapType
-    , hpHealType       :: !HPHealType  -- TODO
+    , hpHealType       :: !HPHealType
     , ignoreAlignment  :: !Bool
     , switchSE         :: !Bool
     , switchBGM        :: !Bool
