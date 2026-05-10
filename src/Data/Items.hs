@@ -85,14 +85,15 @@ data EquipBaseAttr = EquipBaseAttr {
 } deriving (Show, Eq, Read)
 
 data WeaponAttr = WeaponAttr {
-      targetF         :: ![EnemyLine]                             -- ^ enable target enemy line in front.
-    , targetB         :: ![EnemyLine]                             -- ^ enable target enemy line in back.
-    , damage          :: !Formula                                 -- ^ damage per hit.
-    , doubleLabels    :: ![EnemyLabel]                            -- ^ double damage target.
-    , attrLabels      :: ![EffectLabel]                           -- ^ attribute of atack.
-    , addStatusErrors :: ![(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
-    , atackMessages   :: ![String]                                -- ^ message candidates when fight with this weapon. [optional]
-    , targetRange     :: !WeaponRange                             -- ^ range of weapon.
+      targetF          :: ![EnemyLine]                             -- ^ enable target enemy line in front.
+    , targetB          :: ![EnemyLine]                             -- ^ enable target enemy line in back.
+    , damage           :: !Formula                                 -- ^ damage per hit.
+    , doubleLabels     :: ![EnemyLabel]                            -- ^ double damage target.
+    , attrLabels       :: ![EffectLabel]                           -- ^ attribute of atack.
+    , addStatusErrors  :: ![(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
+    , atackMessages    :: ![String]                                -- ^ message candidates when fight with this weapon. [optional]
+    , atackMessagesJPN :: ![String]                                -- ^ message candidates when fight with this weapon. [optional]
+    , targetRange      :: !WeaponRange                             -- ^ range of weapon.
 } deriving (Show, Eq, Read)
         
 

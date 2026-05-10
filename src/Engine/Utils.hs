@@ -22,17 +22,27 @@ import qualified Data.Spells as Spell
 import qualified Data.Items as Item
 
 
-statusErrorMessage :: StatusError -> String
-statusErrorMessage Silence    = " become unable to speak !"
-statusErrorMessage Paralysis  = " is paralyzed !"
-statusErrorMessage Stoned     = " become petrified !"
-statusErrorMessage (Poison _) = " is poisoned !"
-statusErrorMessage (Fear _)   = " is horrified !"
-statusErrorMessage Sleep      = " is fell asleep !"
-statusErrorMessage (Drain n)  = " is drained " ++ show n ++ " Level !"
-statusErrorMessage Dead       = " is decapitated !"
-statusErrorMessage Ash        = " became to ash !"
-statusErrorMessage Lost       = " is losted !"
+statusErrorMessage :: StatusError -> GameState String
+statusErrorMessage Silence    = switchLang " become unable to speak !"
+                                           " は発声できなくなった !"
+statusErrorMessage Paralysis  = switchLang " is paralyzed !"
+                                           " は麻痺してしまった !"
+statusErrorMessage Stoned     = switchLang " become petrified !"
+                                           " は石化してしまった !"
+statusErrorMessage (Poison _) = switchLang " is poisoned !"
+                                           " は毒に冒された !"
+statusErrorMessage (Fear _)   = switchLang " is horrified !"
+                                           " は恐怖した !"
+statusErrorMessage Sleep      = switchLang " is fell asleep !"
+                                           " は眠ってしまった !"
+statusErrorMessage (Drain n)  = switchLang (" is drained " ++ show n ++ " Level !")
+                                           (" は " ++ show n ++ " レベル下げられた !")
+statusErrorMessage Dead       = switchLang " is decapitated !"
+                                           " は首をはねられた !"
+statusErrorMessage Ash        = switchLang " became to ash !"
+                                           " は灰になってしまった !"
+statusErrorMessage Lost       = switchLang " is losted !"
+                                           " は消失した !"
 
 -- =================================================================================
 -- General
@@ -68,6 +78,13 @@ parse'D s help next = GameAuto $ do
 
 isNullKey :: String -> Bool
 isNullKey = null . filter (/= '\n') . filter (/= '\r')
+
+switchLang :: a -> a -> GameState a
+switchLang s1 s2 = do
+    wop <- worldOption <$> world
+    if language wop == ENG then return s1
+    else                        return s2
+
 
 fst3 (t1,  _,  _) = t1
 snd3 ( _, t2,  _) = t2
@@ -281,7 +298,9 @@ selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
     cs  <- filterM (isTarget . snd) (zip (toEnum <$> [0..]) its)
     let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf inf) <$> cs
         next' = selectItem' cancelKey msgForSelect isTarget next c cancel
-    return (msgForSelect $ "Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n" ++ unlines msg,
+    txt1 <- switchLang ("Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n")
+                       ("選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]\n\n")
+    return (msgForSelect $ txt1 ++ unlines msg,
             \(Key s) -> if s == cancelKey || s == "\ESC" then cancel
                         else case Chara.itemPosByChar s of
                           Nothing -> next'
@@ -295,6 +314,8 @@ textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . toEnum) (length (Chara.it
 
 lvup :: Chara.Character -> GameState (String, Chara.Character)
 lvup c = do
+    toText <- switchLang toTextENG toTextJPN
+    ps     <- switchLang psENG psJPN
     changes <- forM ps $ \(v, mv, dp, t) -> do
       d <- deltaParam v mv (Chara.age c)
       return (toText t d, dp d)
@@ -308,10 +329,10 @@ lvup c = do
     hp' <- evalWith m (Chara.hpFormula $ Chara.job c)
     let maxhp' = max (Chara.maxhp c + 1) hp'
         uphp   = maxhp' - Chara.maxhp c
-        txt = "You made the next level !\n\n"
-           ++ "You gained " ++ show uphp ++ " HitPoitns."
-           ++ foldl1 (++) (fst <$> changes)
-           ++ if null sn' then "" else "\nYou have learned a new spell."
+    ln1 <- switchLang "You made the next level !\n\n" "レベルが上がった !\n\n"
+    ln2 <- switchLang ("You gained " ++ show uphp ++ " HitPoitns.") ("HPが " ++ show uphp ++ " 上がった。")
+    lnS <- switchLang "\nYou have learned a new spell." "\n新しい呪文を覚えた。"
+    let txt = ln1 ++ ln2 ++ foldl1 (++) (fst <$> changes) ++ if null sn' then "" else lnS
     return (txt, c' { Chara.maxhp = Chara.maxhp c + uphp
                     , Chara.hp    = Chara.hp c + uphp 
                     , Chara.maxmp = maxmp'
@@ -319,18 +340,30 @@ lvup c = do
                     , Chara.spells = ss'
                     })
   where
-    toText p (-1) = "\nYou lost "   ++ p ++ " ."
-    toText p   1  = "\nYou gained " ++ p ++ " ."
-    toText _   _  = ""
+    toTextENG p (-1) = "\nYou lost "   ++ p ++ " ."
+    toTextENG p   1  = "\nYou gained " ++ p ++ " ."
+    toTextENG _   _  = ""
+
+    toTextJPN p (-1) = "\n" ++ p ++ " を失った。"
+    toTextJPN p   1  = "\n" ++ p ++ " を得た。."
+    toTextJPN _   _  = ""
+
     cp = Chara.param c
     mp = Chara.maxParam $ Chara.race c
-    ps = [ (strength cp, strength mp, \n -> emptyParam { strength = n }, "strength")
-         , (iq       cp, iq       mp, \n -> emptyParam { iq       = n }, "I.Q."    )
-         , (piety    cp, piety    mp, \n -> emptyParam { piety    = n }, "piety"   )
-         , (vitality cp, vitality mp, \n -> emptyParam { vitality = n }, "vitality")
-         , (agility  cp, agility  mp, \n -> emptyParam { agility  = n }, "agility" )
-         , (luck     cp, luck     mp, \n -> emptyParam { luck     = n }, "luck"    )
-         ]
+    psENG = [ (strength cp, strength mp, \n -> emptyParam { strength = n }, "strength")
+            , (iq       cp, iq       mp, \n -> emptyParam { iq       = n }, "I.Q."    )
+            , (piety    cp, piety    mp, \n -> emptyParam { piety    = n }, "piety"   )
+            , (vitality cp, vitality mp, \n -> emptyParam { vitality = n }, "vitality")
+            , (agility  cp, agility  mp, \n -> emptyParam { agility  = n }, "agility" )
+            , (luck     cp, luck     mp, \n -> emptyParam { luck     = n }, "luck"    )
+            ]
+    psJPN = [ (strength cp, strength mp, \n -> emptyParam { strength = n }, "力"      )
+            , (iq       cp, iq       mp, \n -> emptyParam { iq       = n }, "知恵"    )
+            , (piety    cp, piety    mp, \n -> emptyParam { piety    = n }, "信仰心"  )
+            , (vitality cp, vitality mp, \n -> emptyParam { vitality = n }, "体力"    )
+            , (agility  cp, agility  mp, \n -> emptyParam { agility  = n }, "素早さ"  )
+            , (luck     cp, luck     mp, \n -> emptyParam { luck     = n }, "運の良さ")
+            ]
     deltaParam v maxv age = do
         n1 <- randomIn [1..4]
         n2 <- randomIn [0..130]
@@ -648,10 +681,11 @@ formulaMapP = addBaseToMap empty
 totalAnnihilation :: Bool -> StatusError -> GameMachine
 totalAnnihilation returnCastle se = GameAuto $ do
     p <- currentPosition
+    txt1 <- switchLang "The party was wiped out." "パーティは全滅しました"
     movePlace TotalAnnihilation
     ps <- party <$> world
     forM_ ps $ flip updateCharacterWith (addStatusError se)
-    run $ events [withBGM AllDead $ message "パーティは全滅しました"]
+    run $ events [withBGM AllDead $ message txt1]
           (if returnCastle then returnCastleSilent else suspendMazing p)
 
 suspendMazing :: Position -> GameMachine

@@ -795,16 +795,16 @@ castAddStatusErrorSpell ses src (Right es) = concat <$> forM es (\e -> do
         m <- formulaMapSO src (Right e)
         results <- forM ses $ \(se, prob, msg) -> do
             p <- evalWith m prob
-            resist <- resistStatusError m se (Enemy.resistError $ Enemy.define e)
+            resist  <- resistStatusError m se (Enemy.resistError $ Enemy.define e)
             success <- (&&) <$> happens p <*> pure (not resist)
+            txt1 <- statusErrorMessage se
+            txt2 <- switchLang " resisted." " は抵抗した。"
             if success then do
                 let e' = addStatusError se e
-                let message = if msg == ""
-                                then nameOf e ++ statusErrorMessage se
-                                else nameOf e ++ " " ++ msg
+                let message = nameOf e ++ (if msg == "" then txt1 else " " ++ msg)
                 return [(updateEnemy e (const e'), message, False, se >= Dead)]
             else
-                return [(return (), nameOf e ++ " resisted.", False, False)]
+                return [(return (), nameOf e ++ txt2, False, False)]
         return $ concat results
     )
 castAddStatusErrorSpell ses src (Left cs) = concat <$> forM cs (\i -> do
@@ -816,16 +816,16 @@ castAddStatusErrorSpell ses src (Left cs) = concat <$> forM cs (\i -> do
         results <- forM ses $ \(se, prob, msg) -> do
             eats <- allValidEquipAttrs c
             p <- evalWith m prob
-            resist <- resistStatusError m se (concatMap Item.resistError eats)
+            resist  <- resistStatusError m se (concatMap Item.resistError eats)
             success <- (&&) <$> happens p <*> pure (not resist)
+            txt1 <- statusErrorMessage se
+            txt2 <- switchLang " resisted." " は抵抗した。"
             if success then do
                 let c' = addStatusError se c
-                let message = if msg == ""
-                                then nameOf c ++ statusErrorMessage se
-                                else nameOf c ++ " " ++ msg
+                let message = nameOf c ++ (if msg == "" then txt1 else " " ++ msg)
                 return [(updateCharacter cid c', message, False, se >= Dead)]
             else
-                return [(return (), nameOf c ++ " resisted.", False, False)]
+                return [(return (), nameOf c ++ txt2, False, False)]
         return $ concat results
     )
 

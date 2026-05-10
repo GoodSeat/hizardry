@@ -126,16 +126,21 @@ fightDamage el c e hitBonus = do
 
 fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessage c e (h, d, ses) = do
-    vs' <- Item.atackMessages <$> weaponAttrOf c
+    wa  <- weaponAttrOf c
+    vs' <- switchLang (Item.atackMessages wa) (Item.atackMessagesJPN wa)
+    vs  <- switchLang vsENG vsJPN
     v   <- randomIn $ if null vs' then vs else vs'
     let en = nameOf e
-    let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
-    let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
-             else (en ++) . statusErrorMessage <$> sort ses
+    m1 <- switchLang (Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n")
+                     (Chara.name c ++ " は " ++ en ++ " に\n" ++ v ++ "。\n")
+    m2 <- switchLang (if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
+                     (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n")
+    m3 <- if Enemy.hp e <= 0 then switchLang [en ++ " is killed."] [en ++ " は死んだ。"]
+                             else mapM (fmap (en ++) . statusErrorMessage) (sort ses)
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
-    vs = ["leaps at", "attempts to slice", "thrusts violently at", "tries to ram", "tries to bash", "charges at", "tries to slash"]
+    vsENG = ["leaps at", "tries to ram", "tries to bash", "charges at"]
+    vsJPN = ["飛びかかった", "体当たりした", "殴りつけた", "突進した"]
 
 weaponAttrOf :: Chara.Character -> GameState Item.WeaponAttr
 weaponAttrOf c = do
@@ -199,15 +204,18 @@ ambushOfCharacter id el next = GameAuto $ do
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 ambushMessage c e (h, d, ses) = do
-    v   <- randomIn vs
+    v  <- randomIn =<< switchLang vsENG vsJPN
     let en = nameOf e
-    let m1 = Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n"
-    let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if Enemy.hp e <= 0 then [en ++ " is killed."]
-             else (en ++) . statusErrorMessage <$> sort ses
+    m1 <- switchLang (Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n")
+                     (Chara.name c ++ " は " ++ en ++ "に\n" ++ v ++ "。\n")
+    m2 <- switchLang (if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
+                     (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n")
+    m3 <- if Enemy.hp e <= 0 then switchLang [en ++ " is killed."] [en ++ " は死んだ。"]
+                             else mapM (fmap (en ++) . statusErrorMessage) (sort ses)
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
-    vs = ["tries to ambush"]
+    vsENG = ["tries to ambush"]
+    vsJPN = ["飛びかかった", "体当たりした", "殴りつけた", "突進した"]
 
 -- ================================================================================
 
@@ -278,14 +286,18 @@ fightDamageE n e c dmg sts = do
 
 fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessageE e c (h, d, ses) = do
-    v  <- randomIn vs
-    let m1 = nameOf e ++ " " ++ v ++ "\n " ++ Chara.name c ++ ".\n"
-    let m2 = if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n"
-    let m3 = if hpOf c <= 0 then [Chara.name c  ++ " is killed."]
-             else (Chara.name c ++) . statusErrorMessage <$> sort ses
+    let cn = Chara.name c
+    v  <- randomIn =<< switchLang vsENG vsJPN
+    m1 <- switchLang (nameOf e ++ " " ++ v ++ "\n " ++ cn ++ ".\n")
+                     (nameOf e ++ " は " ++ cn ++ " に\n" ++ v ++ "。\n")
+    m2 <- switchLang (if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
+                     (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n")
+    m3 <- if hpOf c <= 0 then switchLang [cn  ++ " is killed."] [cn ++ " は死んだ。"]
+                         else mapM (fmap (cn ++) . statusErrorMessage) (sort ses)
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
-    vs = ["charges at", "claws at"]
+    vsENG = ["charges at", "claws at"]
+    vsJPN = ["引っかいた", "突進した"]
 
 
 -- ================================================================================

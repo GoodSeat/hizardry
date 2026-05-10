@@ -6,6 +6,17 @@ import qualified Data.Map as Map
 
 import Data.Primitive
 
+amPatternSword    = ["attempts to slice", "thrusts violently at", "tries to slash"]
+amPatternSwordJPN = ["切りつけた", "激しく突いた", "斬りつけた"]
+amPatternMace     = ["tries to bash"]
+amPatternMaceJPN  = ["殴りつけた"]
+amPatternBow      = ["aimed and shot"]
+amPatternBowJPN   = ["狙いを定めて撃った"]
+amPatternWhip     = ["whipped"]
+amPatternWhipJPN  = ["打ちつけた"]
+amPatternThrow    = ["throw weapon to"]
+amPatternThrowJPN = ["投げつけた"]
+
 items :: Item.DB
 items = Map.fromList [
     (ItemID 0, Item.Define {
@@ -116,14 +127,15 @@ items = Map.fromList [
                                            , Item.vsEffectLabels = []
                                          } 
                                          Item.WeaponAttr {
-                                             Item.targetF       = [L1, L2]
-                                           , Item.targetB       = []
-                                           , Item.damage        = read "1d8"
-                                           , Item.doubleLabels  = []
-                                           , Item.attrLabels    = [EffectLabel "fire"]
-                                           , Item.addStatusErrors = []
-                                           , Item.atackMessages = []
-                                           , Item.targetRange   = Item.ToSingle
+                                             Item.targetF          = [L1, L2]
+                                           , Item.targetB          = []
+                                           , Item.damage           = read "1d8"
+                                           , Item.doubleLabels     = []
+                                           , Item.attrLabels       = [EffectLabel "fire"]
+                                           , Item.addStatusErrors  = []
+                                           , Item.atackMessages    = amPatternSword
+                                           , Item.atackMessagesJPN = amPatternSwordJPN
+                                           , Item.targetRange      = Item.ToSingle
                                          }
         , Item.valueInShop      = 500
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
@@ -287,14 +299,15 @@ items = Map.fromList [
                                            , Item.vsEffectLabels = []
                                          } 
                                          Item.WeaponAttr {
-                                             Item.targetF       = [L1, L2, L3, L4]
-                                           , Item.targetB       = [L1, L2]
-                                           , Item.damage        = read "3d8"
-                                           , Item.doubleLabels  = []
-                                           , Item.attrLabels    = []
-                                           , Item.addStatusErrors = []
-                                           , Item.atackMessages = ["aimed and shot"]
-                                           , Item.targetRange   = Item.ToSingle
+                                             Item.targetF          = [L1, L2, L3, L4]
+                                           , Item.targetB          = [L1, L2]
+                                           , Item.damage           = read "3d8"
+                                           , Item.doubleLabels     = []
+                                           , Item.attrLabels       = []
+                                           , Item.addStatusErrors  = []
+                                           , Item.atackMessages    = amPatternBow
+                                           , Item.atackMessagesJPN = amPatternBowJPN
+                                           , Item.targetRange      = Item.ToSingle
                                          }
         , Item.valueInShop      = 4000
         , Item.enableToEquip    = Item.Only ["Thief"]
@@ -320,14 +333,15 @@ items = Map.fromList [
                                            , Item.vsEffectLabels = []
                                          } 
                                          Item.WeaponAttr {
-                                             Item.targetF       = [L1, L2, L3, L4]
-                                           , Item.targetB       = [L1, L2]
-                                           , Item.damage        = read "3d8"
-                                           , Item.doubleLabels  = [EnemyLabel "beast"]
-                                           , Item.attrLabels    = [EffectLabel "fire"]
-                                           , Item.addStatusErrors = [(read "lv-o.lv", Dead, [EffectLabel "fire"])]
-                                           , Item.atackMessages = ["aimed and shot"]
-                                           , Item.targetRange   = Item.ToSingle
+                                             Item.targetF          = [L1, L2, L3, L4]
+                                           , Item.targetB          = [L1, L2]
+                                           , Item.damage           = read "3d8"
+                                           , Item.doubleLabels     = [EnemyLabel "beast"]
+                                           , Item.attrLabels       = [EffectLabel "fire"]
+                                           , Item.addStatusErrors  = [(read "lv-o.lv", Dead, [EffectLabel "fire"])]
+                                           , Item.atackMessages    = amPatternBow
+                                           , Item.atackMessagesJPN = amPatternBowJPN
+                                           , Item.targetRange      = Item.ToSingle
                                          }
         , Item.valueInShop      = 4000
         , Item.enableToEquip    = Item.Only ["Thief"]
@@ -353,14 +367,15 @@ items = Map.fromList [
                                            , Item.vsEffectLabels = []
                                          } 
                                          Item.WeaponAttr {
-                                             Item.targetF       = [L1, L2]
-                                           , Item.targetB       = []
-                                           , Item.damage        = read "2d6"
-                                           , Item.doubleLabels  = [EnemyLabel "undead"]
-                                           , Item.attrLabels    = [EffectLabel "fire"]
-                                           , Item.addStatusErrors = []
-                                           , Item.atackMessages = ["aimed and hit"]
-                                           , Item.targetRange   = Item.ToGroup
+                                             Item.targetF          = [L1, L2]
+                                           , Item.targetB          = []
+                                           , Item.damage           = read "2d6"
+                                           , Item.doubleLabels     = [EnemyLabel "undead"]
+                                           , Item.attrLabels       = [EffectLabel "fire"]
+                                           , Item.addStatusErrors  = []
+                                           , Item.atackMessages    = amPatternWhip
+                                           , Item.atackMessagesJPN = amPatternWhipJPN
+                                           , Item.targetRange      = Item.ToGroup
                                          }
         , Item.valueInShop      = 2000
         , Item.enableToEquip    = Item.Only ["Priest"]
@@ -386,14 +401,15 @@ items = Map.fromList [
                                            , Item.vsEffectLabels = []
                                          } 
                                          Item.WeaponAttr {
-                                             Item.targetF       = [L1]
-                                           , Item.targetB       = [L1]
-                                           , Item.damage        = read "2d3"
-                                           , Item.doubleLabels  = []
-                                           , Item.attrLabels    = []
-                                           , Item.addStatusErrors = []
-                                           , Item.atackMessages = ["throw weqpon to"]
-                                           , Item.targetRange   = Item.ToAll
+                                             Item.targetF          = [L1]
+                                           , Item.targetB          = [L1]
+                                           , Item.damage           = read "2d3"
+                                           , Item.doubleLabels     = []
+                                           , Item.attrLabels       = []
+                                           , Item.addStatusErrors  = []
+                                           , Item.atackMessages    = amPatternThrow
+                                           , Item.atackMessagesJPN = amPatternThrowJPN
+                                           , Item.targetRange      = Item.ToAll
                                          }
         , Item.valueInShop      = 3000
         , Item.enableToEquip    = Item.Only ["Thief"]

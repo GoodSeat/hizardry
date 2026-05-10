@@ -126,6 +126,9 @@ data HPHealType = Classic
                 | CureWhenReturnCastle -- ^ full cured when return castle.
     deriving (Eq, Show, Read)
 
+data Language = ENG | JPN 
+    deriving (Eq, Show, Read)
+
 data WorldOption = WorldOption {
       effectDumapic    :: !Spell.CheckLocationType
     , minimapType      :: !MiniMapType
@@ -134,6 +137,7 @@ data WorldOption = WorldOption {
     , switchSE         :: !Bool
     , switchBGM        :: !Bool
     , waitTimeInBattle :: !Int  -- ^ wait time in battle message (ms). 0 means infinity.
+    , language         :: !Language
     } deriving (Eq, Show, Read)
 
 defaultWorldOption :: WorldOption
@@ -145,6 +149,7 @@ defaultWorldOption = WorldOption {
     , switchSE         = True
     , switchBGM        = True
     , waitTimeInBattle = 1000
+    , language         = JPN
     }
 
 type Seed = Int

@@ -198,8 +198,11 @@ nextMiniMap = do
 
 inspect :: Position -> GameMachine
 inspect p = GameAuto $ do
-    movePlace (Camping p "Inspect")
-    run $ selectWhenEsc (message "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]")
+    txt1 <- switchLang "Inspect" "調査"
+    txt2 <- switchLang "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]"
+                       "^S)仲間を捜す\n^I)周辺を調査する\n^L)離れる `[`E`S`C`]"
+    movePlace (Camping p txt1)
+    run $ selectWhenEsc (message txt2)
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "s", searchCharacter p, True)
           ,(Key "i", searchSurroundings p, True)
@@ -208,7 +211,8 @@ inspect p = GameAuto $ do
 searchSurroundings :: Position -> GameMachine
 searchSurroundings p = GameAuto $ do
     eventMap <- asks eventInspect
-    let foundNothing = events (searchMsgs ++ [message "You found nothing."]) (inspect p)
+    txt1     <- switchLang "You found nothing." "何も見つからなかった。"
+    let foundNothing = events (searchMsgs ++ [message txt1]) (inspect p)
     case Map.lookup p eventMap of
         Nothing -> run foundNothing
         Just eid -> do

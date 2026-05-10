@@ -10,6 +10,8 @@ import qualified Data.Characters as Chara
 jobs :: [Chara.Job]
 jobs = [fighter, mage, priest, thief, bishop, samurai, lord, ninja]
 
+baseWeaponAttr = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d4", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.atackMessagesJPN = [], Item.targetRange = Item.ToSingle }
+
 fighter = Chara.Job {
       Chara.jobName              = "Fighter"
     , Chara.enableAlignments     = [Chara.G, Chara.N, Chara.E]
@@ -17,7 +19,7 @@ fighter = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "agi"
     , Chara.disarmTrapAbility    = parse' "agi"
     , Chara.needParameter        = Parameter { strength = 11, iq = 0, piety = 0, vitality = 0, agility = 0, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "2d2", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "2d2" }
     , Chara.fightTryCount        = read "min(lv/5+1,10)"
     , Chara.fightHitBonus        = read "lv/3+2"
     , Chara.baseAC               = read "10"
@@ -35,7 +37,7 @@ mage = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "agi"
     , Chara.disarmTrapAbility    = parse' "agi"
     , Chara.needParameter        = Parameter { strength = 0, iq = 11, piety = 0, vitality = 0, agility = 0, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d2", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "1d2" }
     , Chara.fightTryCount        = read "1"
     , Chara.fightHitBonus        = read "lv/5"
     , Chara.baseAC               = read "10"
@@ -53,7 +55,7 @@ priest = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "agi"
     , Chara.disarmTrapAbility    = parse' "agi"
     , Chara.needParameter        = Parameter { strength = 0, iq = 0, piety = 11, vitality = 0, agility = 0, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d3", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "1d3" }
     , Chara.fightTryCount        = read "1"
     , Chara.fightHitBonus        = read "lv/3+2"
     , Chara.baseAC               = read "10"
@@ -80,7 +82,7 @@ thief = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "min(agi*6, 95)"
     , Chara.disarmTrapAbility    = parse' "(lv-7+50)*100/70"
     , Chara.needParameter        = Parameter { strength = 0, iq = 0, piety = 0, vitality = 0, agility = 11, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d4", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "1d4" }
     , Chara.fightTryCount        = read "1"
     , Chara.fightHitBonus        = read "lv/5"
     , Chara.baseAC               = read "10"
@@ -98,7 +100,7 @@ bishop = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "min(95, lv*2 + pie*2)"
     , Chara.disarmTrapAbility    = parse' "agi"
     , Chara.needParameter        = Parameter { strength = 0, iq = 12, piety = 12, vitality = 0, agility = 0, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d4", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "1d4" }
     , Chara.fightTryCount        = read "1"
     , Chara.fightHitBonus        = read "lv/5"
     , Chara.baseAC               = read "10"
@@ -116,7 +118,7 @@ samurai = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "agi"
     , Chara.disarmTrapAbility    = parse' "agi"
     , Chara.needParameter        = Parameter { strength = 14, iq = 10, piety = 9, vitality = 14, agility = 11, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d6", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "1d6" }
     , Chara.fightTryCount        = read "min(lv/5+1,10)"
     , Chara.fightHitBonus        = read "lv/3+2"
     , Chara.baseAC               = read "10"
@@ -134,7 +136,7 @@ lord = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "agi"
     , Chara.disarmTrapAbility    = parse' "agi"
     , Chara.needParameter        = Parameter { strength = 15, iq = 12, piety = 12, vitality = 15, agility = 14, luck = 14 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d4", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "1d4" }
     , Chara.fightTryCount        = read "min(lv/5+1,10)"
     , Chara.fightHitBonus        = read "lv/3+2"
     , Chara.baseAC               = read "10"
@@ -152,7 +154,7 @@ ninja = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "min(agi*4, 95)"
     , Chara.disarmTrapAbility    = parse' "(lv-7+50)*100/70"
     , Chara.needParameter        = Parameter { strength = 15, iq = 17, piety = 15, vitality = 16, agility = 15, luck = 16 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "2d2", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = baseWeaponAttr { Item.damage = read "2d2" }
     , Chara.fightTryCount        = read "min(lv/5+2,10)"
     , Chara.fightHitBonus        = read "lv/3+2"
     , Chara.baseAC               = read "10-lv/3"
