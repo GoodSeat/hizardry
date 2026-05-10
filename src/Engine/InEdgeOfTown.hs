@@ -24,6 +24,7 @@ inEdgeOfTown :: GameMachine
 inEdgeOfTown = with [movePlace InEdgeOfTown] $ autoSaveToSlot0 $ GameAuto $ do
     notnull  <- not . null . party <$> world
     toCastle <- home
+    msg      <- switchLang msgENG msgJPN
     run $ selectWhenEsc msg [(Key "c", toCastle, True)
                             ,(Key "m", enteringMaze, notnull)
                             ,(Key "t", inTrainingGrounds, True)
@@ -32,26 +33,38 @@ inEdgeOfTown = with [movePlace InEdgeOfTown] $ autoSaveToSlot0 $ GameAuto $ do
                             ,(Key "u", utilities, True)
                             ]
   where
-    msg = message $ "^M)aze\n"
-                 ++ "^T)raining Grounds\n"
-                 ++ "^R)estart an \"OUT\" Party\n"
-                 ++ "^U)tilities\n"
-                 ++ "^L)eave Game\n"
-                 ++ "Return to the ^C)astle `[`E`S`C`]\n"
+    msgENG = message $ "^M)aze\n"
+                    ++ "^T)raining Grounds\n"
+                    ++ "^R)estart an \"OUT\" Party\n"
+                    ++ "^U)tilities\n"
+                    ++ "^L)eave Game\n"
+                    ++ "Return to the ^C)astle `[`E`S`C`]\n"
+    msgJPN = message $ "^M)迷宮\n"
+                    ++ "^T)訓練場\n"
+                    ++ "^R)迷宮内パーティの冒険の再開\n"
+                    ++ "^U)ユーティリティ\n"
+                    ++ "^L)ゲームを終える\n"
+                    ++ "^C)城下町に戻る `[`E`S`C`]\n"
 
 -- =======================================================================
 
 utilities :: GameMachine
-utilities = selectEsc msg [(Key "l", inEdgeOfTown)
-                          ,(Key "c", config)
-                          ,(Key "s", selectSaveSlot)
-                          ,(Key "r", selectLoadSlot)
-                          ]
+utilities = GameAuto $ do
+    msg <- switchLang msgENG msgJPN
+    run $ selectEsc msg [(Key "l", inEdgeOfTown)
+                        ,(Key "c", config)
+                        ,(Key "s", selectSaveSlot)
+                        ,(Key "r", selectLoadSlot)
+                        ]
   where
-    msg = message $ "^C)onfig\n"
-                 ++ "^S)ave backup\n"
-                 ++ "^R)estore from backup\n"
-                 ++ "^L)eave Utilities `[`E`S`C`]\n"
+    msgENG = message $ "^C)onfig\n"
+                    ++ "^S)ave backup\n"
+                    ++ "^R)estore from backup\n"
+                    ++ "^L)eave Utilities `[`E`S`C`]\n"
+    msgJPN = message $ "^C)コンフィグ\n"
+                    ++ "^S)バックアップの作成\n"
+                    ++ "^R)バックアップからの復元\n"
+                    ++ "^L)戻る `[`E`S`C`]\n"
 
 config :: GameMachine
 config = GameAuto $ do
@@ -63,17 +76,50 @@ config = GameAuto $ do
         tS = switchSE         $ worldOption w
         tB = switchBGM        $ worldOption w
         tW = waitTimeInBattle $ worldOption w
-    let msg = "\n^E)位置判別呪文の効果           : " ++ eToT tE
-           ++ "\n^M)ミニマップの表示             : " ++ mToT tM
-           ++ "\n^H)城帰還時のHP回復             : " ++ hToT tH
-           ++ "\n^I)酒場パーティ編成時の属性混合 : " ++ iToT tI
-           ++ "\n^S)効果音の有無                 : " ++ iToS tS
-           ++ "\n^B)音楽の有無                   : " ++ iToB tB
-           ++ "\n^W)戦闘時のテキスト自動進行時間 : " ++ show tW ++ " ms"
-           ++ "\n    (※ 0 を設定すると、自動進行しなくなります)"
-           ++ "\n                            "
-           ++ "\n^L)戻る  `[`E`S`C`]         "
-    let changeE = do
+        tL = language         $ worldOption w
+        isENG = tL == ENG
+    let eToT Spell.OnlyCoord      = if isENG then "Show coordinate"          else "座標表示"
+        eToT Spell.ViewMap        = if isENG then "Show map"                 else "地図表示"
+        mToT Disable              = if isENG then "OFF"                      else "非表示"
+        mToT Normal               = if isENG then "ON"                       else "表示"
+        mToT AlwaysN              = if isENG then "ON(Disorientation lost)"  else "表示(方向感覚無効)"
+        hToT Classic              = if isENG then "No recovery"              else "回復しない"
+        hToT CureWhenInn          = if isENG then "Recovered at Inn"         else "宿泊時に全回復"
+        hToT CureWhenReturnCastle = if isENG then "Recovered upon Returning" else "城帰還時に全回復"
+        iToT True                 = if isENG then "Ignore alignment"         else "可能"
+        iToT False                = if isENG then "Consider alignment"       else "不可"
+        iToS True                 = if isENG then "ON"                       else "有効"
+        iToS False                = if isENG then "OFF"                      else "無効"
+        iToB True                 = if isENG then "ON"                       else "有効"
+        iToB False                = if isENG then "OFF"                      else "無効"
+    let msgENG = "\n^C)hange language               : " ++ lToT tL
+              ++ "\n^E)ffect of dumapic             : " ++ eToT tE
+              ++ "\n^M)inimap visible               : " ++ mToT tM
+              ++ "\n^H)p heal type when return      : " ++ hToT tH
+              ++ "\n^I)gnore alignment in tavern    : " ++ iToT tI
+              ++ "\n^S)E                            : " ++ iToS tS
+              ++ "\n^B)GM                           : " ++ iToB tB
+              ++ "\n^W)ait time of battle message   : " ++ show tW ++ " ms"
+              ++ "\n    (* set 0 to disable auto progress)"
+              ++ "\n                            "
+              ++ "\n^L)eave  `[`E`S`C`]         "
+    let msgJPN = "\n^C)言語設定                     : " ++ lToT tL
+              ++ "\n^E)位置判別呪文の効果           : " ++ eToT tE
+              ++ "\n^M)ミニマップの表示             : " ++ mToT tM
+              ++ "\n^H)城帰還時のHP回復             : " ++ hToT tH
+              ++ "\n^I)酒場パーティ編成時の属性混合 : " ++ iToT tI
+              ++ "\n^S)効果音の有無                 : " ++ iToS tS
+              ++ "\n^B)音楽の有無                   : " ++ iToB tB
+              ++ "\n^W)戦闘時のテキスト自動進行時間 : " ++ show tW ++ " ms"
+              ++ "\n    (※ 0 を設定すると、自動進行しなくなります)"
+              ++ "\n                            "
+              ++ "\n^L)離れる  `[`E`S`C`]       "
+    msg  <- switchLang msgENG msgJPN
+    txt1 <- switchLang "input wait time(ms)." "進行時間(ms)を入力してください。" 
+    let changeL = do
+            let ts = [ENG, JPN]
+            put $ w { worldOption = (worldOption w) { language = next ts tL } }
+        changeE = do
             ts <- asks (enableEffectDumapic . scenarioOption)
             put $ w { worldOption = (worldOption w) { effectDumapic = next ts tE } }
         changeM = do
@@ -87,11 +133,11 @@ config = GameAuto $ do
         changeB = put $ w { worldOption = (worldOption w) { switchBGM       = not tB } }
         changeW :: Int -> GameState ()
         changeW t = put $ w { worldOption = (worldOption w) { waitTimeInBattle = abs t } }
-        inputW = GameAuto $ return (askFlashAndMessage msg "進行時間(ms)を入力してください。" Nothing
+        inputW = GameAuto $ return (askFlashAndMessage msg txt1 Nothing
                                    ,\(Key s) -> case readMaybe s of Nothing -> config
                                                                     Just t  -> with [changeW t] config)
-
     run $ selectEsc (message msg) [(Key "l", utilities)
+                                  ,(Key "c", with [changeL] config)
                                   ,(Key "e", with [changeE] config)
                                   ,(Key "m", with [changeM] config)
                                   ,(Key "h", with [changeH] config)
@@ -101,20 +147,8 @@ config = GameAuto $ do
                                   ,(Key "w", inputW)
                                   ]
   where
-    eToT Spell.OnlyCoord      = "座標表示"
-    eToT Spell.ViewMap        = "地図表示"
-    mToT Disable              = "非表示"
-    mToT Normal               = "表示"
-    mToT AlwaysN              = "表示(方向感覚無効)"
-    hToT Classic              = "回復しない"
-    hToT CureWhenInn          = "宿泊時に全回復"
-    hToT CureWhenReturnCastle = "城帰還時に全回復"
-    iToT True                 = "可能"
-    iToT False                = "不可"
-    iToS True                 = "有効"
-    iToS False                = "無効"
-    iToB True                 = "有効"
-    iToB False                = "無効"
+    lToT ENG = "English"
+    lToT JPN = "日本語"
 
     next :: Eq a => [a] -> a -> a
     next as = next' (head as) as

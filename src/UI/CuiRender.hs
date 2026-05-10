@@ -96,7 +96,7 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
     <> t1 (if null mMsg' || isJust cid' then mempty else (msgTrans . msgBox') mMsg')
     <> t1 (if null cMsg  || isJust cid' then mempty else cmdBox cMsg )
     <> t1 (if visibleStatusWindow w && not hideStatus then status s w (catMaybes ps) else mempty)
-    <> t1 (if visibleGuideWindow w && null mMsg then guide else mempty)
+    <> t1 (if visibleGuideWindow w && null mMsg then guide w else mempty)
     <>    (if null cMsg && null mMsg && isNothing picInf then minimapScreen else mempty)
 --  <> t1 location (show $ (take 5 . eventFlags) w) -- MEMO:forDebug
     <> t1 (debugWindow $ debugMessage w) -- MEMO:forDebug
@@ -105,7 +105,7 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
     <> t1 (frameTrans w $ frame)
     <> t1 (enemyTrans w $ enemyScene picOf s (place w))
     <> t1 treasureScene
-    <> t1 (sceneTrans w $ scene (place w) (partyLight w > 0) (partyLight' w > 0) (thd3 $ mazeInf s w))
+    <> t1 (sceneTrans w $ scene (place w) w (partyLight w > 0) (partyLight' w > 0) (thd3 $ mazeInf s w))
   where
     t1    = translate (1, 1)
     ps    = flip Map.lookup (allCharacters w) <$> party w
@@ -127,7 +127,7 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
                               _           -> msgBox
     mMsg' | not (null mMsg) = mMsg
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
-          | isOnTreasure    = "you found a treasure chest."
+          | isOnTreasure    = choiceLang w "you found a treasure chest." "宝箱を見つけた。"
           | otherwise       = mMsg
     hideStatus = ((not . null) ess && null cMsg && isNothing cid')
               || (isOnTreasure && (not . null) cMsg || isChestOpend)
@@ -142,14 +142,14 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
     itemDefOf = (Map.!) (Engine.GameAuto.items s)
     locationText = if isJust cid' then "" else
-                   case place w of InCastle            -> "Castle" 
-                                   Gilgamesh'sTavern   -> "ギルガメッシュの酒場" --"Gilgamesh's Tavern"
-                                   Adventure'sInn      -> "Adventure's Inn"
-                                   Boltac'sTradingPost -> "Boltac's Trading Post"
-                                   TempleOfCant        -> "Temple of Cant"
-                                   InEdgeOfTown        -> "Edge of Town"
-                                   TrainingGrounds     -> "Training Grounds"
-                                   Camping _ t         -> if null t then "Camp" else t
+                   case place w of InCastle            -> choiceLang w "Castle"                "城下町"
+                                   Gilgamesh'sTavern   -> choiceLang w "Gilgamesh's Tavern"    "ギルガメッシュの酒場"
+                                   Adventure'sInn      -> choiceLang w "Adventure's Inn"       "冒険者の宿"
+                                   Boltac'sTradingPost -> choiceLang w "Boltac's Trading Post" "ボルタック商店"
+                                   TempleOfCant        -> choiceLang w "Temple of Cant"        "カント寺院"
+                                   InEdgeOfTown        -> choiceLang w "Edge of Town"          "町外れ"
+                                   TrainingGrounds     -> choiceLang w "Training Grounds"      "訓練場"
+                                   Camping _ t         -> if null t then choiceLang w "Camp" "キャンプ" else t
                                    _ -> []
     msgTrans = if null locationText then id else translate (0, 1)
 
@@ -282,6 +282,9 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                                    $ statusPlaceHolder ) sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
+choiceLang :: World -> a -> a -> a
+choiceLang w a1 a2 = if language (worldOption w) == ENG then a1 else a2
+
 statusView :: Scenario -> World -> String -> String -> Maybe [ItemPos] -> (ItemID -> Item.Define)  -> Character -> Craphic
 statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] $ lines msg))
                                              <> rect (8, 24) (61, 7) (Draw ' ')
@@ -346,7 +349,7 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
                      . replaceText "P5"  (show $ (snd (mp c) ++ repeat 0) !! 4) (Right 2)
                      . replaceText "P6"  (show $ (snd (mp c) ++ repeat 0) !! 5) (Right 2)
                      . replaceText "P7"  (show $ (snd (mp c) ++ repeat 0) !! 6) (Right 2)
-                     $ statusViewPlaceHolder
+                     $ statusViewPlaceHolder w
       where
         (ac', _) = runGameState s w (acOf $ Left c)
         ac = case ac' of Right v -> v
@@ -392,7 +395,9 @@ rep _   _  [] = []
 rep src dst s = if src `isPrefixOf` s then dst ++ rep src dst (drop (len src) s) else head s : rep src dst (tail s)
 
 
-statusViewPlaceHolder =
+statusViewPlaceHolder w = choiceLang w statusViewPlaceHolderENG statusViewPlaceHolderJPN
+
+statusViewPlaceHolderENG =
   ["                                                                 "  --   1
   ,"    [Name]                          Lv [Lv]           [KAJ]      "  --   2
   ,"                                                                 "  --   3
@@ -415,26 +420,50 @@ statusViewPlaceHolder =
 --  12345678901234567890123456789012345678901234567890123456789012345
 --           1         2         3         4         5         6      
 
+statusViewPlaceHolderJPN =
+  ["                                                                 "  --   1
+  ,"    [Name]                          Lv [Lv]           [KAJ]      "  --   2
+  ,"                                                                 "  --   3
+  ,"                         HP : [HP]/[MxHP]     状態 : [Status]    "  --   4
+  ,"         力:[STR]                                                "  --   5
+  ,"       知恵:[IQ]       経験値 : [Exp]         年齢 : [Age]       "  --   6
+  ,"     信仰心:[PIE]  次のLvまで : [Next]          AC : [AC]        "  --   7
+  ,"       体力:[VIT]      所持金 : [Gold]       Marks : [Marks]     "  --   8
+  ,"     素早さ:[AGI]                             RIPs : [RIPs]      "  --   9
+  ,"   運の良さ:[LUK]                                                "  --   10
+  ,"                         呪文 魔:M1/M2/M3/M4/M5/M6/M7            "  --   11
+  ,"                              僧:P1/P2/P3/P4/P5/P6/P7            "  --   12
+  ,"                                                                 "  --   13
+  ,"    A)#[Item1]                    F)#[Item6]                     "  --   14
+  ,"    B)#[Item2]                    G)#[Item7]                     "  --   15
+  ,"    C)#[Item3]                    H)#[Item8]                     "  --   16
+  ,"    D)#[Item4]                    I)#[Item9]                     "  --   17
+  ,"    E)#[Item5]                    J)#[Item0]                     "  --   18
+  ]
+--  12345678901234567890123456789012345678901234567890123456789012345
+--           1         2         3         4         5         6      
 
 
 scene :: Place
+      -> World
       -> Bool       -- ^ light effect.
       -> Bool       -- ^ super light effect.
       -> Maze
       -> Craphic
-scene (InMaze p)              onLight superLight = dunsion p onLight superLight True
-scene (InBattle p _)          onLight superLight = dunsion p onLight superLight False
-scene (FindTreasureChest p _) onLight superLight = dunsion p onLight superLight False
-scene (Camping p _)           onLight superLight = do
-          msg <- const $ if onLight || superLight then partyStatus "    Light" else mempty
-          d   <- dunsion p onLight superLight False
+scene (InMaze p)              w onLight superLight = dunsion p w onLight superLight True
+scene (InBattle p _)          w onLight superLight = dunsion p w onLight superLight False
+scene (FindTreasureChest p _) w onLight superLight = dunsion p w onLight superLight False
+scene (Camping p _)           w onLight superLight = do
+          let txtL = choiceLang w "    Light" "    明かり"
+          msg <- const $ if onLight || superLight then partyStatus txtL else mempty
+          d   <- dunsion p w onLight superLight False
           return $ msg <> d
-scene InCastle                _       _          = const $ translate (0, 2) city2
-scene InEdgeOfTown            _       _          = const $ translate (0, 2) edgeOfTown
-scene EnteringMaze            onLight superLight = scene InEdgeOfTown onLight superLight
-scene TotalAnnihilation       _       _          = const mempty -- TODO:
-scene Gilgamesh'sTavern       _       _          = const $ translate (0, 2) tavern
-scene _                       _       _          = const mempty
+scene InCastle                _ _       _          = const $ translate (0, 2) city2
+scene InEdgeOfTown            _ _       _          = const $ translate (0, 2) edgeOfTown
+scene EnteringMaze            w onLight superLight = scene InEdgeOfTown w onLight superLight
+scene TotalAnnihilation       _ _       _          = const mempty -- TODO:
+scene Gilgamesh'sTavern       _ _       _          = const $ translate (0, 2) tavern
+scene _                       _ _       _          = const mempty
 
 
 -- ========================================================================
@@ -591,18 +620,19 @@ noVisitAreaR mvt newN size z  = fromTextsA ' ' '6' $ makeMazeMask isVisited '?' 
 -- ========================================================================
 
 dunsion :: Position
+        -> World
         -> Bool -- ^ light effect.
         -> Bool -- ^ super light effect.
         -> Bool -- ^ show message(for darkzone/in stone) or not.
         -> Maze
         -> Craphic
-dunsion p onLight superLight msg m = addSGR 'B' $ foldl1 mappend $
+dunsion p w onLight superLight msg m = addSGR 'B' $ foldl1 mappend $
     (front <$> [(d, s) | d <-ds, s <- ss]) ++ (dark' <$> [(last ds + 1, s) | s <- ss])
   where
     ds = if onLight || superLight then [0..3] else [0..1]
     ss = if onLight || superLight then [0,1,-1,2,-2,3,-3] else [0,1,-1]
     nots0 = noticesInView m p 0 0
-    stn0  = if Stone `elem` nots0 then inStone msg else mempty
+    stn0  = if Stone `elem` nots0 then inStone w msg else mempty
     front (d, s) = stn0 <> sw <> drk <> fw <> upn <> dwn
       where
         fw = case visiblityAt m p d s F of
@@ -618,11 +648,11 @@ dunsion p onLight superLight msg m = addSGR 'B' $ foldl1 mappend $
         nots = noticesInView m p d s
         upn = if Up   `elem` nots then upNotice   d s else mempty
         dwn = if Down `elem` nots then downNotice d s else mempty
-        drk = if Dark `elem` nots && not superLight then darkNotice msg d s else mempty
+        drk = if Dark `elem` nots && not superLight then darkNotice w msg d s else mempty
     dark' (d, s) = drk
       where
         nots = noticesInView m p d s
-        drk = if Dark `elem` nots then darkNotice' msg d s else mempty
+        drk = if Dark `elem` nots then darkNotice' w msg d s else mempty
 
 -- ========================================================================
 
@@ -673,11 +703,21 @@ frame = fromTexts '*' $
   ++
   replicate 20 "                                                                             "
 
-guide :: Craphic
-guide = fromTextsSGR '*'
+guide :: World -> Craphic
+guide w = choiceLang w guideENG guideJPN
+
+guideENG = fromTextsSGR '*'
   ["*********+-------------------------------------------------------+********"  --  1
   ,"*********|   C)AMP  S)TATUS  I)NSPECT  Q)UIT  O)FF   A-W-D   K   |********"  --  2
   ,"*********+-------------------------------------------------------+********"] --  3
+--------------------------------------------------------------------------------
+  ["                                                                          "  --  1
+  ,"             W      W        W         W      W      W W W   W            "  --  2
+  ,"                                                                          "] --  3
+guideJPN = fromTextsSGR '*'
+  ["********+---------------------------------------------------------+*******"  --  1
+  ,"********| C)キャンプ S)ステータス I)調査 Q)中断 O)非表示  A-W-D K |*******"  --  2
+  ,"********+---------------------------------------------------------+*******"] --  3
 --------------------------------------------------------------------------------
   ["                                                                          "  --  1
   ,"             W      W        W         W      W      W W W   W            "  --  2
@@ -3099,9 +3139,11 @@ downNotice 3 (-2) = fromTextsA '_' 'w'
 downNotice _ _ = mempty
 
 
-darkNotice :: Bool -> Int -> Int -> Craphic
-darkNotice False 0 0 = Craphic $ const $ Draw '*'
-darkNotice True  0 0 = fromTextsSGR '_'
+darkNotice :: World -> Bool -> Int -> Int -> Craphic
+darkNotice _ False 0 0 = Craphic $ const $ Draw '*'
+darkNotice w True  0 0 = let txt = choiceLang w "** DARK ZONE !!! **"
+                                                "** 真っ暗闇だ !! **"
+  in fromTextsSGR '_'
   ["***************************************************************************"  --   1
   ,"***************************************************************************"  --   2
   ,"***************************************************************************"  --   3
@@ -3120,7 +3162,7 @@ darkNotice True  0 0 = fromTextsSGR '_'
   ,"***************************************************************************"  --  16
   ,"****************+-----------------------------------------+****************"  --  17
   ,"****************|                                         |****************"  --  18
-  ,"****************|           ** DARK ZONE !!! **           |****************"  --  19
+  ,"****************|           "    ++ txt ++    "           |****************"  --  19
   ,"****************|                                         |****************"  --  20
   ,"****************+-----------------------------------------+****************"  --  21
   ,"***************************************************************************"  --  22
@@ -3165,8 +3207,8 @@ darkNotice True  0 0 = fromTextsSGR '_'
   ,"________________WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW________________"  --  20
   ,"________________WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW________________"  --  21
   ,"___________________________________________________________________________"]
-darkNotice _ 0   1  = reverseH revC . repSlash $ darkNotice False 0 (-1)
-darkNotice _ 0 (-1) = fromTexts '_'
+darkNotice w _ 0   1  = reverseH revC . repSlash $ darkNotice w False 0 (-1)
+darkNotice _ _ 0 (-1) = fromTexts '_'
   ["********___________________________________________________________________" --   1
   ,"*********__________________________________________________________________" --   2
   ,"**********_________________________________________________________________" --   3
@@ -3208,7 +3250,7 @@ darkNotice _ 0 (-1) = fromTexts '_'
   ,"*******____________________________________________________________________"  --  39
   ,"*****______________________________________________________________________"] --  40
 
-darkNotice _ 1 0 = fromTexts '_'
+darkNotice _ _ 1 0 = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3249,8 +3291,8 @@ darkNotice _ 1 0 = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice _ 1   1  = reverseH revC $ darkNotice False 1 (-1)
-darkNotice _ 1 (-1) = fromTexts '_'
+darkNotice w _ 1   1  = reverseH revC $ darkNotice w False 1 (-1)
+darkNotice _ _ 1 (-1) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3292,7 +3334,7 @@ darkNotice _ 1 (-1) = fromTexts '_'
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
 
-darkNotice _ 2 0 = fromTexts '_'
+darkNotice _ _ 2 0 = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3333,8 +3375,8 @@ darkNotice _ 2 0 = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice _ 2   1  = reverseH revC . repSlash $ darkNotice False 2 (-1)
-darkNotice _ 2 (-1) = fromTexts '_'
+darkNotice w _ 2   1  = reverseH revC . repSlash $ darkNotice w False 2 (-1)
+darkNotice _ _ 2 (-1) = fromTexts '_'
   ["___________________________________________________________________________"   --   1
   ,"___________________________________________________________________________"   --   2
   ,"___________________________________________________________________________"   --   3
@@ -3375,8 +3417,8 @@ darkNotice _ 2 (-1) = fromTexts '_'
   ,"___________________________________________________________________________"   --  38
   ,"___________________________________________________________________________"   --  39
   ,"___________________________________________________________________________"]  --  40
-darkNotice _ 2   2  = reverseH revC . repSlash $ darkNotice False 2 (-2)
-darkNotice _ 2 (-2) = fromTexts '_'
+darkNotice w _ 2   2  = reverseH revC . repSlash $ darkNotice w False 2 (-2)
+darkNotice _ _ 2 (-2) = fromTexts '_'
   ["___________________________________________________________________________"   --   1
   ,"___________________________________________________________________________"   --   2
   ,"___________________________________________________________________________"   --   3
@@ -3418,7 +3460,7 @@ darkNotice _ 2 (-2) = fromTexts '_'
   ,"___________________________________________________________________________"   --  39
   ,"___________________________________________________________________________"]  --  40
 
-darkNotice _ 3 0 = fromTexts '_'
+darkNotice _ _ 3 0 = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3459,8 +3501,8 @@ darkNotice _ 3 0 = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice _ 3   1  = reverseH revC $ darkNotice False 3 (-1)
-darkNotice _ 3 (-1) = fromTexts '_'
+darkNotice w _ 3   1  = reverseH revC $ darkNotice w False 3 (-1)
+darkNotice _ _ 3 (-1) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3501,8 +3543,8 @@ darkNotice _ 3 (-1) = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice _ 3   2  = reverseH revC $ darkNotice False 3 (-2)
-darkNotice _ 3 (-2) = fromTexts '_'
+darkNotice w _ 3   2  = reverseH revC $ darkNotice w False 3 (-2)
+darkNotice _ _ 3 (-2) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3545,7 +3587,7 @@ darkNotice _ 3 (-2) = fromTexts '_'
   ,"___________________________________________________________________________"] --  40
 
 
-darkNotice _ 4 0 = fromTexts '_'
+darkNotice _ _ 4 0 = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3586,8 +3628,8 @@ darkNotice _ 4 0 = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice _ 4   1  = reverseH revC $ darkNotice False 4 (-1)
-darkNotice _ 4 (-1) = fromTexts '_'
+darkNotice w _ 4   1  = reverseH revC $ darkNotice w False 4 (-1)
+darkNotice _ _ 4 (-1) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3628,8 +3670,8 @@ darkNotice _ 4 (-1) = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice _ 4   2  = reverseH revC $ darkNotice False 4 (-2)
-darkNotice _ 4 (-2) = fromTexts '_'
+darkNotice w _ 4   2  = reverseH revC $ darkNotice w False 4 (-2)
+darkNotice _ _ 4 (-2) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3670,8 +3712,8 @@ darkNotice _ 4 (-2) = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice _ 4   3  = reverseH revC $ darkNotice False 4 (-3)
-darkNotice _ 4 (-3) = fromTexts '_'
+darkNotice w _ 4   3  = reverseH revC $ darkNotice w False 4 (-3)
+darkNotice _ _ 4 (-3) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3714,11 +3756,11 @@ darkNotice _ 4 (-3) = fromTexts '_'
   ,"___________________________________________________________________________"] --  40
 
 
-darkNotice _ _ _ = mempty
+darkNotice _ _ _ _ = mempty
 
-darkNotice' :: Bool -> Int -> Int -> Craphic
-darkNotice' _ 1   1  = reverseH revC $ darkNotice' False 1 (-1)
-darkNotice' _ 1 (-1) = fromTexts '_'
+darkNotice' :: World -> Bool -> Int -> Int -> Craphic
+darkNotice' w _ 1   1  = reverseH revC $ darkNotice' w False 1 (-1)
+darkNotice' _ _ 1 (-1) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3759,8 +3801,8 @@ darkNotice' _ 1 (-1) = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice' _ 2   1  = reverseH revC . repSlash $ darkNotice' False 2 (-1)
-darkNotice' _ 2 (-1) = fromTexts '_'
+darkNotice' w _ 2   1  = reverseH revC . repSlash $ darkNotice' w False 2 (-1)
+darkNotice' _ _ 2 (-1) = fromTexts '_'
   ["___________________________________________________________________________"   --   1
   ,"___________________________________________________________________________"   --   2
   ,"___________________________________________________________________________"   --   3
@@ -3801,8 +3843,8 @@ darkNotice' _ 2 (-1) = fromTexts '_'
   ,"___________________________________________________________________________"   --  38
   ,"___________________________________________________________________________"   --  39
   ,"___________________________________________________________________________"]  --  40
-darkNotice' _ 2   2  = reverseH revC . repSlash $ darkNotice' False 2 (-2)
-darkNotice' _ 2 (-2) = fromTexts '_'
+darkNotice' w _ 2   2  = reverseH revC . repSlash $ darkNotice' w False 2 (-2)
+darkNotice' _ _ 2 (-2) = fromTexts '_'
   ["___________________________________________________________________________"   --   1
   ,"___________________________________________________________________________"   --   2
   ,"___________________________________________________________________________"   --   3
@@ -3843,8 +3885,8 @@ darkNotice' _ 2 (-2) = fromTexts '_'
   ,"___________________________________________________________________________"   --  38
   ,"___________________________________________________________________________"   --  39
   ,"___________________________________________________________________________"]  --  40
-darkNotice' _ 3   1  = reverseH revC $ darkNotice' False 3 (-1)
-darkNotice' _ 3 (-1) = fromTexts '_'
+darkNotice' w _ 3   1  = reverseH revC $ darkNotice' w False 3 (-1)
+darkNotice' _ _ 3 (-1) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3885,8 +3927,8 @@ darkNotice' _ 3 (-1) = fromTexts '_'
   ,"___________________________________________________________________________"  --  38
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
-darkNotice' _ 3   2  = reverseH revC $ darkNotice' False 3 (-2)
-darkNotice' _ 3 (-2) = fromTexts '_'
+darkNotice' w _ 3   2  = reverseH revC $ darkNotice' w False 3 (-2)
+darkNotice' _ _ 3 (-2) = fromTexts '_'
   ["___________________________________________________________________________"  --   1
   ,"___________________________________________________________________________"  --   2
   ,"___________________________________________________________________________"  --   3
@@ -3928,11 +3970,14 @@ darkNotice' _ 3 (-2) = fromTexts '_'
   ,"___________________________________________________________________________"  --  39
   ,"___________________________________________________________________________"] --  40
 
-darkNotice' b n s = darkNotice b n s
+darkNotice' w b n s = darkNotice w b n s
 
-inStone :: Bool -> Craphic
-inStone False = Craphic $ const $ Draw '#'
-inStone True  = fromTextsSGR '_'
+inStone :: World -> Bool -> Craphic
+inStone _ False = Craphic $ const $ Draw '#'
+inStone w True  =
+  let txt = choiceLang w "** YOU ARE IN THE STONE !!! **"
+                         "    ** 石の中にいる !!! **    "
+  in fromTextsSGR '_'
   ["###########################################################################"  --   1
   ,"###########################################################################"  --   2
   ,"###########################################################################"  --   3
@@ -3951,7 +3996,7 @@ inStone True  = fromTextsSGR '_'
   ,"###########################################################################"  --  16
   ,"################+-----------------------------------------+################"  --  17
   ,"################|                                         |################"  --  18
-  ,"################|     ** YOU ARE IN THE STONE !!! **      |################"  --  19
+  ,"################|     "          ++ txt ++         "      |################"  --  19
   ,"################|                                         |################"  --  20
   ,"################+-----------------------------------------+################"  --  21
   ,"###########################################################################"  --  22

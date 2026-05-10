@@ -119,14 +119,17 @@ startBattle' eid isRB maybeFriendly maybeSurprise (g1, g2) gold items = GameAuto
         return $ if      r < partySurpriseProb                     then PartySurprise
                  else if r < partySurpriseProb + enemySurpriseProb then EnemySurprise
                  else                                                   NoSurprise
-    let msg = withBGM Encounter $ flashMessage (-1000) "    Encounter!!    "
+    txt1 <- switchLang "    Encounter!!    "                      " 何者かに遭遇した !! "
+    txt2 <- switchLang "    The monsters are unaware of you.    " " モンスターはまだパーティに気づいていない "
+    txt3 <- switchLang "    The monsters surprised you!    "      " モンスターが突然襲い掛かってきた ! "
+    let msg = withBGM Encounter $ flashMessage (-1000) txt1
         con = Condition {
                 afterWin = g1', afterRun = g2', gotExps = 0, dropGold = gold, dropItems = items, traps = [], defaultOrder = ps, isRoomBattle = isRB
               }
     run $ case surprise of
-        PartySurprise -> events [msg, flashMessage (-3000) "    The monsters are unaware of you.    "]
+        PartySurprise -> events [msg, flashMessage (-3000) txt2]
                          (with [moveToBattle es] $ addEff (specialBGM es) $ selectBattleCommand 1 [] con (Just PartySurprise))
-        EnemySurprise -> events [msg, flashMessage (-3000) "    The monsters surprised you!    "]
+        EnemySurprise -> events [msg, flashMessage (-3000) txt3]
                          (with [moveToBattle es] $ addEff (specialBGM es) $ startProgressBattle [] con (Just EnemySurprise))
         NoSurprise    -> events [msg]
                          (startBattleMaybeFriendly isFriendly es con g1')
@@ -135,13 +138,15 @@ startBattle' eid isRB maybeFriendly maybeSurprise (g1, g2) gold items = GameAuto
     g2' = stopSpecialBGM g2
 
 startBattleMaybeFriendly :: Bool -> [[Enemy.Instance]] -> Condition -> GameMachine -> GameMachine
-startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else
-    select (message msg) [(Key "a", with [mayChangeAlignmentTo Chara.E] core)
-                         ,(Key "l", with [mayChangeAlignmentTo Chara.G] whenLeave)]
+startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else GameAuto $ do
+    msg <- switchLang msgENG msgJPN
+    run $ select (message msg) [(Key "a", with [mayChangeAlignmentTo Chara.E] core)
+                               ,(Key "l", with [mayChangeAlignmentTo Chara.G] whenLeave)]
   where
-    erep = head . head $ es
-    msg  = "A friendly group of " ++ nameOf erep ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
-    core = with [moveToBattle es] $ addEff (specialBGM es) $ selectBattleCommand 1 [] con (Just NoSurprise)
+    erep   = head . head $ es
+    msgENG = "A friendly group of " ++ nameOf erep ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
+    msgJPN = "友好的な " ++ nameOf erep ++ " だ。\n彼らに敵対心はないようだ。\n\n^A)攻撃する\n^L)立ち去る"
+    core   = with [moveToBattle es] $ addEff (specialBGM es) $ selectBattleCommand 1 [] con (Just NoSurprise)
   
 mayChangeAlignmentTo :: Chara.Alignment -> GameState ()
 mayChangeAlignmentTo align = do
@@ -195,7 +200,8 @@ selectBattleCommand i cmds con surprise = GameAuto $ do
             return $ Chara.canUse c def && identified inf
       let next a  = selectBattleCommand (i + 1) ((cid, a) : cmds) con surprise
           cancel  = selectBattleCommand i cmds con surprise
-          msgItem = "Select item(" ++ textItemCandidate c ++ ")  ^L)eave"
+      msgItem <- switchLang ("Select item(" ++ textItemCandidate c ++ ")  ^L)eave")
+                            ("アイテムの選(" ++ textItemCandidate c ++ ")  ^L)離れる")
       if isCantFight c then
         run $ next CantMove
       else

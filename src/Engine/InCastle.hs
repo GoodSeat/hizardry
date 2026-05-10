@@ -22,6 +22,7 @@ import qualified Data.Items as Item
 inCastle :: GameMachine
 inCastle = with [movePlace InCastle] $ autoSaveToSlot0 $ GameAuto $ do
     notnull <- not . null . party <$> world
+    msg <- switchLang msgENG msgJPN
     run $ selectWhenEsc msg [(Key "e", inEdgeOfTown, True)
                             ,(Key "g", inGilgamesh'sTavern, True)
                             ,(Key "a", inAdventure'sInn, notnull)
@@ -29,18 +30,24 @@ inCastle = with [movePlace InCastle] $ autoSaveToSlot0 $ GameAuto $ do
                             ,(Key "t", inTempleOfCant, notnull)
                             ]
   where
-    msg = message $ "^G)ilgamesh's Tavern\n"
-                 ++ "^A)dventure's Inn\n"
-                 ++ "^B)oltac's Trading Post\n"
-                 ++ "^T)emple of Cant\n"
-                 ++ "^E)dge of Town `[`E`S`C`]\n"
+    msgENG = message $ "^G)ilgamesh's Tavern\n"
+                    ++ "^A)dventure's Inn\n"
+                    ++ "^B)oltac's Trading Post\n"
+                    ++ "^T)emple of Cant\n"
+                    ++ "^E)dge of Town `[`E`S`C`]\n"
+    msgJPN = message $ "^G)ギルガメッシュの酒場\n"
+                    ++ "^A)冒険者の宿\n"
+                    ++ "^B)ボルタック商店\n"
+                    ++ "^T)カント寺院\n"
+                    ++ "^E)町外れ `[`E`S`C`]\n"
 
 -- =======================================================================
 
 inGilgamesh'sTavern :: GameMachine
 inGilgamesh'sTavern = GameAuto $ do
     movePlace Gilgamesh'sTavern
-    np <- length . party <$> world
+    np  <- length . party <$> world
+    msg <- switchLang msgENG msgJPN
     cmdsInspect <- cmdNumPartiesWhen $ bimap (inspectCharacter inGilgamesh'sTavern False) (const True)
     run $ selectWhenEsc msg $ (Key "l", inCastle, True)
                             : (Key "a", selectCharacterAddToParty 0, np < 6)
@@ -48,11 +55,16 @@ inGilgamesh'sTavern = GameAuto $ do
                             : (Key "d", with [divvyGold] inGilgamesh'sTavern, np > 0)
                             : cmdsInspect
   where
-    msg = message $ "^A)dd Character to Party\n"
-                 ++ "^R)emove Character from Party\n"
-                 ++ "^#)Inspect Character\n"
-                 ++ "^D)ivvy Gold\n"
-                 ++ "^L)eave `[`E`S`C`]\n"
+    msgENG = message $ "^A)dd Character to Party\n"
+                    ++ "^R)emove Character from Party\n"
+                    ++ "^#)Inspect Character\n"
+                    ++ "^D)ivvy Gold\n"
+                    ++ "^L)eave `[`E`S`C`]\n"
+    msgJPN = message $ "^A)パーティに加える\n"
+                    ++ "^R)パーティから外す\n"
+                    ++ "^#)調べる\n"
+                    ++ "^D)所持金を分配\n"
+                    ++ "^L)酒場を出る `[`E`S`C`]\n"
 
 selectCharacterAddToParty :: Int -> GameMachine
 selectCharacterAddToParty page = GameAuto $ do
@@ -73,8 +85,9 @@ selectCharacterAddToParty page = GameAuto $ do
           toShow (n, c) = if canAdd c then show n ++ ") " ++ Character.toText 33 c
                                       else "   `" ++ intersperse '`' (Character.toText 33 c)
       cs  <- mapM characterByID ids'
-      let msg = "^#)Add to Party  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
-              ++ unlines (toShow <$> zip [1..] cs)
+      txt <- switchLang "^#)Add to Party  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
+                        "^#)加える  ^N)次のリスト  ^P)前のリスト  ^L)離れる `[`E`S`C`]\n\n"
+      let msg = txt ++ unlines (toShow <$> zip [1..] cs)
       let lst = (Key "l", inGilgamesh'sTavern)
               : (Key "n", selectCharacterAddToParty $ page + 1)
               : (Key "p", selectCharacterAddToParty $ page - 1)
@@ -90,8 +103,9 @@ selectCharacterRemoveFromParty = GameAuto $ do
     if null cs then run inGilgamesh'sTavern
     else do
       cmds <- cmdNumPartiesID $ \(_, cid) -> removeParty cid
-      run $ selectEsc (message "^#)Remove from Party    ^L)eave `[`E`S`C`]") $
-                      (Key "l", inGilgamesh'sTavern) : cmds
+      txt <- switchLang "^#)Remove from Party    ^L)eave `[`E`S`C`]"
+                        "^#)パーティから外す    ^L)離れる `[`E`S`C`]"
+      run $ selectEsc (message txt) $ (Key "l", inGilgamesh'sTavern) : cmds
   where
     removeParty cid = GameAuto $ do
       w <- world
@@ -104,29 +118,42 @@ selectCharacterRemoveFromParty = GameAuto $ do
 inAdventure'sInn :: GameMachine
 inAdventure'sInn = GameAuto $ do
     movePlace Adventure'sInn
+    msg  <- switchLang msgENG msgJPN
     cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do
         c <- characterByID i
         run $ if mustGotoTemple c then inAdventure'sInn else selectStayPlan i
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
-    msg = message $ "Who will stay?\n\n"
-                 ++ "^#)Select\n"
-                 ++ "^L)eave `[`E`S`C`]\n"
+    msgENG = message $ "Who will stay?\n\n"
+                    ++ "^#)Select\n"
+                    ++ "^L)eave `[`E`S`C`]\n"
+    msgJPN = message $ "誰が泊まりますか ?\n\n"
+                    ++ "^#)選択\n"
+                    ++ "^L)宿を出る `[`E`S`C`]\n"
 
 selectStayPlan :: CharacterID -> GameMachine
 selectStayPlan id = GameAuto $ do
     c <- characterByID id
     let nam = Character.name c
         gp  = Character.gold c
-        msg = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
-                     ++ "We have:\n\n"
-                     ++ "^A)The Stables        (FREE)\n"
-                     ++ "^B)A Cot               10 G.P/Week\n"
-                     ++ "^C)Economy Rooms       50 G.P/Week\n"
-                     ++ "^D)Merchant Suites    200 G.P/Week\n"
-                     ++ "^E)The Royal Suite    500 G.P/Week\n\n"
-                     ++ "^P)ool Gold\n"
-                     ++ "^L)eave `[`E`S`C`]\n"
+        msgENG = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
+                        ++ "We have:\n\n"
+                        ++ "^A)The Stables        (FREE)\n"
+                        ++ "^B)A Cot               10 G.P/Week\n"
+                        ++ "^C)Economy Rooms       50 G.P/Week\n"
+                        ++ "^D)Merchant Suites    200 G.P/Week\n"
+                        ++ "^E)The Royal Suite    500 G.P/Week\n\n"
+                        ++ "^P)ool Gold\n"
+                        ++ "^L)eave `[`E`S`C`]\n"
+        msgJPN = message $ "ようこそ " ++ nam ++ " さん。 所持金 : " ++ show gp ++ " G.P.\n\n"
+                        ++ "どこに泊まりますか。\n\n"
+                        ++ "^A)馬小屋             (FREE)\n"
+                        ++ "^B)簡易寝台            10 G.P/Week\n"
+                        ++ "^C)エコノミールーム    50 G.P/Week\n"
+                        ++ "^D)スイートルーム     200 G.P/Week\n"
+                        ++ "^E)ロイヤルスイート   500 G.P/Week\n\n"
+                        ++ "^P)集金する\n"
+                        ++ "^L)離れる `[`E`S`C`]\n"
         lst = [(Key "l", inAdventure'sInn)
               ,(Key "p", with [poolGoldTo id] (selectStayPlan id))
               ,(Key "a", sleep id  0   0 1 False)
@@ -134,6 +161,7 @@ selectStayPlan id = GameAuto $ do
               ,(Key "c", sleep id  3  50 7 False)
               ,(Key "d", sleep id  7 200 7 False)
               ,(Key "e", sleep id 10 500 7 False)]
+    msg <- switchLang msgENG msgJPN
     run $ selectEsc msg lst
 
 sleep :: CharacterID
@@ -144,19 +172,20 @@ sleep :: CharacterID
       -> GameMachine
 sleep id h g d birthday = GameAuto $ do
     c <- characterByID id 
+    let nam = Character.name c
     autoHeal <- (== CureWhenInn) <$> (hpHealType . worldOption <$> world)
+    txt1 <- switchLang "no more money." "もうお金がありませんよ。" 
     if Character.gold c < g then
-      run $ events [message "no more money."] $ selectStayPlan id
+      run $ events [message txt1] $ selectStayPlan id
     else do
       updateCharacterWith id Character.healMp
       when autoHeal $ updateCharacterWith id (Character.healHp $ Character.maxhp c)
-      run $ selectEsc (messageTime (-1000) ( Character.name c
-                                       ++ " is napping. \n\n"
-                                       ++ show (Character.name c) ++ " has "
-                                       ++ show (Character.gold c) ++ " G.P.\n\n"
-                                       ++ "^W)ake up `[`E`S`C`]"
-                                        ) Nothing)
-                      [(Key "w", events [Resume (changeFlash ("Happy Birthday, " ++ Character.name c ++ "!")) | birthday]
+      txt2 <- switchLang
+             (" is napping. \n\n" ++ nam ++ " has " ++ show (Character.gold c) ++ " G.P.\n\n^W)ake up `[`E`S`C`]")
+             (" は寝ています。 \n\n  所持金 : " ++ show (Character.gold c) ++ " G.P.\n\n^W)起きる `[`E`S`C`]")
+      txt3 <- switchLang ("Happy Birthday, " ++ nam ++ "!") (nam ++ " さん 誕生日おめでとう !")
+      run $ selectEsc (messageTime (-1000) (nam ++ txt2) Nothing)
+                      [(Key "w", events [Resume (changeFlash txt3) | birthday]
                                         (checkLvup id))
                       ,(Clock, next (Character.age c - if birthday then 1 else 0))]
   where
@@ -169,8 +198,9 @@ checkLvup :: CharacterID -> GameMachine
 checkLvup id = GameAuto $ do
     c <- characterByID id
     let nextLvExp = Character.totalExpToLv (Character.job c) (Character.lv c + 1)
-        nextLvMsg = "You need " ++ show (nextLvExp - Character.exp c) ++ 
-                    " more E.P.\nto make the next level."
+        need      = show (nextLvExp - Character.exp c)
+    nextLvMsg <- switchLang ("You need " ++ need ++ " more E.P.\nto make the next level.")
+                            ("次のレベルまで、あと\n  " ++ need ++ " の経験値が必要です。")
     if Character.exp c >= nextLvExp
       then run $ doLvup id
       else run $ events [message nextLvMsg] (selectStayPlan id)
@@ -185,28 +215,40 @@ doLvup id = GameAuto $ do
 inBoltac'sTradingPost :: GameMachine
 inBoltac'sTradingPost = GameAuto $ do
     movePlace Boltac'sTradingPost
+    msg  <- switchLang msgENG msgJPN
     cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do
         c <- characterByID i
         run $ if mustGotoTemple c then inBoltac'sTradingPost else selectShopAction i
     run $ selectEsc msg $ (Key "l", inCastle) : cmds
   where
-    msg = message $ "Who will enter?\n\n"
-                 ++ "^#)Select\n"
-                 ++ "^L)eave `[`E`S`C`]\n"
+    msgENG = message $ "Who will enter?\n\n"
+                    ++ "^#)Select\n"
+                    ++ "^L)eave `[`E`S`C`]\n"
+    msgJPN = message $ "誰が入りますか ?\n\n"
+                    ++ "^#)選択\n"
+                    ++ "^L)離れる `[`E`S`C`]\n"
 
 selectShopAction :: CharacterID -> GameMachine
 selectShopAction id = GameAuto $ do
     c <- characterByID id
     let nam = Character.name c
         gp  = Character.gold c
-        msg = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
-                     ++ "We have:\n"
-                     ++ "^B)uy\n"
-                     ++ "^S)ell\n"
-                     ++ "^I)dentify Items\n"
-                     ++ "^U)ncurse\n"
-                     ++ "^P)ool Gold\n"
-                     ++ "^L)eave `[`E`S`C`]\n"
+        msgENG = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
+                        ++ "We have:\n"
+                        ++ "^B)uy\n"
+                        ++ "^S)ell\n"
+                        ++ "^I)dentify Items\n"
+                        ++ "^U)ncurse\n\n"
+                        ++ "^P)ool Gold\n"
+                        ++ "^L)eave `[`E`S`C`]\n"
+        msgJPN = message $ "ようこそ " ++ nam ++ "さん。 所持金 : " ++ show gp ++ " G.P.\n\n"
+                        ++ "今日は何用ですか ?\n"
+                        ++ "^B)購入\n"
+                        ++ "^S)売却\n"
+                        ++ "^I)鑑定\n"
+                        ++ "^U)解呪\n\n"
+                        ++ "^P)集金する\n"
+                        ++ "^L)離れる `[`E`S`C`]\n"
         lst = [(Key "l", inBoltac'sTradingPost)
               ,(Key "p", with [poolGoldTo id] (selectShopAction id))
               ,(Key "b", buyItem id 0 True)
@@ -214,6 +256,7 @@ selectShopAction id = GameAuto $ do
               ,(Key "i", determineItem id)
               ,(Key "u", uncurseItem id)
               ]
+    msg <- switchLang msgENG msgJPN
     run $ selectEsc msg lst
 
 sizePage :: Int

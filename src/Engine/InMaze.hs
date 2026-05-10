@@ -78,7 +78,9 @@ enterGrid e probEncount evMoved p = GameAuto $ do
     if Stone `elem` noticesInView lab p 0 0 then run enterStone
     else do
       when (Dark `elem` noticesInView lab p 0 0) $ setLightValue False 0
+      txt <- switchLang "can't spelling at this place." "ここでその呪文を唱えることはできない。" 
       let c = coordOf p
+          cantSpelling _ = events [message txt]
       encount <- if probEncount then
                    if visiblityAt lab p 0 0 B /= Passage then checkRoomBattle c
                    else fmap (,False) <$> checkEncount c False
@@ -87,8 +89,6 @@ enterGrid e probEncount evMoved p = GameAuto $ do
                 Nothing   -> case encount of
                   Nothing         -> run $ with [updateRoomVisit] (select evMoved $ moves p)
                   Just (ei, isRB) -> run $ encountEnemy ei isRB
-  where
-    cantSpelling _ = events [message "can't spelling at this place."]
               
 enterStone :: GameMachine
 enterStone = events [General emptyDisplay] $ totalAnnihilation False Lost
@@ -112,12 +112,14 @@ checkEncount c checkRoomBattle = do
                 Just es -> Just <$> randomIn es
 
 ouch :: Position -> GameMachine
-ouch p = ouch1
+ouch p = GameAuto $ do
+    txt <- switchLang " Ouch !! " " いてっ !! "
+    let ouch1 = with [d1] $ select (withSE HitWall $ flashMessage' ( -30) txt) $ (Clock, ouch2) : moves'
+        ouch2 = with [d2] $ select (flashMessage' ( -20) txt) $ (Clock, ouch3) : moves'
+        ouch3 = with [d3] $ select (flashMessage' ( -30) txt) $ (Clock, ouch4) : moves'
+        ouch4 = with [d4] $ select (flashMessage' (-330) txt) $ moves p
+    run ouch1
   where
-    ouch1 = with [d1] $ select (withSE HitWall $ flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch2) : moves'
-    ouch2 = with [d2] $ select (flashMessage' ( -20) " Ouch !! ") $ (Clock, ouch3) : moves'
-    ouch3 = with [d3] $ select (flashMessage' ( -30) " Ouch !! ") $ (Clock, ouch4) : moves'
-    ouch4 = with [d4] $ select (flashMessage' (-330) " Ouch !! ") $ moves p
     moves' = map ((\f (a, b) -> (a, f b)) $ with [d4]) (moves p)
     d1  = modify $ \w ->  w { frameTrans = frameTrans w . translate ( 0,  1)
                             , sceneTrans = sceneTrans w . translate ( 0,  1) }
@@ -212,21 +214,23 @@ searchSurroundings :: Position -> GameMachine
 searchSurroundings p = GameAuto $ do
     eventMap <- asks eventInspect
     txt1     <- switchLang "You found nothing." "何も見つからなかった。"
-    let foundNothing = events (searchMsgs ++ [message txt1]) (inspect p)
+    msgs     <- searchMsgs
+    let foundNothing = events (msgs ++ [message txt1]) (inspect p)
     case Map.lookup p eventMap of
         Nothing -> run foundNothing
         Just eid -> do
             evDef <- asks ((Map.! eid) . mazeEvents)
             let returnToInspect _ = inspect p
                 cantSpelling _ _  = inspect p
-            run $ events searchMsgs (doEventMaybeEncountEnemy Nothing evDef returnToInspect returnToInspect cantSpelling (toBattle p))
+            run $ events msgs (doEventMaybeEncountEnemy Nothing evDef returnToInspect returnToInspect cantSpelling (toBattle p))
 
 searchCharacter :: Position -> GameMachine
 searchCharacter p = GameAuto $ do
     cs <- gets inMazeMember
     ps <- candidatePoss p
+    ms <- searchMsgs
     let ts = fst <$> filter ((`elem` (coordOf <$> ps)) . (coordOf . snd)) cs
-    run $ events searchMsgs (editParty p 0 ts)
+    run $ events ms (editParty p 0 ts)
   where
     candidatePoss p = do
         m <- mazeAt $ z p
@@ -239,28 +243,34 @@ searchCharacter p = GameAuto $ do
             ]
     turnBack = turnLeft . turnLeft
 
-searchMsgs = [ messageTime 400 " Searching.    " Nothing
-             , messageTime 400 " Searching..   " Nothing
-             , messageTime 400 " Searching...  " Nothing
-             , messageTime 400 " Searching.... " Nothing
-             , messageTime 400 " Searching....." Nothing
-             ]
+searchMsgs = do
+  txt <- switchLang " Searching" "探査中"
+  return [ messageTime 400 (" " ++ txt ++ ".    ") Nothing
+         , messageTime 400 (" " ++ txt ++ "..   ") Nothing
+         , messageTime 400 (" " ++ txt ++ "...  ") Nothing
+         , messageTime 400 (" " ++ txt ++ ".... ") Nothing
+         , messageTime 400 (" " ++ txt ++ ".....") Nothing
+         ]
 
 editParty :: Position -> Int -> [CharacterID] -> GameMachine
 editParty p page ts = let mxPage = max 0 ((length ts - 1) `div` 10) in
     if      page < 0      then editParty p mxPage ts
     else if page > mxPage then editParty p 0 ts
     else GameAuto $ do
+      txt1 <- switchLang "\n No body found." "\n 誰も見つからなかった。"
+      txt2 <- switchLang "You found ...\n\n" "見つかったのは ...\n\n"
+      txt3 <- switchLang ("^A~)Add to party  ^#)Remove from party \n" ++ 
+                          "^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n")
+                         ("^A~)パーティに追加  ^#)パーティから除外 \n" ++ 
+                          "^N)次のリストへ  ^P)前のリストへ  ^L)離れる `[`E`S`C`]\n")
       let ts' = if null ts then [] else take 10 $ drop (page*10) ts 
       ns <- zipWith (++) (('^':) . (++")") <$> ms) <$> mapM (fmap (Chara.toText 28) <$> characterByID) ts'
       let cmdRemoves = cmdNums 6 (removeFromParty p ts page)
           cmdAdds = zip (Key <$> (fmap toLower <$> ms))
                         ((\cid -> addToParty p cid ts page) <$> ts')
-          msg = if null ns then "\n No body found." else "You found ...\n\n" ++ unlines ns
+          msg = if null ns then txt1 else txt2 ++ unlines ns
       run $ selectEsc (message $ msg ++ "\n\n" ++
-            "\n======================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")======================\n\n" ++
-            "^A~)Add to party  ^#)Remove from party \n" ++ 
-            "^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
+            "\n======================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")======================\n\n" ++ txt3
             )
           ([(Key "l", enterWithoutEncount None p)
            ,(Key "n", editParty p (page + 1) ts)
@@ -316,8 +326,10 @@ updateRoomVisit = do
 openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p "")
-    np <- length . party <$> world
-    run $ selectWhenEsc (message "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]")
+    np   <- length . party <$> world
+    txt1 <- switchLang "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]"
+                       "^#)調べる\n^R)隊列の変更\n^L)離れる `[`E`S`C`]"
+    run $ selectWhenEsc (message txt1)
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "r", reorderParty [] p, np > 1)
           ,(Key "1", inspectCharacter resumeCamp True F1, np >= 1)
@@ -334,7 +346,10 @@ openCamp p = GameAuto $ do
 
 reorderParty :: [Int] -> Position -> GameMachine
 reorderParty ns p = GameAuto $ do
-    movePlace (Camping p "Reorder Party")
+    txt1 <- switchLang "Reorder Party" "隊列の変更"
+    txt2 <- switchLang "New order?" "新しい隊列を指定"
+    txt3 <- switchLang "^L)eave" "^L)離れる"
+    movePlace (Camping p txt1)
     cids <- party <$> world
     let np = length cids
     if np == length ns then do
@@ -344,7 +359,7 @@ reorderParty ns p = GameAuto $ do
         let cids' = (\i -> cids !! (i - 1)) <$> ns
         ts <- fmap (Chara.toText 28) <$> mapM characterByID cids'
         let ts' = take 7 $ zipWith (\n t -> show n ++ "  " ++ t ) ns ts ++ repeat ""
-            msg = message $ "New order? (1-" ++ show np ++ ")\n\n^L)eave `[`E`S`C`]\n =======================================================\n\n"
+            msg = message $ txt2 ++ " (1-" ++ show np ++ ")\n\n" ++ txt3 ++ " `[`E`S`C`]\n =======================================================\n\n"
                           ++ unlines ts'
         run $ selectEsc msg $ (Key "l", openCamp p) : cmdNums np (doReorder ns p)
   where
