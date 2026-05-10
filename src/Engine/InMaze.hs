@@ -133,8 +133,8 @@ flashMoveView :: String -> Event
 flashMoveView = flashMessage' (-100)
 
 moves :: Position -> [(Input, GameMachine)]
-moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " <- ") $ turnLeft p)
-          ,(Key "d", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " -> ") $ turnRight p)
+moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " ← ") $ turnLeft p)
+          ,(Key "d", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView " → ") $ turnRight p)
           ,(Key "w", goStraight p walkForward)
           ,(Key "k", goStraight p kickForward)
           ,(Key "c", openCamp p)
@@ -178,7 +178,7 @@ moves p = [(Key "a", enterMaybeEncount' (withSE TurnLeftOrRight $ flashMoveView 
 
             allDead <- isTotalAnnihilation
             run $ if allDead then totalAnnihilation False Dead
-                  else enterMaybeEncount (withSE se $ flashMoveView " 1  ") p''
+                  else enterMaybeEncount (withSE se $ flashMoveView " ↑ ") p''
 
 
 nextMiniMap :: GameState ()
