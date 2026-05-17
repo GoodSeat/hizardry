@@ -345,7 +345,7 @@ lvup c = do
     toTextENG _   _  = ""
 
     toTextJPN p (-1) = "\n" ++ p ++ " を失った。"
-    toTextJPN p   1  = "\n" ++ p ++ " を得た。."
+    toTextJPN p   1  = "\n" ++ p ++ " を得た。"
     toTextJPN _   _  = ""
 
     cp = Chara.param c

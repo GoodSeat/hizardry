@@ -163,23 +163,24 @@ autoSaveToSlot0 = events [SaveGame 0 "AutoSave"]
 selectSaveSlot :: GameMachine
 selectSaveSlot = GameAuto $ do
     bs <- backUpSlotInfo <$> world
+    txt1 <- switchLang "Save to which slot (^1-^9)?  ^L)eave `[`E`S`C`]" "保存先スロットを指定 (^1-^9)?  ^L)離れる `[`E`S`C`]"
     let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
     let cmds = cmdNums 9 (`inputSaveTag` msg)
-        msg  = "Save to which slot (^1-^9)?  ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
-            ++ unlines lst
+        msg  = txt1 ++ "\n\n ==================================================\n\n" ++ unlines lst
     run $ selectEsc (message msg) ((Key "l", utilities) : cmds)
 
 inputSaveTag :: Int -> String -> GameMachine
-inputSaveTag slot msg = GameAuto $
-    return (askFlashAndMessage msg "Tag? (empty to cancel)" Nothing, \(Key s) -> events [SaveGame slot s | not (isNullKey s)] utilities)
+inputSaveTag slot msg = GameAuto $ do
+    txt1 <- switchLang "Tag? (empty to cancel)" "タグを入力 (空文字でキャンセル)" 
+    return (askFlashAndMessage msg txt1 Nothing, \(Key s) -> events [SaveGame slot s | not (isNullKey s)] utilities)
 
 selectLoadSlot :: GameMachine
 selectLoadSlot = GameAuto $ do
     bs <- backUpSlotInfo <$> world
+    txt1 <- switchLang "Load from which slot (^1-^9)?  ^L)eave `[`E`S`C`]" "読み込むスロットを指定 (^1-^9)?  ^L)離れる `[`E`S`C`]"
     let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
     let cmds = cmdNums 9 (\i -> events [LoadGame i] utilities)
-        msg  = message $ "Load from which slot (^1-^9)?  ^L)eave `[`E`S`C`]\n\n ==================================================\n\n"
-                      ++ unlines lst
+        msg  = message $ txt1 ++ "\n\n ==================================================\n\n" ++ unlines lst
     run $ selectEsc msg ((Key "l", utilities) : cmds)
 
 -- =======================================================================
@@ -188,15 +189,18 @@ restartAnOutParty :: Int -> GameMachine
 restartAnOutParty page = GameAuto $ do
     cs  <- gets (fmap fst . inMazeMember)
     cs' <- mapM characterByID cs
+    txt1 <- switchLang "no body in maze." "迷宮内には誰もいない。"
+    txt2 <- switchLang "^A‾)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
+                       "^A‾)冒険の再開  ^N)次のリスト  ^P)前のリスト  ^L)離れる `[`E`S`C`]\n"
     let ccs = filter ((> 0) . Character.hp . fst) $ zip cs' cs
         mxPage = max 0 ((length ccs - 1) `div` 10)
-    if      null ccs      then run $ events [Resume $ changeFlashTime "no body in maze." (-1500)] inEdgeOfTown
+    if      null ccs      then run $ events [Resume $ changeFlashTime txt1 (-1500)] inEdgeOfTown
     else if page < 0      then run $ restartAnOutParty mxPage
     else if page > mxPage then run $ restartAnOutParty 0
     else do
       let msg = message $ unlines (zipWith (++) (('^':) . (++")") <$> ms) (Character.toText 34 . fst <$> ccs)) ++
                "\n==========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")=========================\n\n" ++
-               "^A‾)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
+               txt2
           ts' = if null ccs then [] else take 10 $ drop (page*10) ccs 
           cmds = zip (Key <$> (fmap toLower <$> ms)) (restart . snd <$> ts')
       run $ selectEsc msg $ [(Key "l", inEdgeOfTown)
@@ -226,39 +230,49 @@ restart cid = GameAuto $ do
 -- =======================================================================
 
 enteringMaze :: GameMachine
-enteringMaze = with [movePlace EnteringMaze] (events [msg] $ openCamp p)
+enteringMaze = GameAuto $ do
+    txt <- asks enteringMazeMessage
+    let msg = messageTime (-1500) txt Nothing
+    run $ with [movePlace EnteringMaze] (events [msg] $ openCamp p)
   where
-    msg = messageTime (-1500) "\n\n  *** Entering Test Maze... *** \n\n\n" Nothing
     p   = Position { direction = N, x = 0, y = 0, z = 0 }
 
 -- =======================================================================
 
 inTrainingGrounds :: GameMachine
-inTrainingGrounds = with [ movePlace TrainingGrounds
-                         , modify $ \w -> w { party = [], inTavernMember = sort (inTavernMember w ++ party w) }]
-                  $ selectEsc msg [(Key "l", inEdgeOfTown)
-                                  ,(Key "c", createNewCharacter)
-                                  ,(Key "s", showListOfCharacters 0)
-                                  ,(Key "d", selectDeleteTargetCharacter 0)
-                                  ,(Key "n", selectCharacterToChangeName 0)
-                                  ,(Key "j", selectCharacterToChangeJob 0)
-                                  ,(Key "r", selectReorderTargetCharacter 0)
-                                  ,(Key "q", exitGame)]
+inTrainingGrounds = GameAuto $ do
+    msg <- switchLang msgENG msgJPN
+    run $ with [ movePlace TrainingGrounds, modify $ \w -> w { party = [], inTavernMember = sort (inTavernMember w ++ party w) }]
+        $ selectEsc msg [(Key "l", inEdgeOfTown)
+                        ,(Key "n", createNewCharacter)
+                        ,(Key "s", showListOfCharacters 0)
+                        ,(Key "d", selectDeleteTargetCharacter 0)
+                        ,(Key "n", selectCharacterToChangeName 0)
+                        ,(Key "c", selectCharacterToChangeJob 0)
+                        ,(Key "r", selectReorderTargetCharacter 0)
+                        ,(Key "q", exitGame)]
   where
-    msg = message $ "^C)reate Character\n"
-                 ++ "^S)how List of Characters\n"
-                 ++ "^D)elete Character\n"
-                 ++ "^N)ame Change of Character\n"
-                 ++ "^J)ob Change of Character\n"
-                 ++ "^R)eorder List\n"
-                 ++ "^L)eave `[`E`S`C`]\n"
+    msgENG = message $ "^Create N)ew Character\n"
+                    ++ "^S)how List of Characters\n"
+                    ++ "^D)elete Character\n"
+                    ++ "^N)ame Change of Character\n"
+                    ++ "^C)lass Change of Character\n"
+                    ++ "^R)eorder List\n"
+                    ++ "^L)eave `[`E`S`C`]\n"
+    msgJPN = message $ "^N)キャラクターを新規作成する\n"
+                    ++ "^S)キャラクターの一覧を見る\n"
+                    ++ "^D)キャラクターを削除する\n"
+                    ++ "^N)キャラクターの名前を変える\n"
+                    ++ "^C)キャラクターのクラスを変更する\n"
+                    ++ "^R)キャラクターの一覧を並び替える\n"
+                    ++ "^L)離れる `[`E`S`C`]\n"
 
 -- -----------------------------------------------------------------------
--- Job Change
+-- Class Change
 -- -----------------------------------------------------------------------
 
 selectCharacterToChangeJob :: Int -> GameMachine
-selectCharacterToChangeJob = cmdWithCharacterListOnlyIn ("Job Change", selectNewJob)
+selectCharacterToChangeJob = cmdWithCharacterListOnlyIn ("Class Change", selectNewJob)
 
 selectNewJob :: GameMachine -> CharacterID -> GameMachine
 selectNewJob h cid = GameAuto $ do
@@ -266,11 +280,11 @@ selectNewJob h cid = GameAuto $ do
     allJobs <- asks jobs
     let availableJobs = filter (canChangeToJob c) allJobs
     if null availableJobs then
-        run $ events [message "There are no jobs you can change to."] h
+        run $ events [message "There are no classes you can change to."] h
     else do
         let jobItems = zipWith (\i j -> (show i, Character.jobName j)) [1..] availableJobs
             jobCmds = zipWith (\i j -> (Key (show i), confirmChangeJob h cid j)) [1..] availableJobs
-            msg' = message $ "Select new job for " ++ Character.name c ++ ".\n\n"
+            msg' = message $ "Select new class for " ++ Character.name c ++ ".\n\n"
                          ++ unlines (map (\(i, name) -> "  ^" ++ i ++ ") " ++ name) jobItems)
                          ++ "\n^L)eave `[`E`S`C`]"
         run $ selectEsc msg' ((Key "l", h) : jobCmds)
@@ -284,7 +298,7 @@ canChangeToJob c j =
 confirmChangeJob :: GameMachine -> CharacterID -> Character.Job -> GameMachine
 confirmChangeJob h cid newJob = GameAuto $ do
     c <- characterByID cid
-    let msg' = message $ "Change " ++ Character.name c ++ "'s job to " ++ Character.jobName newJob ++ "?\n"
+    let msg' = message $ "Change " ++ Character.name c ++ "'s class to " ++ Character.jobName newJob ++ "?\n"
                       ++ "This will reset LV, EXP.\n\n"
                       ++ "^Y)es / ^N)o `[`E`S`C`]"
     run $ selectEsc msg' [(Key "n", h), (Key "y", with [doChangeJob cid newJob] h)]
@@ -396,7 +410,7 @@ selectJob aps name k a = GameAuto $ do
                        ++ "\n=========================================================\n"
                        ++ "\n\n" ++ showParameter param
                        ++ "---------------------------------------------------------\n"
-                       ++ ">Select job. ^R)eset\n\n"
+                       ++ ">Select class. ^R)eset\n\n"
                        ++ unlines jts
           cmds = cmdNums (length js) $ \i -> makeCharacter param name k a (js !! (i-1))
       run $ select msg $ (Key "r", determineParameter' (totalParameter aps) emptyParam name k a) : cmds

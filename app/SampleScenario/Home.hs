@@ -66,12 +66,13 @@ initScenario = return (s, w)
         , enableMinimapType   = [Disable, Normal, AlwaysN]
         }
     s = InitScenario {
-          initScenarioName     = "SampleScenario"
-        , initScenarioVersion  = [0,1,0,0]
-        , initScenarioOption   = option
-        , initRacies           = SampleRacies.racies
-        , initJobs             = SampleJobs.jobs
-        , initMazes            = [
+          initScenarioName        = "SampleScenario"
+        , initScenarioVersion     = [0,1,0,0]
+        , initScenarioOption      = option
+        , initEnteringMazeMessage = "\n\n  *** Entering Test Maze... *** \n\n\n"
+        , initRacies              = SampleRacies.racies
+        , initJobs                = SampleJobs.jobs
+        , initMazes               = [
               ("B1F", Just ((0, 0), (4, 5)), SampleMaze.maze1F)
 --          , ("B2F", Just ((0, 0), (26, 25)), SampleMaze.maze2F)
             , ("B2F", Just ((-1, -2), (7, 7)), SampleMaze.maze2F)

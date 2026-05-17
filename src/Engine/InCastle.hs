@@ -279,24 +279,27 @@ buyItem cid page bi = GameAuto $ do
       mxPage <- lastPage
       gp     <- Character.gold <$> characterByID cid
       defs   <- mapM itemByID lstItem'
+      txt1   <- switchLang ("Select item to buy. You have " ++ show gp ++ " G.P.\n\n" ++ 
+                            "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave `[`E`s`c`]")
+                           ("どれを購入しますか。 所持金 : " ++ show gp ++ " G.P.\n\n" ++ 
+                            "^N)次のリスト  ^P)前のリスト  ^?)商品の確認  ^L)離れる `[`E`s`c`]")
+      txt2   <- switchLang ("Select item to inspect. You have " ++ show gp ++ " G.P.\n\n" ++ 
+                            "^N)ext list  ^P)revious list  ^?)Buy  ^L)eave `[`E`s`c`]")
+                           ("どれを確認しますか。 所持金 : " ++ show gp ++ " G.P.\n\n" ++ 
+                            "^N)次のリスト  ^P)前のリスト  ^?)商品の購入  ^L)離れる `[`E`s`c`]")
       let canMs  = (\def -> if Character.canEquip c def || Character.canUse' c def then "  " else " #") <$> defs
       let items0 = zipWith (++) (takeChar 43 . (++ repeat ' ') . Item.name <$> defs)
                                (rightTxt 10 . Item.valueInShop <$> defs)
           items  = zipWith (++) items0 canMs
           lst  = "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
                ++ unlines (zipWith (++) ((++") ") . show <$> [1..]) items) ++ "\n"
-          txt  = if bi then
-                   "Select item to buy. You have " ++ show gp ++ " G.P.\n\n" ++ 
-                   "^N)ext list  ^P)revious list  ^?)Inspect  ^L)eave `[`E`s`c`]" ++ lst
-                 else
-                   "Select item to inspect. You have " ++ show gp ++ " G.P.\n\n" ++ 
-                   "^N)ext list  ^P)revious list  ^?)Buy  ^L)eave `[`E`s`c`]" ++ lst
+          txt  = (if bi then txt1 else txt2) ++ lst
           msg  = message txt 
            
           cmds = cmdNums (length lstItem')
                $ if bi then buy cid (buyItem cid page bi) . (lstItem' !!) . flip (-) 1
-                       else \n -> let (ifm, pic) =Item.itemInformation $ defs !! (n - 1)
-                                  in events [Resume (changeFlash ifm . withPicture (Just pic))] (buyItem cid page bi)
+                       else \n -> let (ifm, _) = Item.itemInformation $ defs !! (n - 1)
+                                  in events [Resume (changeFlash ifm)] (buyItem cid page bi)
       run $ selectEsc msg $ (Key "l", selectShopAction cid)
                           : (Key "n", buyItem cid (page + 1) bi)
                           : (Key "p", buyItem cid (page - 1) bi)
@@ -313,22 +316,29 @@ buy cid next idItem = GameAuto $ do
     v   <- Item.valueInShop <$> itemByID idItem
     is  <- Character.items <$> characterByID cid
     g   <- Character.gold  <$> characterByID cid
-    if length is >= 10 then run $ events [toMsg "You can't have any more item."] next
-    else if v > g then run $ events [toMsg "You don't have enough gold."] next
+    txt1 <- switchLang "You can't have any more item." "それ以上持てませんよ。"
+    txt2 <- switchLang "You don't have enough gold."   "お金が足りませんよ。"
+    if length is >= 10 then run $ events [toMsg txt1] next
+    else if v > g      then run $ events [toMsg txt2] next
     else do
+      txt3 <- switchLang "It is last one."          "これは最後の一つですよ。"
+      txt4 <- switchLang "I'm sure you'll love it." "きっとお気に召しますよ。"
+      txt5 <- switchLang "You can't use or equip it.\n... but would you still buy it?\n\n^Y)es  ^N)o"
+                         "あなたには使えないものですが、それでも買いますか ?\n\n^Y)はい  ^N)いいえ"
+      txt6 <- switchLang "Don't worry about it - mistakes happen to everyone."
+                         "間違いは誰にでもありますよ。"
       let map   = shopItems w
           pair  = Map.lookup idItem map
           n'    = case pair of Nothing -> undefined
                                Just n  -> n - 1
           map'  = if n' == 0 then Map.delete idItem map
                              else Map.insert idItem n' map
-          msg   = if n' == 0 then "It is last one." else "you must favorite in it."
+          msg   = if n' == 0 then txt3 else txt4
           is'   = is ++ [ItemInf idItem True]
           restG = g - v
       if not canTreat then
-        run $ select (Resume (changeFlash "You can't use or equip it.\n... but would you still buy it?\n\n^Y)es  ^N)o"))
-                     [ (Key "y", doBuy msg restG is' map')
-                     , (Key "n", events [toMsg "Don't worry about it - mistakes happen to everyone."] next)]
+        run $ select (Resume (changeFlash txt5)) [ (Key "y", doBuy msg restG is' map')
+                                                 , (Key "n", events [toMsg txt6] next)]
       else run $ doBuy msg restG is' map'
   where
     toMsg m = Resume (changeFlashTime m (-1500))
@@ -349,11 +359,13 @@ toSellGreet cid = do
     gp <- Character.gold <$> characterByID cid
     ns <- mapM sellName is
     vs <- mapM sellValue is
+    txt1 <- switchLang ("Select item to sell. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n")
+                       ("売りたいものは何ですか。 所持金 : " ++ show gp ++ " G.P.\n\n^L)離れる `[`E`s`c`]\n")
     let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightTxt 10 <$> vs)
         ps    = toEnum <$> take (length items) [0..]
         lst   = "=========================================================\n\n"
               ++ unlines (zipWith (++) ((++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
-    return $ "Select item to sell. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n" ++ lst
+    return $ txt1 ++ lst
 
 toSellMessage :: CharacterID -> String -> GameState Event
 toSellMessage cid msg = do
@@ -386,9 +398,9 @@ sell cid pos = GameAuto $ do
     let can'tSell = Item.CantDrop `elem` Item.attributes idef
     v <- sellValue $ is !! n
 
-    msg <- if pos `elem` Character.equipPoss c then return "You can't sell what you equip."
-           else if can'tSell then return "Sorry, but we can't buy this item."
-           else if v <= 0    then return "It is no value."
+    msg <- if pos `elem` Character.equipPoss c then switchLang "You can't sell what you equip." "身に着けているものは売れませんよ。"
+           else if can'tSell then switchLang "Sorry, but we can't buy this item." "申し訳ございません、それは買い取りかねます。"
+           else if v <= 0    then switchLang "It is no value." "それは無価値なので買い取れません。"
            else do
              let is' = take n is ++ drop (n + 1) is
                  gp' = gp + v
@@ -401,7 +413,7 @@ sell cid pos = GameAuto $ do
                                     Just cn -> cn + 1
                  map' = Map.insert idItem cnt' map
              put $ w { shopItems = map' }
-             return "Thank you so much."
+             switchLang "Thank you so much." "ありがとうございます。"
     ev <- toSellMessage cid msg
     run $ events [ev] (sellItem cid)
 
@@ -413,11 +425,13 @@ toDetermineGreet cid = do
     gp <- Character.gold <$> characterByID cid
     ns <- mapM sellName is
     vs <- mapM determineValueTxt is
+    txt1 <- switchLang ("Select item to determine. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n")
+                       ("鑑定してほしいのはどれですか。 所持金 : " ++ show gp ++ " G.P.\n\n^L)離れる `[`E`s`c`]\n")
     let items = zipWith (++) (takeChar 43 . (++ repeat ' ') <$> ns) (rightString 10 <$> vs)
         ps    = toEnum <$> take (length items) [0..]
         lst   = "=========================================================\n\n"
               ++ unlines (zipWith (++) (("^"++) . (++") ") . Character.itemPosToText <$> ps) items) ++ "\n"
-    return $ "Select item to determine. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n" ++ lst
+    return $ txt1 ++ lst
 
 toDetermineMessage :: CharacterID -> String -> GameState Event
 toDetermineMessage cid msg = do
@@ -451,14 +465,14 @@ determine cid pos = GameAuto $ do
         n    = fromEnum pos
         item = is !! n
     v <- determineValue $ is !! n
-    msg <- if      v > gp          then return "You don't have enough gold."
-           else if identified item then return "You already know it."
+    msg <- if      v > gp          then switchLang "You don't have enough gold." "お金が足りませんよ。"
+           else if identified item then switchLang "You already know it."        "それが何であるかご存じですよね。"
            else do
              let i'  = item { identified = True }
                  is' = take n is ++ [i'] ++ drop (n + 1) is
                  gp' = gp - v
              updateCharacter cid $ c { Character.items = is', Character.gold = gp' }
-             return "Determined."
+             switchLang "Determined." "鑑定できました。"
     ev <- toDetermineMessage cid msg
     run $ events [ev] (determineItem cid)
 
@@ -474,7 +488,11 @@ uncurseItem cid = GameAuto $ do
         def <- itemByID (itemID inf)
         return $ Item.Cursed `elem` Item.attributes def
 
-    if null cursedEquippedItems then run $ events [message "You have no cursed items equipped."] (selectShopAction cid)
+    txt1 <- switchLang "You have no cursed items equipped." "あなたは呪われたものを身に着けていませんよ。" 
+    txt2 <- switchLang ("Select item to uncurse. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n")
+                       ("お祓いをしてほしいものはどれですか。 所持金 : " ++ show gp ++ " G.P.\n\n^L)離れる `[`E`s`c`]\n")
+
+    if null cursedEquippedItems then run $ events [message txt1] (selectShopAction cid)
     else do
       displayData <- mapM (\(pos, inf) -> do
             name  <- (if identified inf then Item.name else Item.nameUndetermined) <$> itemByID (itemID inf)
@@ -483,7 +501,7 @@ uncurseItem cid = GameAuto $ do
       let itemsText = map (\(pos, name, value) ->
             Character.itemPosToText pos ++ ") " ++ takeChar 43 (name ++ repeat ' ') ++ rightTxt 10 value) displayData
       let lst = "=========================================================\n\n" ++ unlines itemsText ++ "\n"
-          greet = "Select item to uncurse. You have " ++ show gp ++ " G.P.\n\n^L)eave `[`E`s`c`]\n" ++ lst
+          greet = txt2 ++ lst
           toMsg = flip (flashAndMessageTime (-1500) greet) Nothing
 
       run $ selectEsc (message greet)
@@ -493,8 +511,10 @@ uncurseItem cid = GameAuto $ do
 doUncurse :: CharacterID -> Character.ItemPos -> Int -> (String -> Event) -> GameMachine
 doUncurse cid pos val toMsg = GameAuto $ do
     c <- characterByID cid
+    txt1 <- switchLang "You don't have enough gold." "お金が足りませんよ。"
+    txt2 <- switchLang "The curse is broken."        "お祓いできました。"
     if Character.gold c < val then
-      run $ events [toMsg "You don't have enough gold."] (uncurseItem cid)
+      run $ events [toMsg txt1] (uncurseItem cid)
     else do
       let itemInfToRemove = Character.itemInfAt c pos
       let c' = c { Character.gold   = Character.gold c - val
@@ -502,7 +522,7 @@ doUncurse cid pos val toMsg = GameAuto $ do
                  , Character.equips = filter (/= itemInfToRemove) (Character.equips c)
                  }
       updateCharacter cid c'
-      run $ events [toMsg "The curse is broken."] (selectShopAction cid)
+      run $ events [toMsg txt2] (selectShopAction cid)
 
 
 -- =======================================================================
@@ -511,8 +531,10 @@ inTempleOfCant :: GameMachine
 inTempleOfCant = GameAuto $ do
     movePlace TempleOfCant
     ids <- filterM (fmap mustGotoTemple . characterByID) . inTavernMember =<< world
+    txt1 <- switchLang "No body in tavern needs cure." "救いを必要とする者はいません。"
+    msg  <- switchLang msgENG msgJPN
     if null ids then
-      run (events [flashAndMessageTime (-2000) msg "No body in tavern needs cure." Nothing] inCastle)
+      run (events [flashAndMessageTime (-2000) msg txt1 Nothing] inCastle)
     else do
       cmds <- cmdNumPartiesID $ \(_, i) -> GameAuto $ do 
           c <- characterByID i
@@ -520,22 +542,27 @@ inTempleOfCant = GameAuto $ do
                                     else selectCureTarget i 0
       run $ selectEsc (message msg) $ (Key "l", inCastle) : cmds
   where
-    msg = "Who will enter?\n\n"
-       ++ "^#)Select\n"
-       ++ "^L)eave `[`E`S`C`]\n"
+    msgENG = "Who will enter?\n\n"
+          ++ "^#)Select\n"
+          ++ "^L)eave `[`E`S`C`]\n"
+    msgJPN = "誰が入りますか ?\n\n"
+          ++ "^#)選択\n"
+          ++ "^L)寺院を出る `[`E`S`C`]\n"
 
 selectCureTarget :: CharacterID -> Int -> GameMachine
 selectCureTarget id page = GameAuto $ do
     ids <- filterM (fmap mustGotoTemple . characterByID) . inTavernMember =<< world
+    txt1 <- switchLang ("Who do you want to help?\n"
+                     ++ "^#)Select  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n")
+                       ("誰を救いたいのだ ?\n"
+                     ++ "^#)選択  ^N)次のリスト  ^P)前のリスト  ^L)離れる `[`E`S`C`]\n\n")
     if null ids then run inCastle
     else if page /= 0 && page * 9 >= length ids then run $ selectCureTarget id 0
     else if page < 0 then run $ selectCureTarget id ((length ids - 1) `div` 9)
     else do
       let ids' = take 9 . drop (page * 9) $ ids
       cs  <- mapM characterByID ids'
-      let msg = message $ "Who do you want to help?\n"
-                       ++ "^#)Select  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n\n"
-                       ++ unlines (toShow <$> zip [1..] cs)
+      let msg = message $ txt1 ++ unlines (toShow <$> zip [1..] cs)
           lst = (Key "l", inTempleOfCant)
               : (Key "n", selectCureTarget id $ page + 1)
               : (Key "p", selectCureTarget id $ page - 1)
@@ -557,16 +584,23 @@ cureCharacter cid cidDst = GameAuto $ do
             | Stoned `elem` ss && Paralysis `elem` ss = 250 * lv
             | Stoned `elem` ss                        = 200 * lv
             | otherwise                               = 100 * lv
-        msg = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
-                     ++ "The prayer fee is " ++ show fee ++ " G.P.  ...OK?\n"
-                     ++ "  ^Y)es\n"
-                     ++ "  ^P)ool Gold\n"
-                     ++ "  ^L)eave `[`E`S`C`]\n"
+        msgENG = message $ "Welcome " ++ nam ++ ". You have " ++ show gp ++ " G.P.\n\n"
+                        ++ "The prayer fee is " ++ show fee ++ " G.P.  ...OK?\n"
+                        ++ "  ^Y)es\n"
+                        ++ "  ^P)ool Gold\n"
+                        ++ "  ^L)eave `[`E`S`C`]\n"
+        msgJPN = message $ "ようこそ " ++ nam ++ " 。 所持金 : " ++ show gp ++ " G.P.\n\n"
+                        ++ "祈禱料は " ++ show fee ++ " G.P. です。  ...よろしいですね ?\n"
+                        ++ "  ^Y)支払う\n"
+                        ++ "  ^P)集金する\n"
+                        ++ "  ^L)やめる `[`E`S`C`]\n"
+    msg  <- switchLang msgENG msgJPN
+    txt1 <- switchLang "  Get out! You cheap traitor!  " "  出ていけ ! ケチな背信者どもめ !  "
     canSpent <- canSpentGold cid fee
     let lst =[(Key "l", selectCureTarget cid 0)
              ,(Key "p", with [poolGoldTo cid] (cureCharacter cid cidDst))
              ,(Key "y", if canSpent then with [spentGold cid fee] $ tryCureCharacter cid cidDst
-                                    else events [Resume (changeFlashTime "  Get out! You cheap traitor!  " (-1000))] $ selectCureTarget cid 0)]
+                                    else events [Resume (changeFlashTime txt1 (-1000))] $ selectCureTarget cid 0)]
     run $ selectEsc msg lst
 
 tryCureCharacter :: CharacterID -> CharacterID -> GameMachine
@@ -592,15 +626,26 @@ tryCureCharacter cid cidDst = GameAuto $ do
             updateCharacterWith cidDst (\c -> c { Character.statusErrors = [Lost] })
             modify (\w -> w { inTavernMember = filter (/= cidDst) $ inTavernMember w })
 
-        let mg | succeed   = nam ++ " has recovered !!"
-               | isAsh     = nam ++ " is lost..."
-               | isDead    = nam ++ " reduced to ashes..."
-               | otherwise = "no change in " ++ nam ++ "'s condition..."
-        let ms  = flashMessage 1000 <$> [" MURMUR                          "
-                                        ," MURMUR - CHANT                  "
-                                        ," MURMUR - CHANT - PRAY           "
-                                        ," MURMUR - CHANT - PRAY - INVOKE! "]
-            mg' = " MURMUR - CHANT - PRAY - INVOKE! \n\n   " ++ mg
+        let mgENG | succeed   = nam ++ " has recovered !!"
+                  | isAsh     = nam ++ " is lost..."
+                  | isDead    = nam ++ " reduced to ashes..."
+                  | otherwise = "no change in " ++ nam ++ "'s condition..."
+            msENG  = flashMessage 1000 <$> [" MURMUR                          "
+                                           ," MURMUR - CHANT                  "
+                                           ," MURMUR - CHANT - PRAY           "
+                                           ," MURMUR - CHANT - PRAY - INVOKE! "]
+            mgENG' = " MURMUR - CHANT - PRAY - INVOKE! \n\n   " ++ mgENG
+        let mgJPN | succeed   = nam ++ " は元気になった !!"
+                  | isAsh     = nam ++ " は失われた..."
+                  | isDead    = nam ++ " は灰と化した..."
+                  | otherwise = nam ++ " の容態に変化はなかった..."
+            msJPN  = flashMessage 1000 <$> [" 囁き                          "
+                                           ," 囁き - 詠唱                   "
+                                           ," 囁き - 詠唱 - 祈り            "
+                                           ," 囁き - 詠唱 - 祈り - 念じろ ! "]
+            mgJPN' = " 囁き - 詠唱 - 祈り - 念じろ ! \n\n   " ++ mgJPN
+        ms  <- switchLang msENG msJPN
+        mg' <- switchLang mgENG' mgJPN'
         run $ events (ms ++ [flashMessageInf mg']) $ selectCureTarget cid 0
         )
 
