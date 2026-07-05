@@ -85,6 +85,14 @@ switchLang s1 s2 = do
     if language wop == ENG then return s1
     else                        return s2
 
+switchL :: LanguageSet a -> GameState a
+switchL (EnJp s1 s2) = do
+    wop <- worldOption <$> world
+    if language wop == ENG then return s1
+    else                        return s2
+switchL (En s1) = return s1
+switchL (Jp s1) = return s1
+
 
 fst3 (t1,  _,  _) = t1
 snd3 ( _, t2,  _) = t2
