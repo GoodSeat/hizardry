@@ -24,7 +24,7 @@ inEdgeOfTown :: GameMachine
 inEdgeOfTown = with [movePlace InEdgeOfTown] $ autoSaveToSlot0 $ GameAuto $ do
     notnull  <- not . null . party <$> world
     toCastle <- home
-    msg      <- switchLang msgENG msgJPN
+    msg      <- switchL (EnJp msgENG msgJPN)
     run $ selectWhenEsc msg [(Key "c", toCastle, True)
                             ,(Key "m", enteringMaze, notnull)
                             ,(Key "t", inTrainingGrounds, True)
@@ -50,7 +50,7 @@ inEdgeOfTown = with [movePlace InEdgeOfTown] $ autoSaveToSlot0 $ GameAuto $ do
 
 utilities :: GameMachine
 utilities = GameAuto $ do
-    msg <- switchLang msgENG msgJPN
+    msg <- switchL (EnJp msgENG msgJPN)
     run $ selectEsc msg [(Key "l", inEdgeOfTown)
                         ,(Key "c", config)
                         ,(Key "s", selectSaveSlot)
@@ -114,8 +114,8 @@ config = GameAuto $ do
               ++ "\n    (※ 0 を設定すると、自動進行しなくなります)"
               ++ "\n                            "
               ++ "\n^L)離れる  `[`E`S`C`]       "
-    msg  <- switchLang msgENG msgJPN
-    txt1 <- switchLang "input wait time(ms)." "進行時間(ms)を入力してください。" 
+    msg  <- switchL (EnJp msgENG msgJPN)
+    txt1 <- switchL (EnJp "Input wait time (ms)." "進行時間(ms)を入力してください。") 
     let changeL = do
             let ts = [ENG, JPN]
             put $ w { worldOption = (worldOption w) { language = next ts tL } }
@@ -163,7 +163,7 @@ autoSaveToSlot0 = events [SaveGame 0 "AutoSave"]
 selectSaveSlot :: GameMachine
 selectSaveSlot = GameAuto $ do
     bs <- backUpSlotInfo <$> world
-    txt1 <- switchLang "Save to which slot (^1-^9)?  ^L)eave `[`E`S`C`]" "保存先スロットを指定 (^1-^9)?  ^L)離れる `[`E`S`C`]"
+    txt1 <- switchL (EnJp "Save to which slot (^1-^9)?  ^L)eave `[`E`S`C`]" "保存先スロットを指定 (^1-^9)?  ^L)離れる `[`E`S`C`]")
     let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
     let cmds = cmdNums 9 (`inputSaveTag` msg)
         msg  = txt1 ++ "\n\n ==================================================\n\n" ++ unlines lst
@@ -171,13 +171,13 @@ selectSaveSlot = GameAuto $ do
 
 inputSaveTag :: Int -> String -> GameMachine
 inputSaveTag slot msg = GameAuto $ do
-    txt1 <- switchLang "Tag? (empty to cancel)" "タグを入力 (空文字でキャンセル)" 
+    txt1 <- switchL (EnJp "Tag? (Empty to cancel)" "タグを入力 (空文字でキャンセル)") 
     return (askFlashAndMessage msg txt1 Nothing, \(Key s) -> events [SaveGame slot s | not (isNullKey s)] utilities)
 
 selectLoadSlot :: GameMachine
 selectLoadSlot = GameAuto $ do
     bs <- backUpSlotInfo <$> world
-    txt1 <- switchLang "Load from which slot (^1-^9)?  ^L)eave `[`E`S`C`]" "読み込むスロットを指定 (^1-^9)?  ^L)離れる `[`E`S`C`]"
+    txt1 <- switchL (EnJp "Load from which slot (^1-^9)?  ^L)eave `[`E`S`C`]" "読み込むスロットを指定 (^1-^9)?  ^L)離れる `[`E`S`C`]")
     let lst = zipWith (\i n -> "^" ++ show i ++ ")" ++ n) [1..9] (bs ++ repeat "")
     let cmds = cmdNums 9 (\i -> events [LoadGame i] utilities)
         msg  = message $ txt1 ++ "\n\n ==================================================\n\n" ++ unlines lst
@@ -189,9 +189,9 @@ restartAnOutParty :: Int -> GameMachine
 restartAnOutParty page = GameAuto $ do
     cs  <- gets (fmap fst . inMazeMember)
     cs' <- mapM characterByID cs
-    txt1 <- switchLang "no body in maze." "迷宮内には誰もいない。"
-    txt2 <- switchLang "^A‾)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
-                       "^A‾)冒険の再開  ^N)次のリスト  ^P)前のリスト  ^L)離れる `[`E`S`C`]\n"
+    txt1 <- switchL (EnJp "Nobody is in the maze." "迷宮内には誰もいない。")
+    txt2 <- switchL (EnJp "^A‾)Restart  ^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n"
+                          "^A‾)冒険の再開  ^N)次のリスト  ^P)前のリスト  ^L)離れる `[`E`S`C`]\n")
     let ccs = filter ((> 0) . Character.hp . fst) $ zip cs' cs
         mxPage = max 0 ((length ccs - 1) `div` 10)
     if      null ccs      then run $ events [Resume $ changeFlashTime txt1 (-1500)] inEdgeOfTown
@@ -241,7 +241,7 @@ enteringMaze = GameAuto $ do
 
 inTrainingGrounds :: GameMachine
 inTrainingGrounds = GameAuto $ do
-    msg <- switchLang msgENG msgJPN
+    msg <- switchL (EnJp msgENG msgJPN)
     run $ with [ movePlace TrainingGrounds, modify $ \w -> w { party = [], inTavernMember = sort (inTavernMember w ++ party w) }]
         $ selectEsc msg [(Key "l", inEdgeOfTown)
                         ,(Key "n", createNewCharacter)
@@ -319,12 +319,12 @@ doChangeJob cid newJob = do
 
 createNewCharacter :: GameMachine
 createNewCharacter = GameAuto $
-    return (ask ">Input name of character. \n(Empty to cancel.)" Nothing,
+    return (ask ">Input character's name. \n(Empty to cancel.)" Nothing,
            \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
               if null s then inTrainingGrounds else GameAuto $ do
               isOK <- not <$> existSameName s
               run $ if isOK then selectRace s
-                    else events [message $ s ++ " is already exist."] createNewCharacter)
+                    else events [message $ s ++ " already exists."] createNewCharacter)
 
 existSameName :: String -> GameState Bool
 existSameName name = do
@@ -531,7 +531,7 @@ showDeleteTargetCharacter h cid = selectEsc (showStatus cid msg)
                                    ,(Key "y", with [deleteCharacter cid] h)
                                    ]
   where
-    msg = "Are you sure? (his items are also lost)\n ^Y)es   ^N)o `[`E`S`C`]"
+    msg = "Are you sure? (Their items will also be lost)\n ^Y)es   ^N)o `[`E`S`C`]"
 
 
 selectCharacterToChangeName :: Int -> GameMachine
@@ -539,12 +539,12 @@ selectCharacterToChangeName = cmdWithCharacterList ("Change Name", changeCharact
 
 changeCharacterName :: GameMachine -> CharacterID -> GameMachine
 changeCharacterName h cid = GameAuto $
-    return (ask ">Input name of character. \n(Empty to cancel.)" Nothing,
+    return (ask ">Input character's name. \n(Empty to cancel.)" Nothing,
            \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
               if null s then h else GameAuto $ do
               isOK <- not <$> existSameName s
               run $ if isOK then with [changeName s] h
-                    else events [message $ s ++ " is already exist."] (changeCharacterName h cid))
+                    else events [message $ s ++ " already exists."] (changeCharacterName h cid))
   where
     changeName newName = do
         c <- characterByID cid

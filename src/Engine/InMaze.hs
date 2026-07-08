@@ -78,7 +78,7 @@ enterGrid e probEncount evMoved p = GameAuto $ do
     if Stone `elem` noticesInView lab p 0 0 then run enterStone
     else do
       when (Dark `elem` noticesInView lab p 0 0) $ setLightValue False 0
-      txt <- switchLang "can't spelling at this place." "ここでその呪文を唱えることはできない。" 
+      txt <- switchL (EnJp "Cannot cast spells here." "ここでその呪文を唱えることはできない。") 
       let c = coordOf p
           cantSpelling _ = events [message txt]
       encount <- if probEncount then
@@ -113,7 +113,7 @@ checkEncount c checkRoomBattle = do
 
 ouch :: Position -> GameMachine
 ouch p = GameAuto $ do
-    txt <- switchLang " Ouch !! " " いてっ !! "
+    txt <- switchL (EnJp " Ouch !! " " いてっ !! ")
     let ouch1 = with [d1] $ select (withSE HitWall $ flashMessage' ( -30) txt) $ (Clock, ouch2) : moves'
         ouch2 = with [d2] $ select (flashMessage' ( -20) txt) $ (Clock, ouch3) : moves'
         ouch3 = with [d3] $ select (flashMessage' ( -30) txt) $ (Clock, ouch4) : moves'
@@ -200,9 +200,9 @@ nextMiniMap = do
 
 inspect :: Position -> GameMachine
 inspect p = GameAuto $ do
-    txt1 <- switchLang "Inspect" "調査"
-    txt2 <- switchLang "^S)earch character\n^I)nspect surround\n^L)eave `[`E`S`C`]"
-                       "^S)仲間を捜す\n^I)周辺を調査する\n^L)離れる `[`E`S`C`]"
+    txt1 <- switchL (EnJp "Inspect" "調査")
+    txt2 <- switchL (EnJp "^S)earch character\n^I)nspect surroundings\n^L)eave `[`E`S`C`]"
+                          "^S)仲間を捜す\n^I)周辺を調査する\n^L)離れる `[`E`S`C`]")
     movePlace (Camping p txt1)
     run $ selectWhenEsc (message txt2)
           [(Key "l", enterWithoutEncount None p, True)
@@ -213,7 +213,7 @@ inspect p = GameAuto $ do
 searchSurroundings :: Position -> GameMachine
 searchSurroundings p = GameAuto $ do
     eventMap <- asks eventInspect
-    txt1     <- switchLang "You found nothing." "何も見つからなかった。"
+    txt1     <- switchL (EnJp "You found nothing." "何も見つからなかった。")
     msgs     <- searchMsgs
     let foundNothing = events (msgs ++ [message txt1]) (inspect p)
     case Map.lookup p eventMap of
@@ -244,7 +244,7 @@ searchCharacter p = GameAuto $ do
     turnBack = turnLeft . turnLeft
 
 searchMsgs = do
-  txt <- switchLang " Searching" "探査中"
+  txt <- switchL (EnJp " Searching" "探査中")
   return [ messageTime 400 (" " ++ txt ++ ".    ") Nothing
          , messageTime 400 (" " ++ txt ++ "..   ") Nothing
          , messageTime 400 (" " ++ txt ++ "...  ") Nothing
@@ -257,12 +257,12 @@ editParty p page ts = let mxPage = max 0 ((length ts - 1) `div` 10) in
     if      page < 0      then editParty p mxPage ts
     else if page > mxPage then editParty p 0 ts
     else GameAuto $ do
-      txt1 <- switchLang "\n No body found." "\n 誰も見つからなかった。"
-      txt2 <- switchLang "You found ...\n\n" "見つかったのは ...\n\n"
-      txt3 <- switchLang ("^A~)Add to party  ^#)Remove from party \n" ++ 
-                          "^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n")
-                         ("^A~)パーティに追加  ^#)パーティから除外 \n" ++ 
-                          "^N)次のリストへ  ^P)前のリストへ  ^L)離れる `[`E`S`C`]\n")
+      txt1 <- switchL (EnJp "\n Nobody found." "\n 誰も見つからなかった。")
+      txt2 <- switchL (EnJp "You found ...\n\n" "見つかったのは ...\n\n")
+      txt3 <- switchL (EnJp ("^A~)Add to party  ^#)Remove from party \n" ++ 
+                             "^N)ext list  ^P)revious list  ^L)eave `[`E`S`C`]\n")
+                            ("^A~)パーティに追加  ^#)パーティから除外 \n" ++ 
+                             "^N)次のリストへ  ^P)前のリストへ  ^L)離れる `[`E`S`C`]\n"))
       let ts' = if null ts then [] else take 10 $ drop (page*10) ts 
       ns <- zipWith (++) (('^':) . (++")") <$> ms) <$> mapM (fmap (Chara.toText 28) <$> characterByID) ts'
       let cmdRemoves = cmdNums 6 (removeFromParty p ts page)
@@ -327,8 +327,8 @@ openCamp :: Position -> GameMachine
 openCamp p = GameAuto $ do
     movePlace (Camping p "")
     np   <- length . party <$> world
-    txt1 <- switchLang "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]"
-                       "^#)調べる\n^R)隊列の変更\n^L)離れる `[`E`S`C`]"
+    txt1 <- switchL (EnJp "^#)Inspect\n^R)eorder Party\n^L)eave Camp `[`E`S`C`]"
+                          "^#)調べる\n^R)隊列の変更\n^L)離れる `[`E`S`C`]")
     run $ selectWhenEsc (message txt1)
           [(Key "l", enterWithoutEncount None p, True)
           ,(Key "r", reorderParty [] p, np > 1)
@@ -346,9 +346,9 @@ openCamp p = GameAuto $ do
 
 reorderParty :: [Int] -> Position -> GameMachine
 reorderParty ns p = GameAuto $ do
-    txt1 <- switchLang "Reorder Party" "隊列の変更"
-    txt2 <- switchLang "New order?" "新しい隊列を指定"
-    txt3 <- switchLang "^L)eave" "^L)離れる"
+    txt1 <- switchL (EnJp "Reorder Party" "隊列の変更")
+    txt2 <- switchL (EnJp "New order?" "新しい隊列を指定")
+    txt3 <- switchL (EnJp "^L)eave" "^L)離れる")
     movePlace (Camping p txt1)
     cids <- party <$> world
     let np = length cids

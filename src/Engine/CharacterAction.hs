@@ -48,27 +48,27 @@ inspectCharacter h canSpell i = GameAuto $ do
     eips <- filterM canUsePos [(Chara.ItemA)..(toEnum $ length (Chara.items c) - 1)] 
     let iCast  = askInStatus cid
         sCast  = showStatus cid
-    sItemA <- switchLang (const (sCast $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave"))
-                         (const (sCast $ "アイテムを選択(" ++ textItemCandidate c ++ ").  ^L)離れる"))
-    sItem  <- switchLang (const (showStatusEquip cid eips $ "Select item(" ++ textItemCandidate c ++ ").  ^L)eave"))
-                         (const (showStatusEquip cid eips $ "アイテムを選択(" ++ textItemCandidate c ++ ").  ^L)離れる"))
+    sItemA <- switchL (EnJp (const (sCast $ "Select item (" ++ textItemCandidate c ++ ").  ^L)eave"))
+                          (const (sCast $ "アイテムを選択(" ++ textItemCandidate c ++ ").  ^L)離れる")))
+    sItem  <- switchL (EnJp (const (showStatusEquip cid eips $ "Select item (" ++ textItemCandidate c ++ ").  ^L)eave"))
+                          (const (showStatusEquip cid eips $ "アイテムを選択(" ++ textItemCandidate c ++ ").  ^L)離れる")))
     let dItem  = sCast
         eItem  = showStatusEquip cid
         msgENG
          | canSpell' && not canIdentify =
-                   "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)qiup  \n" ++
+                   "^U)se Item     ^D)rop Item    ^T)rade Item    ^E)quip  \n" ++
                    "^R)ead Spell   ^S)pell        ^P)ool Money             \n" ++
                    "^#)Inspect     ^?)Check Item  ^L)eave `[`E`S`C`]         "
          | not canSpell' && not canIdentify =
-                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
+                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)quip   \n" ++
                    "^R)ead Spell   ^P)ool Money   ^#)Inspect               \n" ++
                    "^?)Check Item  ^L)eave `[`E`S`C`]                        "
          | canSpell' && canIdentify =
-                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
+                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)quip   \n" ++
                    "^R)ead Spell   ^S)pell        ^P)ool Money   ^I)dentify\n" ++
                    "^#)Inspect     ^?)Check Item  ^L)eave `[`E`S`C`]         "
          | otherwise =
-                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)qiup   \n" ++
+                   "^U)se Item     ^D)rop Item    ^T)rade Item   ^E)quip   \n" ++
                    "^R)ead Spell   ^P)ool Money   ^I)dentify               \n" ++
                    "^#)Inspect     ^?)Check Item  ^L)eave `[`E`S`C`]         "
         msgJPN
@@ -78,7 +78,7 @@ inspectCharacter h canSpell i = GameAuto $ do
                    "^#)他のメンバー ^?)アイテム確認 ^L)離れる `[`E`S`C`]        "
          | not canSpell' && not canIdentify =
                    "^U)使用する     ^D)捨てる       ^T)交換する    ^E)装備する\n" ++
-                   "^R)呪文書を読む ^S)呪文を唱える ^#)他のメンバー           \n" ++
+                   "^R)呪文書を読む ^P)集金する     ^#)他のメンバー           \n" ++
                    "^?)アイテム確認 ^L)離れる `[`E`S`C`]                        "
          | canSpell' && canIdentify =
                    "^U)使用する     ^D)捨てる       ^T)交換する    ^E)装備する\n" ++
@@ -86,9 +86,9 @@ inspectCharacter h canSpell i = GameAuto $ do
                    "^#)他のメンバー ^?)アイテム確認 ^L)離れる `[`E`S`C`]        "
          | otherwise =
                    "^U)使用する     ^D)捨てる       ^T)交換する    ^E)装備する\n" ++
-                   "^R)呪文書を読む ^S)呪文を唱える ^I)識別する               \n" ++
+                   "^R)呪文書を読む ^I)識別する                               \n" ++
                    "^#)他のメンバー ^?)アイテム確認 ^L)離れる `[`E`S`C`]        "
-    msg <- switchLang msgENG msgJPN
+    msg <- switchL (EnJp msgENG msgJPN)
     run $ selectWhenEsc (showStatus cid msg)
                       $ (Key "l", h, True)
                       : (Key "s", inputSpell c iCast sCast (spellInCamp i cancel) cancel, canSpell')
@@ -106,7 +106,7 @@ inspectCharacter h canSpell i = GameAuto $ do
 
 checkItem :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
 checkItem c i next = GameAuto $ do
-    txt1 <- switchLang "** you must identify what it is. **" "** 識別されていません。 **" 
+    txt1 <- switchL (EnJp "** You must identify what it is. **" "** 識別されていません。 **")
     let known = identified $ Chara.itemInfAt c i
     if not known then
       run $ events [Resume (changeFlash txt1)] next
@@ -122,9 +122,9 @@ identifyItem :: (String -> Event)
              -> GameMachine
 identifyItem msgForSelect src c cancel = GameAuto $ do
     cid <- characterIDInPartyAt src
-    txt1 <- switchLang "No unidentified items." "未識別のアイテムはありません。" 
-    txt2 <- switchLang ("Select target item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
-                       ("対象のアイテムを選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]")
+    txt1 <- switchL (EnJp "No unidentified items." "未識別のアイテムはありません。") 
+    txt2 <- switchL (EnJp ("Select target item (" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
+                          ("対象のアイテムを選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]"))
     let unidentifiedItems = filter (not . identified) (Chara.items c)
     run $ if null unidentifiedItems then
             events [msgForSelect txt1] cancel
@@ -152,10 +152,10 @@ doIdentifyItem cid cancel _ i _ = GameAuto $ do
     let es' = snd <$> filter ((/= Item.equipType itemDef) . Item.equipType . fst) (zip items es)
     let forceEquip = updateCharacter cid $ c { Chara.equips = inf : es' }
 
-    txt1 <- switchLang "You cannot identify items." "あなたにアイテムの識別はできない。" 
-    txt2 <- switchLang "Identified." "識別に成功した。" 
-    txt3 <- switchLang "Identification failed." "何の手掛かりもない。" 
-    txt4 <- switchLang "Ooops! you touch item!" "おっと ! 触ってしまった !" 
+    txt1 <- switchL (EnJp "You cannot identify items." "あなたにアイテムの識別はできない。") 
+    txt2 <- switchL (EnJp "Identified." "識別に成功した。") 
+    txt3 <- switchL (EnJp "Identification failed." "何の手掛かりもない。") 
+    txt4 <- switchL (EnJp "Oops! You touched the item!" "おっと ! 触ってしまった !") 
 
     case Chara.identifyItemChance job of
         Nothing -> run $ events [showStatus cid txt1] cancel
@@ -190,8 +190,8 @@ readSpell cancel cid = GameAuto $ do
     ac <- msgInReadSpell cid Nothing
     let hasMageSpell   = any (\s -> Spell.kind s == Spell.M) ss
         hasPriestSpell = any (\s -> Spell.kind s == Spell.P) ss
-    msg <- switchLang "Select spell type:\n  ^M)age Spells  ^P)riest Spells  ^L)eave `[`E`S`C`]"
-                      "呪文タイプの選択:\n  ^M)魔術呪文  ^P)僧侶呪文  ^L)離れる `[`E`S`C`]"
+    msg <- switchL (EnJp "Select spell type:\n  ^M)age Spells  ^P)riest Spells  ^L)eave `[`E`S`C`]"
+                         "呪文タイプの選択:\n  ^M)魔術呪文  ^P)僧侶呪文  ^L)離れる `[`E`S`C`]")
     run $ selectWhenEsc (showStatusAlt cid msg ac)
                         [ (Key "l", cancel, True)
                         , (Key "m", selectSpellLevel (readSpell cancel cid) cid Spell.M, hasMageSpell)
@@ -201,8 +201,8 @@ readSpell cancel cid = GameAuto $ do
 selectSpellLevel :: GameMachine -> CharacterID -> Spell.Kind -> GameMachine
 selectSpellLevel cancel cid kind = GameAuto $ do
     ac  <- msgInReadSpell cid Nothing
-    msg <- switchLang "Select spell level:\n  ^1~^7)Select Lv  ^L)eave `[`E`S`C`]"
-                      "呪文レベルの選択:\n  ^1~^7)レベルの指定  ^L)離れる `[`E`S`C`]"
+    msg <- switchL (EnJp "Select spell level:\n  ^1~^7)Select Lv  ^L)eave `[`E`S`C`]"
+                         "呪文レベルの選択:\n  ^1~^7)レベルの指定  ^L)離れる `[`E`S`C`]")
         -- Generate keybindings for levels 1-7
     let levelCmds = [(Key (show lv), showSpellListForInfo (selectSpellLevel cancel cid kind) cid kind lv) | lv <- [1..7]]
     run $ selectEsc (showStatusAlt cid msg ac) ((Key "l", cancel) : levelCmds)
@@ -218,8 +218,8 @@ showSpellListForInfo cancel cid kind level = GameAuto $ do
 
     if null filteredSpells then run cancel else do
         ac  <- msgInReadSpell cid (Just (kind, level))
-        msg <- switchLang "Select spell:\n  ^A~^Z)Show Info  ^L)eave `[`E`S`C`]"
-                          "呪文の選択:\n  ^A~^Z)説明を見る  ^L)離れる `[`E`S`C`]"
+        msg <- switchL (EnJp "Select spell:\n  ^A~^Z)Show Info  ^L)eave `[`E`S`C`]"
+                             "呪文の選択:\n  ^A~^Z)説明を見る  ^L)離れる `[`E`S`C`]")
         let indexedSpells = zip ['A'..'Z'] filteredSpells
             infoCmds = flip fmap indexedSpells $ \(key, spellDef) ->
               let info = Spell.information spellDef
@@ -235,9 +235,9 @@ msgInReadSpell :: CharacterID -> Maybe (Spell.Kind, Int) -> GameState String
 msgInReadSpell cid tgt = do
     c       <- characterByID cid
     spellDB <- asks spells
-    txt1    <- switchLang "\nNo spells learned." "\n何の呪文も覚えていない。"
-    txt2    <- switchLang "MAGE SPELLS" "魔術呪文"
-    txt3    <- switchLang "PRIEST SPELLS" "僧侶呪文"
+    txt1    <- switchL (EnJp "\nNo spells learned." "\n何の呪文も覚えていない。")
+    txt2    <- switchL (EnJp "MAGE SPELLS" "魔術呪文")
+    txt3    <- switchL (EnJp "PRIEST SPELLS" "僧侶呪文")
     let learnedSpells = catMaybes $ flip lookup spellDB <$> Chara.spells c
         (kind, lvl) = case tgt of Nothing     -> (Spell.M, 0)
                                   Just (k, l) -> (k, l)
@@ -269,8 +269,8 @@ useItemInCamp :: PartyPos -> GameMachine -> Chara.ItemPos -> SpellTarget -> Game
 useItemInCamp src next i (Left dst) = GameAuto $ do
     cid  <- characterIDInPartyAt src
     c    <- characterInPartyAt src
-    txt1 <- switchLang "no happens." "何も起こらなかった。"
-    txt2 <- switchLang "can't use it here." "ここで使うことはできない。"
+    txt1 <- switchL (EnJp "nothing happened." "何も起こらなかった。")
+    txt2 <- switchL (EnJp "Cannot use it here." "ここで使うことはできない。")
     def  <- itemByID $ Chara.itemAt c i
     case Item.usingEffect def of
       Nothing                     -> run $ events [showStatus cid txt1] next
@@ -293,7 +293,7 @@ useItemInCamp src next i (Left dst) = GameAuto $ do
                                                                 events [showStatus cid txt2] n)
 useItemInCamp src next _ _ = GameAuto $ do
     cid <- characterIDInPartyAt src
-    txt <- switchLang "can't use it here." "ここで使うことはできない。"
+    txt <- switchL (EnJp "Cannot use it here." "ここで使うことはできない。")
     run $ events [showStatus cid txt] next
 
 
@@ -322,14 +322,14 @@ selectDropItem :: (String -> Event)
                -> GameMachine
                -> GameMachine
 selectDropItem msgForSelect src c next = GameAuto $ do
-    txt1 <- switchLang ("Select drop item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
-                       ("捨てるアイテムを選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]")
+    txt1 <- switchL (EnJp ("Select drop item (" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
+                          ("捨てるアイテムを選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]"))
     run $ selectItem (const $ msgForSelect txt1) (return . const True) drop c next
   where
     drop :: Chara.Character -> Chara.ItemPos -> GameMachine -> GameMachine
     drop c i cancel = GameAuto $ do
-        txt1 <- switchLang "you cannot drop it." "それを捨てることはできない。"
-        txt2 <- switchLang "you are equippped with it." "装備中のものを捨てることはできない。"
+        txt1 <- switchL (EnJp "You cannot drop it." "それを捨てることはできない。")
+        txt2 <- switchL (EnJp "You are equipped with it." "装備中のものを捨てることはできない。")
         let inf     = Chara.itemInfAt c i
             isEquip = inf `elem` Chara.equips c && (length . filter (==inf)) (Chara.items c) <= 1
         def <- itemByID $ Chara.itemAt c i
@@ -351,8 +351,8 @@ selectTradeItem msgForSelect src cancel = GameAuto $ do
     ps   <- party <$> world
     c    <- characterByID =<< characterIDInPartyAt src
     cmds <- cmdNumPartiesID (\(i, cid) -> tradeTo cid)
-    txt1 <- switchLang ("Select target character(^1~^" ++ show (length ps) ++ ").\n^L)eave `[`E`S`C`]")
-                       ("渡す相手を選択(^1~^" ++ show (length ps) ++ ").\n^L)離れる `[`E`S`C`]")
+    txt1 <- switchL (EnJp ("Select target character (^1~^" ++ show (length ps) ++ ").\n^L)eave `[`E`S`C`]")
+                          ("渡す相手を選択(^1~^" ++ show (length ps) ++ ").\n^L)離れる `[`E`S`C`]"))
     run $ if null (Chara.items c) then cancel
           else selectEsc (msgForSelect [(Chara.ItemA)..(Chara.ItemJ)] txt1) ((Key "l", cancel) : cmds)
   where
@@ -360,8 +360,8 @@ selectTradeItem msgForSelect src cancel = GameAuto $ do
     tradeTo dst = GameAuto $ do
         c'   <- characterByID =<< characterIDInPartyAt src
         cdst <- characterByID dst
-        txt1 <- switchLang ("Select item to trade to " ++ Chara.name cdst ++ "(" ++ textItemCandidate c' ++ ").\n^L)eave `[`E`S`C`]")
-                           (Chara.name cdst ++ "に渡すアイテムを選択" ++ "(" ++ textItemCandidate c' ++ ").\n^L)離れる `[`E`S`C`]")
+        txt1 <- switchL (EnJp ("Select item to trade to " ++ Chara.name cdst ++ " (" ++ textItemCandidate c' ++ ").\n^L)eave `[`E`S`C`]")
+                              (Chara.name cdst ++ "に渡すアイテムを選択" ++ "(" ++ textItemCandidate c' ++ ").\n^L)離れる `[`E`S`C`]"))
         let msg = const $ msgForSelect (canPoss c') txt1
         run $ if      null (Chara.items c')      then cancel
               else if Chara.hasMaxCountItem cdst then selectTradeItem msgForSelect src cancel
@@ -416,7 +416,7 @@ askReleaseSP :: ([Chara.ItemPos] -> String -> Event)
              -> GameMachine
 askReleaseSP msgForSelect src c next = GameAuto $ do
     releasable <- spReleasableItems c
-    txt1 <- switchLang "Release special power of an item? (^Y/^N`[`E`s`c`])" "アイテムに秘められた力を解放しますか? (^Y/^N`[`E`s`c`])"
+    txt1 <- switchL (EnJp "Release special power of this item? (^Y/^N`[`E`s`c`])" "アイテムに秘められた力を解放しますか? (^Y/^N`[`E`s`c`])")
     run $ if null releasable then next else
             selectEsc (msgForSelect (fst <$> releasable) txt1)
                 [ (Key "n", next)
@@ -430,9 +430,9 @@ releaseSP :: ([Chara.ItemPos] -> String -> Event)
           -> GameMachine
 releaseSP msgForSelect src c cancel = GameAuto $ do
     cid  <- characterIDInPartyAt src
-    txt1 <- switchLang "No items to release special power." "秘められた力を持つアイテムが存在しない。"
-    txt2 <- switchLang ("Select item to release SP(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
-                       ("秘められた力を解放するアイテムを選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]")
+    txt1 <- switchL (EnJp "No items have special power." "秘められた力を持つアイテムが存在しない。")
+    txt2 <- switchL (EnJp ("Select item to release SP (" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]")
+                          ("秘められた力を解放するアイテムを選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]"))
     releasable <- spReleasableItems c
     let releasableIDs = fmap (itemID . snd) releasable
     run $ if null releasable then
@@ -458,8 +458,8 @@ doReleaseSP :: CharacterID
 doReleaseSP cid cancel c i _ = GameAuto $ do
     let inf = Chara.itemInfAt c i
     itemDef <- itemByID (itemID inf)
-    txt1 <- switchLang "This item has no special power." "このアイテムに秘められた力は存在しない。"
-    txt2 <- switchLang "Failed to release special power." "秘められた力の解放に失敗した。"
+    txt1 <- switchL (EnJp "This item has no special power." "このアイテムに秘められた力は存在しない。")
+    txt2 <- switchL (EnJp "Failed to release special power." "秘められた力の解放に失敗した。")
     case Item.spEffect itemDef of
         Nothing -> run $ events [showStatus cid txt1] cancel
         Just (effect, breakInfo) -> do
@@ -475,7 +475,7 @@ triggerSPEffect :: CharacterID -> Item.Effect -> GameMachine -> GameState GameMa
 triggerSPEffect cid (Item.EqSpell spellId) next = do
     c <- characterByID cid
     sdef' <- spellByID spellId
-    txt1  <- switchLang "Cannot use this power here." "この力をここで使うことはできない。"
+    txt1  <- switchL (EnJp "Cannot use this power here." "この力をここで使うことはできない。")
     case sdef' of
         Just sdef ->
             if Spell.InCamp `elem` Spell.enableIn sdef then do
@@ -487,7 +487,7 @@ triggerSPEffect cid (Item.EqSpell spellId) next = do
 
 triggerSPEffect cid (Item.Happens eventId) next = do
     edef' <- asks (lookup eventId . mazeEvents)
-    txt1  <- switchLang "Cannot use this power here." "この力をここで使うことはできない。"
+    txt1  <- switchL (EnJp "Cannot use this power here." "この力をここで使うことはできない。")
     case edef' of
         Nothing -> return next
         Just edef -> do
@@ -521,20 +521,20 @@ equip msgForSelect src c next = GameAuto $ do
     let finalContinuation = GameAuto $ do
             c' <- characterInPartyAt src
             run $ askReleaseSP msgForSelect src c' next
-    cads <- switchLang [(Item.isWeapon, "weapon")
-                       ,(Item.isShield, "shield")
-                       ,(Item.isHelmet, "helmet")
-                       ,(Item.isArmour, "armour")
-                       ,(Item.isGauntlet, "gauntlet")
-                       ,(Item.isAccessory, "accessory")
-                       ]
-                       [(Item.isWeapon, "武器")
-                       ,(Item.isShield, "盾")
-                       ,(Item.isHelmet, "兜")
-                       ,(Item.isArmour, "鎧")
-                       ,(Item.isGauntlet, "小手")
-                       ,(Item.isAccessory, "アクセサリ")
-                       ]
+    cads <- switchL (EnJp [(Item.isWeapon,    "weapon")
+                          ,(Item.isShield,    "shield")
+                          ,(Item.isHelmet,    "helmet")
+                          ,(Item.isArmour,    "armour")
+                          ,(Item.isGauntlet,  "gauntlet")
+                          ,(Item.isAccessory, "accessory")
+                          ]
+                          [(Item.isWeapon,    "武器")
+                          ,(Item.isShield,    "盾")
+                          ,(Item.isHelmet,    "兜")
+                          ,(Item.isArmour,    "鎧")
+                          ,(Item.isGauntlet,  "小手")
+                          ,(Item.isAccessory, "アクセサリ")
+                          ])
     run $ equip' msgForSelect src c cads finalContinuation
 
 equip' :: ([Chara.ItemPos] -> String -> Event)
@@ -547,11 +547,11 @@ equip' _ _ _ [] next = next
 equip' msgForSelect src c ((isTarget, typeText):rest) next = GameAuto $ do
     let ids = (\(a, b) -> (a, itemID b)) <$> filter (identified . snd) (zip (toEnum <$> [0..]) $ Chara.items c)
     items   <- mapM itemByID (snd <$> ids)
-    msgBase <- switchLang ("Select equip " ++ typeText ++ "(" ++ textItemCandidate c ++ ").\n  N)o equip `[`E`S`C`]")
-                          ("装備する" ++ typeText ++ "を選択(" ++ textItemCandidate c ++ ").\n  N)装備しない`[`E`S`C`]")
-    txt1    <- switchLang ("* Your " ++ typeText ++ " is cursed and cannot be removed. *")
-                          ("* あなたの" ++ typeText ++ "は呪われているため外すことができない *")
-    txt2    <- switchLang "* The item is cursed. *" "* このアイテムは呪われている *"
+    msgBase <- switchL (EnJp ("Select " ++ typeText ++ " to equip (" ++ textItemCandidate c ++ ").\n  N)othing `[`E`S`C`]")
+                             ("装備する" ++ typeText ++ "を選択(" ++ textItemCandidate c ++ ").\n  N)装備しない`[`E`S`C`]"))
+    txt1    <- switchL (EnJp ("* Your " ++ typeText ++ " is cursed and cannot be removed. *")
+                             ("* あなたの" ++ typeText ++ "は呪われているため外すことができない *"))
+    txt2    <- switchL (EnJp "* The item is cursed. *" "* このアイテムは呪われている *")
     let idset = zipWith (\(a, b) c -> (a, b, c)) ids items
         tgts  = filter (Chara.canEquip c . thd3) . filter (isTarget . thd3) $ idset
         eps   = Chara.equipPoss c
@@ -588,7 +588,7 @@ inputSpell :: Chara.Character
            -> GameMachine
            -> GameMachine
 inputSpell c msgForCasting msgForSelecting next cancel = GameAuto $ do
-    msg <- uncurry switchLang msgForInputSpellInCamp
+    msg <- switchL msgForInputSpellInCamp
     return (msgForCasting msg, \(Key s) -> if isNullKey s then cancel else selectCastTarget s next)
   where
     selectCastTarget :: String -> (String -> SpellTarget -> GameMachine) -> GameMachine
@@ -614,7 +614,7 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
       Spell.AllySingle     -> return (False, length ps)
       _                    -> return (False, 1) -- MEMO:target should be ignored...
 
-    inENG <- switchLang True False
+    inENG <- switchL (EnJp True False)
     let select toEnemy mx nextWith =
             let toDst = if toEnemy then Right . toEnemyLine else Left . toPartyPos in
             if mx <= 1 then
@@ -630,17 +630,18 @@ selectSpellTarget def c checkKnow next msgForSelecting cancel = GameAuto $ do
 
 showStatusSpellingCamp :: CharacterID -> String -> GameState Event
 showStatusSpellingCamp cid s = do
-    msg <- uncurry switchLang msgForInputSpellInCamp
+    msg <- switchL msgForInputSpellInCamp
     return $ showStatusFlash cid msg s
 
-msgForInputSpellInCamp = ("Input spell.\n(Empty to cancel.)", "呪文名を入力。\n(空入力でキャンセル)")
+msgForInputSpellInCamp :: LanguageSet String
+msgForInputSpellInCamp = EnJp "Input spell.\n(Empty to cancel.)" "呪文名を入力。\n(空入力でキャンセル)"
 
 spellInCamp :: PartyPos -> GameMachine -> Spell.Name -> SpellTarget -> GameMachine
 spellInCamp src next s (Left dst) = GameAuto $ do
     cid      <- characterIDInPartyAt src
     spellDef <- spellByName s
-    ev1      <- showStatusSpellingCamp cid =<< switchLang "can't cast it here." "ここで唱えることはできない。"
-    ev2      <- showStatusSpellingCamp cid =<< switchLang "what?" "なに ?"
+    ev1      <- showStatusSpellingCamp cid =<< switchL (EnJp "Cannot cast it here." "ここで唱えることはできない。")
+    ev2      <- showStatusSpellingCamp cid =<< switchL (EnJp "What?" "なに ?")
     run $ if s == "\n" then next else case spellDef of
       Just def -> if Spell.InCamp `elem` Spell.enableIn def then
                     spellInCamp' def src dst next
@@ -649,7 +650,7 @@ spellInCamp src next s (Left dst) = GameAuto $ do
       Nothing  -> events [ev2] next
 spellInCamp src next s (Right dst) = GameAuto $ do
     cid <- characterIDInPartyAt src
-    ev1 <- showStatusSpellingCamp cid =<< switchLang "can't cast it here." "ここで唱えることはできない。"
+    ev1 <- showStatusSpellingCamp cid =<< switchL (EnJp "Cannot cast it here." "ここで唱えることはできない。")
     run $ events [ev1] next
 
 spellInCamp' :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> GameMachine
@@ -658,8 +659,8 @@ spellInCamp' def src dst next = GameAuto $ do
     c    <- characterInPartyAt src
     know <- knowSpell' c def
     can  <- canSpell'  c def
-    ev1  <- showStatusSpellingCamp cid =<< switchLang "can't cast it here." "ここで唱えることはできない。"
-    ev2  <- showStatusSpellingCamp cid =<< switchLang "no more MP." "MPが足りない。"
+    ev1  <- showStatusSpellingCamp cid =<< switchL (EnJp "Cannot cast it here." "ここで唱えることはできない。")
+    ev2  <- showStatusSpellingCamp cid =<< switchL (EnJp "Not enough MP." "MPが足りない。")
     if      not know then
       run $ events [ev1] next
     else if not can  then
@@ -672,7 +673,7 @@ spellInCampNoCost :: Spell.Define -> PartyPos -> PartyPos -> GameMachine -> Game
 spellInCampNoCost def src dst next = GameAuto $ do
     pn   <- length . party <$> world
     c    <- characterInPartyAt src
-    txt1 <- switchLang "can't use it here." "ここで使うことはできない。"
+    txt1 <- switchL (EnJp "Cannot use it here." "ここで使うことはできない。")
     let tgt = case Spell.target def of
                 Spell.AllySingle -> [dst]
                 Spell.AllyAll    -> toPartyPos <$> [1..pn]
@@ -719,8 +720,8 @@ moveTo next (x', y', z') = GameAuto $ do
     when (z' /= z p) resetRoomBattle
     exist <- existMazeInfAt z'
     movePlace (InMaze p')
-    txt1 <- switchLang "You jumped into a void!"  "虚無に飛び込んでしまった !"
-    txt2 <- switchLang "You've taken to the sky!" "上空で実体化してしまった !"
+    txt1 <- switchL (EnJp "You jumped into the void!"      "虚無に飛び込んでしまった !")
+    txt2 <- switchL (EnJp "You've been cast into the sky!" "上空で実体化してしまった !")
     if      not exist && z' > 0 then
       run $ events [flashMessageInf txt1] $ totalAnnihilation False Lost
     else if not exist && z' <= 0 then
@@ -733,14 +734,14 @@ checkLocation t next = GameAuto $ do
     p          <- currentPosition
     (fn, _, m) <- mazeInfAt $ z p
     let pos = fn ++ "(" ++ show (x p) ++ ", " ++ show (y p) ++ ": " ++ show (direction p) ++ ")"
-    msg <- switchLang ("you are at " ++ pos ++ ".") ("あなたは "   ++ pos ++ " にいる。")
+    msg <- switchL (EnJp ("You are at " ++ pos ++ ".") ("あなたは "   ++ pos ++ " にいる。"))
     run $ case t of
       Spell.OnlyCoord -> events [Resume $ changeMessage msg] next
       Spell.ViewMap   -> showMap msg (0, 0) (z p) next
 
 showMap :: String -> (Int, Int) -> Int -> GameMachine -> GameMachine
 showMap msg (x,y) z next = GameAuto $ do
-    txt <- switchLang "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]" "\n ^A-^W-^S-^D  ^L)離れる `[`E`S`C`]"
+    txt <- switchL (EnJp "\n ^A-^W-^S-^D  ^L)eave `[`E`S`C`]" "\n ^A-^W-^S-^D  ^L)離れる `[`E`S`C`]")
     run $ selectEsc (ShowMap (msg ++ txt) (x,y) z False)
                     [(Key "l", next)
                     ,(Key "a", showMap msg (x-1,y) z next)
@@ -766,7 +767,7 @@ inputMove (dx,dy,dz) next cancel = GameAuto $ do
                               ++ ns2 ++ show (abs dy) ++ "  "
                               ++ ud2 ++ show (abs dz) ++ " \n" ++
                " ^A-^W-^S-^D  ^N)下の階  ^P)上の階  ^L)離れる `[`E`S`C`]"
-    msg <- switchLang msg1 msg2
+    msg <- switchL (EnJp msg1 msg2)
     run $ selectEsc (Resume (withNoPhrase . changeFlash msg))
           [(Key "l", cancel)
           ,(Key "a", inputMove (dx-1,dy,dz) next cancel)
@@ -792,8 +793,8 @@ showMapForMove (dx,dy,dz) next cancel = GameAuto $ do
         belows = fst <$> (          filter ((> zt) . fst)) ds'
         nam  = fst3 . snd $ head tags
     let inf = "[" ++ nam ++ "] (" ++ show (x p + dx) ++ ", " ++ show (y p + dy) ++ ")"
-    txt <- switchLang ("^M)ove to " ++ inf ++ "\n" ++ " ^A-^W-^S-^D  ^N)ext Floor  ^P)revious Floor  ^L)eave `[`E`S`C`]")
-                      ("^M)移動実行 : " ++ inf ++ "へ\n" ++ " ^A-^W-^S-^D  ^N)下の階  ^P)上の階  ^L)離れる `[`E`S`C`]")
+    txt <- switchL (EnJp ("^M)ove to " ++ inf ++ "\n" ++ " ^A-^W-^S-^D  ^N)ext Floor  ^P)revious Floor  ^L)eave `[`E`S`C`]")
+                         ("^M)移動実行 : " ++ inf ++ "へ\n" ++ " ^A-^W-^S-^D  ^N)下の階  ^P)上の階  ^L)離れる `[`E`S`C`]"))
     run $ selectWhenEsc (ShowMap txt (dx,dy) zt True)
                         [(Key "l", cancel, True)
                         ,(Key "a", showMapForMove (dx-1,dy,dz) next cancel, True)
@@ -823,9 +824,9 @@ castCureSpell f ss (Left src) (Left is) = do
         m <- formulaMapSO (Left src) (Left dst)
         d <- evalWith m f
         let dst' = foldl (&) (setHp (hpOf dst + d) dst) (removeStatusError <$> ss)
-        txt1 <- switchLang (" heal " ++ show (hpOf dst' - hpOf dst) ++ ".")
-                           (" のHPは " ++ show (hpOf dst' - hpOf dst) ++ " 回復した。")
-        txt2 <- switchLang " cured." " は癒された。"
+        txt1 <- switchL (EnJp (" healed for " ++ show (hpOf dst' - hpOf dst) ++ " points.")
+                              (" のHPは " ++ show (hpOf dst' - hpOf dst) ++ " 回復した。"))
+        txt2 <- switchL (EnJp " cured." " は癒された。")
         let msg = nameOf dst ++ (if hpOf dst /= hpOf dst' then txt1 else txt2)
         return [(updateCharacter id dst', msg, False, False)]
     return $ concat ts
@@ -837,9 +838,9 @@ castCureSpell f ss (Right src) (Right is) = do
         m <- formulaMapSO (Right src) (Right dst)
         d <- evalWith m f
         let dst' = foldl (&) (setHp (hpOf dst + d) dst) (removeStatusError <$> ss)
-        txt1 <- switchLang (" heal " ++ show (hpOf dst' - hpOf dst) ++ ".")
-                           (" のHPは " ++ show (hpOf dst' - hpOf dst) ++ " 回復した。")
-        txt2 <- switchLang " cured." " は癒された。"
+        txt1 <- switchL (EnJp (" healed for " ++ show (hpOf dst' - hpOf dst) ++ " points.")
+                              (" のHPは " ++ show (hpOf dst' - hpOf dst) ++ " 回復した。"))
+        txt2 <- switchL (EnJp " cured." " は癒された。")
         let msg = nameOf dst ++ (if hpOf dst /= hpOf dst' then txt1 else txt2)
         return [(updateEnemy dst (const dst'), msg, False, False)]
     return $ concat ts
@@ -848,10 +849,10 @@ castCureSpell _ _ _ _ = undefined
 
 castResurrectionSpell :: Formula -> [(StatusError, Formula)] -> CastAction
 castResurrectionSpell hpF sesF (Left src) (Left is) = do
-    txt1 <- switchLang " has been lost." " は消失した。"
-    txt2 <- switchLang "no happens." "何も起こらなかった。"
-    txt3 <- switchLang " has been resurrected." " は蘇った。"
-    txt4 <- switchLang " could not be resurrected." " が蘇ることはなかった。"
+    txt1 <- switchL (EnJp " has been lost." " は消失した。")
+    txt2 <- switchL (EnJp "nothing happened." "何も起こらなかった。")
+    txt3 <- switchL (EnJp " has been resurrected." " は蘇った。")
+    txt4 <- switchL (EnJp " could not be resurrected." " が蘇ることはなかった。")
     ts <- forM is $ \i -> do
       dst <- characterInPartyAt i
       id  <- characterIDInPartyAt i
@@ -884,7 +885,7 @@ castAddStatusErrorSpell ses src (Right es) = concat <$> forM es (\e -> do
             resist  <- resistStatusError m se (Enemy.resistError $ Enemy.define e)
             success <- (&&) <$> happens p <*> pure (not resist)
             txt1 <- statusErrorMessage se
-            txt2 <- switchLang " resisted." " は抵抗した。"
+            txt2 <- switchL (EnJp " resisted." " は抵抗した。")
             if success then do
                 let e' = addStatusError se e
                 let message = nameOf e ++ (if msg == "" then txt1 else " " ++ msg)
@@ -905,7 +906,7 @@ castAddStatusErrorSpell ses src (Left cs) = concat <$> forM cs (\i -> do
             resist  <- resistStatusError m se (concatMap Item.resistError eats)
             success <- (&&) <$> happens p <*> pure (not resist)
             txt1 <- statusErrorMessage se
-            txt2 <- switchLang " resisted." " は抵抗した。"
+            txt2 <- switchL (EnJp " resisted." " は抵抗した。")
             if success then do
                 let c' = addStatusError se c
                 let message = nameOf c ++ (if msg == "" then txt1 else " " ++ msg)
@@ -949,9 +950,9 @@ castDamageSpell f attrs (Left c) (Right es) = do
         d' <- applyVsEffect attrs vs (Left c) (Right e) d
         let e' = damageHp d' e
             noDamage = d /= 0 && d' == 0
-        txt1 <- switchLang " resisted." " は抵抗した。"
-        txt2 <- switchLang (" takes " ++ show d' ++ ".") (" は " ++ show d' ++ " のダメージを受けた。")
-        txt3 <- switchLang " is killed." " は死んだ。"
+        txt1 <- switchL (EnJp " resisted." " は抵抗した。")
+        txt2 <- switchL (EnJp (" takes " ++ show d' ++ " damage.") (" は " ++ show d' ++ " のダメージを受けた。"))
+        txt3 <- switchL (EnJp " is killed." " は死んだ。")
         let msg = if noDamage then nameOf e ++ txt1
                               else nameOf e ++ txt2
         return $ (updateEnemy e (const e'), msg, not noDamage, False)
@@ -968,9 +969,9 @@ castDamageSpell f attrs s@(Right e) (Left is) = do
         d' <- applyVsEffect attrs vs s (Left c)  d
         let c' = damageHp d' c
             noDamage = d /= 0 && d' == 0
-        txt1 <- switchLang " resisted." " は抵抗した。"
-        txt2 <- switchLang (" takes " ++ show d' ++ ".") (" は " ++ show d' ++ " のダメージを受けた。")
-        txt3 <- switchLang " is killed." " は死んだ。"
+        txt1 <- switchL (EnJp " resisted." " は抵抗した。")
+        txt2 <- switchL (EnJp (" takes " ++ show d' ++ " damage.") (" は " ++ show d' ++ " のダメージを受けた。"))
+        txt3 <- switchL (EnJp " is killed." " は死んだ。")
         let msg = if noDamage then nameOf c ++ txt1
                               else nameOf c ++ txt2
         cid <- characterIDInPartyAt i
@@ -982,7 +983,7 @@ castDamageSpell f attrs src dst = error $ "castDamageSpell:" ++ show f ++ ", src
 
 castAddLight :: Int -> Bool -> CastAction
 castAddLight n s _ _ = do
-  txt <- switchLang "it is brightly lit." "明るく照らされた。"
+  txt <- switchL (EnJp "The area is brightly lit." "明るく照らされた。")
   return [(setLightValue s n, txt, False, False)]
 
 

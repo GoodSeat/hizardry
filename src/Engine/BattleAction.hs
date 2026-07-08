@@ -127,15 +127,15 @@ fightDamage el c e hitBonus = do
 fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessage c e (h, d, ses) = do
     wa  <- weaponAttrOf c
-    vs' <- switchLang (Item.atackMessages wa) (Item.atackMessagesJPN wa)
-    vs  <- switchLang vsENG vsJPN
+    vs' <- switchL (EnJp (Item.atackMessages wa) (Item.atackMessagesJPN wa))
+    vs  <- switchL (EnJp vsENG vsJPN)
     v   <- randomIn $ if null vs' then vs else vs'
     let en = nameOf e
-    m1 <- switchLang (Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n")
-                     (Chara.name c ++ " は " ++ en ++ " に\n" ++ v ++ "。\n")
-    m2 <- switchLang (if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
-                     (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n")
-    m3 <- if Enemy.hp e <= 0 then switchLang [en ++ " is killed."] [en ++ " は死んだ。"]
+    m1 <- switchL (EnJp (Chara.name c ++ " " ++ v ++ "\n " ++ en ++ "\n")
+                        (Chara.name c ++ " は " ++ en ++ " に\n" ++ v ++ "。\n"))
+    m2 <- switchL (EnJp (if h == 0 then " and misses.\n" else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
+                        (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n"))
+    m3 <- if Enemy.hp e <= 0 then switchL (EnJp [en ++ " is killed."] [en ++ " は死んだ。"])
                              else mapM (fmap (en ++) . statusErrorMessage) (sort ses)
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
@@ -163,11 +163,12 @@ dispellOfCharacter f id el next = GameAuto $ do
         s <- happens =<< flip evalWith f =<< formulaMapSO (Left c) (Right e)
         if not isUndead || not s then return False
                                  else updateEnemy e (const e { Enemy.hp = 0 }) >> return True)
-      bm <- switchLang (Chara.name c ++ " attempted to dispell " ++ nameOf (head es) ++ ".\n")
-                       (Chara.name c ++ " は " ++ nameOf (head es) ++ " の解呪を試みた。\n")
-      rm <- switchLang (if n == 0 then "but failed." else show n ++ " " ++ nameOf (head es) ++ " have been purified.")
-                       (if n == 0 then "しかし、失敗した。" else show n ++ " 体の " ++ nameOf (head es) ++ " が浄化された。")
-      run $ events [msgF bm, msgF (bm ++ rm)] next
+      bm <- switchL (EnJp (Chara.name c ++ " attempted to dispel " ++ nameOf (head es) ++ ".\n")
+                          (Chara.name c ++ " は " ++ nameOf (head es) ++ " を解呪しようとした。\n"))
+      rm <- switchL (EnJp (if n == 0 then "but failed." else show n ++ " " ++ nameOf (head es) ++ " have been purified.")
+                          (if n == 0 then "しかし失敗した。" else show n ++ " 体の " ++ nameOf (head es) ++ " を解呪した。"))
+      let ts = [bm, bm ++ rm]
+      run $ events (msgF <$> ts) next
 
 hideOfCharacter :: CharacterID -> GameMachine -> GameMachine
 hideOfCharacter cid next = GameAuto $ do
@@ -175,8 +176,8 @@ hideOfCharacter cid next = GameAuto $ do
     c     <- characterByID cid
     param <- paramOf (Left c)
     couldHide <- happens $ 50 + agility param
-    txt1 <- switchLang " has hidden in the shadows."   " は影に潜んだ。"
-    txt2 <- switchLang " tried to hide, but couldn't." " は隠れようとしたが、失敗した。"
+    txt1 <- switchL (EnJp " has hidden in the shadows."   " は影に潜んだ。")
+    txt2 <- switchL (EnJp " tried to hide, but couldn't." " は隠れようとしたが、失敗した。")
     if couldHide then do
         updateCharacter cid (addStatusError Hidden c)
         run $ events [msgF $ Chara.name c ++ txt1] next
@@ -208,13 +209,13 @@ ambushOfCharacter id el next = GameAuto $ do
 
 ambushMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 ambushMessage c e (h, d, ses) = do
-    v  <- randomIn =<< switchLang vsENG vsJPN
+    v  <- randomIn =<< switchL (EnJp vsENG vsJPN)
     let en = nameOf e
-    m1 <- switchLang (Chara.name c ++ " " ++ v ++ "\n " ++ en ++ ".\n")
-                     (Chara.name c ++ " は " ++ en ++ "に\n" ++ v ++ "。\n")
-    m2 <- switchLang (if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
-                     (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n")
-    m3 <- if Enemy.hp e <= 0 then switchLang [en ++ " is killed."] [en ++ " は死んだ。"]
+    m1 <- switchL (EnJp (Chara.name c ++ " " ++ v ++ "\n " ++ en ++ "\n")
+                        (Chara.name c ++ " は " ++ en ++ " に\n" ++ v ++ "。\n"))
+    m2 <- switchL (EnJp (if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
+                        (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n"))
+    m3 <- if Enemy.hp e <= 0 then switchL (EnJp [en ++ " is killed."] [en ++ " は死んだ。"])
                              else mapM (fmap (en ++) . statusErrorMessage) (sort ses)
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
@@ -291,12 +292,12 @@ fightDamageE n e c dmg sts = do
 fightMessageE :: Enemy.Instance -> Chara.Character -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessageE e c (h, d, ses) = do
     let cn = Chara.name c
-    v  <- randomIn =<< switchLang vsENG vsJPN
-    m1 <- switchLang (nameOf e ++ " " ++ v ++ "\n " ++ cn ++ ".\n")
-                     (nameOf e ++ " は " ++ cn ++ " に\n" ++ v ++ "。\n")
-    m2 <- switchLang (if h == 0 then " and misses." else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
-                     (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n")
-    m3 <- if hpOf c <= 0 then switchLang [cn  ++ " is killed."] [cn ++ " は死んだ。"]
+    v  <- randomIn =<< switchL (EnJp vsENG vsJPN)
+    m1 <- switchL (EnJp (nameOf e ++ " " ++ v ++ "\n " ++ cn ++ "\n")
+                        (nameOf e ++ " は " ++ cn ++ " に\n" ++ v ++ "。\n"))
+    m2 <- switchL (EnJp (if h == 0 then " and misses.\n" else " and hits " ++ show h ++ " times for " ++ show d ++ ".\n")
+                        (if h == 0 then "しかし外れた。" else show h ++ " 回当たって、" ++ show d ++ " のダメージを与えた。\n"))
+    m3 <- if hpOf c <= 0 then switchL (EnJp [cn  ++ " is killed."] [cn ++ " は死んだ。"])
                          else mapM (fmap (cn ++) . statusErrorMessage) (sort ses)
     return $ (m1 ++ m2) : [m1 ++ x | x <- m3]
   where
@@ -306,7 +307,8 @@ fightMessageE e c (h, d, ses) = do
 
 -- ================================================================================
 
-verbForItem  = ("uses", "を使った")
+verbForItem  :: Verb
+verbForItem  = EnJp "uses" "を使った"
 
 useItemInBattle :: GameMachine -> Chara.ItemPos -> SpellEffect
 useItemInBattle escape i (Left cid) dst next = GameAuto $ do
@@ -336,7 +338,8 @@ use escape name def = if Spell.InBattle `elem` Spell.enableIn def
 
 -- ================================================================================
 
-verbForSpell = ("spells", "を唱えた")
+verbForSpell :: Verb
+verbForSpell = EnJp "casts" "を唱えた"
 
 
 type SpellEffect  = Either CharacterID Enemy.Instance
@@ -452,7 +455,7 @@ castToAll as n ca src (Right _) next = addEff (withSE Spelled) $ GameAuto $ do
     es <- mapM (aliveEnemiesLine . toEnemyLine) [1..4]
     run $ as castInBattle n ca src (Right $ concat es) next
 
-type Verb = (String, String)
+type Verb = LanguageSet String
 
 type Cast = String -- object (spell name or item name).
          -> CastAction
@@ -465,7 +468,7 @@ castInBattle vs n ca (Left cid) dst next = GameAuto $ do
     msgF <- messageF
     src <- characterByID cid
     ts  <- ca (Left src) dst
-    v   <- uncurry switchLang vs
+    v   <- switchL vs
     let acc (_, t, d, k) = let msg = (nameOf src ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
                            in with [when k (addMarks cid)] . (if d then toEffect False msg else events [msgF msg])
     run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
@@ -473,7 +476,7 @@ castInBattle vs n ca (Left cid) dst next = GameAuto $ do
 castInBattle vs n ca (Right e) dst next = GameAuto $ do
     msgF <- messageF
     ts <- ca (Right e) dst
-    v  <- uncurry switchLang vs
+    v  <- switchL vs
     let acc (_, t, d, _) = let msg = (nameOf e ++ " " ++ v ++ " " ++ n ++ ".\n") ++ t
                            in if d then toEffect True msg else events [msgF msg] 
     run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
@@ -487,26 +490,26 @@ asItem  cast = cast verbForItem
 -- --------------------------------------------------------------------------------
 
 castUnknown :: Verb -> String -> SpellEffect
-castUnknown vs = castNoEffect vs ("no happens.", "何も起こらなかった。")
+castUnknown vs = castNoEffect vs ("nothing happened.", "何も起こらなかった。")
 
 castNoMP :: Verb -> String -> SpellEffect
-castNoMP vs = castNoEffect vs ("no more MP.", "MPが足りなかった。")
+castNoMP vs = castNoEffect vs ("not enough MP.", "MPが足りなかった。")
 
 castButSilent :: Verb -> String -> SpellEffect
-castButSilent vs = castNoEffect vs ("but it wasn't voiced.", "しかし声にならなかった。")
+castButSilent vs = castNoEffect vs ("but is silenced.", "しかし声にならなかった。")
 
 castButFear :: Verb -> String -> SpellEffect
-castButFear vs = castNoEffect vs ("but couldn't voice well by fear.", "しかし恐怖でうまく声を出せなかった。")
+castButFear vs = castNoEffect vs ("but was too frightened to cast.", "しかし恐怖でうまく声を出せなかった。")
 
 castNoEffect :: Verb -> (String, String) -> String -> SpellEffect
 castNoEffect vs (msgENG, msgJPN) n src _ next = GameAuto $ do
     msgF <- messageF
-    msg  <- switchLang msgENG msgJPN
-    v    <- uncurry switchLang vs
+    msg  <- switchL (EnJp msgENG msgJPN)
+    v    <- switchL vs
     name <- case src of Left id -> Chara.name <$> characterByID id
                         Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
-    bm   <- switchLang (name ++ " " ++ v ++ " " ++ n ++ ".\n")
-                       (name ++ " は " ++ n ++ " に " ++ v ++ "。\n")
+    bm   <- switchL (EnJp (name ++ " " ++ v ++ " " ++ n ++ ".\n")
+                          (name ++ " は " ++ n ++ " に " ++ v ++ "。\n"))
     let ts      = ["", msg]
         toMsg t = msgF $ bm ++ t
     run $ events (toMsg <$> ts) next
@@ -514,7 +517,7 @@ castNoEffect vs (msgENG, msgJPN) n src _ next = GameAuto $ do
 castCheckLocation :: Spell.CheckLocationType -> Verb -> String -> SpellEffect
 castCheckLocation t vs n src _ next = GameAuto $ do
     msgF <- messageF
-    v    <- uncurry switchLang vs
+    v    <- switchL vs
     name <- case src of Left id -> Chara.name <$> characterByID id
                         Right e -> Enemy.name <$> enemyDefineByID (Enemy.id e)
     run $ events [msgF $ name ++ " " ++ v ++ " " ++ n ++ ".\n"] (checkLocation t next)
@@ -522,13 +525,13 @@ castCheckLocation t vs n src _ next = GameAuto $ do
 castMalor :: GameMachine -> Verb -> String -> SpellEffect
 castMalor escape vs n src _ next = GameAuto $ do
     msgF <- messageF
-    txt1 <- switchLang " has disappeared." " は消え失せた。"
-    v    <- uncurry switchLang vs
+    txt1 <- switchL (EnJp " has disappeared." " は消え失せた。")
+    v    <- switchL vs
     case src of
         Right e -> do
             name <- Enemy.name <$> enemyDefineByID (Enemy.id e)
-            bm   <- switchLang (name ++ " " ++ v ++ " " ++ n ++ ".\n")
-                               (name ++ " は " ++ n ++ " に " ++ v ++ "。\n")
+            bm   <- switchL (EnJp (name ++ " " ++ v ++ " " ++ n ++ ".\n")
+                                  (name ++ " は " ++ n ++ " に " ++ v ++ "。\n"))
             let ts      = ["", name ++ txt1]
                 toMsg t = msgF $ bm ++ t
             updateEnemy e $ const e { Enemy.hp = 0 }
@@ -539,8 +542,8 @@ castMalor escape vs n src _ next = GameAuto $ do
             size    <- mazeSizeAt $ Maze.z p
             (x',y') <- case size of Just ((x0, y0), (w, h)) -> (,) <$> randomIn [x0..(x0+w-1)] <*> randomIn [y0..(y0+h-1)]
                                     Nothing                 -> (,) <$> randomIn [(Maze.x p-100)..(Maze.x p+100)] <*> randomIn [(Maze.y p-100)..(Maze.y p+100)]
-            bm   <- switchLang (name ++ " " ++ v ++ " " ++ n ++ ".\n")
-                               (name ++ " は " ++ n ++ " に " ++ v ++ "。\n")
+            bm   <- switchL (EnJp (name ++ " " ++ v ++ " " ++ n ++ ".\n")
+                                  (name ++ " は " ++ n ++ " に " ++ v ++ "。\n"))
             run $ events [msgF bm] $ with [movePlace $ InBattle (p { Maze.x = x', Maze.y = y' }) []] escape
 
 -- ==========================================================================

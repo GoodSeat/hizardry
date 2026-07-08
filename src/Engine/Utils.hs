@@ -23,26 +23,26 @@ import qualified Data.Items as Item
 
 
 statusErrorMessage :: StatusError -> GameState String
-statusErrorMessage Silence    = switchLang " become unable to speak !"
-                                           " は発声できなくなった !"
-statusErrorMessage Paralysis  = switchLang " is paralyzed !"
-                                           " は麻痺してしまった !"
-statusErrorMessage Stoned     = switchLang " become petrified !"
-                                           " は石化してしまった !"
-statusErrorMessage (Poison _) = switchLang " is poisoned !"
-                                           " は毒に冒された !"
-statusErrorMessage (Fear _)   = switchLang " is horrified !"
-                                           " は恐怖した !"
-statusErrorMessage Sleep      = switchLang " is fell asleep !"
-                                           " は眠ってしまった !"
-statusErrorMessage (Drain n)  = switchLang (" is drained " ++ show n ++ " Level !")
-                                           (" は " ++ show n ++ " レベル下げられた !")
-statusErrorMessage Dead       = switchLang " is decapitated !"
-                                           " は首をはねられた !"
-statusErrorMessage Ash        = switchLang " became to ash !"
-                                           " は灰になってしまった !"
-statusErrorMessage Lost       = switchLang " is losted !"
-                                           " は消失した !"
+statusErrorMessage Silence    = switchL $ EnJp " become unable to speak !"
+                                               " は発声できなくなった !"
+statusErrorMessage Paralysis  = switchL $ EnJp " is paralyzed !"
+                                               " は麻痺してしまった !"
+statusErrorMessage Stoned     = switchL $ EnJp " become petrified !"
+                                               " は石化してしまった !"
+statusErrorMessage (Poison _) = switchL $ EnJp " is poisoned !"
+                                               " は毒に冒された !"
+statusErrorMessage (Fear _)   = switchL $ EnJp " is horrified !"
+                                               " は恐怖した !"
+statusErrorMessage Sleep      = switchL $ EnJp " is fell asleep !"
+                                               " は眠ってしまった !"
+statusErrorMessage (Drain n)  = switchL $ EnJp (" is drained " ++ show n ++ " Level !")
+                                               (" は " ++ show n ++ " レベル下げられた !")
+statusErrorMessage Dead       = switchL $ EnJp " is decapitated !"
+                                               " は首をはねられた !"
+statusErrorMessage Ash        = switchL $ EnJp " became to ash !"
+                                               " は灰になってしまった !"
+statusErrorMessage Lost       = switchL $ EnJp " is losted !"
+                                               " は消失した !"
 
 -- =================================================================================
 -- General
@@ -78,12 +78,6 @@ parse'D s help next = GameAuto $ do
 
 isNullKey :: String -> Bool
 isNullKey = null . filter (/= '\n') . filter (/= '\r')
-
-switchLang :: a -> a -> GameState a
-switchLang s1 s2 = do
-    wop <- worldOption <$> world
-    if language wop == ENG then return s1
-    else                        return s2
 
 switchL :: LanguageSet a -> GameState a
 switchL (EnJp s1 s2) = do
@@ -306,8 +300,8 @@ selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
     cs  <- filterM (isTarget . snd) (zip (toEnum <$> [0..]) its)
     let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf inf) <$> cs
         next' = selectItem' cancelKey msgForSelect isTarget next c cancel
-    txt1 <- switchLang ("Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n")
-                       ("選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]\n\n")
+    txt1 <- switchL $ EnJp ("Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n")
+                           ("選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]\n\n")
     return (msgForSelect $ txt1 ++ unlines msg,
             \(Key s) -> if s == cancelKey || s == "\ESC" then cancel
                         else case Chara.itemPosByChar s of
@@ -322,8 +316,8 @@ textItemCandidate c = "^A~^" ++ (Chara.itemPosToText . toEnum) (length (Chara.it
 
 lvup :: Chara.Character -> GameState (String, Chara.Character)
 lvup c = do
-    toText <- switchLang toTextENG toTextJPN
-    ps     <- switchLang psENG psJPN
+    toText <- switchL $ EnJp toTextENG toTextJPN
+    ps     <- switchL $ EnJp psENG psJPN
     changes <- forM ps $ \(v, mv, dp, t) -> do
       d <- deltaParam v mv (Chara.age c)
       return (toText t d, dp d)
@@ -337,9 +331,9 @@ lvup c = do
     hp' <- evalWith m (Chara.hpFormula $ Chara.job c)
     let maxhp' = max (Chara.maxhp c + 1) hp'
         uphp   = maxhp' - Chara.maxhp c
-    ln1 <- switchLang "You made the next level !\n\n" "レベルが上がった !\n\n"
-    ln2 <- switchLang ("You gained " ++ show uphp ++ " HitPoitns.") ("HPが " ++ show uphp ++ " 上がった。")
-    lnS <- switchLang "\nYou have learned a new spell." "\n新しい呪文を覚えた。"
+    ln1 <- switchL $ EnJp "You made the next level !\n\n" "レベルが上がった !\n\n"
+    ln2 <- switchL $ EnJp ("You gained " ++ show uphp ++ " HitPoitns.") ("HPが " ++ show uphp ++ " 上がった。")
+    lnS <- switchL $ EnJp "\nYou have learned a new spell." "\n新しい呪文を覚えた。"
     let txt = ln1 ++ ln2 ++ foldl1 (++) (fst <$> changes) ++ if null sn' then "" else lnS
     return (txt, c' { Chara.maxhp = Chara.maxhp c + uphp
                     , Chara.hp    = Chara.hp c + uphp 
@@ -689,7 +683,7 @@ formulaMapP = addBaseToMap empty
 totalAnnihilation :: Bool -> StatusError -> GameMachine
 totalAnnihilation returnCastle se = GameAuto $ do
     p <- currentPosition
-    txt1 <- switchLang "The party was wiped out." "パーティは全滅しました"
+    txt1 <- switchL $ EnJp "The party was wiped out." "パーティは全滅しました"
     movePlace TotalAnnihilation
     ps <- party <$> world
     forM_ ps $ flip updateCharacterWith (addStatusError se)
