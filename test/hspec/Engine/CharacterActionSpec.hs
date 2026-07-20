@@ -43,7 +43,7 @@ testJob = Chara.Job {
     , Chara.inspectTrapAbility   = parse' "0"
     , Chara.disarmTrapAbility    = parse' "0"
     , Chara.needParameter        = Parameter { strength = 11, iq = 0, piety = 0, vitality = 0, agility = 0, luck = 0 }
-    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [], Item.targetB = [], Item.damage = parse' "2d2", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.targetRange = Item.ToSingle }
+    , Chara.baseWeaponAttr       = Item.WeaponAttr { Item.targetF = [], Item.targetB = [], Item.damage = parse' "2d2", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = EnJp [] [], Item.targetRange = Item.ToSingle }
     , Chara.fightTryCount        = parse' "1"
     , Chara.fightHitBonus        = parse' "2"
     , Chara.baseAC               = parse' "10"
@@ -110,6 +110,7 @@ testScenario = initScenario (InitScenario {
       initScenarioName     = "TestScenario"
     , initScenarioVersion  = [1,0,0,0]
     , initScenarioOption   = ScenarioOption [] []
+    , initEnteringMazeMessage = ""
     , initRacies           = [testRace]
     , initJobs             = [testJob]
     , initMazes            = []
@@ -151,7 +152,7 @@ initialWorld = World {
       randomGen       = mkStdGen 42
     , guideOn         = False
     , statusOn        = False
-    , worldOption     = defaultWorldOption
+    , worldOption     = defaultWorldOption { language = ENG }
     , allCharacters   = Map.fromList [(CharacterID 1, initialCaster), (CharacterID 2, deadTarget)]
     , party           = [CharacterID 1, CharacterID 2]
     , place           = InBattle (Position N 0 0 0) [[testEnemyInstance, resistantEnemyInstance]] -- Set place to InBattle with enemies
@@ -232,7 +233,8 @@ spec = describe "castResurrectionSpell" $ do
 
                 let updatedEnemy = case place finalWorldAfterUpdate of InBattle _ e -> head (head e); _ -> error "Not in battle"
 
-                msg `shouldBe` Enemy.name (Enemy.define targetEnemyInstance) ++ statusErrorMessage Sleep
+                let (Right expectedStatusMsg, _) = runGame (statusErrorMessage Sleep) testScenario initialWorld
+                msg `shouldBe` Enemy.name (Enemy.define targetEnemyInstance) ++ expectedStatusMsg
                 Enemy.statusErrors updatedEnemy `shouldBe` [Sleep]
 
             it "does not apply status effect to resistant enemy" $ do

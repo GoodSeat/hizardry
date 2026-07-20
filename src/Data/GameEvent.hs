@@ -18,22 +18,22 @@ data Define =
             | StairsToLower Coord
 
             -- interactive
-            | Message     String (Maybe PictureInf)
-            | MessageTime String (Maybe PictureInf) Int
-            | Select      String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
-            | Ask         String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
-            | SelectC     String String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
-            | AskC        String String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | Message     (LanguageSet String) (Maybe PictureInf)
+            | MessageTime (LanguageSet String) (Maybe PictureInf) Int
+            | Select      (LanguageSet String) (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | Ask         (LanguageSet String) (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | SelectC     (LanguageSet String) (LanguageSet String) (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | AskC        (LanguageSet String) (LanguageSet String) (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
-            | MessageT     Int String (Maybe PictureInf)
-            | MessageTimeT Int String (Maybe PictureInf) Int
-            | SelectT      Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
-            | AskT         Int String (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | MessageT     Int (LanguageSet String) (Maybe PictureInf)
+            | MessageTimeT Int (LanguageSet String) (Maybe PictureInf) Int
+            | SelectT      Int (LanguageSet String) (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
+            | AskT         Int (LanguageSet String) (Maybe PictureInf) [(String, Define)] -- ^ use "" when no match. use "\n" for empty input. "hoge\nfoo" matches "hoge" or "foo".
 
-            | FlashMessage     String
-            | FlashMessageTime String Int
+            | FlashMessage     (LanguageSet String)
+            | FlashMessageTime (LanguageSet String) Int
 
-            | SelectItem String (Maybe PictureInf) [(Maybe Formula, Define)] -- item id (Nothing mean other items, must be last one)
+            | SelectItem (LanguageSet String) (Maybe PictureInf) [(Maybe Formula, Define)] -- item id (Nothing mean other items, must be last one)
 
             -- happens
             | Switch [(Condition, Define)]

@@ -10,7 +10,7 @@ import qualified Data.Characters as Chara
 jobs :: [Chara.Job]
 jobs = [fighter, mage, priest, thief, bishop, samurai, lord, ninja]
 
-baseWeaponAttr = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d4", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = [], Item.atackMessagesJPN = [], Item.targetRange = Item.ToSingle }
+baseWeaponAttr = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d4", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = EnJp [] [], Item.targetRange = Item.ToSingle }
 
 fighter = Chara.Job {
       Chara.jobName              = "Fighter"

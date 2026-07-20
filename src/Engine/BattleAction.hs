@@ -127,7 +127,7 @@ fightDamage el c e hitBonus = do
 fightMessage :: Chara.Character -> Enemy.Instance -> (Int, Int, [StatusError]) -> GameState [String]
 fightMessage c e (h, d, ses) = do
     wa  <- weaponAttrOf c
-    vs' <- switchL (EnJp (Item.atackMessages wa) (Item.atackMessagesJPN wa))
+    vs' <- switchL (Item.atackMessages wa)
     vs  <- switchL (EnJp vsENG vsJPN)
     v   <- randomIn $ if null vs' then vs else vs'
     let en = nameOf e

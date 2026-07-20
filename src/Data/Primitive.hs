@@ -9,11 +9,22 @@ import Data.List (find, sort, intercalate)
 import Data.Char (ord)
 import Data.Function ((&))
 
+import Data.String (IsString(..))
+
 -- ==========================================================================
 -- Primitive
 -- --------------------------------------------------------------------------
 
 data LanguageSet a = En a | Jp a | EnJp a a
+  deriving (Show, Eq, Ord, Read)
+
+instance Functor LanguageSet where
+    fmap f (En a)      = En (f a)
+    fmap f (Jp a)      = Jp (f a)
+    fmap f (EnJp a b)  = EnJp (f a) (f b)
+
+instance IsString a => IsString (LanguageSet a) where
+    fromString s = EnJp (fromString s) (fromString s)
 
 -- ==========================================================================
 -- ID

@@ -6,16 +6,11 @@ import qualified Data.Map as Map
 
 import Data.Primitive
 
-amPatternSword    = ["attempts to slice", "thrusts violently at", "tries to slash"]
-amPatternSwordJPN = ["切りつけた", "激しく突いた", "斬りつけた"]
-amPatternMace     = ["tries to bash"]
-amPatternMaceJPN  = ["殴りつけた"]
-amPatternBow      = ["aimed and shot"]
-amPatternBowJPN   = ["狙いを定めて撃った"]
-amPatternWhip     = ["whipped"]
-amPatternWhipJPN  = ["打ちつけた"]
-amPatternThrow    = ["throw weapon to"]
-amPatternThrowJPN = ["投げつけた"]
+amPatternSword    = EnJp ["attempts to slice", "thrusts violently at", "tries to slash"] ["切りつけた", "激しく突いた", "斬りつけた"]
+amPatternMace     = EnJp ["tries to bash"] ["殴りつけた"]
+amPatternBow      = EnJp ["aimed and shot"] ["狙いを定めて撃った"]
+amPatternWhip     = EnJp ["whipped"] ["打ちつけた"]
+amPatternThrow    = EnJp ["throw weapon to"] ["投げつけた"]
 
 items :: Item.DB
 items = Map.fromList [
@@ -134,7 +129,6 @@ items = Map.fromList [
                                            , Item.attrLabels       = [EffectLabel "fire"]
                                            , Item.addStatusErrors  = []
                                            , Item.atackMessages    = amPatternSword
-                                           , Item.atackMessagesJPN = amPatternSwordJPN
                                            , Item.targetRange      = Item.ToSingle
                                          }
         , Item.valueInShop      = 500
@@ -306,7 +300,6 @@ items = Map.fromList [
                                            , Item.attrLabels       = []
                                            , Item.addStatusErrors  = []
                                            , Item.atackMessages    = amPatternBow
-                                           , Item.atackMessagesJPN = amPatternBowJPN
                                            , Item.targetRange      = Item.ToSingle
                                          }
         , Item.valueInShop      = 4000
@@ -340,7 +333,6 @@ items = Map.fromList [
                                            , Item.attrLabels       = [EffectLabel "fire"]
                                            , Item.addStatusErrors  = [(read "lv-o.lv", Dead, [EffectLabel "fire"])]
                                            , Item.atackMessages    = amPatternBow
-                                           , Item.atackMessagesJPN = amPatternBowJPN
                                            , Item.targetRange      = Item.ToSingle
                                          }
         , Item.valueInShop      = 4000
@@ -374,7 +366,6 @@ items = Map.fromList [
                                            , Item.attrLabels       = [EffectLabel "fire"]
                                            , Item.addStatusErrors  = []
                                            , Item.atackMessages    = amPatternWhip
-                                           , Item.atackMessagesJPN = amPatternWhipJPN
                                            , Item.targetRange      = Item.ToGroup
                                          }
         , Item.valueInShop      = 2000
@@ -408,7 +399,6 @@ items = Map.fromList [
                                            , Item.attrLabels       = []
                                            , Item.addStatusErrors  = []
                                            , Item.atackMessages    = amPatternThrow
-                                           , Item.atackMessagesJPN = amPatternThrowJPN
                                            , Item.targetRange      = Item.ToAll
                                          }
         , Item.valueInShop      = 3000

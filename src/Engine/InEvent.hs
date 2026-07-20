@@ -83,25 +83,52 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling toBattle = doEvent
         run $ events' (updownEffect p' False) (next False)
 
     -- interactive
-    doEvent' (Ev.Message     msg picID     ) next = events [messagePic msg picID] (next False)
-    doEvent' (Ev.MessageTime msg picID t   ) next = events [messageTime t msg picID] (next False)
-    doEvent' (Ev.Select      msg picID ways) next = select (messagePic msg picID) (candidates ways)
-    doEvent' (Ev.Ask         msg picID ways) next = select (ask msg picID) (candidates ways)
-    doEvent' (Ev.SelectC     msg cmd picID ways) next = select (changeCommand cmd $ messagePic msg picID) (candidates ways)
-    doEvent' (Ev.AskC        msg cmd picID ways) next = select (changeCommand cmd $ ask msg picID) (candidates ways)
+    doEvent' (Ev.Message     msg picID     ) next = GameAuto $ do
+        m <- switchL msg
+        run $ events [messagePic m picID] (next False)
+    doEvent' (Ev.MessageTime msg picID t   ) next = GameAuto $ do
+        m <- switchL msg
+        run $ events [messageTime t m picID] (next False)
+    doEvent' (Ev.Select      msg picID ways) next = GameAuto $ do
+        m <- switchL msg
+        run $ select (messagePic m picID) (candidates ways)
+    doEvent' (Ev.Ask         msg picID ways) next = GameAuto $ do
+        m <- switchL msg
+        run $ select (ask m picID) (candidates ways)
+    doEvent' (Ev.SelectC     msg cmd picID ways) next = GameAuto $ do
+        m <- switchL msg
+        c <- switchL cmd
+        run $ select (changeCommand c $ messagePic m picID) (candidates ways)
+    doEvent' (Ev.AskC        msg cmd picID ways) next = GameAuto $ do
+        m <- switchL msg
+        c <- switchL cmd
+        run $ select (changeCommand c $ ask m picID) (candidates ways)
 
-    doEvent' (Ev.MessageT     dt msg picID     ) next = talk msg dt picID (next False)
-    doEvent' (Ev.MessageTimeT dt msg picID t   ) next = talkSelect msg dt picID $ const (events [messageTime t msg picID] (next False))
-    doEvent' (Ev.SelectT      dt msg picID ways) next = talkSelect msg dt picID (`select` candidates ways)
-    doEvent' (Ev.AskT         dt msg picID ways) next = talkSelect msg dt picID $ const (select (ask msg picID) (candidates ways))
+    doEvent' (Ev.MessageT     dt msg picID     ) next = GameAuto $ do
+        m <- switchL msg
+        run $ talk m dt picID (next False)
+    doEvent' (Ev.MessageTimeT dt msg picID t   ) next = GameAuto $ do
+        m <- switchL msg
+        run $ talkSelect m dt picID $ const (events [messageTime t m picID] (next False))
+    doEvent' (Ev.SelectT      dt msg picID ways) next = GameAuto $ do
+        m <- switchL msg
+        run $ talkSelect m dt picID (`select` candidates ways)
+    doEvent' (Ev.AskT         dt msg picID ways) next = GameAuto $ do
+        m <- switchL msg
+        run $ talkSelect m dt picID $ const (select (ask m picID) (candidates ways))
 
-    doEvent' (Ev.FlashMessage     msg)   next = events [flashMessageInf msg] (next False)
-    doEvent' (Ev.FlashMessageTime msg t) next = events [flashMessage (-1500) msg] (next False)
+    doEvent' (Ev.FlashMessage     msg)   next = GameAuto $ do
+        m <- switchL msg
+        run $ events [flashMessageInf m] (next False)
+    doEvent' (Ev.FlashMessageTime msg t) next = GameAuto $ do
+        m <- switchL msg
+        run $ events [flashMessage (-1500) m] (next False)
 
     doEvent' (Ev.SelectItem msg picID cds) next = GameAuto $ do
-        cmds <- cmdNumParties $ \(i, c) -> selectItem (withPicture picID . changeMessage msg . battleCommand) (const $ return True)
+        m <- switchL msg
+        cmds <- cmdNumParties $ \(i, c) -> selectItem (withPicture picID . changeMessage m . battleCommand) (const $ return True)
                                            (onItem i) c (doEvent' (Ev.SelectItem msg picID cds) next)
-        run $ selectEsc (withPicture picID . changeMessage msg $ battleCommand "^#)Select character.\n^L)eave `[`E`S`C`]")
+        run $ selectEsc (withPicture picID . changeMessage m $ battleCommand "^#)Select character.\n^L)eave `[`E`S`C`]")
                       $ (Key "l", next isHidden) : cmds
       where
         findEv :: [(Maybe Formula, Ev.Define)] -> Chara.Character -> ItemID -> GameState (Maybe Ev.Define)

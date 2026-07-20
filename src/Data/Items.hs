@@ -91,8 +91,7 @@ data WeaponAttr = WeaponAttr {
     , doubleLabels     :: ![EnemyLabel]                            -- ^ double damage target.
     , attrLabels       :: ![EffectLabel]                           -- ^ attribute of atack.
     , addStatusErrors  :: ![(Formula, StatusError, [EffectLabel])] -- ^ additinal effect, and it's probablity.
-    , atackMessages    :: ![String]                                -- ^ message candidates when fight with this weapon. [optional]
-    , atackMessagesJPN :: ![String]                                -- ^ message candidates when fight with this weapon. [optional]
+    , atackMessages    :: !(LanguageSet [String])                  -- ^ message candidates when fight with this weapon. [optional]
     , targetRange      :: !WeaponRange                             -- ^ range of weapon.
 } deriving (Show, Eq, Read)
         
