@@ -10,8 +10,8 @@ import Data.Formula
 enemies :: Enemy.DB
 enemies = Map.fromList [
     (EnemyID 1, Enemy.emptyDefine {
-          Enemy.name              = "slime"
-        , Enemy.nameUndetermined  = "moving object"
+          Enemy.name              = EnJp "slime" "スライム"
+        , Enemy.nameUndetermined  = EnJp "moving object" "うごめく物体"
         , Enemy.pic               = Single $ PictureID 1001
         , Enemy.picUndetermined   = Single $ PictureID 2001
         , Enemy.lv                = 1
@@ -48,8 +48,8 @@ enemies = Map.fromList [
         , Enemy.trapCandidate     = [Enemy.NoTrap, Enemy.PoisonNeedle, Enemy.GasBomb, Enemy.CrossbowBolt, Enemy.ExplodingBox]
     })
     , (EnemyID 2, Enemy.emptyDefine {
-          Enemy.name              = "goblin"
-        , Enemy.nameUndetermined  = "humanoid creature"
+          Enemy.name              = EnJp "goblin" "ゴブリン"
+        , Enemy.nameUndetermined  = EnJp "humanoid creature" "人型の生き物"
         , Enemy.pic               = Single $ PictureID 1002
         , Enemy.picUndetermined   = Single $ PictureID 2002
         , Enemy.lv                = 2
@@ -87,8 +87,8 @@ enemies = Map.fromList [
         , Enemy.enemyBGM          = Just "themeOfSoleil"
     })
     , (EnemyID 3, Enemy.emptyDefine {
-          Enemy.name              = "zombie"
-        , Enemy.nameUndetermined  = "humanoid creature"
+          Enemy.name              = EnJp "zombie" "ゾンビ"
+        , Enemy.nameUndetermined  = EnJp "humanoid creature" "人型の生き物"
         , Enemy.pic               = Single $ PictureID 1002
         , Enemy.picUndetermined   = Single $ PictureID 2002
         , Enemy.lv                = 2

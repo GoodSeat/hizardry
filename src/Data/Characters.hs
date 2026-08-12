@@ -6,6 +6,7 @@ import Data.List (nub)
 import Data.Maybe (isJust)
 import Data.Primitive
 import Data.Formula (Formula)
+import Data.String (IsString(..))
 import qualified Data.Map as Map
 import qualified Data.Spells as Spell
 import qualified Data.Items as Item
@@ -39,7 +40,7 @@ data Character = Character {
 } deriving (Show, Eq, Read)
 
 instance Object Character where
-  nameOf          = name
+  nameOf          = fromString . name
   hpOf            = hp
   maxhpOf         = maxhp
   lvOf         c  = lv c - getDrainLv c

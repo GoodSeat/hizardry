@@ -80,12 +80,14 @@ isNullKey :: String -> Bool
 isNullKey = null . filter (/= '\n') . filter (/= '\r')
 
 switchL :: LanguageSet a -> GameState a
-switchL (EnJp s1 s2) = do
+switchL o = do
     wop <- worldOption <$> world
-    if language wop == ENG then return s1
-    else                        return s2
-switchL (En s1) = return s1
-switchL (Jp s1) = return s1
+    return $ switchL' (language wop) o
+
+switchL' :: Language -> LanguageSet a -> a
+switchL' l (EnJp s1 s2) = if l == ENG then s1 else s2
+switchL' _ (En s1)      = s1
+switchL' _ (Jp s1)      = s1
 
 
 fst3 (t1,  _,  _) = t1

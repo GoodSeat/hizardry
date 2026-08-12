@@ -4,6 +4,7 @@ where
 
 import PreludeL
 import Data.List (nub)
+import Data.String (IsString(..))
 import qualified Data.Map as Map
 
 import Data.Formula
@@ -31,8 +32,8 @@ instance Eq Instance where
   e1 == e2 = (noID e1 == noID e2)
 
 data Define = Define {
-      name              :: !String
-    , nameUndetermined  :: !String
+      name              :: !(LanguageSet String)
+    , nameUndetermined  :: !(LanguageSet String)
     , pic               :: !PictureInf
     , picUndetermined   :: !PictureInf
     , lv                :: !Int
@@ -68,8 +69,8 @@ data Define = Define {
 
 emptyDefine :: Define
 emptyDefine = Define {
-      name              = "undefined"
-    , nameUndetermined  = "undefined"
+      name              = fromString "undefined"
+    , nameUndetermined  = fromString "undefined"
     , pic               = Null
     , picUndetermined   = Null
     , lv                = 0

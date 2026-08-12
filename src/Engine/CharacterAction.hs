@@ -827,7 +827,8 @@ castCureSpell f ss (Left src) (Left is) = do
         txt1 <- switchL (EnJp (" healed for " ++ show (hpOf dst' - hpOf dst) ++ " points.")
                               (" のHPは " ++ show (hpOf dst' - hpOf dst) ++ " 回復した。"))
         txt2 <- switchL (EnJp " cured." " は癒された。")
-        let msg = nameOf dst ++ (if hpOf dst /= hpOf dst' then txt1 else txt2)
+        n'   <- switchL $ nameOf dst
+        let msg = n' ++ (if hpOf dst /= hpOf dst' then txt1 else txt2)
         return [(updateCharacter id dst', msg, False, False)]
     return $ concat ts
 castCureSpell f ss (Right src) (Right is) = do
@@ -841,7 +842,8 @@ castCureSpell f ss (Right src) (Right is) = do
         txt1 <- switchL (EnJp (" healed for " ++ show (hpOf dst' - hpOf dst) ++ " points.")
                               (" のHPは " ++ show (hpOf dst' - hpOf dst) ++ " 回復した。"))
         txt2 <- switchL (EnJp " cured." " は癒された。")
-        let msg = nameOf dst ++ (if hpOf dst /= hpOf dst' then txt1 else txt2)
+        n'   <- switchL $ nameOf dst
+        let msg = n' ++ (if hpOf dst /= hpOf dst' then txt1 else txt2)
         return [(updateEnemy dst (const dst'), msg, False, False)]
     return $ concat ts
 castCureSpell _ _ _ _ = undefined
@@ -856,9 +858,10 @@ castResurrectionSpell hpF sesF (Left src) (Left is) = do
     ts <- forM is $ \i -> do
       dst <- characterInPartyAt i
       id  <- characterIDInPartyAt i
+      n'  <- switchL $ nameOf dst
       let ssc = statusErrorsOf dst
           targetSes = filter ((`elem` ssc) . fst) sesF
-      if      Lost `elem` ssc then return [(return (), nameOf dst ++ txt1, False, False)]
+      if      Lost `elem` ssc then return [(return (), n' ++ txt1, False, False)]
       else if null targetSes then return [(return (), txt2, False, False)]
       else do
         let (_, probF) = head targetSes
@@ -868,9 +871,9 @@ castResurrectionSpell hpF sesF (Left src) (Left is) = do
         if success then do
             hp <- evalWith m hpF
             let dst' = setHp hp (removeStatusError Dead $ removeStatusError Ash dst)
-            return [(updateCharacter id dst', nameOf dst ++ txt3, False, False)]
+            return [(updateCharacter id dst', n' ++ txt3, False, False)]
         else
-            return [(return (), nameOf dst ++ txt4, False, False)]
+            return [(return (), n' ++ txt4, False, False)]
     return $ concat ts
 castResurrectionSpell _ _ _ _ = undefined
 
@@ -886,12 +889,13 @@ castAddStatusErrorSpell ses src (Right es) = concat <$> forM es (\e -> do
             success <- (&&) <$> happens p <*> pure (not resist)
             txt1 <- statusErrorMessage se
             txt2 <- switchL (EnJp " resisted." " は抵抗した。")
+            n'   <- switchL $ nameOf e
             if success then do
                 let e' = addStatusError se e
-                let message = nameOf e ++ (if msg == "" then txt1 else " " ++ msg)
+                let message = n' ++ (if msg == "" then txt1 else " " ++ msg)
                 return [(updateEnemy e (const e'), message, False, se >= Dead)]
             else
-                return [(return (), nameOf e ++ txt2, False, False)]
+                return [(return (), n' ++ txt2, False, False)]
         return $ concat results
     )
 castAddStatusErrorSpell ses src (Left cs) = concat <$> forM cs (\i -> do
@@ -907,12 +911,13 @@ castAddStatusErrorSpell ses src (Left cs) = concat <$> forM cs (\i -> do
             success <- (&&) <$> happens p <*> pure (not resist)
             txt1 <- statusErrorMessage se
             txt2 <- switchL (EnJp " resisted." " は抵抗した。")
+            n'   <- switchL $ nameOf c
             if success then do
                 let c' = addStatusError se c
-                let message = nameOf c ++ (if msg == "" then txt1 else " " ++ msg)
+                let message = n' ++ (if msg == "" then txt1 else " " ++ msg)
                 return [(updateCharacter cid c', message, False, se >= Dead)]
             else
-                return [(return (), nameOf c ++ txt2, False, False)]
+                return [(return (), n' ++ txt2, False, False)]
         return $ concat results
     )
 
@@ -927,16 +932,18 @@ castParamChangeSpell ad term etxt src (Left is)
     | otherwise = concat <$> forM is (\i -> do
           dst  <- characterIDInPartyAt i
           cdst <- characterInPartyAt i
+          n'   <- switchL $ nameOf cdst
           prmc <- toParamChange src (Left cdst) ad
           if hpOf cdst == 0 then return []
           else return [(updateCharacter dst $ cdst { Chara.paramDelta = Spell.applyChangeParam term prmc (Chara.paramDelta cdst) }
-                      , nameOf cdst ++ " " ++ etxt ++ ".", False, False)]
+                      , n' ++ " " ++ etxt ++ ".", False, False)]
           )
 castParamChangeSpell ad term etxt src (Right is) = concat <$> forM is (\dst -> do
     prmc <- toParamChange src (Right dst) ad
+    n'   <- switchL $ nameOf dst
     if hpOf dst == 0 then return []
     else return [(updateEnemy dst $ const dst { Enemy.modParams = Spell.applyChangeParam term prmc (Enemy.modParams dst) }
-                , nameOf dst ++ " " ++ etxt ++ ".", False, False)]
+                , n' ++ " " ++ etxt ++ ".", False, False)]
     )
 
 castDamageSpell :: Formula -> [EffectLabel] -> CastAction
@@ -953,10 +960,10 @@ castDamageSpell f attrs (Left c) (Right es) = do
         txt1 <- switchL (EnJp " resisted." " は抵抗した。")
         txt2 <- switchL (EnJp (" takes " ++ show d' ++ " damage.") (" は " ++ show d' ++ " のダメージを受けた。"))
         txt3 <- switchL (EnJp " is killed." " は死んだ。")
-        let msg = if noDamage then nameOf e ++ txt1
-                              else nameOf e ++ txt2
+        n'   <- switchL $ nameOf e
+        let msg = if noDamage then n' ++ txt1 else n' ++ txt2
         return $ (updateEnemy e (const e'), msg, not noDamage, False)
-               : [(return (), msg ++ "\n" ++ nameOf e ++ txt3, False, True) | Enemy.hp e' <= 0]
+               : [(return (), msg ++ "\n" ++ n' ++ txt3, False, True) | Enemy.hp e' <= 0]
     return $ concat ts
 castDamageSpell f attrs s@(Right e) (Left is) = do
     ts <- forM is $ \i -> do
@@ -972,11 +979,11 @@ castDamageSpell f attrs s@(Right e) (Left is) = do
         txt1 <- switchL (EnJp " resisted." " は抵抗した。")
         txt2 <- switchL (EnJp (" takes " ++ show d' ++ " damage.") (" は " ++ show d' ++ " のダメージを受けた。"))
         txt3 <- switchL (EnJp " is killed." " は死んだ。")
-        let msg = if noDamage then nameOf c ++ txt1
-                              else nameOf c ++ txt2
+        n'   <- switchL $ nameOf c
+        let msg = if noDamage then n' ++ txt1 else n' ++ txt2
         cid <- characterIDInPartyAt i
         return $ (updateCharacter cid c', msg, not noDamage, False)
-               : [(return (), msg ++ "\n" ++ nameOf c ++ txt3, False, True) | hpOf c' <= 0]
+               : [(return (), msg ++ "\n" ++ n' ++ txt3, False, True) | hpOf c' <= 0]
     return $ concat ts
 castDamageSpell f attrs src dst = error $ "castDamageSpell:" ++ show f ++ ", src=" ++ show src ++ ", dst=" ++ show dst
 

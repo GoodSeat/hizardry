@@ -139,13 +139,13 @@ startBattle' eid isRB maybeFriendly maybeSurprise (g1, g2) gold items = GameAuto
 
 startBattleMaybeFriendly :: Bool -> [[Enemy.Instance]] -> Condition -> GameMachine -> GameMachine
 startBattleMaybeFriendly isFriendly es con whenLeave = if not isFriendly then core else GameAuto $ do
-    msg <- switchL (EnJp msgENG msgJPN)
+    en  <- switchL $ nameOf (head . head $ es)
+    msg <- switchL $ EnJp (msgENG en) (msgJPN en)
     run $ select (message msg) [(Key "a", with [mayChangeAlignmentTo Chara.E] core)
                                ,(Key "l", with [mayChangeAlignmentTo Chara.G] whenLeave)]
   where
-    erep   = head . head $ es
-    msgENG = "A friendly group of " ++ nameOf erep ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
-    msgJPN = "友好的な " ++ nameOf erep ++ " だ。\n彼らに敵対心はないようだ。\n\n^A)攻撃する\n^L)立ち去る"
+    msgENG en = "A friendly group of " ++ en ++ ".\nThey hail you in welcome!\n\n^A)ttack!\n^L)eave in Peace"
+    msgJPN en = "友好的な " ++ en ++ " だ。\n彼らに敵対心はないようだ。\n\n^A)攻撃する\n^L)立ち去る"
     core   = with [moveToBattle es] $ addEff (specialBGM es) $ selectBattleCommand 1 [] con (Just NoSurprise)
   
 mayChangeAlignmentTo :: Chara.Alignment -> GameState ()
@@ -340,10 +340,11 @@ nextTurn con = GameAuto $ do
     msgF <- messageF
     (msgs1, ess') <- (\(a, b, _) -> (a, b)) <$> foldM (\(msgac, ess0, l) e -> do
                          mf <- happens $ Enemy.moveFrontProb $ Enemy.define (head e)
+                         en <- switchL $ nameOf (head e)
                          return $ if l <= 0 || not mf then
                            (msgac, ess0, l + 1)
                          else
-                           (msgac ++ [msgF $ nameOf (head e) ++ " has stepped forward."], [ess0 !! l] ++ take l ess0 ++ drop (l + 1) ess0, l + 1)
+                           (msgac ++ [msgF $ en ++ " has stepped forward."], [ess0 !! l] ++ take l ess0 ++ drop (l + 1) ess0, l + 1)
                      ) ([], ess, 0) ess
 
     ess'' <- tryDetermineEnemies ess'
@@ -358,8 +359,8 @@ nextTurn con = GameAuto $ do
       return $ hasStatusError c Found /= hasStatusError c' Found
 
     msgs2 <- forM fcs $ \cid -> do
-      c <- characterByID cid
-      return $ msgF (nameOf c ++ " was found by enemies.")
+      cn <- switchL . nameOf =<< characterByID cid
+      return $ msgF (cn ++ " was found by enemies.")
 
     sortPartyAutoWith (defaultOrder con)
 
@@ -441,6 +442,7 @@ act escape (ByEnemies l e a) next = GameAuto $ do
     case e_ of
       Nothing -> run next
       Just e' -> do
+        en  <- switchL $ nameOf e'
         if isCantFight e' then run next
         else case a of
           Enemy.Fight n d t effs -> run $ fightOfEnemy e' n d t effs next
@@ -468,7 +470,7 @@ act escape (ByEnemies l e a) next = GameAuto $ do
           Enemy.Breath f attrs   -> do
               ps <- party <$> world
               ts <- castDamageSpell f attrs (Right e') (Left $ toPartyPos <$> [1..length ps])
-              let acc (_, t, d, _) = let msg = (nameOf e ++ " spit out a breath.\n") ++ t
+              let acc (_, t, d, _) = let msg = (en ++ " spit out a breath.\n") ++ t
                                      in if d then toEffect True msg else events [msgF msg] 
               run $ foldr acc (with (fst4 <$> ts) next) ((undefined, "", False, False) : ts)
 
@@ -484,13 +486,13 @@ act escape (ByEnemies l e a) next = GameAuto $ do
                   nes' = (\ei -> ei { Enemy.noID = noID', Enemy.determined = Enemy.determined e' }) <$> nes
                   ess'' = take (l - 1) ess ++ [(ess !! (l - 1)) ++ nes'] ++ drop l ess
               moveToBattle ess''
-              let msg1 = nameOf e' ++ " called for backup."
+              let msg1 = en ++ " called for backup."
                   msg2 = if null nes' then " -- but, no one came." else " -- and the backup arrived."
               run $ events [msgF msg1, msgF (unlines [msg1, msg2])] next
 
           Enemy.Run              -> do
               updateEnemy e' $ const e' { Enemy.hp = 0 }
-              run $ events [msgF $ nameOf e' ++ " flees."] next
+              run $ events [msgF $ en ++ " flees."] next
 
 
 -- ==========================================================================

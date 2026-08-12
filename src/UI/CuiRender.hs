@@ -127,7 +127,7 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
                               _           -> msgBox
     mMsg' | not (null mMsg) = mMsg
           | not (null ess)  = unlines $ take 4 $ fmap txtEnemy (zip [1..] ess) ++ repeat "\n"
-          | isOnTreasure    = choiceLang w "you found a treasure chest." "宝箱を見つけた。"
+          | isOnTreasure    = choiceLang w $ EnJp "you found a treasure chest." "宝箱を見つけた。"
           | otherwise       = mMsg
     hideStatus = ((not . null) ess && null cMsg && isNothing cid')
               || (isOnTreasure && (not . null) cMsg || isChestOpend)
@@ -136,20 +136,20 @@ rendering rm picOf s mMsg fMsg cMsg cid' picInf w = rm (debugMode w) $
          e          = head es
          edef       = enemies s Map.! Enemy.id e
          determined = Enemy.determined e
-         ename      = if determined then Enemy.name edef else Enemy.nameUndetermined edef
+         ename      = choiceLang w $ if determined then Enemy.name edef else Enemy.nameUndetermined edef
          nAll       = show $ length es
          nActive    = show $ length . filter (null . Enemy.statusErrors) $ es
       in show l ++ ") " ++ nAll ++ " " ++ ename ++ replicate (43 - length ename) ' '  ++ " (" ++ nActive ++ ")"
     itemDefOf = (Map.!) (Engine.GameAuto.items s)
     locationText = if isJust cid' then "" else
-                   case place w of InCastle            -> choiceLang w "Castle"                "城下町"
-                                   Gilgamesh'sTavern   -> choiceLang w "Gilgamesh's Tavern"    "ギルガメッシュの酒場"
-                                   Adventure'sInn      -> choiceLang w "Adventure's Inn"       "冒険者の宿"
-                                   Boltac'sTradingPost -> choiceLang w "Boltac's Trading Post" "ボルタック商店"
-                                   TempleOfCant        -> choiceLang w "Temple of Cant"        "カント寺院"
-                                   InEdgeOfTown        -> choiceLang w "Edge of Town"          "町外れ"
-                                   TrainingGrounds     -> choiceLang w "Training Grounds"      "訓練場"
-                                   Camping _ t         -> if null t then choiceLang w "Camp" "キャンプ" else t
+                   case place w of InCastle            -> choiceLang w $ EnJp "Castle"                "城下町"
+                                   Gilgamesh'sTavern   -> choiceLang w $ EnJp "Gilgamesh's Tavern"    "ギルガメッシュの酒場"
+                                   Adventure'sInn      -> choiceLang w $ EnJp "Adventure's Inn"       "冒険者の宿"
+                                   Boltac'sTradingPost -> choiceLang w $ EnJp "Boltac's Trading Post" "ボルタック商店"
+                                   TempleOfCant        -> choiceLang w $ EnJp "Temple of Cant"        "カント寺院"
+                                   InEdgeOfTown        -> choiceLang w $ EnJp "Edge of Town"          "町外れ"
+                                   TrainingGrounds     -> choiceLang w $ EnJp "Training Grounds"      "訓練場"
+                                   Camping _ t         -> if null t then choiceLang w $ EnJp "Camp" "キャンプ" else t
                                    _ -> []
     msgTrans = if null locationText then id else translate (0, 1)
 
@@ -282,8 +282,8 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                                    $ statusPlaceHolder ) sgrs
     isLvUp c = Character.exp c >= Character.totalExpToLv (Character.job c) (Character.lv c + 1)
 
-choiceLang :: World -> a -> a -> a
-choiceLang w a1 a2 = if language (worldOption w) == ENG then a1 else a2
+choiceLang :: World -> LanguageSet a -> a
+choiceLang w = switchL' (language $ worldOption w)
 
 statusView :: Scenario -> World -> String -> String -> Maybe [ItemPos] -> (ItemID -> Item.Define)  -> Character -> Craphic
 statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1..] $ lines msg))
@@ -395,7 +395,7 @@ rep _   _  [] = []
 rep src dst s = if src `isPrefixOf` s then dst ++ rep src dst (drop (len src) s) else head s : rep src dst (tail s)
 
 
-statusViewPlaceHolder w = choiceLang w statusViewPlaceHolderENG statusViewPlaceHolderJPN
+statusViewPlaceHolder w = choiceLang w $ EnJp statusViewPlaceHolderENG statusViewPlaceHolderJPN
 
 statusViewPlaceHolderENG =
   ["                                                                 "  --   1
@@ -454,7 +454,7 @@ scene (InMaze p)              w onLight superLight = dunsion p w onLight superLi
 scene (InBattle p _)          w onLight superLight = dunsion p w onLight superLight False
 scene (FindTreasureChest p _) w onLight superLight = dunsion p w onLight superLight False
 scene (Camping p _)           w onLight superLight = do
-          let txtL = choiceLang w "    Light" "    明かり"
+          let txtL = choiceLang w $ EnJp "    Light" "    明かり"
           msg <- const $ if onLight || superLight then partyStatus txtL else mempty
           d   <- dunsion p w onLight superLight False
           return $ msg <> d
@@ -704,7 +704,7 @@ frame = fromTexts '*' $
   replicate 20 "                                                                             "
 
 guide :: World -> Craphic
-guide w = choiceLang w guideENG guideJPN
+guide w = choiceLang w $ EnJp guideENG guideJPN
 
 guideENG = fromTextsSGR '*'
   ["*********+-------------------------------------------------------+********"  --  1
@@ -3141,8 +3141,8 @@ downNotice _ _ = mempty
 
 darkNotice :: World -> Bool -> Int -> Int -> Craphic
 darkNotice _ False 0 0 = Craphic $ const $ Draw '*'
-darkNotice w True  0 0 = let txt = choiceLang w "** DARK ZONE !!! **"
-                                                "** 真っ暗闇だ !! **"
+darkNotice w True  0 0 = let txt = choiceLang w $ EnJp "** DARK ZONE !!! **"
+                                                       "** 真っ暗闇だ !! **"
   in fromTextsSGR '_'
   ["***************************************************************************"  --   1
   ,"***************************************************************************"  --   2
@@ -3975,8 +3975,8 @@ darkNotice' w b n s = darkNotice w b n s
 inStone :: World -> Bool -> Craphic
 inStone _ False = Craphic $ const $ Draw '#'
 inStone w True  =
-  let txt = choiceLang w "** YOU ARE IN THE STONE !!! **"
-                         "    ** 石の中にいる !!! **    "
+  let txt = choiceLang w $ EnJp "** YOU ARE IN THE STONE !!! **"
+                                "    ** 石の中にいる !!! **    "
   in fromTextsSGR '_'
   ["###########################################################################"  --   1
   ,"###########################################################################"  --   2

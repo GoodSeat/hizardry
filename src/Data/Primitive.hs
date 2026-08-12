@@ -283,7 +283,7 @@ type SpellTarget = Either PartyPos EnemyLine
 -- ==========================================================================
 
 class Eq o => Object o where
-  nameOf          :: o -> String
+  nameOf          :: o -> LanguageSet String
   hpOf            :: o -> Int
   maxhpOf         :: o -> Int
   lvOf            :: o -> Int
