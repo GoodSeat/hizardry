@@ -63,7 +63,10 @@ drawWithCache (w,h) map v = forM_ [1..h] $ \r -> drawRow False r [1..w] v
     drawRow :: Bool -> Int -> [Int] -> Craphic -> IO()
     drawRow _ _ [] _ = putStrLn ""
     drawRow f r (c:cs) v = do
-        let dot = at v (c, r)
+        let dot1 = at v (c, r)
+            dot2 = at v (c + 1, r)
+            dot  = if len (show dot1) > 1 && dot2 /= NoDraw then Draw ' '
+                   else dot1
         cacheMap <- readIORef map
         let cache = Map.lookup (c, r) cacheMap
         f' <- if not f && cache == Just dot then
