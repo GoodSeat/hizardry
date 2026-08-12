@@ -247,24 +247,24 @@ inTrainingGrounds = GameAuto $ do
                         ,(Key "n", createNewCharacter)
                         ,(Key "s", showListOfCharacters 0)
                         ,(Key "d", selectDeleteTargetCharacter 0)
-                        ,(Key "n", selectCharacterToChangeName 0)
+                        ,(Key "r", selectCharacterToChangeName 0)
                         ,(Key "c", selectCharacterToChangeJob 0)
-                        ,(Key "r", selectReorderTargetCharacter 0)
+                        ,(Key "o", selectReorderTargetCharacter 0)
                         ,(Key "q", exitGame)]
   where
     msgENG = message $ "^Create N)ew Character\n"
                     ++ "^S)how List of Characters\n"
                     ++ "^D)elete Character\n"
-                    ++ "^N)ame Change of Character\n"
+                    ++ "^R)ename Character\n"
                     ++ "^C)lass Change of Character\n"
-                    ++ "^R)eorder List\n"
+                    ++ "^Change O)rder List\n"
                     ++ "^L)eave `[`E`S`C`]\n"
     msgJPN = message $ "^N)キャラクターを新規作成する\n"
                     ++ "^S)キャラクターの一覧を見る\n"
                     ++ "^D)キャラクターを削除する\n"
-                    ++ "^N)キャラクターの名前を変える\n"
+                    ++ "^R)キャラクターの名前を変える\n"
                     ++ "^C)キャラクターのクラスを変更する\n"
-                    ++ "^R)キャラクターの一覧を並び替える\n"
+                    ++ "^O)キャラクターの一覧を並び替える\n"
                     ++ "^L)離れる `[`E`S`C`]\n"
 
 -- -----------------------------------------------------------------------
@@ -272,7 +272,7 @@ inTrainingGrounds = GameAuto $ do
 -- -----------------------------------------------------------------------
 
 selectCharacterToChangeJob :: Int -> GameMachine
-selectCharacterToChangeJob = cmdWithCharacterListOnlyIn ("Class Change", selectNewJob)
+selectCharacterToChangeJob = cmdWithCharacterListOnlyIn (EnJp "Class Change" "クラスの変更", selectNewJob)
 
 selectNewJob :: GameMachine -> CharacterID -> GameMachine
 selectNewJob h cid = GameAuto $ do
@@ -280,14 +280,19 @@ selectNewJob h cid = GameAuto $ do
     l  <- language . worldOption <$> world
     allJobs <- asks jobs
     let availableJobs = filter (canChangeToJob c) allJobs
-    if null availableJobs then
-        run $ events [message "There are no classes you can change to."] h
+    if null availableJobs then do
+        msg <- switchL $ EnJp  "There are no classes you can change to." "就けるクラスがありません。"
+        run $ events [message msg] h
     else do
         let jobItems = zipWith (\i j -> (show i, switchL' l (Character.jobName j))) [1..] availableJobs
             jobCmds = zipWith (\i j -> (Key (show i), confirmChangeJob h cid j)) [1..] availableJobs
-            msg' = message $ "Select new class for " ++ Character.name c ++ ".\n\n"
-                         ++ unlines (map (\(i, name) -> "  ^" ++ i ++ ") " ++ name) jobItems)
-                         ++ "\n^L)eave `[`E`S`C`]"
+            msgEng = "Select new class for " ++ Character.name c ++ ".\n\n"
+                  ++ unlines (map (\(i, name) -> "  ^" ++ i ++ ") " ++ name) jobItems)
+                  ++ "\n^L)eave `[`E`S`C`]"
+            msgJpn = Character.name c ++ " の新しいクラスを選択してください。" ++ ".\n\n"
+                  ++ unlines (map (\(i, name) -> "  ^" ++ i ++ ") " ++ name) jobItems)
+                  ++ "\n^L)離れる `[`E`S`C`]"
+        msg' <- message <$> switchL (EnJp msgEng msgJpn)
         run $ selectEsc msg' ((Key "l", h) : jobCmds)
 
 canChangeToJob :: Character.Character -> Character.Job -> Bool
@@ -300,9 +305,13 @@ confirmChangeJob :: GameMachine -> CharacterID -> Character.Job -> GameMachine
 confirmChangeJob h cid newJob = GameAuto $ do
     c <- characterByID cid
     j <- switchL $ Character.jobName newJob
-    let msg' = message $ "Change " ++ Character.name c ++ "'s class to " ++ j ++ "?\n"
-                      ++ "This will reset LV, EXP.\n\n"
-                      ++ "^Y)es / ^N)o `[`E`S`C`]"
+    let msgEng = "Change " ++ Character.name c ++ "'s class to " ++ j ++ "?\n"
+               ++ "This will reset LV, EXP.\n\n"
+               ++ "^Y)es / ^N)o `[`E`S`C`]"
+    let msgJpn = Character.name c ++ " のクラスを " ++ j ++ " に変更しますか?\n"
+               ++ "(Lvと経験値がリセットされます)\n\n"
+               ++ "^Y)はい / ^N)いいえ `[`E`S`C`]"
+    msg' <- message <$> switchL (EnJp msgEng msgJpn)
     run $ selectEsc msg' [(Key "n", h), (Key "y", with [doChangeJob cid newJob] h)]
 
 doChangeJob :: CharacterID -> Character.Job -> GameState ()
@@ -320,13 +329,15 @@ doChangeJob cid newJob = do
 -- -----------------------------------------------------------------------
 
 createNewCharacter :: GameMachine
-createNewCharacter = GameAuto $
-    return (ask ">Input character's name. \n(Empty to cancel.)" Nothing,
+createNewCharacter = GameAuto $ do
+    msg <- switchL $ EnJp ">Input character's name. \n(Empty to cancel.)" ">キャラクターの名前を入力してください。 \n(空文字でキャンセル)"
+    err <- switchL $ EnJp " already exists." " は既に存在します。"
+    return (ask msg Nothing,
            \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
               if null s then inTrainingGrounds else GameAuto $ do
               isOK <- not <$> existSameName s
               run $ if isOK then selectRace s
-                    else events [message $ s ++ " already exists."] createNewCharacter)
+                    else events [message $ s ++ err] createNewCharacter)
 
 existSameName :: String -> GameState Bool
 existSameName name = do
@@ -337,28 +348,37 @@ existSameName name = do
 
 selectRace :: String -> GameMachine
 selectRace name = GameAuto $ do
-    ks <- asks racies
-    l  <- language . worldOption <$> world
+    ks  <- asks racies
+    txt <- switchL $ EnJp ">Select race.(ESC to cancel)\n\n" ">種族を選択してください。(ESC でキャンセル)\n\n"
+    l   <- language . worldOption <$> world
     let ts  = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (switchL' l . Character.raceName <$> ks)
         cs  = zip (Key <$> (show <$> [1..])) (selectAlignment name <$> ks)
         msg = message $ showCharacter name Nothing Nothing Nothing
                      ++ "\n=========================================================\n"
-                     ++ ">Select race.(ESC to cancel)\n\n"
+                     ++ txt
                      ++ unlines ts
     run $ select msg ((Key "\ESC", inTrainingGrounds) : cs)
 
 selectAlignment :: String -> Character.Race -> GameMachine
-selectAlignment name k = select msg [(Key "\ESC", inTrainingGrounds)
-                                    ,(Key "g", determineParameter name k Character.G)
-                                    ,(Key "n", determineParameter name k Character.N)
-                                    ,(Key "e", determineParameter name k Character.E)]
+selectAlignment name k = GameAuto $ do
+    msg <- switchL $ EnJp msgEng msgJpn
+    run $ select msg [(Key "\ESC", inTrainingGrounds)
+                     ,(Key "g", determineParameter name k Character.G)
+                     ,(Key "n", determineParameter name k Character.N)
+                     ,(Key "e", determineParameter name k Character.E)]
   where
-    msg = message $ showCharacter name (Just k) Nothing Nothing
-                 ++ "\n=========================================================\n"
-                 ++ ">Select alignment. (ESC to cancel)\n\n"
-                 ++ "  ^G)ood\n"
-                 ++ "  ^N)eutral\n"
-                 ++ "  ^E)vil"
+    msgEng = message $ showCharacter name (Just k) Nothing Nothing
+                    ++ "\n=========================================================\n"
+                    ++ ">Select alignment. (ESC to cancel)\n\n"
+                    ++ "  ^G)ood\n"
+                    ++ "  ^N)eutral\n"
+                    ++ "  ^E)vil"
+    msgJpn = message $ showCharacter name (Just k) Nothing Nothing
+                    ++ "\n=========================================================\n"
+                    ++ ">属性を選択してください。 (ESC でキャンセル)\n\n"
+                    ++ "  ^G)善\n"
+                    ++ "  ^N)中立\n"
+                    ++ "  ^E)悪"
 
 determineParameter :: String -> Character.Race -> Character.Alignment -> GameMachine
 determineParameter name k a = GameAuto $ do
@@ -371,17 +391,28 @@ determineParameter' bns aps name k a = GameAuto $ do
     l  <- language . worldOption <$> world
     let ibns = bns + totalParameter aps
         jts  = ("  *)"++) . switchL' l . Character.jobName <$> js
+        txtEng =  "\n=========================================================\n"
+               ++ ">Select add parameter from bonus. ^R)eset\n\n"
+               ++ "  ^S)trength :" ++ rightTxt 4 (strength param) ++ "\n"
+               ++ "  ^I)Q       :" ++ rightTxt 4 (iq       param) ++ "\n"
+               ++ "  ^P)iety    :" ++ rightTxt 4 (piety    param) ++ "\n"
+               ++ "  ^V)itality :" ++ rightTxt 4 (vitality param) ++ "\n"
+               ++ "  ^A)gility  :" ++ rightTxt 4 (agility  param) ++ "\n"
+               ++ "  ^L)uck     :" ++ rightTxt 4 (luck     param) ++ "\n"
+               ++ "---------------------------------------------------------\n"
+               ++ "      Bonus :" ++ rightTxt 4 bns ++ " (`[`E`S`C`] to change bonus)\n\n"
+        txtJpn =  "\n=========================================================\n"
+               ++ ">ボーナスを振り分けてください。 ^R)リセット\n\n"
+               ++ "  ^S)力      :" ++ rightTxt 4 (strength param) ++ "\n"
+               ++ "  ^I)知恵    :" ++ rightTxt 4 (iq       param) ++ "\n"
+               ++ "  ^P)信仰心  :" ++ rightTxt 4 (piety    param) ++ "\n"
+               ++ "  ^V)体力    :" ++ rightTxt 4 (vitality param) ++ "\n"
+               ++ "  ^A)素早さ  :" ++ rightTxt 4 (agility  param) ++ "\n"
+               ++ "  ^L)運の良さ:" ++ rightTxt 4 (luck     param) ++ "\n"
+               ++ "---------------------------------------------------------\n"
+               ++ "     ボーナス:" ++ rightTxt 4 bns ++ " (`[`E`S`C`] でボーナスを変更)\n\n"
         msg  = message $ showCharacter name (Just k) (Just a) Nothing
-                      ++ "\n=========================================================\n"
-                      ++ ">Select add parameter from bonus. ^R)eset\n\n"
-                      ++ "  ^S)trength :" ++ rightTxt 4 (strength param) ++ "\n"
-                      ++ "  ^I)Q       :" ++ rightTxt 4 (iq       param) ++ "\n"
-                      ++ "  ^P)iety    :" ++ rightTxt 4 (piety    param) ++ "\n"
-                      ++ "  ^V)itality :" ++ rightTxt 4 (vitality param) ++ "\n"
-                      ++ "  ^A)gility  :" ++ rightTxt 4 (agility  param) ++ "\n"
-                      ++ "  ^L)uck     :" ++ rightTxt 4 (luck     param) ++ "\n"
-                      ++ "---------------------------------------------------------\n"
-                      ++ "      Bonus :" ++ rightTxt 4 bns ++ " (`[`E`S`C`] to change bonus)\n\n"
+                      ++ switchL' l (EnJp txtEng txtJpn)
                       ++ unlines jts
     run $ select msg [(Key "\ESC", determineParameter name k a)
                      ,(Key "r"   , determineParameter' ibns emptyParam name k a)
@@ -413,9 +444,9 @@ selectJob aps name k a = GameAuto $ do
       let jts = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (switchL' l . Character.jobName <$> js)
           msg = message $ showCharacter name (Just k) (Just a) Nothing
                        ++ "\n=========================================================\n"
-                       ++ "\n\n" ++ showParameter param
+                       ++ "\n\n" ++ showParameter param l
                        ++ "---------------------------------------------------------\n"
-                       ++ ">Select class. ^R)eset\n\n"
+                       ++ switchL' l (EnJp ">Select class. ^R)eset\n\n" ">クラスを選択してください。 ^R)リセット\n\n" )
                        ++ unlines jts
           cmds = cmdNums (length js) $ \i -> makeCharacter param name k a (js !! (i-1))
       run $ select msg $ (Key "r", determineParameter' (totalParameter aps) emptyParam name k a) : cmds
@@ -424,14 +455,16 @@ selectJob aps name k a = GameAuto $ do
     param = sumParameter aps ips
 
 makeCharacter :: Parameter -> String -> Character.Race -> Character.Alignment -> Character.Job -> GameMachine
-makeCharacter param name k a j = select msg [(Key "r", with [register] inTrainingGrounds)
-                                            ,(Key "c", inTrainingGrounds)]
+makeCharacter param name k a j = GameAuto $ do
+    l  <- language . worldOption <$> world
+    let msg = message $ showCharacter name (Just k) (Just a) (Just j)
+                     ++ "\n=========================================================\n"
+                     ++ "\n\n" ++ showParameter param l
+                     ++ "---------------------------------------------------------\n"
+                     ++ switchL' l (EnJp "\n               ^R)egister  or  ^C)ancel \n\n" "\n               ^R)登録  or  ^C)キャンセル \n\n")
+    run $ select msg [(Key "r", with [register] inTrainingGrounds)
+                     ,(Key "c", inTrainingGrounds)]
   where
-    msg = message $ showCharacter name (Just k) (Just a) (Just j)
-                 ++ "\n=========================================================\n"
-                 ++ "\n\n" ++ showParameter param
-                 ++ "---------------------------------------------------------\n"
-                 ++ "\n               ^R)egister  or  ^C)ancel \n\n"
     register :: GameState ()
     register = do
       age <- randomIn [16, 16, 16, 16, 17]
@@ -497,13 +530,21 @@ showCharacter name k' a' j' = "\n    " ++ name ++ replicate (40 - length name) '
         jt = case j' of Nothing -> "????"
                         Just j  -> "-" ++ take 3 (Character.jobID j)
 
-showParameter :: Parameter -> String
-showParameter param = "  Strength  :" ++ rightTxt 4 (strength param) ++ "\n"
-                   ++ "  IQ        :" ++ rightTxt 4 (iq       param) ++ "\n"
-                   ++ "  Piety     :" ++ rightTxt 4 (piety    param) ++ "\n"
-                   ++ "  Vitality  :" ++ rightTxt 4 (vitality param) ++ "\n"
-                   ++ "  Agility   :" ++ rightTxt 4 (agility  param) ++ "\n"
-                   ++ "  Luck      :" ++ rightTxt 4 (luck     param) ++ "\n"
+showParameter :: Parameter -> Language -> String
+showParameter param l = switchL' l $ EnJp eng jpn
+  where
+    eng = "  Strength  :" ++ rightTxt 4 (strength param) ++ "\n"
+       ++ "  IQ        :" ++ rightTxt 4 (iq       param) ++ "\n"
+       ++ "  Piety     :" ++ rightTxt 4 (piety    param) ++ "\n"
+       ++ "  Vitality  :" ++ rightTxt 4 (vitality param) ++ "\n"
+       ++ "  Agility   :" ++ rightTxt 4 (agility  param) ++ "\n"
+       ++ "  Luck      :" ++ rightTxt 4 (luck     param) ++ "\n"
+    jpn = "  力        :" ++ rightTxt 4 (strength param) ++ "\n"
+       ++ "  知恵      :" ++ rightTxt 4 (iq       param) ++ "\n"
+       ++ "  信仰心    :" ++ rightTxt 4 (piety    param) ++ "\n"
+       ++ "  体力      :" ++ rightTxt 4 (vitality param) ++ "\n"
+       ++ "  素早さ    :" ++ rightTxt 4 (agility  param) ++ "\n"
+       ++ "  運の良さ  :" ++ rightTxt 4 (luck     param) ++ "\n"
 
 isEnableJob :: Character.Alignment -> Parameter -> Character.Job -> Bool
 isEnableJob a param j = a `elem` Character.enableAlignments j
@@ -517,53 +558,61 @@ isEnableJob a param j = a `elem` Character.enableAlignments j
 -- -----------------------------------------------------------------------
 
 showListOfCharacters :: Int -> GameMachine
-showListOfCharacters = cmdWithCharacterList ("Inspect", inspectCharacter)
+showListOfCharacters = cmdWithCharacterList (EnJp "Inspect" "調査", inspectCharacter)
 
 inspectCharacter :: GameMachine -> CharacterID -> GameMachine
-inspectCharacter h cid = selectEsc (showStatus cid msg)
-                                   [(Key "l", h)
-                                   ,(Key "r", readSpell (inspectCharacter h cid) cid)
-                                   ]
+inspectCharacter h cid = GameAuto $ do
+    msg <- switchL $ EnJp msgEng msgJpn
+    run $ selectEsc (showStatus cid msg)
+                    [(Key "l", h)
+                    ,(Key "r", readSpell (inspectCharacter h cid) cid)
+                    ]
   where
-    msg = "^R)ead Spell   ^L)eave `[`E`S`C`]"
+    msgEng = "^R)ead Spell   ^L)eave `[`E`S`C`]"
+    msgJpn = "^R)呪文書を読む  ^L)離れる `[`E`S`C`]"
 
 selectDeleteTargetCharacter :: Int -> GameMachine
-selectDeleteTargetCharacter = cmdWithCharacterList ("Delete", showDeleteTargetCharacter)
+selectDeleteTargetCharacter = cmdWithCharacterList (EnJp "Delete" "削除", showDeleteTargetCharacter)
 
 showDeleteTargetCharacter :: GameMachine -> CharacterID -> GameMachine
-showDeleteTargetCharacter h cid = selectEsc (showStatus cid msg)
-                                   [(Key "n", h)
-                                   ,(Key "y", with [deleteCharacter cid] h)
-                                   ]
+showDeleteTargetCharacter h cid = GameAuto $ do
+    msg <- switchL $ EnJp msgEng msgJpn
+    run $ selectEsc (showStatus cid msg)
+                    [(Key "n", h)
+                    ,(Key "y", with [deleteCharacter cid] h)
+                    ]
   where
-    msg = "Are you sure? (Their items will also be lost)\n ^Y)es   ^N)o `[`E`S`C`]"
+    msgEng = "Are you sure? (Their items will also be lost)\n ^Y)es   ^N)o `[`E`S`C`]"
+    msgJpn = "本当によろしいですか? (所持するアイテムも失われます)\n ^Y)はい   ^N)いいえ `[`E`S`C`]"
 
 
 selectCharacterToChangeName :: Int -> GameMachine
-selectCharacterToChangeName = cmdWithCharacterList ("Change Name", changeCharacterName)
+selectCharacterToChangeName = cmdWithCharacterList (EnJp "Change Name" "名前の変更", changeCharacterName)
 
 changeCharacterName :: GameMachine -> CharacterID -> GameMachine
-changeCharacterName h cid = GameAuto $
-    return (ask ">Input character's name. \n(Empty to cancel.)" Nothing,
+changeCharacterName h cid = GameAuto $ do
+    msg1 <- switchL $ EnJp ">Input character's name. \n(Empty to cancel.)" ">キャラクターの名前を入力してください。 \n(空文字でキャンセル)"
+    msg2 <- switchL $ EnJp " already exists." " は既に存在します。"
+    return (ask msg1 Nothing,
            \(Key s') -> let s = filter (/= '\n') . filter (/= '\r') $ s' in
               if null s then h else GameAuto $ do
               isOK <- not <$> existSameName s
               run $ if isOK then with [changeName s] h
-                    else events [message $ s ++ " already exists."] (changeCharacterName h cid))
+                    else events [message $ s ++ msg2] (changeCharacterName h cid))
   where
     changeName newName = do
         c <- characterByID cid
         updateCharacter cid $ c { Character.name = newName }
 
 selectReorderTargetCharacter :: Int -> GameMachine
-selectReorderTargetCharacter = cmdWithCharacterList ("Change Order", changeOrder)
+selectReorderTargetCharacter = cmdWithCharacterList (EnJp "Change Order" "並び替え", changeOrder)
 
 changeOrder :: GameMachine -> CharacterID -> GameMachine
 changeOrder _ cid = GameAuto $ do
     cs <- Map.toList . allCharacters <$> world
     let tos  = fromJust (elemIndex cid $ fst <$> cs)
         fromPage = div tos sizePage
-    run $ cmdWithCharacterList ("Insert", insertCharacter cid) fromPage
+    run $ cmdWithCharacterList (EnJp "Insert" "挿入", insertCharacter cid) fromPage
 
 insertCharacter :: CharacterID -> GameMachine -> CharacterID -> GameMachine
 insertCharacter cid _ cidTo = GameAuto $ do
@@ -586,7 +635,7 @@ insertCharacter cid _ cidTo = GameAuto $ do
 
 -- -----------------------------------------------------------------------
 
-cmdWithCharacterListOnly :: (CharacterID -> Bool) -> (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
+cmdWithCharacterListOnly :: (CharacterID -> Bool) -> (LanguageSet String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
 cmdWithCharacterListOnly be cmd (-1) = GameAuto $ do
     mxPage <- lastPage
     run $ cmdWithCharacterListOnly be cmd mxPage
@@ -594,13 +643,16 @@ cmdWithCharacterListOnly be cmd page = GameAuto $ do
     mxPage <- lastPage
     cids   <- take sizePage . drop (page * sizePage) . sortOn fst . Map.toList . allCharacters <$> world 
     inCids <- inTavernMember <$> world 
+    txt    <- switchL $ fst cmd
+    msg1   <- switchL $ EnJp ("^N)ext list  ^P)revious list  ^#)" ++ txt ++"  ^L)eave `[`E`s`c`]")
+                             ("^N)次のリスト ^P)前のリスト ^#)" ++ txt ++"  ^L)離れる `[`E`s`c`]")
     if page > mxPage then run $ cmdWithCharacterListOnly be cmd 0
     else if null cids then run inTrainingGrounds
     else do
       let toT (cid, c) = Character.toText 30 c ++ rightString  4 (if cid `elem` inCids then "IN" else "OUT")
       let cst'= zip (zipWith (++) ((++")") . show <$> [1..]) (toT <$> cids)) (be . fst <$> cids)
           cst = fmap (\(l, valid) -> if valid then '^' : l else '`' : intersperse '`' l) cst'
-          msg = message $ "^N)ext list  ^P)revious list  ^#)" ++ fst cmd ++"  ^L)eave `[`E`s`c`]"
+          msg = message $ msg1
                       ++ "\n\n-------------------------(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")--------------------------\n\n"
                       ++ unlines cst
           cmds = zip (be . fst <$> cids) (cmdNums (length cids) (\i -> (snd cmd) (cmdWithCharacterListOnly be cmd page) $ (fst <$> cids) !! (i-1)))
@@ -610,10 +662,10 @@ cmdWithCharacterListOnly be cmd page = GameAuto $ do
                           : (Key "p", cmdWithCharacterListOnly be cmd (page-1))
                           : (snd <$> filter fst cmds)
 
-cmdWithCharacterList :: (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
+cmdWithCharacterList :: (LanguageSet String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
 cmdWithCharacterList = cmdWithCharacterListOnly $ const True
 
-cmdWithCharacterListOnlyIn :: (String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
+cmdWithCharacterListOnlyIn :: (LanguageSet String, GameMachine -> CharacterID -> GameMachine) -> Int -> GameMachine
 cmdWithCharacterListOnlyIn cmd page = GameAuto $ do
     inCids <- inTavernMember <$> world 
     run $ cmdWithCharacterListOnly (`elem` inCids) cmd page
