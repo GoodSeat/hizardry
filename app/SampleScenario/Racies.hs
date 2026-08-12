@@ -11,7 +11,8 @@ import qualified Data.Characters as Character
 racies = [human, elf, dwarf, gnome, hobbit]
 
 human = Character.Race {
-    Character.raceName = "Human"
+    Character.raceID   = "Human"
+  , Character.raceName = EnJp "Human" "人間"
   , Character.initialParam = Parameter {
       strength = 8, iq = 8, piety = 8, vitality = 8, agility = 8, luck = 8
   }
@@ -22,7 +23,8 @@ human = Character.Race {
 }
 
 elf = Character.Race {
-    Character.raceName = "Elf"
+    Character.raceID   = "Elf"
+  , Character.raceName = EnJp "Elf" "エルフ"
   , Character.initialParam = Parameter {
       strength = 7, iq = 10, piety = 10, vitality = 7, agility = 9, luck = 7
   }
@@ -33,7 +35,8 @@ elf = Character.Race {
 }
 
 dwarf = Character.Race {
-    Character.raceName = "Dwarf"
+    Character.raceID   = "Dwarf"
+  , Character.raceName = EnJp "Dwarf" "ドワーフ"
   , Character.initialParam = Parameter {
       strength = 10, iq = 7, piety = 10, vitality = 10, agility = 6, luck = 7
   }
@@ -44,7 +47,8 @@ dwarf = Character.Race {
 }
 
 gnome = Character.Race {
-    Character.raceName = "Gnome"
+    Character.raceID   = "Gnome"
+  , Character.raceName = EnJp "Gnome" "ノーム"
   , Character.initialParam = Parameter {
       strength = 8, iq = 8, piety = 11, vitality = 9, agility = 8, luck = 6
   }
@@ -55,7 +59,8 @@ gnome = Character.Race {
 }
 
 hobbit = Character.Race {
-    Character.raceName = "Hobbit"
+    Character.raceID   = "Hobbit"
+  , Character.raceName = EnJp "Hobbit" "ホビット"
   , Character.initialParam = Parameter {
       strength = 6, iq = 7, piety = 7, vitality = 8, agility = 10, luck = 12
   }

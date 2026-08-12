@@ -234,8 +234,8 @@ doEventInner isHidden cidRep edef whenEscape whenEnd spelling toBattle = doEvent
                     Spell.M -> (updateLevels lvs mageMps maxMageMps, priestMps)
                     Spell.P -> (mageMps, updateLevels lvs priestMps maxPriestMps)
             in c' { Chara.mp = newMps })
-    doEvent' (Ev.ChangeJob targetType jobName) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
-        j <- asks $ find ((== jobName) . Chara.jobName) . jobs
+    doEvent' (Ev.ChangeJob targetType jobId) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
+        j <- asks $ find ((== jobId) . Chara.jobID) . jobs
         case j of Just j' -> updateCharacterWith cid (\c -> c { Chara.equips = [], Chara.job = j' })
                   Nothing -> return ()
     doEvent' (Ev.LearningSpell targetType spellIdF) next = doEventToCharacter targetType (next isHidden) $ \cid -> do
@@ -346,12 +346,12 @@ matchCondition _ (Ev.AnyOneKnowSpell sid) = do
     return $ not (null known)
 matchCondition cidRep (Ev.LeaderIsJobOf js) = do
     c   <- characterByID cidRep
-    return $ Chara.jobName (Chara.job c) `elem` js
+    return $ Chara.jobID (Chara.job c) `elem` js
 matchCondition _ (Ev.AnyOneIsJobOf js) = do
     cids <- party <$> world
     matched <- filterM (\cid -> do
         c <- characterByID cid
-        return $ Chara.jobName (Chara.job c) `elem` js
+        return $ Chara.jobID (Chara.job c) `elem` js
         ) cids
     return $ not (null matched)
 

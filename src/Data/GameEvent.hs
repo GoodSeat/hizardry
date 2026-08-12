@@ -43,7 +43,7 @@ data Define =
             | LostGold      TargetType Formula [Define]
             | ChangeHP      TargetType Formula
             | ChangeMP      TargetType Spell.Kind [Int] Formula -- target kind, Lv, heal point
-            | ChangeJob     TargetType String -- job name.
+            | ChangeJob     TargetType String -- job id.
             | LearningSpell TargetType Formula
             | ChangeEventFlag Int Formula -- change index, post changed value
             | ChangeLeader  PartyPos -- temporary change leader in this event.

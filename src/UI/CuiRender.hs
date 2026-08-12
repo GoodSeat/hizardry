@@ -274,7 +274,7 @@ status s w p = foldl1 (<>) $ fmap toStatusLine (zip [1..] p) ++
                         in textSGR (6,  windowH - 6 + n)
                                    ( replaceLine "[NAME]"  (name c) (Left 26)
                                    . replaceLine "#"       (show n) (Left 1)
-                                   . replaceLine "[CLASS]" (show (alignment c) ++ "-" ++ take 3 (jobName $ job c)) (Left 7)
+                                   . replaceLine "[CLASS]" (show (alignment c) ++ "-" ++ take 3 (jobID $ job c)) (Left 7)
                                    . replaceLine "[AC]"    (show ac) (Right 4)
                                    . replaceLine "[HP]"    (show $ hp c) (Right 5)
                                    . (if null stxt then replaceLine "[STAT]"  (show $ maxhp c) (Right 6)

@@ -65,7 +65,8 @@ instance Object Character where
   updateLvByDrain c = let nl = lvOf c in c { lv = nl, exp = totalExpToLv (job c) nl }
 
 data Race = Race {
-      raceName     :: !String
+      raceID       :: !String
+    , raceName     :: !(LanguageSet String)
     , initialParam :: !Parameter
     , maxParam     :: !Parameter
     , initialBonus :: !Formula
@@ -80,7 +81,8 @@ data Alignment = G | N | E deriving (Show, Eq, Read)
 
 -- | define of character class.
 data Job = Job {
-      jobName              :: !String
+      jobID                :: !String
+    , jobName              :: !(LanguageSet String)
     , enableAlignments     :: ![Alignment]
     , enableBattleCommands :: ![BattleCommand]
     , inspectTrapAbility   :: !Formula -- ^ Probability of success of trap identification.
@@ -210,17 +212,17 @@ addDay d c = let d' = days c + d in if d' >= 365 then c { days = d' - 365, age =
 
 canEquip :: Character -> Item.Define -> Bool
 canEquip c idef = case Item.enableToEquip idef of Item.All     -> Item.itemType idef == Item.Equip
-                                                  Item.Only js -> jobName (job c) `elem` js
+                                                  Item.Only js -> jobID (job c) `elem` js
 canUse :: Character -> Item.Define -> Bool
 canUse c idef = case Item.enableToUse idef of Item.All     -> True
-                                              Item.Only js -> jobName (job c) `elem` js
+                                              Item.Only js -> jobID (job c) `elem` js
 canUse' :: Character -> Item.Define -> Bool
 canUse' c idef = case Item.enableToUse idef of Item.All     -> isJust $ Item.usingEffect idef
-                                               Item.Only js -> jobName (job c) `elem` js
+                                               Item.Only js -> jobID (job c) `elem` js
 
 
 toText :: Int -> Character -> String
-toText w c = leftString w (name c) ++ show (alignment c) ++ "-" ++ take 3 (jobName $ job c)
+toText w c = leftString w (name c) ++ show (alignment c) ++ "-" ++ take 3 (jobID $ job c)
         ++ rightTxt 10 (hp c) ++ "/" ++ rightTxt 5 (maxhp c)
 
 -- =================================================================================

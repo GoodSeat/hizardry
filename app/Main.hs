@@ -35,6 +35,7 @@ import qualified SampleScenario.Home as SampleScenario
 
 
 -- note
+-- * support Japanese in Edge of Town.
 -- * classic secret door
 -- * other spells
 -- * other events

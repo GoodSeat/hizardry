@@ -8,6 +8,7 @@ import Control.Monad.State (runStateT)
 import Control.Monad.Except (runExceptT)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
+import Data.String (IsString(..))
 import System.Random (mkStdGen)
 
 import Engine.GameAuto (GameState, Scenario(..), ScenarioOption(..), InitScenario(..), initScenario, GameMachine, defaultFormulas)
@@ -29,7 +30,8 @@ runGame state scenario initialWorld = runReader (runStateT (runExceptT state) in
 -- Test Data
 testRace :: Chara.Race
 testRace = Chara.Race {
-    Chara.raceName = "Human"
+    Chara.raceID   = "Human"
+  , Chara.raceName = fromString "Human"
   , Chara.initialParam = Parameter { strength = 8, iq = 8, piety = 8, vitality = 8, agility = 8, luck = 8 }
   , Chara.maxParam = Parameter { strength = 18, iq = 18, piety = 18, vitality = 18, agility = 18, luck = 18 }
   , Chara.initialBonus = parse' "6"
@@ -37,7 +39,8 @@ testRace = Chara.Race {
 
 testJob :: Chara.Job
 testJob = Chara.Job {
-      Chara.jobName              = "Fighter"
+      Chara.jobID                = "Fighter"
+    , Chara.jobName              = fromString "Fighter"
     , Chara.enableAlignments     = [Chara.G, Chara.N, Chara.E]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "0"

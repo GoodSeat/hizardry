@@ -13,7 +13,8 @@ jobs = [fighter, mage, priest, thief, bishop, samurai, lord, ninja]
 baseWeaponAttr = Item.WeaponAttr { Item.targetF = [L1, L2], Item.targetB = [], Item.damage = read "1d4", Item.doubleLabels = [], Item.attrLabels = [], Item.addStatusErrors = [], Item.atackMessages = EnJp [] [], Item.targetRange = Item.ToSingle }
 
 fighter = Chara.Job {
-      Chara.jobName              = "Fighter"
+      Chara.jobID                = "Fighter"
+    , Chara.jobName              = EnJp "Fighter" "戦士"
     , Chara.enableAlignments     = [Chara.G, Chara.N, Chara.E]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Spell, Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "agi"
@@ -31,7 +32,8 @@ fighter = Chara.Job {
 }
 
 mage = Chara.Job {
-      Chara.jobName              = "Mage"
+      Chara.jobID                = "Mage"
+    , Chara.jobName              = EnJp "Mage" "魔法使い"
     , Chara.enableAlignments     = [Chara.G, Chara.N, Chara.E]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Spell, Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "agi"
@@ -49,7 +51,8 @@ mage = Chara.Job {
 }
 
 priest = Chara.Job {
-      Chara.jobName              = "Priest"
+      Chara.jobID                = "Priest"
+    , Chara.jobName              = EnJp "Priest" "僧侶"
     , Chara.enableAlignments     = [Chara.G, Chara.N]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Spell, Chara.Dispell (read "min(95,max(50+5*lv-10*o.lv,5))"), Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "agi"
@@ -76,7 +79,8 @@ priest = Chara.Job {
 }
 
 thief = Chara.Job {
-      Chara.jobName              = "Thief"
+      Chara.jobID                = "Thief"
+    , Chara.jobName              = EnJp "Thief" "盗賊"
     , Chara.enableAlignments     = [Chara.N, Chara.E]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Hide, Chara.Ambush, Chara.Spell, Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "min(agi*6, 95)"
@@ -94,7 +98,8 @@ thief = Chara.Job {
 }
 
 bishop = Chara.Job {
-      Chara.jobName              = "Bishop"
+      Chara.jobID                = "Bishop"
+    , Chara.jobName              = EnJp "Bishop" "司教"
     , Chara.enableAlignments     = [Chara.G, Chara.N]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Spell, Chara.EnableWhen (Chara.Dispell (read "min(95,max(50+5*lv-10*o.lv-20,5))")) (read "lv>=4"), Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "min(95, lv*2 + pie*2)"
@@ -112,7 +117,8 @@ bishop = Chara.Job {
 }
 
 samurai = Chara.Job {
-      Chara.jobName              = "Samurai"
+      Chara.jobID                = "Samurai"
+    , Chara.jobName              = EnJp "Samurai" "侍"
     , Chara.enableAlignments     = [Chara.G, Chara.N]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Spell, Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "agi"
@@ -130,7 +136,8 @@ samurai = Chara.Job {
 }
 
 lord = Chara.Job {
-      Chara.jobName              = "Lord"
+      Chara.jobID                = "Lord"
+    , Chara.jobName              = EnJp "Lord" "君主"
     , Chara.enableAlignments     = [Chara.G]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Spell, Chara.EnableWhen (Chara.Dispell (read "min(95,max(50+5*lv-10*o.lv-40,5))")) (read "lv>=9"), Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "agi"
@@ -148,7 +155,8 @@ lord = Chara.Job {
 }
 
 ninja = Chara.Job {
-      Chara.jobName              = "Ninja"
+      Chara.jobID                = "Ninja"
+    , Chara.jobName              = EnJp "Ninja" "忍者"
     , Chara.enableAlignments     = [Chara.E]
     , Chara.enableBattleCommands = [Chara.Fight, Chara.Parry, Chara.Hide, Chara.Ambush, Chara.Spell, Chara.UseItem, Chara.Run]
     , Chara.inspectTrapAbility   = parse' "min(agi*4, 95)"

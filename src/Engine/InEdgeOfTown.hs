@@ -277,12 +277,13 @@ selectCharacterToChangeJob = cmdWithCharacterListOnlyIn ("Class Change", selectN
 selectNewJob :: GameMachine -> CharacterID -> GameMachine
 selectNewJob h cid = GameAuto $ do
     c <- characterByID cid
+    l  <- language . worldOption <$> world
     allJobs <- asks jobs
     let availableJobs = filter (canChangeToJob c) allJobs
     if null availableJobs then
         run $ events [message "There are no classes you can change to."] h
     else do
-        let jobItems = zipWith (\i j -> (show i, Character.jobName j)) [1..] availableJobs
+        let jobItems = zipWith (\i j -> (show i, switchL' l (Character.jobName j))) [1..] availableJobs
             jobCmds = zipWith (\i j -> (Key (show i), confirmChangeJob h cid j)) [1..] availableJobs
             msg' = message $ "Select new class for " ++ Character.name c ++ ".\n\n"
                          ++ unlines (map (\(i, name) -> "  ^" ++ i ++ ") " ++ name) jobItems)
@@ -298,7 +299,8 @@ canChangeToJob c j =
 confirmChangeJob :: GameMachine -> CharacterID -> Character.Job -> GameMachine
 confirmChangeJob h cid newJob = GameAuto $ do
     c <- characterByID cid
-    let msg' = message $ "Change " ++ Character.name c ++ "'s class to " ++ Character.jobName newJob ++ "?\n"
+    j <- switchL $ Character.jobName newJob
+    let msg' = message $ "Change " ++ Character.name c ++ "'s class to " ++ j ++ "?\n"
                       ++ "This will reset LV, EXP.\n\n"
                       ++ "^Y)es / ^N)o `[`E`S`C`]"
     run $ selectEsc msg' [(Key "n", h), (Key "y", with [doChangeJob cid newJob] h)]
@@ -336,7 +338,8 @@ existSameName name = do
 selectRace :: String -> GameMachine
 selectRace name = GameAuto $ do
     ks <- asks racies
-    let ts  = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.raceName <$> ks)
+    l  <- language . worldOption <$> world
+    let ts  = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (switchL' l . Character.raceName <$> ks)
         cs  = zip (Key <$> (show <$> [1..])) (selectAlignment name <$> ks)
         msg = message $ showCharacter name Nothing Nothing Nothing
                      ++ "\n=========================================================\n"
@@ -365,8 +368,9 @@ determineParameter name k a = GameAuto $ do
 determineParameter' :: Int -> Parameter -> String -> Character.Race -> Character.Alignment -> GameMachine
 determineParameter' bns aps name k a = GameAuto $ do
     js <- asks (filter (isEnableJob a param) . jobs)
+    l  <- language . worldOption <$> world
     let ibns = bns + totalParameter aps
-        jts  = ("  *)"++) . Character.jobName <$> js
+        jts  = ("  *)"++) . switchL' l . Character.jobName <$> js
         msg  = message $ showCharacter name (Just k) (Just a) Nothing
                       ++ "\n=========================================================\n"
                       ++ ">Select add parameter from bonus. ^R)eset\n\n"
@@ -403,9 +407,10 @@ determineParameter' bns aps name k a = GameAuto $ do
 selectJob :: Parameter -> String -> Character.Race -> Character.Alignment -> GameMachine
 selectJob aps name k a = GameAuto $ do
     js <- asks (filter (isEnableJob a param) . jobs)
+    l  <- language . worldOption <$> world
     if null js then run $ determineParameter' 0 aps name k a
     else do
-      let jts = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (Character.jobName <$> js)
+      let jts = zipWith (++) (("  ^"++) . (++")") . show <$> [1..]) (switchL' l . Character.jobName <$> js)
           msg = message $ showCharacter name (Just k) (Just a) Nothing
                        ++ "\n=========================================================\n"
                        ++ "\n\n" ++ showParameter param
@@ -486,11 +491,11 @@ sumParameter p1 p2 = Parameter {
 showCharacter :: String -> Maybe Character.Race -> Maybe Character.Alignment -> Maybe Character.Job -> String
 showCharacter name k' a' j' = "\n    " ++ name ++ replicate (40 - length name) ' ' ++ kt ++ at ++ jt ++ "\n"
   where kt = case k' of Nothing -> "??"
-                        Just k  -> take 2 (Character.raceName k)
+                        Just k  -> take 2 (Character.raceID k)
         at = case a' of Nothing -> "??"
                         Just a  -> "-" ++ show a
         jt = case j' of Nothing -> "????"
-                        Just j  -> "-" ++ take 3 (Character.jobName j)
+                        Just j  -> "-" ++ take 3 (Character.jobID j)
 
 showParameter :: Parameter -> String
 showParameter param = "  Strength  :" ++ rightTxt 4 (strength param) ++ "\n"
