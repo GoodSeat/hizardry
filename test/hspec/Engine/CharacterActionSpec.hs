@@ -20,7 +20,7 @@ import qualified Data.Enemies as Enemy -- Added
 import qualified Data.Items as Item
 import qualified Data.Spells as Spell
 import Engine.CharacterAction (castResurrectionSpell, castAddStatusErrorSpell) -- Added castAddStatusErrorSpell
-import Engine.Utils (statusErrorMessage) -- Added
+import Engine.Utils (statusErrorMessage, switchL') -- Added
 
 -- Helper function to run GameState in tests
 runGame :: GameState a -> Scenario -> World -> (Either String a, World)
@@ -147,12 +147,14 @@ deadTarget = initialCaster
     , Chara.statusErrors = [Dead]
     }
 
+testLanguage = ENG
+
 initialWorld :: World
 initialWorld = World {
       randomGen       = mkStdGen 42
     , guideOn         = False
     , statusOn        = False
-    , worldOption     = defaultWorldOption { language = ENG }
+    , worldOption     = defaultWorldOption { language = testLanguage }
     , allCharacters   = Map.fromList [(CharacterID 1, initialCaster), (CharacterID 2, deadTarget)]
     , party           = [CharacterID 1, CharacterID 2]
     , place           = InBattle (Position N 0 0 0) [[testEnemyInstance, resistantEnemyInstance]] -- Set place to InBattle with enemies
@@ -234,7 +236,7 @@ spec = describe "castResurrectionSpell" $ do
                 let updatedEnemy = case place finalWorldAfterUpdate of InBattle _ e -> head (head e); _ -> error "Not in battle"
 
                 let (Right expectedStatusMsg, _) = runGame (statusErrorMessage Sleep) testScenario initialWorld
-                msg `shouldBe` Enemy.name (Enemy.define targetEnemyInstance) ++ expectedStatusMsg
+                msg `shouldBe` switchL' testLanguage (Enemy.name (Enemy.define targetEnemyInstance)) ++ expectedStatusMsg
                 Enemy.statusErrors updatedEnemy `shouldBe` [Sleep]
 
             it "does not apply status effect to resistant enemy" $ do
@@ -250,7 +252,7 @@ spec = describe "castResurrectionSpell" $ do
 
                 let updatedEnemy = case place finalWorldAfterUpdate of InBattle _ e -> head (head e); _ -> error "Not in battle"
 
-                msg `shouldBe` Enemy.name (Enemy.define resistantTargetEnemyInstance) ++ " resisted."
+                msg `shouldBe` switchL' testLanguage (Enemy.name (Enemy.define resistantTargetEnemyInstance)) ++ " resisted."
                 Enemy.statusErrors updatedEnemy `shouldBe` []
 
         context "with 0% success rate" $ do
@@ -266,5 +268,5 @@ spec = describe "castResurrectionSpell" $ do
 
                 let updatedEnemy = case place finalWorldAfterUpdate of InBattle _ e -> head (head e); _ -> error "Not in battle"
 
-                msg `shouldBe` Enemy.name (Enemy.define targetEnemyInstance) ++ " resisted." -- Expected message for failure
+                msg `shouldBe` switchL' testLanguage (Enemy.name (Enemy.define targetEnemyInstance)) ++ " resisted." -- Expected message for failure
                 Enemy.statusErrors updatedEnemy `shouldBe` []

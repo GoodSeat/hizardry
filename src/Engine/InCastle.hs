@@ -271,6 +271,7 @@ buyItem cid (-1) bi = GameAuto $ do
     run $ buyItem cid mxPage bi
 buyItem cid page bi = GameAuto $ do
     c <- characterByID cid
+    l <- language . worldOption <$> world
     lstItem <- fmap fst . filter ((/= 0) . snd) . sortOn fst . Map.toList . shopItems <$> world
     let lstItem' = take sizePage . drop (page * sizePage) $ lstItem
     if      null lstItem  then run $ selectShopAction cid
@@ -288,7 +289,7 @@ buyItem cid page bi = GameAuto $ do
                               ("どれを確認しますか。 所持金 : " ++ show gp ++ " G.P.\n\n" ++ 
                                "^N)次のリスト  ^P)前のリスト  ^?)商品の購入  ^L)離れる `[`E`s`c`]"))
       let canMs  = (\def -> if Character.canEquip c def || Character.canUse' c def then "  " else " #") <$> defs
-      let items0 = zipWith (++) (takeChar 43 . (++ repeat ' ') . Item.name <$> defs)
+      let items0 = zipWith (++) (takeChar 43 . (++ repeat ' ') . (switchL' l . Item.name) <$> defs)
                                (rightTxt 10 . Item.valueInShop <$> defs)
           items  = zipWith (++) items0 canMs
           lst  = "\n=========================(" ++ show (page+1) ++ "/" ++ show (mxPage+1) ++ ")========================\n\n"
@@ -299,7 +300,7 @@ buyItem cid page bi = GameAuto $ do
           cmds = cmdNums (length lstItem')
                $ if bi then buy cid (buyItem cid page bi) . (lstItem' !!) . flip (-) 1
                        else \n -> let (ifm, _) = Item.itemInformation $ defs !! (n - 1)
-                                  in events [Resume (changeFlash ifm)] (buyItem cid page bi)
+                                  in events [Resume (changeFlash $ switchL' l ifm)] (buyItem cid page bi)
       run $ selectEsc msg $ (Key "l", selectShopAction cid)
                           : (Key "n", buyItem cid (page + 1) bi)
                           : (Key "p", buyItem cid (page - 1) bi)
@@ -448,7 +449,7 @@ determineItem cid = GameAuto $ do
         : fmap (\pos -> (Key (toLower <$> Character.itemPosToText pos), determine cid pos)) ps
 
 sellName :: ItemInf -> GameState String
-sellName (ItemInf id determined) = (if determined then Item.name else Item.nameUndetermined) <$> itemByID id
+sellName (ItemInf id determined) = switchL . (if determined then Item.name else Item.nameUndetermined) =<< itemByID id
 
 determineValueTxt :: ItemInf -> GameState String
 determineValueTxt (ItemInf _ True)  = return "---"
@@ -495,7 +496,7 @@ uncurseItem cid = GameAuto $ do
     if null cursedEquippedItems then run $ events [message txt1] (selectShopAction cid)
     else do
       displayData <- mapM (\(pos, inf) -> do
-            name  <- (if identified inf then Item.name else Item.nameUndetermined) <$> itemByID (itemID inf)
+            name  <- switchL . (if identified inf then Item.name else Item.nameUndetermined) =<< itemByID (itemID inf)
             value <- Item.valueInShop <$> itemByID (itemID inf)
             return (pos, name, value)) cursedEquippedItems
       let itemsText = map (\(pos, name, value) ->

@@ -8,6 +8,7 @@ import PreludeL
 import Control.Monad
 import Control.Monad.Except (throwError)
 import Data.List (isPrefixOf, intersperse)
+import Data.String (IsString(..))
 
 import Control.CUI
 import Engine.GameAuto
@@ -359,8 +360,9 @@ statusView s w msg altContent his itemDefOf c = foldl1 (<>) (fmap toText (zip [1
                          _       -> emptyParam
         inMax = 24 -- maximum length of item name
         items' = ((\(ItemInf id identified) -> if identified then Item.name (itemDefOf id) else Item.nameUndetermined (itemDefOf id))
-                  <$> Character.items c) ++ repeat ""
-        itemN n = let nam = lenCut inMax (items' !! n) in if toEnum n `elem` his' then nam else '`' : intersperse '`' (nam ++ replicate (inMax - len nam) ' ')
+                  <$> Character.items c) ++ repeat (fromString "")
+        itemN n = let nam = lenCut inMax $ choiceLang w (items' !! n)
+                  in if toEnum n `elem` his' then nam else '`' : intersperse '`' (nam ++ replicate (inMax - len nam) ' ')
         equipMarks = me (Character.items c) (Character.equips c)
           where me (i@(ItemInf id identified):is) eqs
                     | i `elem` eqs                                            = "*" : me is (filter (/=i) eqs)

@@ -3,6 +3,7 @@ module SampleScenario.Items where
 import PreludeL
 import qualified Data.Items as Item
 import qualified Data.Map as Map
+import Data.String (IsString(..))
 
 import Data.Primitive
 
@@ -15,8 +16,8 @@ amPatternThrow    = EnJp ["throw weapon to"] ["投げつけた"]
 items :: Item.DB
 items = Map.fromList [
     (ItemID 0, Item.Define {
-          Item.name             = "BROKEN ITEM"
-        , Item.nameUndetermined = "BROKEN ITEM?"
+          Item.name             = EnJp "BROKEN ITEM" "ガラクタ"
+        , Item.nameUndetermined = EnJp "BROKEN ITEM?" "ガラクタ?"
         , Item.itemType         = Item.Misc
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -26,12 +27,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 0
-        , Item.itemInformation  = ("ガラクタ。何の役にも立たない。", Null)
+        , Item.itemInformation  = (fromString "ガラクタ。何の役にも立たない。", Null)
     })
     ,
     (ItemID 1, Item.Define {
-          Item.name             = "DIOS POTION"
-        , Item.nameUndetermined = "POTION?"
+          Item.name             = EnJp "DIOS POTION" "DIOSの薬"
+        , Item.nameUndetermined = EnJp "POTION?" "薬?"
         , Item.itemType         = Item.Misc
         , Item.usingEffect      = Just (Item.EqSpell $ SpellID 112, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
         , Item.spEffect         = Nothing
@@ -41,13 +42,13 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
-        , Item.itemInformation  = ("Diosの効果を持つ薬。"
+        , Item.itemInformation  = (fromString "Diosの効果を持つ薬。"
                                   , List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051)])
     })
     ,
     (ItemID 2, Item.Define {
-          Item.name             = "CURSED STONE"
-        , Item.nameUndetermined = "STONE?"
+          Item.name             = EnJp "CURSED STONE" "呪われた石"
+        , Item.nameUndetermined = EnJp "STONE?" "石?"
         , Item.itemType         = Item.Misc
         , Item.usingEffect      = Just (Item.EqSpell $ SpellID 14, (0, Item.Lost))
         , Item.spEffect         = Just (Item.Happens (GameEventID 000100), (10, Item.ChangeTo $ ItemInf (ItemID 0) False))
@@ -57,12 +58,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
-        , Item.itemInformation  = ("呪われた石。", Null)
+        , Item.itemInformation  = (fromString "呪われた石。", Null)
     })
     ,
     (ItemID 3, Item.Define {
-          Item.name             = "WATER"
-        , Item.nameUndetermined = "POTION?"
+          Item.name             = EnJp "WATER" "水"
+        , Item.nameUndetermined = EnJp "POTION?" "薬?"
         , Item.itemType         = Item.Misc
         , Item.usingEffect      = Just (Item.Happens (GameEventID 000003), (0, undefined))
         , Item.spEffect         = Nothing
@@ -72,12 +73,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
-        , Item.itemInformation  = ("きれいな水。", List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051)])
+        , Item.itemInformation  = (fromString "きれいな水。", List [Clip (Trans 0 (-10) (Single $ PictureID 0002)) (Single $ PictureID 0051), Single (PictureID 0051)])
     })
     ,
     (ItemID 4, Item.Define {
-          Item.name             = "HALITO POTION"
-        , Item.nameUndetermined = "POTION?"
+          Item.name             = EnJp "HALITO POTION" "HALITOの薬"
+        , Item.nameUndetermined = EnJp "POTION?" "薬?"
         , Item.itemType         = Item.Misc
         , Item.usingEffect      = Just (Item.EqSpell $ SpellID 11, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
         , Item.spEffect         = Nothing
@@ -87,12 +88,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
-        , Item.itemInformation  = ("投げつけるとHalito相当の火炎を噴出する薬瓶。", Null)
+        , Item.itemInformation  = (fromString "投げつけるとHalito相当の火炎を噴出する薬瓶。", Null)
     })
     ,
     (ItemID 5, Item.Define {
-          Item.name             = "KALKI POTION"
-        , Item.nameUndetermined = "POTION?"
+          Item.name             = EnJp "KALKI POTION" "KALKIの薬"
+        , Item.nameUndetermined = EnJp "POTION?" "薬?"
         , Item.itemType         = Item.Misc
         , Item.usingEffect      = Just (Item.EqSpell $ SpellID 111, (100, Item.ChangeTo $ ItemInf (ItemID 0) False))
         , Item.spEffect         = Nothing
@@ -102,12 +103,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 1
-        , Item.itemInformation  = ("Kalkiの効果を噴出する薬瓶。", Null)
+        , Item.itemInformation  = (fromString "Kalkiの効果を噴出する薬瓶。", Null)
     })
     ,
     (ItemID 11, Item.Define {
-          Item.name             = "SWORD OF IRON"
-        , Item.nameUndetermined = "SWORD?"
+          Item.name             = EnJp "SWORD OF IRON" "鉄の剣"
+        , Item.nameUndetermined = EnJp "SWORD?" "剣?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -135,12 +136,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("鉄の剣。量産品。", Null)
+        , Item.itemInformation  = (fromString "鉄製の剣。量産品。", Null)
     })
     ,
     (ItemID 12, Item.Define {
-          Item.name             = "SHILD OF IRON"
-        , Item.nameUndetermined = "SHILD?"
+          Item.name             = EnJp "SHILD OF IRON" "鉄の盾"
+        , Item.nameUndetermined = EnJp "SHILD?" "盾?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -158,12 +159,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("鉄の盾。量産品。", Null)
+        , Item.itemInformation  = (fromString "鉄製の盾。量産品。", Null)
     })
     ,
     (ItemID 13, Item.Define {
-          Item.name             = "HELMET OF IRON"
-        , Item.nameUndetermined = "HELMET?"
+          Item.name             = EnJp "HELMET OF IRON" "鉄の兜"
+        , Item.nameUndetermined = EnJp "HELMET?" "兜?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -181,12 +182,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("鉄の兜。量産品。", Null)
+        , Item.itemInformation  = (fromString "鉄製の兜。量産品。", Null)
     })
     ,
     (ItemID 14, Item.Define {
-          Item.name             = "HELMET OF IRON"
-        , Item.nameUndetermined = "HELMET?"
+          Item.name             = fromString "HELMET OF IRON"
+        , Item.nameUndetermined = fromString "HELMET?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -204,12 +205,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("鉄の兜。量産品。", Null)
+        , Item.itemInformation  = (fromString "鉄の兜。量産品。", Null)
     })
     ,
     (ItemID 15, Item.Define {
-          Item.name             = "HELMET OF IRON"
-        , Item.nameUndetermined = "HELMET?"
+          Item.name             = fromString "HELMET OF IRON"
+        , Item.nameUndetermined = fromString "HELMET?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -227,12 +228,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("鉄の兜。量産品。", Null)
+        , Item.itemInformation  = (fromString "鉄の兜。量産品。", Null)
     })
     ,
     (ItemID 16, Item.Define {
-          Item.name             = "HELMET OF IRON"
-        , Item.nameUndetermined = "HELMET?"
+          Item.name             = fromString "HELMET OF IRON"
+        , Item.nameUndetermined = fromString "HELMET?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -250,12 +251,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("鉄の兜。量産品。", Null)
+        , Item.itemInformation  = (fromString "鉄の兜。量産品。", Null)
     })
     ,
     (ItemID 17, Item.Define {
-          Item.name             = "CURSED HELMET"
-        , Item.nameUndetermined = "HELMET?"
+          Item.name             = EnJp "CURSED HELMET" "呪われた兜"
+        , Item.nameUndetermined = EnJp "HELMET?" "兜?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -273,12 +274,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Fighter", "Lord", "Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 4
-        , Item.itemInformation  = ("呪いのこもった兜。", Null)
+        , Item.itemInformation  = (fromString "呪いのこもった兜。", Null)
     })
     ,
     (ItemID 103, Item.Define {
-          Item.name             = "盗賊の弓"
-        , Item.nameUndetermined = "弓?"
+          Item.name             = EnJp "Bow of Thief" "盗賊の弓"
+        , Item.nameUndetermined = EnJp "Bow?" "弓?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -306,12 +307,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("手先な器用な物にしか扱えない小型の弓。威力は低い。", Null)
+        , Item.itemInformation  = (fromString "手先な器用な物にしか扱えない小型の弓。威力は低い。", Null)
     })
     ,
     (ItemID 104, Item.Define {
-          Item.name             = "火矢の弓"
-        , Item.nameUndetermined = "弓?"
+          Item.name             = EnJp "Bow of fire" "火矢の弓"
+        , Item.nameUndetermined = EnJp "Bow?" "弓?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -339,12 +340,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 3
-        , Item.itemInformation  = ("火矢を放つ小型の弓。", Null)
+        , Item.itemInformation  = (fromString "火矢を放つ小型の弓。", Null)
     })
     ,
     (ItemID 105, Item.Define {
-          Item.name             = "聖職者の鞭"
-        , Item.nameUndetermined = "紐?"
+          Item.name             = fromString "聖職者の鞭"
+        , Item.nameUndetermined = fromString "紐?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -372,12 +373,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Priest"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 3
-        , Item.itemInformation  = ("聖職者のみが扱う事を許された神聖な鞭。", Null)
+        , Item.itemInformation  = (fromString "聖職者のみが扱う事を許された神聖な鞭。", Null)
     })
     ,
     (ItemID 106, Item.Define {
-          Item.name             = "盗賊のブーメラン"
-        , Item.nameUndetermined = "曲がったもの?"
+          Item.name             = fromString "盗賊のブーメラン"
+        , Item.nameUndetermined = fromString "曲がったもの?"
         , Item.itemType         = Item.Equip
         , Item.usingEffect      = Nothing
         , Item.spEffect         = Nothing
@@ -405,12 +406,12 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.Only ["Thief"]
         , Item.enableToUse      = Item.All
         , Item.itemLv           = 3
-        , Item.itemInformation  = ("手先な器用な物にしか扱えない小型のブーメラン。威力は低い。", Null)
+        , Item.itemInformation  = (fromString "手先な器用な物にしか扱えない小型のブーメラン。威力は低い。", Null)
     })
     ,
     (ItemID 107, Item.Define {
-          Item.name             = "コンパクト・ダイナマイト"
-        , Item.nameUndetermined = "?筒状のもの"
+          Item.name             = fromString "コンパクト・ダイナマイト"
+        , Item.nameUndetermined = fromString "?筒状のもの"
         , Item.itemType         = Item.Misc
         , Item.usingEffect      = Just (Item.EqSpell $ SpellID 11, (100, Item.Lost))
         , Item.spEffect         = Nothing
@@ -420,6 +421,6 @@ items = Map.fromList [
         , Item.enableToEquip    = Item.All
         , Item.enableToUse      = Item.Only ["Thief"]
         , Item.itemLv           = 2
-        , Item.itemInformation  = ("手先な器用な物にしか扱えない小型の爆弾。威力は低い。", Null)
+        , Item.itemInformation  = (fromString "手先な器用な物にしか扱えない小型の爆弾。威力は低い。", Null)
     })
     ]

@@ -113,7 +113,8 @@ checkItem c i next = GameAuto $ do
     else do
       def <- itemByID $ Chara.itemAt c i
       let (ifm, pic) = Item.itemInformation def
-      run $ events [Resume (changeFlash ifm . withPicture (Just pic))] next
+      msg <- switchL ifm
+      run $ events [Resume (changeFlash msg . withPicture (Just pic))] next
 
 identifyItem :: (String -> Event)
              -> PartyPos

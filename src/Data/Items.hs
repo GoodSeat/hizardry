@@ -8,7 +8,7 @@ import qualified Data.Map as Map
 import qualified Data.Spells as Spell
 
 
-type Name = String
+type Name = LanguageSet String
 
 data Define = Define {
       name             :: Name
@@ -22,7 +22,7 @@ data Define = Define {
     , enableToEquip    :: UserType
     , enableToUse      :: UserType
     , itemLv           :: Int
-    , itemInformation  :: (String, PictureInf)
+    , itemInformation  :: (LanguageSet String, PictureInf)
 } deriving (Show, Eq, Read)
 
 

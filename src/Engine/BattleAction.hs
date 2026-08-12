@@ -316,7 +316,7 @@ useItemInBattle :: GameMachine -> Chara.ItemPos -> SpellEffect
 useItemInBattle escape i (Left cid) dst next = GameAuto $ do
     c   <- characterByID cid
     def <- itemByID $ Chara.itemAt c i
-    let n = Item.name def
+    n   <- switchL $ Item.name def
     case Item.usingEffect def of
       Nothing                     -> run $ asItem castUnknown n (Left cid) dst next
       Just (Item.EqSpell ids, bp) -> do

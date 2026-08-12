@@ -81,8 +81,8 @@ isNullKey = null . filter (/= '\n') . filter (/= '\r')
 
 switchL :: LanguageSet a -> GameState a
 switchL o = do
-    wop <- worldOption <$> world
-    return $ switchL' (language wop) o
+    l <- language . worldOption <$> world
+    return $ switchL' l o
 
 switchL' :: Language -> LanguageSet a -> a
 switchL' l (EnJp s1 s2) = if l == ENG then s1 else s2
@@ -297,10 +297,11 @@ selectItem' :: String
             -> GameMachine
 selectItem' cancelKey msgForSelect isTarget next c cancel = GameAuto $ do
     is <- asks items
+    l  <- language . worldOption <$> world
     let nameOf inf = (if identified inf then Item.name else Item.nameUndetermined) (is ! itemID inf)
         its = Chara.items c
     cs  <- filterM (isTarget . snd) (zip (toEnum <$> [0..]) its)
-    let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ nameOf inf) <$> cs
+    let msg = (\(t, inf) -> Chara.itemPosToText t ++ ")" ++ switchL' l (nameOf inf)) <$> cs
         next' = selectItem' cancelKey msgForSelect isTarget next c cancel
     txt1 <- switchL $ EnJp ("Select item(" ++ textItemCandidate c ++ ").\n^L)eave `[`E`S`C`]\n\n")
                            ("選択(" ++ textItemCandidate c ++ ").\n^L)離れる `[`E`S`C`]\n\n")

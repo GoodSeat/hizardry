@@ -259,8 +259,9 @@ divideItems (i:is) = do
         gainItem cid' (ItemInf (ItemID i) False)
         idef <- itemByID (ItemID i)
         rest <- divideItems is
-        return $ (EnJp (Chara.name c' ++ " got " ++ Item.nameUndetermined idef ++ ".")
-                       (Chara.name c' ++ " は " ++ Item.nameUndetermined idef ++ " を手に入れた。")) : rest
+        n    <- switchL $ Item.nameUndetermined idef
+        return $ EnJp (Chara.name c' ++ " got " ++ n ++ ".")
+                      (Chara.name c' ++ " は " ++ n ++ " を手に入れた。") : rest
 
 
 
